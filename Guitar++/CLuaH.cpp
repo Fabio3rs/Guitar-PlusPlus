@@ -24,6 +24,8 @@ bool CLuaH::loadFiles(const std::string &path)
 		return std::string((s = fname.find_last_of('.') != fname.npos)? &fname.c_str()[++s] : "");
 	};
 
+	// TODO: change to STD FileSystem
+
 	HANDLE hFind;
 	WIN32_FIND_DATA data;
 
