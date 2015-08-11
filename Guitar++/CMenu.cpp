@@ -158,6 +158,11 @@ void CMenu::render(){
 }
 
 void CMenu::update(){
+	CLuaH::multiCallBackParams_t menucallback;
+	menucallback.push_back(CLuaH::customParam(menuName));
+
+	CLuaH::Lua().runEventWithParams(std::string("pre") + menuName + std::string("update"), menucallback);
+
 	auto textSizeInScreen = [](double charnums, double size){
 		return (charnums * size / 1.5) + (size / 2.0);
 	};
@@ -276,6 +281,7 @@ void CMenu::update(){
 		CLuaH::Lua().runEventWithParams(optCallBackTXT, params);
 		++i;
 	}
+	CLuaH::Lua().runEventWithParams(std::string("pos") + menuName + std::string("update"), menucallback);
 }
 
 CMenu::CMenu(){
