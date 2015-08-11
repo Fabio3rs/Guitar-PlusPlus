@@ -47,8 +47,9 @@ public:
 	// Initer
 	static GPPGame &GuitarPP();
 
-	GPPGame(GPPGame&) = delete;
 private:
+	GPPGame(GPPGame&) = delete;
+
 	bool			windowChangedParams; // update in case of realtime changes - TODO
 
 	gameWindow		windowCFGs; // Actual config

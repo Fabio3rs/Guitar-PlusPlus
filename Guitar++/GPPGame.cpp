@@ -85,6 +85,7 @@ double GPPGame::getWindowProportion(){
 }
 
 void GPPGame::loadBasicSprites(){
+	CLuaH::Lua().runEvent("preLoadSprites");
 	SPR["palheta"] = CEngine::engine().loadTexture("data/sprites/palheta.tga");
 
 }
