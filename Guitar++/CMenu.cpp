@@ -251,7 +251,7 @@ void CMenu::update(){
 				}
 			}
 			else{
-				opt.status = 0;
+				opt.status = opt.status & 1;
 			}
 			break;
 

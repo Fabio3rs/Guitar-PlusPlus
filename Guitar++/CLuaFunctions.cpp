@@ -306,8 +306,8 @@ int CLuaFunctions::printTolog(lua_State *L){
 int CLuaFunctions::newMenuOption(lua_State *L){
 	LuaParams p(L);
 
-	if (p.getNumParams() == 9 && lua_isstring(L, 1) && lua_isstring(L, 2) && lua_isnumber(L, 3) && lua_isnumber(L, 4) && lua_isnumber(L, 5)
-		&& lua_isnumber(L, 6) && lua_isnumber(L, 7) && lua_isnumber(L, 8) && lua_isfunction(L, 9)){
+	if (p.getNumParams() == 8 && lua_isstring(L, 1) && lua_isstring(L, 2) && lua_isnumber(L, 3) && lua_isnumber(L, 4) && lua_isnumber(L, 5)
+		&& lua_isnumber(L, 6) && lua_isnumber(L, 7) && lua_isfunction(L, 8)){
 		std::string menuName;
 		int optID = 0;
 
@@ -320,13 +320,12 @@ int CLuaFunctions::newMenuOption(lua_State *L){
 		p >> opt.y;
 		p >> opt.size;
 		p >> opt.group;
-		p >> opt.status;
 		p >> opt.type;
 
 		p << (optID = GPPGame::GuitarPP().getMenuByName(menuName).addOpt(opt));
 
 		// ************************************************************** auto callback system
-		lua_pushvalue(L, 9);
+		lua_pushvalue(L, 8);
 		int	fnRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
 		// event menuOptionName
