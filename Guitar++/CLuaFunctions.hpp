@@ -106,6 +106,11 @@ public:
 	*/
 	static int getNumOfMenuOptions(lua_State *L);
 
+	/*
+	* Load a texture (load file & load opengl texture)
+	*/
+	static int loadTexture(lua_State *L);
+
 
 	/*
 	* Register custom functions lua state

@@ -37,6 +37,7 @@ public:
 		std::string											filePath;
 		std::string											fileName;
 		std::unordered_map < std::string, int >				callbacks;
+		std::unordered_map <std::string, unsigned int>		textureList;
 
 		luaScript();
 	};

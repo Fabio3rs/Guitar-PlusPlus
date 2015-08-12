@@ -8,6 +8,7 @@
 #include <deque>
 #include "CLuaFunctions.hpp"
 #include "CMenu.h"
+#include "CEngine.h"
 
 class GPPGame{
 	std::unordered_map <std::string, CMenu> gameMenus;
@@ -15,6 +16,47 @@ class GPPGame{
 	CMenu *mainMenu;
 
 public:
+	// Texture instance manager
+	class gppTexture{
+		friend GPPGame;
+		unsigned int text;
+		std::string textPath;
+		std::string textName;
+
+		std::unordered_map < CLuaH::luaScript*, bool > associatedToScript;
+
+		// DO NOT DUPLICATE THE TEXTURE INSTANCE!!!!!!!
+		gppTexture(gppTexture&) = delete;
+
+	public:
+		unsigned int getTextId() const{
+			return text;
+		}
+
+		std::string getTexturePath() const{
+			return textPath;
+		}
+
+		std::string getTextureName() const{
+			return textName;
+		}
+
+		gppTexture(const std::string &path, const std::string &texture){
+			text = CEngine::engine().loadTexture((path + std::string("/") + texture).c_str());
+			textPath = path;
+			textName = texture;
+		}
+
+		gppTexture(){
+			text = 0;
+		}
+
+		~gppTexture(){
+			text = 0;
+			// TODO CEngine::engine().unloadTexture(id);
+		}
+	};
+
 	struct gameWindow{
 		int h, w, AA, colorBits;
 		bool fullscreen;
@@ -31,8 +73,11 @@ public:
 
 	CMenu &getMenuByName(const std::string &name);
 
-	// loaded game sprites
+	// loaded game sprites - TODO: improve it
 	std::unordered_map <std::string, int> SPR;
+	std::unordered_map <std::string, gppTexture> gTextures;
+	
+	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
 
 	// Window settings
 	gameWindow getWindowDefaults(bool safeMode = false);

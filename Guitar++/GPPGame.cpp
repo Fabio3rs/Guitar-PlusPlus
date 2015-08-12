@@ -84,6 +84,21 @@ double GPPGame::getWindowProportion(){
 	return CEngine::engine().windowWidth / CEngine::engine().windowHeight;
 }
 
+const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript){
+	auto &textInst = gTextures[(path + "/" + texture)];
+
+	if (luaScript){
+		textInst.associatedToScript[luaScript] = true;
+	}
+
+	if (textInst.getTextId()){
+		return gTextures[(path + "/" + texture)];
+	}
+
+	gTextures[(path + "/" + texture)] = gppTexture(path, texture);
+	return gTextures[(path + "/" + texture)];
+}
+
 void GPPGame::loadBasicSprites(){
 	CLuaH::Lua().runEvent("preLoadSprites");
 	SPR["palheta"] = CEngine::engine().loadTexture("data/sprites/palheta.tga");

@@ -181,6 +181,36 @@ int CLuaFunctions::setConfigs(lua_State *L){
 	return 0;
 }
 
+/*
+* Load a texture (load file & load opengl texture)
+*/
+int CLuaFunctions::loadTexture(lua_State *L){
+	LuaParams p(L);
+
+	for (int i = 0; i < p.getNumParams(); i++){
+		if (lua_isstring(L, i + 1)){
+			std::string str;
+			p >> str;
+
+			unsigned int result = 0;
+
+			result = GPPGame::GuitarPP().loadTexture("data/sprites", str, &CLuaH::Lua().getLastScript()).getTextId();
+
+			if (result){
+				p << result;
+			}
+			else{
+				p << false;
+			}
+		}
+		else{
+			p << false;
+		}
+	}
+
+	return p.rtn();
+}
+
 int CLuaFunctions::doNotRunAgain(lua_State *L)
 {
 	CLuaH::Lua().getLastScript().runAgain = false;
@@ -401,6 +431,7 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "printTolog", printTolog);
 	lua_register(L, "getMenuOptionName", getMenuOptionName);
 	lua_register(L, "getNumOfMenuOptions", getNumOfMenuOptions);
+	lua_register(L, "loadTexture", loadTexture);
 }
 
 CLuaFunctions::CLuaFunctions()
