@@ -37,7 +37,7 @@ public:
 		std::string											filePath;
 		std::string											fileName;
 		std::unordered_map < std::string, int >				callbacks;
-		std::unordered_map <std::string, unsigned int>		textureList;
+		std::unordered_map <std::string, unsigned int>		textureList; // useless?
 
 		luaScript();
 	};
@@ -49,6 +49,7 @@ public:
 	std::unordered_map < std::string, std::unordered_map<std::string, luaScript> >		files; /* std::unordered_map<pathForScripts, std::unordered_map<scriptName, scriptData>> */
 	std::unordered_map <std::string, callBacksStruct>									callbacks;
 
+	// Lua functions custom param wrapper
 	class customParam{
 		int type;
 		std::string str;
