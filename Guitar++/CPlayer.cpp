@@ -92,6 +92,7 @@ int CPlayer::getLevel(){
 	return log(experience);
 }
 
+// TODO Plus load
 bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 	typedef std::map < std::string, std::map<std::string, std::deque<std::string>> > parsedChart;
 	chartFileName = chartFile;

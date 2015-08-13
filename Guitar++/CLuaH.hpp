@@ -71,7 +71,7 @@ public:
 		}
 
 		const bool getBoolean() const{
-			return boolean;
+			return boolean != 0;
 		}
 
 		const int getFunctionRef() const{
@@ -83,7 +83,17 @@ public:
 			type = LUA_TSTRING;
 		}
 
+		void set(const char *s){
+			str = s;
+			type = LUA_TSTRING;
+		}
+
 		void set(double n){
+			num = n;
+			type = LUA_TNUMBER;
+		}
+
+		void set(int n){
 			num = n;
 			type = LUA_TNUMBER;
 		}
@@ -186,7 +196,22 @@ public:
 			type = LUA_TSTRING;
 		}
 
+		customParam(const char *s){
+			num = 0.0;
+			boolean = NULL;
+			function = NULL;
+			str = s;
+			type = LUA_TSTRING;
+		}
+
 		customParam(double n){
+			boolean = NULL;
+			function = NULL;
+			num = n;
+			type = LUA_TNUMBER;
+		}
+
+		customParam(int n){
 			boolean = NULL;
 			function = NULL;
 			num = n;

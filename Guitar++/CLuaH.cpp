@@ -73,6 +73,7 @@ CLuaH::luaScript CLuaH::newScript(const std::string &path, const std::string &f)
 	lData.fileName = f;
 
 	CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+	CLuaFunctions::LuaF().registerGlobals(lData.luaState);
 
 	int load_result = luaL_loadfile(lData.luaState, std::string(lData.filePath + barra + lData.fileName).c_str());
 

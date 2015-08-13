@@ -119,7 +119,7 @@ CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator>>(void *&param)
 CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator>>(bool &param)
 {
 	if (stck <= num_params){
-		param = (bool)lua_toboolean(L, stck);
+		param = lua_toboolean(L, stck) != 0;
 		++stck;
 	}
 	else
@@ -166,7 +166,7 @@ int CLuaFunctions::setConfigs(lua_State *L){
 	lua_getglobal(L, "FullScreen");
 
 	if (lua_isboolean(L, -1))
-		cfg.fullscreen = (bool)lua_toboolean(L, -1);
+		cfg.fullscreen = lua_toboolean(L, -1) != 0;
 
 
 
@@ -432,6 +432,22 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "getMenuOptionName", getMenuOptionName);
 	lua_register(L, "getNumOfMenuOptions", getNumOfMenuOptions);
 	lua_register(L, "loadTexture", loadTexture);
+}
+
+template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const T &value){
+	CLuaH::customParam(value).pushToLuaStack(L);
+	lua_setglobal(L, name.c_str());
+}
+
+/*
+* Register default game globals
+*/
+void CLuaFunctions::registerGlobals(lua_State *L)
+{
+	setLuaGlobal(L, "TESTE", "aaa");
+
+
+
 }
 
 CLuaFunctions::CLuaFunctions()

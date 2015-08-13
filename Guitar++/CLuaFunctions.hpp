@@ -117,6 +117,11 @@ public:
 	*/
 	void registerFunctions(lua_State *L);
 
+	/*
+	* Register default game globals
+	*/
+	void registerGlobals(lua_State *L);
+
 	CLuaFunctions(CLuaFunctions&) = delete;
 
 private:
