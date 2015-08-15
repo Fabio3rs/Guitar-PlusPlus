@@ -434,7 +434,8 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "loadTexture", loadTexture);
 }
 
-template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const T &value){
+template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const T &value)
+{
 	CLuaH::customParam(value).pushToLuaStack(L);
 	lua_setglobal(L, name.c_str());
 }

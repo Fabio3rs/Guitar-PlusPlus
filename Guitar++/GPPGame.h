@@ -70,6 +70,7 @@ public:
 		CLuaH::luaScript main;
 
 	public:
+		void apply();
 
 		CTheme(const std::string &name);
 	};

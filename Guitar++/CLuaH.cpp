@@ -254,6 +254,9 @@ CLuaH::luaScript::luaScript(){
 CLuaH::luaScript::~luaScript(){
 	if (luaState){
 		CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
+
+		lua_close(luaState);
+		luaState = nullptr;
 	}
 }
 

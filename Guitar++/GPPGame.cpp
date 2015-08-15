@@ -124,6 +124,11 @@ bool GPPGame::CTheme::load(){
 
 }
 
+void GPPGame::CTheme::apply()
+{
+
+}
+
 GPPGame::CTheme::CTheme(const std::string &name){
 	this->name = name;
 
