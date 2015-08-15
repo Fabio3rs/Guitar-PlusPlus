@@ -36,9 +36,7 @@ bool CLuaH::loadFiles(const std::string &path)
 		{
 			if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
 			{
-				luaScript lData = newScript(path, data.cFileName);
-				
-				files[lData.filePath][lData.fileName] = lData;
+				files[path][data.cFileName] = newScript(path, data.cFileName);
 			}
 		} while (FindNextFile(hFind, &data));
 		FindClose(hFind);
@@ -251,11 +249,26 @@ CLuaH::luaScript::luaScript(){
 	runAgain = true;
 }
 
-CLuaH::luaScript::~luaScript(){
-	if (luaState){
+void CLuaH::luaScript::unload(){
+	if (luaState != nullptr){
 		CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
 
 		lua_close(luaState);
+		luaState = nullptr;
+	}
+
+	savedValues.clear();
+	filePath.clear();
+	fileName.clear();
+	callbacks.clear();
+	textureList.clear();
+}
+
+CLuaH::luaScript::~luaScript(){
+	if (luaState != nullptr/* && fileName.size() != 0*/){
+		CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
+
+		//lua_close(luaState);
 		luaState = nullptr;
 	}
 }

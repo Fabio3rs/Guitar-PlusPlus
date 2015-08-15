@@ -39,6 +39,8 @@ public:
 		std::unordered_map < std::string, int >				callbacks;
 		std::unordered_map <std::string, unsigned int>		textureList; // useless?
 
+		void unload();
+
 		luaScript();
 		~luaScript();
 	};
