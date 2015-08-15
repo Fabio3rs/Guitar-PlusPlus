@@ -63,6 +63,17 @@ public:
 		std::string name; // "Guitar ++ - name"/"Guitar++"
 	};
 
+	class CTheme{
+		std::string name;
+
+		bool load();
+		CLuaH::luaScript main;
+
+	public:
+
+		CTheme(const std::string &name);
+	};
+
 	CMenu &newMenu();
 	CMenu &newNamedMenu(const std::string &name);
 

@@ -444,7 +444,7 @@ template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const
 */
 void CLuaFunctions::registerGlobals(lua_State *L)
 {
-	setLuaGlobal(L, "TESTE", "aaa");
+	setLuaGlobal(L, "TESTE", "abcde");
 
 
 

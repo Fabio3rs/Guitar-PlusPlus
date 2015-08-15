@@ -235,9 +235,26 @@ void CLuaH::runScripts(){
 	}
 }
 
+/*
+* Run a internal event (calls him specifics callbacks)
+*/
+void CLuaH::runInternalEvent(luaScript &L, std::string name){
+	if (L.callbacks[name] != 0){
+		lua_rawgeti(L.luaState, LUA_REGISTRYINDEX, L.callbacks[name]);
+		if (runScript(L) != 0)
+			catchErrorString(L);
+	}
+}
+
 CLuaH::luaScript::luaScript(){
 	luaState = nullptr;
 	runAgain = true;
+}
+
+CLuaH::luaScript::~luaScript(){
+	if (luaState){
+		CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
+	}
 }
 
 CLuaH::CLuaH()

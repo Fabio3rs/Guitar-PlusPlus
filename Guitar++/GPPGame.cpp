@@ -3,6 +3,7 @@
 #include "CEngine.h"
 #include <cstdio>
 #include <cstdlib>
+#include "CLog.h"
 
 /*
 Provide default settings for the window
@@ -102,6 +103,30 @@ const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const s
 void GPPGame::loadBasicSprites(){
 	CLuaH::Lua().runEvent("preLoadSprites");
 	SPR["palheta"] = CEngine::engine().loadTexture("data/sprites/palheta.tga");
+
+}
+
+bool GPPGame::CTheme::load(){
+	if (name.size() == 0){
+		CLog::log() << "GPPGame::CTheme::load(): Load theme fail - no name setted";
+		return false;
+	}
+
+	main = CLuaH::Lua().newScript(std::string("data/themes/") + name, "Theme.lua");
+
+	if (main.luaState == nullptr){
+		CLog::log() << "GPPGame::CTheme::load(): Load theme fail - Theme.lua wasn't loaded";
+		return false;
+	}
+
+	CLuaH::Lua().runScript(main);
+
+
+}
+
+GPPGame::CTheme::CTheme(const std::string &name){
+	this->name = name;
+
 
 }
 

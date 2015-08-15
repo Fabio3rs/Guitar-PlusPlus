@@ -40,6 +40,7 @@ public:
 		std::unordered_map <std::string, unsigned int>		textureList; // useless?
 
 		luaScript();
+		~luaScript();
 	};
 
 	struct callBacksStruct{
@@ -266,6 +267,16 @@ public:
 	* Run a especific with parameteres (calls him specifics callbacks)
 	*/
 	void						runEventWithParams(const std::string &name, multiCallBackParams_t &params);
+
+	/*
+	* Run a internal event (calls him specifics callbacks)
+	*/
+	void						runInternalEvent(luaScript &L, std::string name);
+
+	/*
+	* Run a internal with parameteres (calls him specifics callbacks)
+	*/
+	void						runinternalEventWithParams(luaScript &L, const std::string &name, multiCallBackParams_t &params);
 
 
 	CLuaH(const CLuaH&) = delete;
