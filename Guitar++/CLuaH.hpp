@@ -41,6 +41,9 @@ public:
 
 		void unload();
 
+		luaScript &operator=(luaScript &&script);
+		luaScript &operator=(const luaScript &script) = delete;
+
 		luaScript();
 		~luaScript();
 	};
@@ -253,7 +256,7 @@ public:
 	/*
 	* New script and add it to quere
 	*/
-	void						newScriptInQuere(const luaScript &lua);
+	void						newScriptInQuere(luaScript &&lua);
 
 	/*
 	* Run only one script
@@ -280,15 +283,15 @@ public:
 	*/
 	void						runinternalEventWithParams(luaScript &L, const std::string &name, multiCallBackParams_t &params);
 
-
-	CLuaH(const CLuaH&) = delete;
-
 	/*
 	* Get last runned (or running) script
 	*/
 	inline luaScript &getLastScript(){ return *lastScript; }
 
 private:
+	CLuaH(const CLuaH&) = delete;
+
+
 	/*
 	* Run only one script with args (already in Lua Stack)
 	*/

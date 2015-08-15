@@ -45,8 +45,8 @@ bool CLuaH::loadFiles(const std::string &path)
 	return true;
 }
 
-void CLuaH::newScriptInQuere(const luaScript &lua){
-	files[lua.filePath][lua.fileName] = lua;
+void CLuaH::newScriptInQuere(luaScript &&lua){
+	files[lua.filePath][lua.fileName] = std::move(lua);
 }
 
 CLuaH::luaScript CLuaH::newScript(const std::string &path, const std::string &f){
@@ -249,6 +249,20 @@ CLuaH::luaScript::luaScript(){
 	runAgain = true;
 }
 
+CLuaH::luaScript &CLuaH::luaScript::operator=(luaScript &&script){
+	luaState = script.luaState;
+
+	savedValues = std::move(script.savedValues);
+	filePath = std::move(script.filePath);
+	fileName = std::move(script.fileName);
+	callbacks = std::move(script.callbacks);
+	textureList = std::move(script.textureList);
+
+	script.luaState = nullptr;
+
+	return *this;
+}
+
 void CLuaH::luaScript::unload(){
 	if (luaState != nullptr){
 		CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
@@ -257,11 +271,11 @@ void CLuaH::luaScript::unload(){
 		luaState = nullptr;
 	}
 
-	savedValues.clear();
+	/*savedValues.clear();
 	filePath.clear();
 	fileName.clear();
 	callbacks.clear();
-	textureList.clear();
+	textureList.clear();*/
 }
 
 CLuaH::luaScript::~luaScript(){
