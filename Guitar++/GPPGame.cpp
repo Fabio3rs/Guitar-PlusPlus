@@ -157,6 +157,11 @@ int GPPGame::createWindow(){
 	return CEngine::engine().windowOpened(); // Is the window really open?
 }
 
+void GPPGame::setVSyncMode(int mode)
+{
+	CEngine::engine().setVSyncMode(mode);
+}
+
 void GPPGame::setMainMenu(CMenu &m){
 	mainMenu = &m;
 }

@@ -388,6 +388,8 @@ public:
 	int getMouseButton(int btn);
 	inline const int &getFPS() { return FPS; }
 
+	void setVSyncMode(int mode);
+
 	~CEngine();
 
 	static CEngine &engine();

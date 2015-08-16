@@ -104,6 +104,8 @@ public:
 	// Initer
 	static GPPGame &GuitarPP();
 
+	void setVSyncMode(int mode);
+
 private:
 	GPPGame(GPPGame&) = delete;
 

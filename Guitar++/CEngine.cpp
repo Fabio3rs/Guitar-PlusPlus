@@ -876,7 +876,11 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 
 	cursorText = loadTexture("data/sprites/cursor.tga");
 	glfwSetInputMode((GLFWwindow*)window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-	glfwSwapInterval(0);
+	//setVSyncMode(0);
+}
+
+void CEngine::setVSyncMode(int mode){
+	glfwSwapInterval(mode);
 }
 
 int CEngine::getMouseButton(int btn){

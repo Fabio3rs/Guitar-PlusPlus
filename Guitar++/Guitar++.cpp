@@ -111,6 +111,8 @@ int main(int argc, char* argv[])
 	GPPGame::GuitarPP().setMainMenu(mainMenu);
 	CLuaH::Lua().runEvent("mainMenuSetted");
 
+	GPPGame::GuitarPP().setVSyncMode(1);
+
 	while (CEngine::engine().windowOpened()){
 		GPPGame::GuitarPP().clearScreen();
 
