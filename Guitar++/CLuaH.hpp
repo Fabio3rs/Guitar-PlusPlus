@@ -28,6 +28,10 @@ public:
 		nullinit(const nullinit<T>&l) : i(l){};
 	};
 
+	/*
+	* luaScript can't be duplicated
+	* 'cause dctor calls lua_close(luaState)
+	*/
 	struct luaScript
 	{
 		lua_State											*luaState;
@@ -39,11 +43,12 @@ public:
 		std::unordered_map < std::string, int >				callbacks;
 		std::unordered_map <std::string, unsigned int>		textureList; // useless?
 
-		void unload();
+		void unload(); // clean lua state, containers, etc.
 
 		luaScript &operator=(luaScript &&script);
-		luaScript &operator=(const luaScript &script) = delete;
+		luaScript &operator=(const luaScript &script) = delete; // No copy constructor!!!
 
+		luaScript(luaScript &L); // Works like move operator
 		luaScript();
 		~luaScript();
 	};

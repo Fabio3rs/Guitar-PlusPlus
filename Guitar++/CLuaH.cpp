@@ -271,18 +271,35 @@ void CLuaH::luaScript::unload(){
 		luaState = nullptr;
 	}
 
-	/*savedValues.clear();
+	savedValues.clear();
 	filePath.clear();
 	fileName.clear();
 	callbacks.clear();
-	textureList.clear();*/
+	textureList.clear();
+}
+
+/*
+* luaScript can't be duplicated
+* 'cause dctor calls lua_close(luaState)
+* copy ctor works like move operator
+*/
+CLuaH::luaScript::luaScript(luaScript &L){
+	luaState = L.luaState;
+
+	savedValues = std::move(L.savedValues);
+	filePath = std::move(L.filePath);
+	fileName = std::move(L.fileName);
+	callbacks = std::move(L.callbacks);
+	textureList = std::move(L.textureList);
+
+	L.luaState = nullptr;
 }
 
 CLuaH::luaScript::~luaScript(){
-	if (luaState != nullptr/* && fileName.size() != 0*/){
+	if (luaState != nullptr){
 		CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
 
-		//lua_close(luaState);
+		lua_close(luaState);
 		luaState = nullptr;
 	}
 }
