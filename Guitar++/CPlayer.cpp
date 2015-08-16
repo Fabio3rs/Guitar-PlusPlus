@@ -79,7 +79,7 @@ bool CPlayer::loadSong(const std::string &path){
 	bool isChartOpen = fullFilePath.find(".chart") != std::string::npos ? Notes.loadFeedbackChart(fullFilePath.c_str()) : Notes.loadChart(fullFilePath.c_str());
 
 	if (isChartOpen){
-		//CEngine::inst().loadSoundStream((std::string("data/songs/") + path + std::string("/") + smartSongSearch(path)).c_str(), songAudioID);
+		//CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/") + smartSongSearch(path)).c_str(), songAudioID);
 
 	}
 

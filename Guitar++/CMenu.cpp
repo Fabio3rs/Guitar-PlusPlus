@@ -48,7 +48,7 @@ void CMenu::render(){
 			RenderData.TextureY1 = 1.0;
 			RenderData.TextureY2 = 0.0;
 
-			CEngine::inst().Render2DQuad(RenderData);
+			CEngine::engine().Render2DQuad(RenderData);
 			break;
 		}
 	}
@@ -62,7 +62,7 @@ void CMenu::render(){
 			break;
 
 		case textbtn:
-			CEngine::inst().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
+			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
 			CFonts::fonts().DrawTextInGLFWWindow(opt.text, opt.x, opt.y, opt.size);
 			if (opt.status & 1){
 				CEngine::RenderDoubleStruct RenderData;
@@ -83,12 +83,12 @@ void CMenu::render(){
 				RenderData.TextureY1 = 1.0;
 				RenderData.TextureY2 = 0.0;
 
-				CEngine::inst().Render2DQuad(RenderData);
+				CEngine::engine().Render2DQuad(RenderData);
 			}
 			break;
 
 		case deslizant_Select_list:
-			CEngine::inst().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
+			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
 			CFonts::fonts().DrawTextInGLFWWindow(opt.text, opt.x, opt.y, opt.size);
 
 			double textSize = textSizeInScreen(opt.text.size(), opt.size);
@@ -123,7 +123,7 @@ void CMenu::render(){
 
 				RenderData.Text = 0;
 
-				CEngine::inst().Render2DQuad(RenderData);
+				CEngine::engine().Render2DQuad(RenderData);
 			}
 
 			double absolutePos = barPosX1 + barPosXStep;
@@ -146,7 +146,7 @@ void CMenu::render(){
 			RenderData.TextureY1 = 1.0;
 			RenderData.TextureY2 = 0.0;
 
-			CEngine::inst().Render2DQuad(RenderData);
+			CEngine::engine().Render2DQuad(RenderData);
 
 			barPosX1 += opt.deslizantBarSize + opt.size;
 
@@ -154,7 +154,7 @@ void CMenu::render(){
 			break;
 		}
 	}
-	CEngine::inst().setColor(1.0, 1.0, 1.0, 1.0);
+	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 }
 
 void CMenu::update(){
@@ -168,7 +168,7 @@ void CMenu::update(){
 	};
 
 	auto isMouseOver2DQuad = [](double x, double y, double w, double h){
-		double mx = CEngine::inst().mouseX, my = CEngine::inst().mouseY;
+		double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
 		return mx >= x && mx <= x + w && my >= y - h && my <= y;
 	};
 
@@ -181,15 +181,15 @@ void CMenu::update(){
 		}
 	};
 
-	int leftKey = CEngine::inst().getKey(GLFW_KEY_LEFT), rightKey = CEngine::inst().getKey(GLFW_KEY_RIGHT);
+	int leftKey = CEngine::engine().getKey(GLFW_KEY_LEFT), rightKey = CEngine::engine().getKey(GLFW_KEY_RIGHT);
 
 	bool enterOpt = false, mBTNClick = false;
 
-	if (CEngine::inst().getMouseButton(0)){
+	if (CEngine::engine().getMouseButton(0)){
 		mBTNClick = true;
 	}
 
-	if (CEngine::inst().getKey(GLFW_KEY_ENTER) || mBTNClick){
+	if (CEngine::engine().getKey(GLFW_KEY_ENTER) || mBTNClick){
 		enterOpt = status = true;
 	}
 
@@ -218,7 +218,7 @@ void CMenu::update(){
 		params.push_back(CLuaH::customParam(opt.optValue));
 
 		if (opt.shortcutKey){
-			int pressing = CEngine::inst().getKey(opt.shortcutKey);
+			int pressing = CEngine::engine().getKey(opt.shortcutKey);
 			if (opt.pressingShortcutKey && !pressing){
 				desselectAllFromGroup(opt.group);
 				opt.status |= 1 | 2;
@@ -262,7 +262,7 @@ void CMenu::update(){
 
 			if (isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize, opt.size)){
 				if (mBTNClick){
-					double subX = (CEngine::inst().mouseX - barPosX1);
+					double subX = (CEngine::engine().mouseX - barPosX1);
 					opt.listID = (int)(((double)opt.optList.size() / opt.deslizantBarSize) * subX);
 
 					if (opt.listID >= opt.optList.size()){

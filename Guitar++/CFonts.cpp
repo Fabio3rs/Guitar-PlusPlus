@@ -75,7 +75,7 @@ CFonts::CFonts(){
 	//fontMap = new char[nChars + 1];
 	//strcpy(fontMap, tmp, sizeof(tmp));
 	
-	Texture = CEngine::inst().loadTexture("data/sprites/FONT.tga");
+	Texture = CEngine::engine().loadTexture("data/sprites/FONT.tga");
 }
 
 double CFonts::getCenterPos(int charsnum, double size, double posX1){
@@ -114,7 +114,7 @@ int CFonts::GetCharSize(char* _char){
 int CFonts::ShowTimedText(const char *Text, double time, double posX1, double posY1, double size){
 	TimedText nTimedText;
 	Texts.push_back(nTimedText);
-	Texts.back().AddedTime = CEngine::inst().getTime();
+	Texts.back().AddedTime = CEngine::engine().getTime();
 	Texts.back().Text = new char[strlen(Text) + 1];
 	strcpy(Texts.back().Text, Text);
 	Texts.back().time = time;
@@ -129,7 +129,7 @@ int CFonts::ShowTimedText(const char *Text, double time, double posX1, double po
 int CFonts::ShowTimedText(std::string &Text, double time, double posX1, double posY1, double size){
 	TimedText nTimedText;
 	Texts.push_back(nTimedText);
-	Texts.back().AddedTime = CEngine::inst().getTime();
+	Texts.back().AddedTime = CEngine::engine().getTime();
 	Texts.back().Text = new char[Text.size() + 1];
 	strcpy(Texts.back().Text, Text.c_str());
 	Texts.back().time = time;
@@ -146,12 +146,12 @@ void CFonts::DisableStoredText(int ID){
 }
 
 void CFonts::EnableStoredText(int ID){
-	Texts.at(ID).AddedTime = CEngine::inst().getTime();
+	Texts.at(ID).AddedTime = CEngine::engine().getTime();
 	Texts.at(ID).Enabled = true;
 }
 
 bool CFonts::TextIsActive(int ID){
-	return ((CEngine::inst().getTime() - Texts.at(ID).AddedTime < Texts.at(ID).time || Texts.at(ID).AddedTime == -1) && Texts.at(ID).Enabled);
+	return ((CEngine::engine().getTime() - Texts.at(ID).AddedTime < Texts.at(ID).time || Texts.at(ID).AddedTime == -1) && Texts.at(ID).Enabled);
 }
 
 void CFonts::DrawStoredText(){
@@ -159,7 +159,7 @@ void CFonts::DrawStoredText(){
 	for(int i = 0; i < TextsVectorSize; i++){
 		TimedText &TextS = Texts.at(i);
 		
-		if ((CEngine::inst().getTime() - TextS.AddedTime < TextS.time || TextS.AddedTime == -1) && TextS.Enabled){
+		if ((CEngine::engine().getTime() - TextS.AddedTime < TextS.time || TextS.AddedTime == -1) && TextS.Enabled){
 			DrawTextInGLFWWindow(TextS.Text, TextS.posX1, TextS.posY1, TextS.size);
 		}
 	}

@@ -147,11 +147,23 @@
 #define GLFW_KEY_LAST               GLFW_KEY_MENU
 #endif
 
+enum windowsNum{closed, opened, preUpdate, posUpdate};
+
+typedef void(*customwcallback)(int w, int h, windowsNum state);
+
 class CEngine{
-	static CEngine *thisptr;
 	void *window;
+	customwcallback wcallfunc;
 
 public:
+	void setWindowCallbackFunction(customwcallback f){
+		wcallfunc = f;
+	}
+
+	customwcallback getWindowCallbackFunction(){
+		return wcallfunc;
+	}
+
 	typedef struct {
 		int Width, Height;
 		int Format;
@@ -330,10 +342,6 @@ public:
 	std::string getKeyboardNoise();
 	int getCRCKeyboardNoise();
 	double updateRandomNoiseInterval(double interval);
-
-	inline static CEngine &inst(){
-		return *thisptr;
-	}
 
 	void setCamera(double eyex,
 		double eyey,

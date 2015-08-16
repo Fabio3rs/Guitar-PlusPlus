@@ -24,7 +24,6 @@
 #include <assimp/postprocess.h>     // Post processing flags
 */
 
-CEngine *CEngine::thisptr = nullptr;
 unsigned int *CEngine::bitArray = nullptr;
 
 CEngine &CEngine::engine(){
@@ -180,15 +179,15 @@ void CEngine::setCamera(double eyex,
 	glLoadIdentity();
 
 	gluPerspective(45.0, (double)windowWidth / (double)windowHeight, 0.005, 1000.0);
-	gluLookAt(CEngine::inst().eyex,
-		CEngine::inst().eyey,
-		CEngine::inst().eyez,
-		CEngine::inst().centerx,
-		CEngine::inst().centery,
-		CEngine::inst().centerz,
-		CEngine::inst().upx,
-		CEngine::inst().upy,
-		CEngine::inst().upz); /* positive Y up vector */
+	gluLookAt(engine().eyex,
+		engine().eyey,
+		engine().eyez,
+		engine().centerx,
+		engine().centery,
+		engine().centerz,
+		engine().upx,
+		engine().upy,
+		engine().upz); /* positive Y up vector */
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -198,28 +197,34 @@ static void windowCallBack(GLFWwindow *window, int w, int h){
 	if (h == 0) h = 1;
 	if (w == 0) w = 1;
 
+	if (CEngine::engine().getWindowCallbackFunction())
+		CEngine::engine().getWindowCallbackFunction()(w, h, preUpdate);
+
 	glViewport(0, 0, w, h);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	CEngine::inst().windowWidth = w;
-	CEngine::inst().windowHeight = h;
+	CEngine::engine().windowWidth = w;
+	CEngine::engine().windowHeight = h;
 
 	gluPerspective(45.0, (double)w / (double)h, 0.005, 1000.0);
 
-	gluLookAt(CEngine::inst().eyex,
-		CEngine::inst().eyey,
-		CEngine::inst().eyez,
-		CEngine::inst().centerx,
-		CEngine::inst().centery,
-		CEngine::inst().centerz,
-		CEngine::inst().upx,
-		CEngine::inst().upy,
-		CEngine::inst().upz); /* positive Y up vector */
+	gluLookAt(CEngine::engine().eyex,
+		CEngine::engine().eyey,
+		CEngine::engine().eyez,
+		CEngine::engine().centerx,
+		CEngine::engine().centery,
+		CEngine::engine().centerz,
+		CEngine::engine().upx,
+		CEngine::engine().upy,
+		CEngine::engine().upz); /* positive Y up vector */
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+
+	if (CEngine::engine().getWindowCallbackFunction())
+		CEngine::engine().getWindowCallbackFunction()(w, h, posUpdate);
 }
 
 void CEngine::setBitState(unsigned int *array, unsigned int bitSet, bool state){
@@ -1081,7 +1086,6 @@ void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData){
 }
 
 CEngine::CEngine(){
-	CEngine::thisptr = this;
 	AASamples = 0;
 
 	window = nullptr;
@@ -1108,6 +1112,8 @@ CEngine::CEngine(){
 	setCamera(0.0, 0.0, 2.3, /* look from camera XYZ */
 		0, 0, 0, /* look at the origin */
 		0, 1, 0);
+
+	wcallfunc = nullptr;
 	/*
 	if(!bitArray){
 	bitArray = new unsigned int[10000];
@@ -1126,5 +1132,4 @@ CEngine::~CEngine(){
 	bitArray = nullptr;
 	}*/
 
-	CEngine::thisptr = nullptr;
 }

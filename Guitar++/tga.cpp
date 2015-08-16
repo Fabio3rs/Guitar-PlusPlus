@@ -109,8 +109,8 @@ static int ReadTGAHeader( _GLFWstream *s, _tga_header_t *h )
     int pos;
 
     // Read TGA file header from file
-	pos = CEngine::inst().tellStream(s);
-	CEngine::inst().readStream(s, buf, 18);
+	pos = CEngine::engine().tellStream(s);
+	CEngine::engine().readStream(s, buf, 18);
 
     // Interpret header (endian independent parsing)
     h->idlen         = (int) buf[0];
@@ -140,7 +140,7 @@ static int ReadTGAHeader( _GLFWstream *s, _tga_header_t *h )
           h->bitsperpixel == 32) )
     {
         // Skip the ID field
-		CEngine::inst().seekStream(s, h->idlen, SEEK_CUR);
+		CEngine::engine().seekStream(s, h->idlen, SEEK_CUR);
 
         // Indicate that the TGA header was valid
         return GL_TRUE;
@@ -148,7 +148,7 @@ static int ReadTGAHeader( _GLFWstream *s, _tga_header_t *h )
     else
     {
         // Restore file position
-		CEngine::inst().seekStream(s, pos, SEEK_SET);
+		CEngine::engine().seekStream(s, pos, SEEK_SET);
 
         // Indicate that the TGA header was invalid
         return GL_FALSE;
@@ -175,7 +175,7 @@ static void ReadTGA_RLE( unsigned char *buf, int size, int bpp,
     while( size > 0 )
     {
         // Get repetition count
-	CEngine::inst().readStream( s, &c, 1 );
+	CEngine::engine().readStream( s, &c, 1 );
         repcount = (unsigned int) c;
         bytes = ((repcount & 127) + 1) * bpp;
         if( size < bytes )
@@ -186,7 +186,7 @@ static void ReadTGA_RLE( unsigned char *buf, int size, int bpp,
         // Run-Length packet?
         if( repcount & 128 )
         {
-			CEngine::inst().readStream(s, pixel, bpp);
+			CEngine::engine().readStream(s, pixel, bpp);
             for( n = 0; n < (repcount & 127) + 1; n ++ )
             {
                 for( k = 0; k < bpp; k ++ )
@@ -198,7 +198,7 @@ static void ReadTGA_RLE( unsigned char *buf, int size, int bpp,
         else
         {
             // It's a Raw packet
-			CEngine::inst().readStream(s, buf, bytes);
+			CEngine::engine().readStream(s, buf, bytes);
             buf += bytes;
         }
 
@@ -244,7 +244,7 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         }
 
         // Read colormap from file
-		CEngine::inst().readStream(s, cmap, cmapsize);
+		CEngine::engine().readStream(s, cmap, cmapsize);
     }
     else
     {
@@ -289,7 +289,7 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     }
     else
     {
-		CEngine::inst().readStream(s, pix, pixsize);
+		CEngine::engine().readStream(s, pix, pixsize);
     }
 
     // If the image origin is not what we want, re-arrange the pixels
