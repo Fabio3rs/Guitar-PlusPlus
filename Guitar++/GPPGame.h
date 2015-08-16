@@ -58,7 +58,7 @@ public:
 	};
 
 	struct gameWindow{
-		int h, w, AA, colorBits;
+		int h, w, AA, colorBits, VSyncMode;
 		bool fullscreen;
 		std::string name; // "Guitar ++ - name"/"Guitar++"
 	};

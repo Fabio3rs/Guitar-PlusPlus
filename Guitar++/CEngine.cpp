@@ -1,4 +1,6 @@
-﻿#define  _CRT_SECURE_NO_WARNINGS
+﻿#ifndef _CRT_SECURE_NO_WARNINGS
+#define  _CRT_SECURE_NO_WARNINGS
+#endif
 #include <bass.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -502,7 +504,7 @@ static int HalveImage(GLubyte *src, int *width, int *height,
 }
 
 int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
-	GLint   UnpackAlignment, GenMipMap;
+	GLint   UnpackAlignment/*, GenMipMap*/;
 	int     level, format, AutoGen, newsize, n;
 	unsigned char *data, *dataptr;
 

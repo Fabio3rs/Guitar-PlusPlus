@@ -32,6 +32,8 @@ GPPGame::gameWindow GPPGame::getWindowDefaults(bool safeMode){
 		w.name = ""; // Custom name after "Guitar++"
 	}
 
+	w.VSyncMode = 3;
+
 	return w;
 }
 
@@ -53,7 +55,6 @@ CMenu &GPPGame::newNamedMenu(const std::string &name){
 
 void GPPGame::settWindowConfigs(const gameWindow &w){
 	windowCFGs = w;
-
 }
 
 /*
@@ -152,6 +153,10 @@ int GPPGame::createWindow(){
 	CEngine::engine().AASamples = getWindowConfig().AA;
 
 	CEngine::engine().openWindow(title.c_str(), getWindowConfig().w, getWindowConfig().h, getWindowConfig().fullscreen);
+
+	if (getWindowConfig().VSyncMode >= 0 && getWindowConfig().VSyncMode <= 2){
+		setVSyncMode(getWindowConfig().VSyncMode);
+	}
 
 	CLuaH::Lua().runEvent("posCreateWindow");
 	return CEngine::engine().windowOpened(); // Is the window really open?

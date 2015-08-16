@@ -169,11 +169,17 @@ int CLuaFunctions::setConfigs(lua_State *L){
 		cfg.fullscreen = lua_toboolean(L, -1) != 0;
 
 
-
 	lua_getglobal(L, "customTitle");
 
 	if (lua_isstring(L, -1))
 		cfg.name = lua_tostring(L, -1);
+
+
+
+	lua_getglobal(L, "VSync");
+
+	if (lua_isnumber(L, -1))
+		cfg.VSyncMode = lua_tointeger(L, -1);
 
 
 	GPPGame::GuitarPP().settWindowConfigs(cfg);
@@ -446,7 +452,10 @@ template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const
 void CLuaFunctions::registerGlobals(lua_State *L)
 {
 	setLuaGlobal(L, "TESTE", "abcde");
-
+	setLuaGlobal(L, "VSYNC_OFF", 0);
+	setLuaGlobal(L, "VSYNC_ON", 1);
+	setLuaGlobal(L, "VSYNC_HALF", 2);
+	setLuaGlobal(L, "VSYNC_AUTO", 3);
 
 
 }
