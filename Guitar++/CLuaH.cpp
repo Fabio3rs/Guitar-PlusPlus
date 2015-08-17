@@ -304,6 +304,11 @@ CLuaH::luaScript::~luaScript(){
 	}
 }
 
+void CLuaH::unloadAll(){
+	files.clear();
+
+}
+
 CLuaH::CLuaH()
 {
 	lastScript = nullptr;

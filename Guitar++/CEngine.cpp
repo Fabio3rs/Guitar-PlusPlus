@@ -199,34 +199,36 @@ static void windowCallBack(GLFWwindow *window, int w, int h){
 	if (h == 0) h = 1;
 	if (w == 0) w = 1;
 
-	if (CEngine::engine().getWindowCallbackFunction())
-		CEngine::engine().getWindowCallbackFunction()(w, h, preUpdate);
+	auto &engine = CEngine::engine();
+
+	if (engine.getWindowCallbackFunction())
+		engine.getWindowCallbackFunction()(w, h, preUpdate);
 
 	glViewport(0, 0, w, h);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	CEngine::engine().windowWidth = w;
-	CEngine::engine().windowHeight = h;
+	engine.windowWidth = w;
+	engine.windowHeight = h;
 
 	gluPerspective(45.0, (double)w / (double)h, 0.005, 1000.0);
 
-	gluLookAt(CEngine::engine().eyex,
-		CEngine::engine().eyey,
-		CEngine::engine().eyez,
-		CEngine::engine().centerx,
-		CEngine::engine().centery,
-		CEngine::engine().centerz,
-		CEngine::engine().upx,
-		CEngine::engine().upy,
-		CEngine::engine().upz); /* positive Y up vector */
+	gluLookAt(engine.eyex,
+		engine.eyey,
+		engine.eyez,
+		engine.centerx,
+		engine.centery,
+		engine.centerz,
+		engine.upx,
+		engine.upy,
+		engine.upz); /* positive Y up vector */
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	if (CEngine::engine().getWindowCallbackFunction())
-		CEngine::engine().getWindowCallbackFunction()(w, h, posUpdate);
+	if (engine.getWindowCallbackFunction())
+		engine.getWindowCallbackFunction()(w, h, posUpdate);
 }
 
 void CEngine::setBitState(unsigned int *array, unsigned int bitSet, bool state){

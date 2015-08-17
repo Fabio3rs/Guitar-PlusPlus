@@ -293,6 +293,10 @@ public:
 	*/
 	inline luaScript &getLastScript(){ return *lastScript; }
 
+
+
+	void unloadAll();
+
 private:
 	CLuaH(const CLuaH&) = delete;
 

@@ -11,6 +11,9 @@
 #include "CEngine.h"
 #include "CLog.h"
 #include "CMenu.h"
+#include <Windows.h>
+#include <Psapi.h>
+#include "CFonts.h"
 
 int main(int argc, char* argv[])
 {
@@ -118,7 +121,17 @@ int main(int argc, char* argv[])
 
 		mainMenu.update();
 
+		PROCESS_MEMORY_COUNTERS memCounter;
+		bool result = GetProcessMemoryInfo(GetCurrentProcess(),
+			&memCounter,
+			sizeof(memCounter));
 
+		double d = memCounter.WorkingSetSize;
+
+		d /= 1024 * 1024;
+
+		CFonts::fonts().drawTextInScreen(std::to_string(d) + " MB", -0.5, 0.8, 0.05);
+		//CFonts::fonts().drawTextInScreen(std::to_string(memCounter.PageFaultCount), 0.0, 0.8, 0.05);
 
 
 		mainMenu.render();
@@ -127,6 +140,7 @@ int main(int argc, char* argv[])
 	}
 
 	CLuaH::Lua().runEvent("atExit");
+	CLuaH::Lua().unloadAll();
 	return 0;
 }
 
