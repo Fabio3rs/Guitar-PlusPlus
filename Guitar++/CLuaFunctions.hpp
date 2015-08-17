@@ -113,6 +113,13 @@ public:
 
 
 	/*
+	* Adds Texture to font and create a font instance if it doesn't exists
+	*/
+	static int addTextureToFont(lua_State *L);
+
+
+
+	/*
 	* Register custom functions lua state
 	*/
 	void registerFunctions(lua_State *L);

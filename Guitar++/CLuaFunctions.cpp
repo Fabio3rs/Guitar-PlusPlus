@@ -145,7 +145,8 @@ int CLuaFunctions::LuaParams::getNumParams()
 	return num_params;
 }
 
-int CLuaFunctions::setConfigs(lua_State *L){
+int CLuaFunctions::setConfigs(lua_State *L)
+{
 	auto cfg = GPPGame::GuitarPP().getWindowDefaults();
 
 
@@ -190,7 +191,8 @@ int CLuaFunctions::setConfigs(lua_State *L){
 /*
 * Load a texture (load file & load opengl texture)
 */
-int CLuaFunctions::loadTexture(lua_State *L){
+int CLuaFunctions::loadTexture(lua_State *L)
+{
 	LuaParams p(L);
 
 	for (int i = 0; i < p.getNumParams(); i++){
@@ -259,7 +261,8 @@ int CLuaFunctions::drawTextOnScreen(lua_State *L)
 /*
 * New menu
 */
-int CLuaFunctions::newMenu(lua_State *L){
+int CLuaFunctions::newMenu(lua_State *L)
+{
 	LuaParams p(L);
 
 	if (p.getNumParams() == 1 && lua_isstring(L, 1)){
@@ -278,7 +281,8 @@ int CLuaFunctions::newMenu(lua_State *L){
 /*
 * Output a string in game log
 */
-int CLuaFunctions::printTolog(lua_State *L){
+int CLuaFunctions::printTolog(lua_State *L)
+{
 	LuaParams p(L);
 
 	std::string str = "Lua script log: ";
@@ -339,7 +343,8 @@ int CLuaFunctions::printTolog(lua_State *L){
 /*
 * New menu option
 */
-int CLuaFunctions::newMenuOption(lua_State *L){
+int CLuaFunctions::newMenuOption(lua_State *L)
+{
 	LuaParams p(L);
 
 	if (p.getNumParams() == 8 && lua_isstring(L, 1) && lua_isstring(L, 2) && lua_isnumber(L, 3) && lua_isnumber(L, 4) && lua_isnumber(L, 5)
@@ -373,7 +378,8 @@ int CLuaFunctions::newMenuOption(lua_State *L){
 /*
 *
 */
-int CLuaFunctions::getMenuOptionName(lua_State *L){
+int CLuaFunctions::getMenuOptionName(lua_State *L)
+{
 	LuaParams p(L);
 
 	if (p.getNumParams() == 2 && lua_isstring(L, 1) && lua_isnumber(L, 2)){
@@ -393,7 +399,8 @@ int CLuaFunctions::getMenuOptionName(lua_State *L){
 /*
 *
 */
-int CLuaFunctions::getNumOfMenuOptions(lua_State *L){
+int CLuaFunctions::getNumOfMenuOptions(lua_State *L)
+{
 	LuaParams p(L);
 
 	if (p.getNumParams() == 1 && lua_isstring(L, 1)){
@@ -410,7 +417,8 @@ int CLuaFunctions::getNumOfMenuOptions(lua_State *L){
 /*
 *
 */
-int CLuaFunctions::getMainMenuName(lua_State *L){
+int CLuaFunctions::getMainMenuName(lua_State *L)
+{
 	LuaParams p(L);
 
 	CMenu *main = GPPGame::GuitarPP().getMainMenu();
@@ -420,6 +428,17 @@ int CLuaFunctions::getMainMenuName(lua_State *L){
 	}
 	else{
 		p << false;
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::addTextureToFont(lua_State *L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 4 && lua_isstring(L, 1) && lua_isstring(L, 2) && lua_isstring(L, 3) && lua_isstring(L, 4)){
+		p << CFonts::fonts().addTextureToFont(lua_tostring(L, 1), lua_tostring(L, 2), lua_tostring(L, 3), lua_tostring(L, 4));
 	}
 
 	return p.rtn();

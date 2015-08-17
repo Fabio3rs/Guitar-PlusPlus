@@ -100,7 +100,10 @@ public:
 		Font();
 	};
 
-	std::string							addFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars);
+	// Adds Texture to font and create a font inst if doesnt exists
+	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars);
+
+
 	void								drawTextInScreen(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName = "default");
 
 

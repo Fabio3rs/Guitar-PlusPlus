@@ -101,13 +101,15 @@ const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const s
 	return gTextures[(path + "/" + texture)];
 }
 
-void GPPGame::loadBasicSprites(){
+void GPPGame::loadBasicSprites()
+{
 	CLuaH::Lua().runEvent("preLoadSprites");
 	SPR["palheta"] = CEngine::engine().loadTexture("data/sprites/palheta.tga");
 
 }
 
-bool GPPGame::CTheme::load(){
+bool GPPGame::CTheme::load()
+{
 	if (name.size() == 0){
 		CLog::log() << "GPPGame::CTheme::load(): Load theme fail - no name setted";
 		return false;

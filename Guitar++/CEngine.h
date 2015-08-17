@@ -178,15 +178,18 @@ public:
 		long    size;
 	} GLFWstream;
 
+
 	int readImage(const char *name, GLFWimage *img, int flags);
 	int openFileStream(GLFWstream *stream, const char *name, const char *mode);
 	long readStream(GLFWstream *stream, void *data, long size);
 	void closeStream(GLFWstream *stream);
 	long tellStream(GLFWstream *stream);
 	int seekStream(GLFWstream *stream, long offset, int whence);
-	int loadTexture2D(const char *name, int flags);
+	int loadTexture2D(const char *name, int flags, GLFWimage *eimg = nullptr);
 	int loadTextureImage2D(GLFWimage *img, int flags);
 	void freeImage(GLFWimage *img);
+
+
 	int getKey(int key);
 	void Rotate(double a, double x, double y, double z);
 	void matrixReset();
@@ -360,7 +363,7 @@ public:
 	void clearScreen();
 
 	/**/
-	unsigned int loadTexture(const char *texturePath);
+	unsigned int loadTexture(const char *texturePath, GLFWimage *eimg = nullptr);
 	void bindTexture(unsigned int text);
 
 	void glEnable(int num);

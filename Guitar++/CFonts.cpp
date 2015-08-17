@@ -119,7 +119,7 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 	}
 }
 
-std::string CFonts::addFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars)
+std::string CFonts::addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars)
 {
 	auto &font = fontsReg[fontName];
 
@@ -136,7 +136,7 @@ CFonts::Font::Font()
 
 CFonts::CFonts()
 {
-	addFont("default", "data/sprites", "FONT.tga", "0123456789ABCDEFGHIJKLMNOPQRSTUV\nWXYZabcdefghijklmnopqrstuvwxyz");
+	addTextureToFont("default", "data/sprites", "FONT.tga", "0123456789ABCDEFGHIJKLMNOPQRSTUV\nWXYZabcdefghijklmnopqrstuvwxyz");
 
 
 }

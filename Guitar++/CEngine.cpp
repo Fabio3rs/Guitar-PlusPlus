@@ -701,7 +701,7 @@ void CEngine::RenderMulti3DQuad(const std::deque<RenderDoubleStruct> &quad3DData
 	glBindBuffer(GL_ARRAY_BUFFER_ARB, 0);*/
 }
 
-int CEngine::loadTexture2D(const char *name, int flags){
+int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg){
 	GLFWimage img;
 
 	// Force rescaling if necessary
@@ -721,13 +721,18 @@ int CEngine::loadTexture2D(const char *name, int flags){
 		return GL_FALSE;
 	}
 
+	if (eimg)
+	{
+		memcpy(&eimg, &img, sizeof(img));
+	}
+
 	// Data buffer is not needed anymore
 	freeImage(&img);
 
 	return GL_TRUE;
 }
 
-unsigned int CEngine::loadTexture(const char *textureFileName){
+unsigned int CEngine::loadTexture(const char *textureFileName, GLFWimage *eimg){
 	GLuint Text;
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -737,7 +742,7 @@ unsigned int CEngine::loadTexture(const char *textureFileName){
 	glGenTextures(1, &Text);
 	glBindTexture(GL_TEXTURE_2D, Text);
 
-	if (loadTexture2D(textureFileName, 0) && glIsTexture(Text)){
+	if (loadTexture2D(textureFileName, 0, eimg) && glIsTexture(Text)){
 		return Text;
 	}
 

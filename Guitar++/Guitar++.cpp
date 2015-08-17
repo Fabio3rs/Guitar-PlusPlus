@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
 		PROCESS_MEMORY_COUNTERS memCounter;
 		bool result = GetProcessMemoryInfo(GetCurrentProcess(),
 			&memCounter,
-			sizeof(memCounter));
+			sizeof(memCounter)) != 0;
 
 		double d = memCounter.WorkingSetSize;
 

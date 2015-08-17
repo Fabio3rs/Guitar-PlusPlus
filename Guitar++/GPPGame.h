@@ -23,6 +23,8 @@ public:
 		std::string textPath;
 		std::string textName;
 
+		CEngine::GLFWimage imgData;
+
 		std::unordered_map < CLuaH::luaScript*, bool > associatedToScript;
 
 		// DO NOT DUPLICATE THE TEXTURE INSTANCE!!!!!!!
@@ -45,8 +47,16 @@ public:
 			return (getTexturePath() + "/" + getTextureName());
 		}
 
+		int getImgWidth() const{
+			return imgData.Width;
+		}
+
+		int getImgHeight() const{
+			return imgData.Height;
+		}
+
 		gppTexture(const std::string &path, const std::string &texture){
-			text = CEngine::engine().loadTexture((path + std::string("/") + texture).c_str());
+			text = CEngine::engine().loadTexture((path + std::string("/") + texture).c_str(), &imgData);
 			textPath = path;
 			textName = texture;
 		}
