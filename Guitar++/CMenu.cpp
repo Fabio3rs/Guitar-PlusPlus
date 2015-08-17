@@ -63,7 +63,7 @@ void CMenu::render(){
 
 		case textbtn:
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
-			CFonts::fonts().DrawTextInGLFWWindow(opt.text, opt.x, opt.y, opt.size);
+			CFonts::fonts().drawTextInScreen(opt.text, opt.x, opt.y, opt.size);
 			if (opt.status & 1){
 				CEngine::RenderDoubleStruct RenderData;
 				RenderData.x1 = opt.x - opt.size / 2.0;
@@ -89,7 +89,7 @@ void CMenu::render(){
 
 		case deslizant_Select_list:
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
-			CFonts::fonts().DrawTextInGLFWWindow(opt.text, opt.x, opt.y, opt.size);
+			CFonts::fonts().drawTextInScreen(opt.text, opt.x, opt.y, opt.size);
 
 			double textSize = textSizeInScreen(opt.text.size(), opt.size);
 			double barPosX1 = opt.x + textSize + opt.size, barPosX2;
@@ -150,7 +150,7 @@ void CMenu::render(){
 
 			barPosX1 += opt.deslizantBarSize + opt.size;
 
-			CFonts::fonts().DrawTextInGLFWWindow(opt.optList[opt.listID], barPosX1, opt.y, opt.size);
+			CFonts::fonts().drawTextInScreen(opt.optList[opt.listID], barPosX1, opt.y, opt.size);
 			break;
 		}
 	}

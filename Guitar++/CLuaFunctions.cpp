@@ -251,7 +251,7 @@ int CLuaFunctions::drawTextOnScreen(lua_State *L)
 	LuaParams p(L);
 
 	if (p.getNumParams() == 4 && lua_isstring(L, 1) && lua_isnumber(L, 2) && lua_isnumber(L, 3) && lua_isnumber(L, 4)){
-		CFonts::fonts().DrawTextInGLFWWindow(lua_tostring(L, 1), lua_tonumber(L, 2), lua_tonumber(L, 3), lua_tonumber(L, 4));
+		CFonts::fonts().drawTextInScreen(lua_tostring(L, 1), lua_tonumber(L, 2), lua_tonumber(L, 3), lua_tonumber(L, 4));
 	}
 	return p.rtn();
 }

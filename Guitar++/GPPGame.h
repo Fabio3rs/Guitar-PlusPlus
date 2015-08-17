@@ -41,6 +41,10 @@ public:
 			return textName;
 		}
 
+		std::string getGTextureName() const{
+			return (getTexturePath() + "/" + getTextureName());
+		}
+
 		gppTexture(const std::string &path, const std::string &texture){
 			text = CEngine::engine().loadTexture((path + std::string("/") + texture).c_str());
 			textPath = path;
