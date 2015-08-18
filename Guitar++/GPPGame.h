@@ -78,15 +78,23 @@ public:
 	};
 
 	class CTheme{
-		std::string name;
+		std::string themePath;
+		std::string themeName;
+
+		bool loaded;
 
 		bool load();
 		CLuaH::luaScript main;
 
+		CTheme(CTheme&) = delete;
+
 	public:
 		void apply();
 
-		CTheme(const std::string &name);
+		inline bool isloaded() const{ return loaded; }
+
+		CTheme(const std::string &path, const std::string &theme);
+		CTheme();
 	};
 
 	CMenu &newMenu();
@@ -102,8 +110,10 @@ public:
 	// loaded game sprites - TODO: improve it
 	std::unordered_map <std::string, int> SPR;
 	std::unordered_map <std::string, gppTexture> gTextures;
+	std::unordered_map <std::string, CTheme> gThemes;
 	
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
+	const CTheme &loadThemes(const std::string &path, const std::string &theme/*, CLuaH::luaScript *luaScript = nullptr*/);
 
 	// Window settings
 	gameWindow getWindowDefaults(bool safeMode = false);

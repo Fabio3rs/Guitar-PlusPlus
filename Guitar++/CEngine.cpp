@@ -723,7 +723,9 @@ int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg){
 
 	if (eimg)
 	{
-		memcpy(&eimg, &img, sizeof(img));
+		std::copy(&img, &img + 1, eimg);
+
+		eimg->Data = nullptr;
 	}
 
 	// Data buffer is not needed anymore

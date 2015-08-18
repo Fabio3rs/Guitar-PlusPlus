@@ -89,11 +89,13 @@ double GPPGame::getWindowProportion(){
 const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript){
 	auto &textInst = gTextures[(path + "/" + texture)];
 
-	if (luaScript){
+	if (luaScript)
+	{
 		textInst.associatedToScript[luaScript] = true;
 	}
 
-	if (textInst.getTextId()){
+	if (textInst.getTextId())
+	{
 		return gTextures[(path + "/" + texture)];
 	}
 
@@ -110,12 +112,12 @@ void GPPGame::loadBasicSprites()
 
 bool GPPGame::CTheme::load()
 {
-	if (name.size() == 0){
+	if (themeName.size() == 0){
 		CLog::log() << "GPPGame::CTheme::load(): Load theme fail - no name setted";
 		return false;
 	}
 
-	main = CLuaH::Lua().newScript(std::string("data/themes/") + name, "Theme.lua");
+	main = CLuaH::Lua().newScript(themePath + themeName, "Theme.lua");
 
 	if (main.luaState == nullptr){
 		CLog::log() << "GPPGame::CTheme::load(): Load theme fail - Theme.lua wasn't loaded";
@@ -127,14 +129,35 @@ bool GPPGame::CTheme::load()
 
 }
 
+const GPPGame::CTheme &GPPGame::loadThemes(const std::string &path, const std::string &theme/*, CLuaH::luaScript *luaScript*/)
+{
+	/*auto &themeInst = gThemes[(path + "/" + theme)];
+
+	if (!themeInst.isloaded())
+	{
+		gThemes[(path + "/" + theme)] = CTheme(path, theme);
+	}*/
+	
+	return gThemes[(path + "/" + theme)];
+}
+
 void GPPGame::CTheme::apply()
 {
 
 }
 
-GPPGame::CTheme::CTheme(const std::string &name){
-	this->name = name;
+GPPGame::CTheme::CTheme(const std::string &path, const std::string &theme)
+{
+	themePath = path;
+	themeName = theme;
 
+	loaded = true;
+
+}
+
+GPPGame::CTheme::CTheme()
+{
+	loaded = false;
 
 }
 

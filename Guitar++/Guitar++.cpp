@@ -116,10 +116,42 @@ int main(int argc, char* argv[])
 
 	//GPPGame::GuitarPP().setVSyncMode(1);
 
+	auto &menu = GPPGame::GuitarPP().loadTexture("data/sprites", "menu.tga");
+
+	CEngine::RenderDoubleStruct RenderData;
+
+	std::cout << menu.getImgHeight() << "   " << menu.getImgWidth() << std::endl;
+
+	double prop = (double)menu.getImgWidth() / (double)menu.getImgHeight();
+
+	RenderData.x1 = -prop;
+	RenderData.x2 = prop;
+	RenderData.x3 = prop;
+	RenderData.x4 = -prop;
+
+	RenderData.y1 = 1.0;
+	RenderData.y2 = 1.0;
+	RenderData.y3 = -1.0;
+	RenderData.y4 = -1.0;
+
+	RenderData.z1 = 0.0;
+	RenderData.z2 = 0.0;
+	RenderData.z3 = 0.0;
+	RenderData.z4 = 0.0;
+
+	RenderData.TextureX1 = 0.0;
+	RenderData.TextureX2 = 1.0;
+	RenderData.TextureY1 = 1.0;
+	RenderData.TextureY2 = 0.0;
+
+	RenderData.Text = menu.getTextId();
+
 	while (CEngine::engine().windowOpened()){
 		GPPGame::GuitarPP().clearScreen();
 
 		mainMenu.update();
+
+		CEngine::engine().Render2DQuad(RenderData);
 
 		PROCESS_MEMORY_COUNTERS memCounter;
 		bool result = GetProcessMemoryInfo(GetCurrentProcess(),
