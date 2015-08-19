@@ -117,7 +117,7 @@ bool GPPGame::CTheme::load()
 		return false;
 	}
 
-	main = CLuaH::Lua().newScript(themePath + themeName, "Theme.lua");
+	main = CLuaH::Lua().newScript(std::string("data/themes/") + themeName, "Theme.lua");
 
 	if (main.luaState == nullptr){
 		CLog::log() << "GPPGame::CTheme::load(): Load theme fail - Theme.lua wasn't loaded";
@@ -129,16 +129,16 @@ bool GPPGame::CTheme::load()
 
 }
 
-const GPPGame::CTheme &GPPGame::loadThemes(const std::string &path, const std::string &theme/*, CLuaH::luaScript *luaScript*/)
+const GPPGame::CTheme &GPPGame::loadThemes(const std::string &theme, CLuaH::luaScript *luaScript)
 {
-	/*auto &themeInst = gThemes[(path + "/" + theme)];
+	auto &themeInst = gThemes[theme];
 
 	if (!themeInst.isloaded())
 	{
-		gThemes[(path + "/" + theme)] = CTheme(path, theme);
-	}*/
+		//gThemes[(path + "/" + theme)] = CTheme::CTheme(path, theme);
+	}
 	
-	return gThemes[(path + "/" + theme)];
+	return gThemes[theme];
 }
 
 void GPPGame::CTheme::apply()
@@ -146,9 +146,8 @@ void GPPGame::CTheme::apply()
 
 }
 
-GPPGame::CTheme::CTheme(const std::string &path, const std::string &theme)
+GPPGame::CTheme::CTheme(const std::string &theme)
 {
-	themePath = path;
 	themeName = theme;
 
 	loaded = true;

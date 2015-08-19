@@ -78,7 +78,6 @@ public:
 	};
 
 	class CTheme{
-		std::string themePath;
 		std::string themeName;
 
 		bool loaded;
@@ -93,7 +92,7 @@ public:
 
 		inline bool isloaded() const{ return loaded; }
 
-		CTheme(const std::string &path, const std::string &theme);
+		CTheme(const std::string &theme);
 		CTheme();
 	};
 
@@ -113,7 +112,7 @@ public:
 	std::unordered_map <std::string, CTheme> gThemes;
 	
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
-	const CTheme &loadThemes(const std::string &path, const std::string &theme/*, CLuaH::luaScript *luaScript = nullptr*/);
+	const CTheme &loadThemes(const std::string &theme, CLuaH::luaScript *luaScript = nullptr);
 
 	// Window settings
 	gameWindow getWindowDefaults(bool safeMode = false);

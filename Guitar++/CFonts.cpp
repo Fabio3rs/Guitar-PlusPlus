@@ -30,7 +30,7 @@ CFonts::Font::fontTexture::fontTexture()
 	lines = columns = 0;
 }
 
-void CFonts::Font::registerTexture(const std::string &path, const std::string &texture, const std::string &textChars)
+void CFonts::Font::registerTexture(const std::string &path, const std::string &texture, const std::wstring &textChars)
 {
 	const std::string name = (path + "/" + texture);
 	textures[name].load(path, texture);
@@ -55,8 +55,7 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 			break;
 
 		default:
-			const std::string charCode = std::to_string((int)ch);
-			auto &charInst = chars[charCode];
+			auto &charInst = chars[(int)ch];
 
 			charInst.setLine(tex.lines - 1);
 			charInst.setPos(pos++);
@@ -74,20 +73,20 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 	auto &fontToUse = fontsReg[fontName];
 
 	double CharPos = 0.0;
-	const double sizeDiv1_5 = size / 1.5, sizeDiv2_0 = size / 2.0;
+	const double sizeDiv1_4 = size / 1.4, sizeDiv2_0 = size / 2.0;
 	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
 
 	CEngine::RenderDoubleStruct RenderData;
 
-	RenderData.y1 = posY1;
-	RenderData.y2 = posY1;
-	RenderData.y3 = posY1 + size;
-	RenderData.y4 = posY1 + size;
+	RenderData.y1 = posY1 + size;
+	RenderData.y2 = posY1 + size;
+	RenderData.y3 = posY1;
+	RenderData.y4 = posY1;
 
 	int i = 0;
 
 	for (auto &ch : str){
-		auto &chData = fontToUse.chars[std::to_string((int)ch)];
+		auto &chData = fontToUse.chars[(int)ch];
 
 		if (chData.getText()){
 			auto &text = GPPGame::GuitarPP().gTextures[chData.getText()->getName()];
@@ -99,15 +98,15 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 
 			RenderData.Text = text.getTextId();
 
-			CharPos = posX1PlusSizeDiv2_0 + (((double)i) * sizeDiv1_5);
+			CharPos = posX1PlusSizeDiv2_0 + (((double)i) * sizeDiv1_4);
 
 			RenderData.x1 = CharPos;
 			RenderData.x2 = CharPos + size;
 			RenderData.x3 = CharPos + size;
 			RenderData.x4 = CharPos;
 
-			RenderData.TextureY1 = sizeOfLine - (sizeOfLine * chData.getline());
-			RenderData.TextureY2 = RenderData.TextureY1 + sizeOfLine;
+			RenderData.TextureY1 = 1.0 - (sizeOfLine * chData.getline());
+			RenderData.TextureY2 = RenderData.TextureY1 - sizeOfLine;
 
 			RenderData.TextureX1 = (positionFromCharInTexture * sizeFromChar);
 			RenderData.TextureX2 = (positionFromCharInTexture * sizeFromChar) + sizeFromChar;
@@ -119,7 +118,7 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 	}
 }
 
-std::string CFonts::addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars)
+std::string CFonts::addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::wstring &textChars)
 {
 	auto &font = fontsReg[fontName];
 
@@ -136,8 +135,8 @@ CFonts::Font::Font()
 
 CFonts::CFonts()
 {
-	addTextureToFont("default", "data/sprites", "FONT.tga", "0123456789ABCDEFGHIJKLMNOPQRSTUV\nWXYZabcdefghijklmnopqrstuvwxyz");
-
+	addTextureToFont("default", "data/sprites", "FONT.tga", L"0123456789ABCDEFGHIJKLMNOPQRSTUV\nWXYZabcdefghijklmnopqrstuvwxyz.,\nÃÂÀÁÄÊÈÉËÎÌÍÏÕÔ\n?----\n---");
+	// ÃÂÀÁÄÊÈÉËÎÌÍÏÕÔÓÒÖ\xFFÛ
 
 }
 
