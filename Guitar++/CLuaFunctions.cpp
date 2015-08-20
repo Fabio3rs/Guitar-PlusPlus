@@ -462,6 +462,7 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "getMenuOptionName", getMenuOptionName);
 	lua_register(L, "getNumOfMenuOptions", getNumOfMenuOptions);
 	lua_register(L, "loadTexture", loadTexture);
+	lua_register(L, "addTextureToFont", addTextureToFont);
 }
 
 template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const T &value)

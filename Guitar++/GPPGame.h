@@ -78,6 +78,7 @@ public:
 	};
 
 	class CTheme{
+		friend GPPGame;
 		std::string themeName;
 
 		bool loaded;

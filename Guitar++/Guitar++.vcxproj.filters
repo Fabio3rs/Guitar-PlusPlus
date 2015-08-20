@@ -16,6 +16,9 @@
     <Filter Include="Source Files\Lua">
       <UniqueIdentifier>{e2df2fae-c9fc-4b31-bace-1412ae04c90c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\utf8">
+      <UniqueIdentifier>{03cf1c8e-ced2-49ee-ac96-76506bb0cbe8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -190,6 +193,18 @@
     </ClInclude>
     <ClInclude Include="CText.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utf8.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utf8\checked.h">
+      <Filter>Header Files\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="utf8\core.h">
+      <Filter>Header Files\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="utf8\unchecked.h">
+      <Filter>Header Files\utf8</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

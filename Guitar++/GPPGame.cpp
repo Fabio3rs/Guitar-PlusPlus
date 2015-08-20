@@ -126,7 +126,7 @@ bool GPPGame::CTheme::load()
 
 	CLuaH::Lua().runScript(main);
 
-
+	loaded = true;
 }
 
 const GPPGame::CTheme &GPPGame::loadThemes(const std::string &theme, CLuaH::luaScript *luaScript)
@@ -135,7 +135,7 @@ const GPPGame::CTheme &GPPGame::loadThemes(const std::string &theme, CLuaH::luaS
 
 	if (!themeInst.isloaded())
 	{
-		//gThemes[(path + "/" + theme)] = CTheme::CTheme(path, theme);
+		themeInst.load();
 	}
 	
 	return gThemes[theme];

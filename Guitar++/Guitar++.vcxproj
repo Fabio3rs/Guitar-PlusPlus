@@ -139,6 +139,10 @@
     <ClInclude Include="CText.h" />
     <ClInclude Include="GPPGame.h" />
     <ClInclude Include="internal.h" />
+    <ClInclude Include="utf8.h" />
+    <ClInclude Include="utf8\checked.h" />
+    <ClInclude Include="utf8\core.h" />
+    <ClInclude Include="utf8\unchecked.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
