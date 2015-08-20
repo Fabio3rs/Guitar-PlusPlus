@@ -7,6 +7,7 @@
 #include <iostream>
 #include "GPPGame.h"
 #include "CEngine.h"
+#include "utf8.h"
 
 CFonts &CFonts::fonts(){
 	static CFonts fn;
@@ -41,7 +42,10 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 
 	tex.lines = 1;
 
-	for (auto &ch : textChars){
+	auto it = textChars.begin();
+
+	for (auto ch = utf8::next(it, textChars.end()); it != textChars.end(); ch = utf8::next(it, textChars.end()))
+	{
 		switch (ch)
 		{
 		case '\n':
@@ -55,7 +59,7 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 			break;
 
 		default:
-			auto &charInst = chars[(int)ch];
+			auto &charInst = chars[ch];
 
 			charInst.setLine(tex.lines - 1);
 			charInst.setPos(pos++);
@@ -64,8 +68,45 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 			break;
 		}
 	}
+}
 
+void CFonts::Font::registerTexture(const std::string &path, const std::string &texture, const std::string &textChars)
+{
+	const std::string name = (path + "/" + texture);
+	textures[name].load(path, texture);
 
+	auto &tex = textures[name];
+
+	int pos = 0;
+
+	tex.lines = 1;
+
+	auto it = textChars.begin();
+
+	for (auto ch = utf8::next(it, textChars.end()); it != textChars.end(); ch = utf8::next(it, textChars.end()))
+	{
+		switch (ch)
+		{
+		case '\n':
+			tex.lines++;
+
+			if (tex.getcolumns() < pos){
+				tex.columns = pos;
+			}
+
+			pos = 0;
+			break;
+
+		default:
+			auto &charInst = chars[ch];
+
+			charInst.setLine(tex.lines - 1);
+			charInst.setPos(pos++);
+			charInst.setText(tex);
+
+			break;
+		}
+	}
 }
 
 void CFonts::drawTextInScreen(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName)
@@ -85,8 +126,11 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 
 	int i = 0;
 
-	for (auto &ch : str){
-		auto &chData = fontToUse.chars[(int)ch];
+	auto it = str.begin();
+
+	for (auto ch = utf8::next(it, str.end()); it != str.end(); ch = utf8::next(it, str.end()))
+	{
+		auto &chData = fontToUse.chars[ch];
 
 		if (chData.getText()){
 			auto &text = GPPGame::GuitarPP().gTextures[chData.getText()->getName()];
@@ -127,6 +171,15 @@ std::string CFonts::addTextureToFont(const std::string &fontName, const std::str
 	return (path + "/" + texture);
 }
 
+std::string CFonts::addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars)
+{
+	auto &font = fontsReg[fontName];
+
+	font.registerTexture(path, texture, textChars);
+
+	return (path + "/" + texture);
+}
+
 CFonts::Font::Font()
 {
 
@@ -135,7 +188,7 @@ CFonts::Font::Font()
 
 CFonts::CFonts()
 {
-	addTextureToFont("default", "data/sprites", "FONT.tga", L"0123456789ABCDEFGHIJKLMNOPQRSTUV\nWXYZabcdefghijklmnopqrstuvwxyz.,\nÃÂÀÁÄÊÈÉËÎÌÍÏÕÔ\n?----\n---");
+	addTextureToFont("default", "data/sprites", "FONT.tga", "0123456789ABCDEFGHIJKLMNOPQRSTUV\nWXYZabcdefghijklmnopqrstuvwxyz.,\nÃÂÀÁÄÊÈÉËÎÌÍÏÕÔ\n?----\n---");
 	// ÃÂÀÁÄÊÈÉËÎÌÍÏÕÔÓÒÖ\xFFÛ
 
 }

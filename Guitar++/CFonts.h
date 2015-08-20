@@ -91,17 +91,19 @@ public:
 		};
 
 		std::map<std::string, fontTexture>					textures;
-		std::map<int, chartbl>								chars;
+		std::map<unsigned int, chartbl>						chars;
 		friend CFonts;
 
 	public:
 		
 		void registerTexture(const std::string &path, const std::string &texture, const std::wstring &textChars);
+		void registerTexture(const std::string &path, const std::string &texture, const std::string &textChars);
 		Font();
 	};
 
 	// Adds Texture to font and create a font inst if doesnt exists
 	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::wstring &textChars);
+	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars);
 
 
 	void								drawTextInScreen(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName = "default");

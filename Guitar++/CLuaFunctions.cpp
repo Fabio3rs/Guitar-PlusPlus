@@ -443,7 +443,7 @@ int CLuaFunctions::addTextureToFont(lua_State *L)
 	};
 
 	if (p.getNumParams() == 4 && lua_isstring(L, 1) && lua_isstring(L, 2) && lua_isstring(L, 3) && lua_isstring(L, 4)){
-		p << CFonts::fonts().addTextureToFont(lua_tostring(L, 1), lua_tostring(L, 2), lua_tostring(L, 3), to_wstring(lua_tostring(L, 4)));
+		p << CFonts::fonts().addTextureToFont(lua_tostring(L, 1), lua_tostring(L, 2), lua_tostring(L, 3), lua_tostring(L, 4));
 	}
 
 	return p.rtn();

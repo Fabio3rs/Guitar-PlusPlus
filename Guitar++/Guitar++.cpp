@@ -1,4 +1,4 @@
-// Guitar++.cpp : Defines the entry point for the console application.
+ï»¿// Guitar++.cpp : Defines the entry point for the console application.
 //
 
 #include <iostream>
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 	{
 		CMenu::menuOpt opt;
 
-		opt.text = "Opções";
+		opt.text = "OpÃ§Ãµes";
 		opt.y = 0.3;
 		opt.x = -proportion + 0.15;
 		opt.size = 0.075;
