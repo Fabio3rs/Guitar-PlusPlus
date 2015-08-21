@@ -60,8 +60,6 @@ std::string CPlayer::smartSongSearch(const std::string &path){
 bool CPlayer::loadSongOnlyChart(const std::string &path){
 	std::string fullFilePath = (std::string("data/songs/") + path + std::string("/") + smartChartSearch(path));
 
-	std::cout << fullFilePath << std::endl;
-
 	bool isChartOpen = fullFilePath.find(".chart") != std::string::npos ? Notes.loadFeedbackChart(fullFilePath.c_str()) : Notes.loadChart(fullFilePath.c_str());
 
 	if (isChartOpen){
@@ -73,8 +71,6 @@ bool CPlayer::loadSongOnlyChart(const std::string &path){
 
 bool CPlayer::loadSong(const std::string &path){
 	std::string fullFilePath = (std::string("data/songs/") + path + std::string("/") + smartChartSearch(path));
-
-	std::cout << fullFilePath << std::endl;
 
 	bool isChartOpen = fullFilePath.find(".chart") != std::string::npos ? Notes.loadFeedbackChart(fullFilePath.c_str()) : Notes.loadChart(fullFilePath.c_str());
 

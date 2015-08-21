@@ -261,12 +261,13 @@ public:
 	/*
 	* New script and add it to quere
 	*/
-	void						newScriptInQuere(luaScript &&lua);
+	luaScript					*newScriptInQuere(luaScript &&lua);
 
 	/*
 	* Run only one script
 	*/
 	int							runScript(luaScript &lua);
+	int							runScript(const std::string &path, const std::string &f);
 
 	/*
 	* Run a especific event (calls him specifics callbacks)
@@ -287,6 +288,11 @@ public:
 	* Run a internal with parameteres (calls him specifics callbacks)
 	*/
 	void						runinternalEventWithParams(luaScript &L, const std::string &name, multiCallBackParams_t &params);
+
+	luaScript					&getScript(const std::string &path, const std::string &f)
+	{
+		return files[path][f];
+	}
 
 	/*
 	* Get last runned (or running) script

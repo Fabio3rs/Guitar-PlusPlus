@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include "CLog.h"
+#include <filesystem>
+#include <Windows.h>
 
 /*
 Provide default settings for the window
@@ -112,26 +114,32 @@ void GPPGame::loadBasicSprites()
 
 bool GPPGame::CTheme::load()
 {
+	const std::string path = std::string("data/themes/") + themeName;
+
 	if (themeName.size() == 0){
 		CLog::log() << "GPPGame::CTheme::load(): Load theme fail - no name setted";
 		return false;
 	}
 
-	main = CLuaH::Lua().newScript(std::string("data/themes/") + themeName, "Theme.lua");
-
-	if (main.luaState == nullptr){
+	//main = CLuaH::Lua().newScriptInQuere(CLuaH::Lua().newScript(path, "Theme.lua"));
+	CLuaH::Lua().loadFiles(path);
+	
+	if (CLuaH::Lua().getScript(path, "Theme.lua").luaState == nullptr){
 		CLog::log() << "GPPGame::CTheme::load(): Load theme fail - Theme.lua wasn't loaded";
 		return false;
 	}
 
-	CLuaH::Lua().runScript(main);
+	CLuaH::Lua().runScript(path, "Theme.lua");
 
 	loaded = true;
+
+	return true;
 }
 
 const GPPGame::CTheme &GPPGame::loadThemes(const std::string &theme, CLuaH::luaScript *luaScript)
 {
 	auto &themeInst = gThemes[theme];
+	themeInst.themeName = theme;
 
 	if (!themeInst.isloaded())
 	{
@@ -141,9 +149,49 @@ const GPPGame::CTheme &GPPGame::loadThemes(const std::string &theme, CLuaH::luaS
 	return gThemes[theme];
 }
 
+void GPPGame::loadAllThemes(){
+	const std::string path = "data/themes";
+
+	auto extension_from_filename = [](const std::string &fname)
+	{
+		size_t s;
+		return std::string((s = fname.find_last_of('.') != fname.npos) ? &fname.c_str()[++s] : "");
+	};
+
+	auto file_exists = [](const std::string &fileName)
+	{
+		return std::fstream(fileName).is_open();
+	};
+
+	// TODO: change to STD FileSystem
+
+	HANDLE hFind;
+	WIN32_FIND_DATA data;
+
+	hFind = FindFirstFile((path + "/*").c_str(), &data);
+
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+			const std::string name = data.cFileName;
+
+			if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && name != ".." && name != "."
+				&& file_exists((path + std::string("/") + name + "/Theme.lua")))
+			{
+				loadThemes(name);
+			}
+		} while (FindNextFile(hFind, &data));
+		FindClose(hFind);
+	}
+
+}
+
 void GPPGame::CTheme::apply()
 {
+	const std::string path = std::string("data/themes/") + themeName;
 
+	CLuaH::Lua().runInternalEvent(CLuaH::Lua().getScript(path, "Theme.lua"), "applyTheme");
 }
 
 GPPGame::CTheme::CTheme(const std::string &theme)

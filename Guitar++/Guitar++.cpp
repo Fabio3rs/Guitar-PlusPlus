@@ -19,6 +19,8 @@ int main(int argc, char* argv[])
 {
 	CLog::log(); // Start logging before everything, to avoid non-logged crashes
 	GPPGame::GuitarPP();
+	GPPGame::GuitarPP().loadAllThemes();
+	GPPGame::GuitarPP().gThemes["gppdefaulttheme"].apply();
 
 	// Configuration file
 	auto &script = CLuaH::Lua().newScript(".", "Config.lua");
@@ -57,8 +59,8 @@ int main(int argc, char* argv[])
 
 	{
 		CMenu::menuOpt opt;
-
-		opt.text = "Opções";
+		//  
+		opt.text = "Op\xC3\xA7\xC3\xB5\tes";
 		opt.y = 0.3;
 		opt.x = -proportion + 0.15;
 		opt.size = 0.075;
@@ -119,8 +121,6 @@ int main(int argc, char* argv[])
 	auto &menu = GPPGame::GuitarPP().loadTexture("data/sprites", "menu.tga");
 
 	CEngine::RenderDoubleStruct RenderData;
-
-	std::cout << menu.getImgHeight() << "   " << menu.getImgWidth() << std::endl;
 
 	double prop = (double)menu.getImgWidth() / (double)menu.getImgHeight();
 

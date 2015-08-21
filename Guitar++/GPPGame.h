@@ -84,7 +84,7 @@ public:
 		bool loaded;
 
 		bool load();
-		CLuaH::luaScript main;
+		const CLuaH::luaScript *main;
 
 		CTheme(CTheme&) = delete;
 
@@ -114,6 +114,8 @@ public:
 	
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
 	const CTheme &loadThemes(const std::string &theme, CLuaH::luaScript *luaScript = nullptr);
+
+	void loadAllThemes();
 
 	// Window settings
 	gameWindow getWindowDefaults(bool safeMode = false);

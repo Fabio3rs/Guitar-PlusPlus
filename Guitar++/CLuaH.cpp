@@ -45,8 +45,9 @@ bool CLuaH::loadFiles(const std::string &path)
 	return true;
 }
 
-void CLuaH::newScriptInQuere(luaScript &&lua){
+CLuaH::luaScript *CLuaH::newScriptInQuere(luaScript &&lua){
 	files[lua.filePath][lua.fileName] = std::move(lua);
+	return &files[lua.filePath][lua.fileName];
 }
 
 CLuaH::luaScript CLuaH::newScript(const std::string &path, const std::string &f){
@@ -111,6 +112,11 @@ int CLuaH::runScript(luaScript &lua){
 	}
 
 	return false;
+}
+
+int CLuaH::runScript(const std::string &path, const std::string &f)
+{
+	return runScript(files[path][f]);
 }
 
 /*
@@ -236,7 +242,8 @@ void CLuaH::runScripts(){
 /*
 * Run a internal event (calls him specifics callbacks)
 */
-void CLuaH::runInternalEvent(luaScript &L, std::string name){
+void CLuaH::runInternalEvent(luaScript &L, std::string name)
+{
 	if (L.callbacks[name] != 0){
 		lua_rawgeti(L.luaState, LUA_REGISTRYINDEX, L.callbacks[name]);
 		if (runScript(L) != 0)
