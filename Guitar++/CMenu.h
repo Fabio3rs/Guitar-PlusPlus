@@ -22,10 +22,14 @@ public:
 	CLuaH::luaScript *lScript;
 	std::unordered_map <std::string, int> luaCallBacks;
 
+	bool temp;
+
 	struct menuOpt{
 		menusOPT type;
 		int group;
 		unsigned int texture;
+
+		bool goback;
 
 		int pressingShortcutKey;
 		int shortcutKey;
@@ -38,6 +42,8 @@ public:
 		CLuaH::luaScript *attachedLua;
 
 		std::deque<std::string> optList;
+
+		std::deque < std::string > menusXRef;
 
 		double x, y, size;
 
@@ -55,6 +61,8 @@ public:
 			optValue = 0;
 
 			attachedLua = nullptr;
+
+			goback = false;
 
 			pressingShortcutKey = shortcutKey = 0;
 
@@ -106,6 +114,11 @@ public:
 
 	CMenu();
 	CMenu(const std::string &name);
+
+	/*static inline CMenu *getMenuByName(const std::string &n)
+	{
+		return Menus[n];
+	}*/
 
 	~CMenu();
 };

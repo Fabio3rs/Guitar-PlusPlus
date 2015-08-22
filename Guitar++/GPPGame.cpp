@@ -187,6 +187,94 @@ void GPPGame::loadAllThemes(){
 
 }
 
+void GPPGame::openMenus()
+{
+	std::deque < CMenu* > menusStack;
+
+	menusStack.push_back(getMainMenu());
+
+	auto create_menu = [&](const std::deque < std::string > &menusXRef)
+	{
+		auto &menu = newMenu();
+
+		menu.temp = true;
+
+		int optn = 0;
+
+		for (auto &m : menusXRef)
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = m;
+			opt.y = 0.5 - optn * 0.2;
+			opt.x = 0.15;
+			opt.size = 0.075;
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+			opt.menusXRef.push_back(m);
+
+			menu.addOpt(opt);
+
+			++optn;
+		}
+		
+		CMenu::menuOpt opt;
+
+		opt.text = "Back/voltar";
+		opt.y = -0.75;
+		opt.x = 0.5;
+		opt.size = 0.075;
+		opt.group = 1;
+		opt.status = 0;
+		opt.type = CMenu::menusOPT::textbtn;
+		opt.goback = true;
+
+		menu.addOpt(opt);
+
+		return &menu;
+	};
+
+	bool back = false;
+
+	while (menusStack.size() != 0 && CEngine::engine().windowOpened())
+	{
+		clearScreen();
+		auto &menu = *menusStack.back();
+
+		menu.update();
+
+		for (auto &opt : menu.options)
+		{
+			if ((opt.status & 3) == 3)
+			{
+				if (opt.goback)
+				{
+					menusStack.pop_back();
+					break;
+				}
+
+				if (opt.menusXRef.size() > 1)
+				{
+					menusStack.push_back(create_menu(opt.menusXRef));
+					break;
+				}
+				else if (opt.menusXRef.size() == 1)
+				{
+					menusStack.push_back(&getMenuByName(opt.menusXRef[0]));
+					break;
+				}
+			}
+
+		}
+
+
+		menu.render();
+		GPPGame::GuitarPP().renderFrame();
+	}
+
+}
+
 void GPPGame::CTheme::apply()
 {
 	const std::string path = std::string("data/themes/") + themeName;

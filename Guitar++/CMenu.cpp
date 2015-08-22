@@ -294,6 +294,8 @@ CMenu::CMenu(){
 	menuName += std::to_string(menusCreated);
 
 	Menus[menuName] = this;
+
+	temp = false;
 }
 
 CMenu::CMenu(const std::string &name){
@@ -307,6 +309,8 @@ CMenu::CMenu(const std::string &name){
 	menuName += "_";
 	menuName += std::to_string(menusCreated);
 	Menus[menuName] = this;
+
+	temp = false;
 }
 
 CMenu::~CMenu(){

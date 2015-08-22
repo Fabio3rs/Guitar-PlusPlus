@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 	{
 		CMenu::menuOpt opt;
 		//  
-		opt.text = "Op\xC3\xA7\xC3\xB5\tes";
+		opt.text = "Op\xC3\xA7\xC3\xB5" "es";
 		opt.y = 0.3;
 		opt.x = -proportion + 0.15;
 		opt.size = 0.075;
@@ -145,6 +145,8 @@ int main(int argc, char* argv[])
 	RenderData.TextureY2 = 0.0;
 
 	RenderData.Text = menu.getTextId();
+
+	GPPGame::GuitarPP().openMenus();
 
 	while (CEngine::engine().windowOpened()){
 		GPPGame::GuitarPP().clearScreen();

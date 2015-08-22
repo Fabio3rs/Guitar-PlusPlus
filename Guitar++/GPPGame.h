@@ -132,6 +132,8 @@ public:
 
 	void setVSyncMode(int mode);
 
+	void openMenus();
+
 private:
 	GPPGame(GPPGame&) = delete;
 

@@ -279,6 +279,29 @@ int CLuaFunctions::newMenu(lua_State *L)
 }
 
 /*
+*
+*/
+int CLuaFunctions::assingMenuToOtherMenuOption(lua_State *L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 3 && lua_isstring(L, 1) && lua_isnumber(L, 2) && lua_isstring(L, 3))
+	{
+		std::string menuName, targetMenuName;
+		int optID;
+
+		p >> menuName;
+		p >> optID;
+		p >> targetMenuName;
+
+		auto &menu = GPPGame::GuitarPP().getMenuByName(menuName);
+
+		menu.options[optID].menusXRef.push_back(targetMenuName);
+	}
+	return p.rtn();
+}
+
+/*
 * Output a string in game log
 */
 int CLuaFunctions::printTolog(lua_State *L)
@@ -362,6 +385,12 @@ int CLuaFunctions::newMenuOption(lua_State *L)
 		p >> opt.size;
 		p >> opt.group;
 		p >> opt.type;
+
+		if (opt.type == -1)
+		{
+			opt.type = CMenu::menusOPT::textbtn;
+			opt.goback = true;
+		}
 
 		p << (optID = GPPGame::GuitarPP().getMenuByName(menuName).addOpt(opt));
 
@@ -463,6 +492,7 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "getNumOfMenuOptions", getNumOfMenuOptions);
 	lua_register(L, "loadTexture", loadTexture);
 	lua_register(L, "addTextureToFont", addTextureToFont);
+	lua_register(L, "assingMenuToOtherMenuOption", assingMenuToOtherMenuOption);
 }
 
 template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const T &value)

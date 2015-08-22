@@ -104,6 +104,11 @@ public:
 	/*
 	*
 	*/
+	static int assingMenuToOtherMenuOption(lua_State *L);
+
+	/*
+	*
+	*/
 	static int getNumOfMenuOptions(lua_State *L);
 
 	/*

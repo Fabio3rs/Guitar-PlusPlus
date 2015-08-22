@@ -126,9 +126,11 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 
 	int i = 0;
 
-	auto it = str.begin();
+	const std::string st = str + " ";
 
-	for (auto ch = utf8::next(it, str.end()); it != str.end(); ch = utf8::next(it, str.end()))
+	auto it = st.begin();
+
+	for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
 	{
 		auto &chData = fontToUse.chars[ch];
 
