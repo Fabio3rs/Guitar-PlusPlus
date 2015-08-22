@@ -244,12 +244,20 @@ void GPPGame::openMenus()
 
 		menu.update();
 
+		menu.render();
+
 		for (auto &opt : menu.options)
 		{
 			if ((opt.status & 3) == 3)
 			{
 				if (opt.goback)
 				{
+					// Clean a temporary menu
+					if (menu.temp)
+					{
+						gameMenus.erase(menu.getName());
+					}
+
 					menusStack.pop_back();
 					break;
 				}
@@ -268,8 +276,6 @@ void GPPGame::openMenus()
 
 		}
 
-
-		menu.render();
 		GPPGame::GuitarPP().renderFrame();
 	}
 
