@@ -22,6 +22,8 @@ public:
 	CLuaH::luaScript *lScript;
 	std::unordered_map <std::string, int> luaCallBacks;
 
+	std::string backgroundTexture;
+
 	bool temp;
 
 	struct menuOpt{

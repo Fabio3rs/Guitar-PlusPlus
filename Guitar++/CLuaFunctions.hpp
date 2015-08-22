@@ -100,6 +100,10 @@ public:
 	*/
 	static int getMenuOptionName(lua_State *L);
 
+	/*
+	*
+	*/
+	static int setMenuBackgroundTexture(lua_State *L);
 
 	/*
 	*

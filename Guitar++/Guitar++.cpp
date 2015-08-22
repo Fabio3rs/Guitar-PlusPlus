@@ -18,29 +18,31 @@
 int main(int argc, char* argv[])
 {
 	CLog::log(); // Start logging before everything, to avoid non-logged crashes
-	GPPGame::GuitarPP();
-	GPPGame::GuitarPP().loadAllThemes();
-	GPPGame::GuitarPP().gThemes["gppdefaulttheme"].apply();
+	auto &game = GPPGame::GuitarPP();
+	auto &lua = CLuaH::Lua();
+
+	game.loadAllThemes();
+	game.gThemes["gppdefaulttheme"].apply();
 
 	// Configuration file
-	auto &script = CLuaH::Lua().newScript(".", "Config.lua");
+	auto &script = lua.newScript(".", "Config.lua");
 
 	if (script.luaState){
-		CLuaH::Lua().runScript(script);
+		lua.runScript(script);
 	}
 
 	// Run all scripts in quere
-	CLuaH::Lua().runScripts();
+	lua.runScripts();
 
 	// Window
-	GPPGame::GuitarPP().createWindow();
+	game.createWindow();
 
-	GPPGame::GuitarPP().loadBasicSprites();
+	game.loadBasicSprites();
 
-	auto &mainMenu = GPPGame::GuitarPP().newMenu();
+	auto &mainMenu = game.newMenu();
 	int startOP, configOP, extrasOp, ajudaOp, quitOp;
 
-	double proportion = GPPGame::GuitarPP().getWindowProportion();
+	double proportion = game.getWindowProportion();
 	//difBtIMGAndProp = 1.7777777777777777777777 - proportion;
 
 	{
@@ -109,16 +111,17 @@ int main(int argc, char* argv[])
 		opt.group = 1;
 		opt.status = 0;
 		opt.type = CMenu::menusOPT::textbtn;
+		opt.goback = true;
 
 		quitOp = mainMenu.addOpt(opt);
 	}
 
-	GPPGame::GuitarPP().setMainMenu(mainMenu);
-	CLuaH::Lua().runEvent("mainMenuSetted");
+	game.setMainMenu(mainMenu);
+	lua.runEvent("mainMenuSetted");
 
 	//GPPGame::GuitarPP().setVSyncMode(1);
 
-	auto &menu = GPPGame::GuitarPP().loadTexture("data/sprites", "menu.tga");
+	auto &menu = game.loadTexture("data/sprites", "menu.tga");
 
 	CEngine::RenderDoubleStruct RenderData;
 
@@ -146,9 +149,9 @@ int main(int argc, char* argv[])
 
 	RenderData.Text = menu.getTextId();
 
-	GPPGame::GuitarPP().openMenus();
+	game.openMenus();
 
-	while (CEngine::engine().windowOpened()){
+	/*while (CEngine::engine().windowOpened()){
 		GPPGame::GuitarPP().clearScreen();
 
 		mainMenu.update();
@@ -171,10 +174,10 @@ int main(int argc, char* argv[])
 		mainMenu.render();
 
 		GPPGame::GuitarPP().renderFrame();
-	}
+	}*/
 
-	CLuaH::Lua().runEvent("atExit");
-	CLuaH::Lua().unloadAll();
+	lua.runEvent("atExit");
+	lua.unloadAll();
 	return 0;
 }
 

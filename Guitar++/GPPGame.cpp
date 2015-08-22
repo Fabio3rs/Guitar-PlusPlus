@@ -191,6 +191,8 @@ void GPPGame::openMenus()
 {
 	std::deque < CMenu* > menusStack;
 
+	auto &engine = CEngine::engine();
+
 	menusStack.push_back(getMainMenu());
 
 	auto create_menu = [&](const std::deque < std::string > &menusXRef)
@@ -235,14 +237,45 @@ void GPPGame::openMenus()
 		return &menu;
 	};
 
+	CEngine::RenderDoubleStruct RenderData;
+
+	RenderData.y1 = 1.0;
+	RenderData.y2 = 1.0;
+	RenderData.y3 = -1.0;
+	RenderData.y4 = -1.0;
+
+	RenderData.z1 = 0.0;
+	RenderData.z2 = 0.0;
+	RenderData.z3 = 0.0;
+	RenderData.z4 = 0.0;
+
+	RenderData.TextureX1 = 0.0;
+	RenderData.TextureX2 = 1.0;
+	RenderData.TextureY1 = 1.0;
+	RenderData.TextureY2 = 0.0;
+
 	bool back = false;
 
-	while (menusStack.size() != 0 && CEngine::engine().windowOpened())
+	while (menusStack.size() != 0 && engine.windowOpened())
 	{
 		clearScreen();
 		auto &menu = *menusStack.back();
 
 		menu.update();
+
+		auto &texture = gTextures[menu.backgroundTexture];
+
+		if (RenderData.Text = texture.getTextId())
+		{
+			double prop = (double)texture.getImgWidth() / (double)texture.getImgHeight();
+
+			RenderData.x1 = -prop;
+			RenderData.x2 = prop;
+			RenderData.x3 = prop;
+			RenderData.x4 = -prop;
+
+			engine.Render2DQuad(RenderData);
+		}
 
 		menu.render();
 
@@ -273,7 +306,6 @@ void GPPGame::openMenus()
 					break;
 				}
 			}
-
 		}
 
 		GPPGame::GuitarPP().renderFrame();
@@ -320,7 +352,8 @@ int GPPGame::createWindow(){
 
 	CEngine::engine().openWindow(title.c_str(), getWindowConfig().w, getWindowConfig().h, getWindowConfig().fullscreen);
 
-	if (getWindowConfig().VSyncMode >= 0 && getWindowConfig().VSyncMode <= 2){
+	if (getWindowConfig().VSyncMode >= 0 && getWindowConfig().VSyncMode <= 2)
+	{
 		setVSyncMode(getWindowConfig().VSyncMode);
 	}
 

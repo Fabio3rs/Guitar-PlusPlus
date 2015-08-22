@@ -446,6 +446,28 @@ int CLuaFunctions::getNumOfMenuOptions(lua_State *L)
 /*
 *
 */
+int CLuaFunctions::setMenuBackgroundTexture(lua_State *L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 3 && lua_isstring(L, 1) && lua_isstring(L, 2) && lua_isstring(L, 3)){
+		auto &game = GPPGame::GuitarPP();
+
+		std::string menuName, texturePath, textureName;
+
+		p >> menuName;
+		p >> texturePath;
+		p >> textureName;
+
+		game.getMenuByName(menuName).backgroundTexture = game.loadTexture(texturePath, textureName).getGTextureName();
+	}
+
+	return p.rtn();
+}
+
+/*
+*
+*/
 int CLuaFunctions::getMainMenuName(lua_State *L)
 {
 	LuaParams p(L);
@@ -493,6 +515,7 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "loadTexture", loadTexture);
 	lua_register(L, "addTextureToFont", addTextureToFont);
 	lua_register(L, "assingMenuToOtherMenuOption", assingMenuToOtherMenuOption);
+	lua_register(L, "setMenuBackgroundTexture", setMenuBackgroundTexture);
 }
 
 template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const T &value)
