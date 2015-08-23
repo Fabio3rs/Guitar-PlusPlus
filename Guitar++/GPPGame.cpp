@@ -189,9 +189,8 @@ void GPPGame::loadAllThemes(){
 
 void GPPGame::openMenus()
 {
-	std::deque < CMenu* > menusStack;
-
 	auto &engine = CEngine::engine();
+	auto &lua = CLuaH::Lua();
 
 	menusStack.push_back(getMainMenu());
 
@@ -292,17 +291,22 @@ void GPPGame::openMenus()
 					}
 
 					menusStack.pop_back();
+
+					lua.runEvent("menusGoBack");
 					break;
 				}
 
 				if (opt.menusXRef.size() > 1)
 				{
 					menusStack.push_back(create_menu(opt.menusXRef));
+					lua.runEvent("menusCustomMultiMenu");
+					lua.runEvent("menusNext");
 					break;
 				}
 				else if (opt.menusXRef.size() == 1)
 				{
 					menusStack.push_back(&getMenuByName(opt.menusXRef[0]));
+					lua.runEvent("menusNext");
 					break;
 				}
 			}
@@ -311,6 +315,7 @@ void GPPGame::openMenus()
 		GPPGame::GuitarPP().renderFrame();
 	}
 
+	menusStack.clear();
 }
 
 void GPPGame::CTheme::apply()

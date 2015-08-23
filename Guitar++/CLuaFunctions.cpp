@@ -500,6 +500,27 @@ int CLuaFunctions::addTextureToFont(lua_State *L)
 	return p.rtn();
 }
 
+/*
+*
+*/
+int CLuaFunctions::getActualMenu(lua_State *L)
+{
+	LuaParams p(L);
+
+	CMenu *menu = GPPGame::GuitarPP().getActualMenu();
+
+	if (menu)
+	{
+		p << menu->getName();
+	}
+	else
+	{
+		p << "";
+	}
+
+	return p.rtn();
+}
+
 void CLuaFunctions::registerFunctions(lua_State *L)
 {
 	lua_register(L, "setConfigs", setConfigs);
@@ -516,6 +537,7 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "addTextureToFont", addTextureToFont);
 	lua_register(L, "assingMenuToOtherMenuOption", assingMenuToOtherMenuOption);
 	lua_register(L, "setMenuBackgroundTexture", setMenuBackgroundTexture);
+	lua_register(L, "getActualMenu", getActualMenu);
 }
 
 template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const T &value)

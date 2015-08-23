@@ -15,6 +15,8 @@ class GPPGame{
 
 	CMenu *mainMenu;
 
+	std::deque < CMenu* > menusStack;
+
 public:
 	// Texture instance manager
 	class gppTexture{
@@ -133,6 +135,16 @@ public:
 	void setVSyncMode(int mode);
 
 	void openMenus();
+
+	inline CMenu *getActualMenu()
+	{
+		CMenu *result = nullptr;
+		if (menusStack.size() > 0)
+		{
+			result = menusStack.back();
+		}
+		return result;
+	}
 
 private:
 	GPPGame(GPPGame&) = delete;

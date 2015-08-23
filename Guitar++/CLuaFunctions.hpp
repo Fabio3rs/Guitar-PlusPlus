@@ -116,6 +116,11 @@ public:
 	static int getNumOfMenuOptions(lua_State *L);
 
 	/*
+	*
+	*/
+	static int getActualMenu(lua_State *L);
+
+	/*
 	* Load a texture (load file & load opengl texture)
 	*/
 	static int loadTexture(lua_State *L);
@@ -125,6 +130,7 @@ public:
 	* Adds Texture to font and create a font instance if it doesn't exists
 	*/
 	static int addTextureToFont(lua_State *L);
+
 
 
 
