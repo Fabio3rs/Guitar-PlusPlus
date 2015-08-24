@@ -18,6 +18,8 @@ class GPPGame{
 	std::deque < CMenu* > menusStack;
 
 public:
+	typedef void(*func_t)(const std::string &name);
+
 	// Texture instance manager
 	class gppTexture{
 		friend GPPGame;
@@ -113,15 +115,23 @@ public:
 	std::unordered_map <std::string, int> SPR;
 	std::unordered_map <std::string, gppTexture> gTextures;
 	std::unordered_map <std::string, CTheme> gThemes;
+
+	std::unordered_map <std::string, func_t> gameCallbacks;
+	std::unordered_map <std::string, std::string> gameCallbacksWrapper;
 	
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
 	const CTheme &loadThemes(const std::string &theme, CLuaH::luaScript *luaScript = nullptr);
+	const std::string addGameCallbacks(const std::string &n, func_t function);
+
+	static void teste(const std::string &name);
 
 	void loadAllThemes();
 
 	// Window settings
 	gameWindow getWindowDefaults(bool safeMode = false);
 	void settWindowConfigs(const gameWindow &w);
+
+	func_t getCallback(const std::string &str);
 
 	// Render basics
 	void clearScreen();
@@ -147,6 +157,8 @@ public:
 	}
 
 private:
+	void eraseGameMenusAutoCreateds();
+
 	GPPGame(GPPGame&) = delete;
 
 	bool			windowChangedParams; // update in case of realtime changes - TODO

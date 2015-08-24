@@ -113,12 +113,22 @@ public:
 	/*
 	*
 	*/
+	static int assingGameFunctionToMenuOption(lua_State *L);
+
+	/*
+	*
+	*/
 	static int getNumOfMenuOptions(lua_State *L);
 
 	/*
 	*
 	*/
 	static int getActualMenu(lua_State *L);
+
+	/*
+	*
+	*/
+	static int getGameCallback(lua_State *L);
 
 	/*
 	* Load a texture (load file & load opengl texture)

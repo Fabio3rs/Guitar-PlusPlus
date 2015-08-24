@@ -296,6 +296,8 @@ CMenu::CMenu(){
 	Menus[menuName] = this;
 
 	temp = false;
+
+	gameMenu = false;
 }
 
 CMenu::CMenu(const std::string &name){
@@ -311,6 +313,8 @@ CMenu::CMenu(const std::string &name){
 	Menus[menuName] = this;
 
 	temp = false;
+
+	gameMenu = false;
 }
 
 CMenu::~CMenu(){

@@ -24,7 +24,7 @@ public:
 
 	std::string backgroundTexture;
 
-	bool temp;
+	bool temp, gameMenu;
 
 	struct menuOpt{
 		menusOPT type;
@@ -90,7 +90,8 @@ public:
 		}
 	};
 
-	inline const std::string &getName(){
+	inline const std::string &getName()
+	{
 		return menuName;
 	}
 
@@ -102,11 +103,13 @@ public:
 	void render();
 	int addOpt(const menuOpt &opt);
 
-	int getNumOfOptions(){
+	int getNumOfOptions()
+	{
 		return options.size();
 	}
 
-	std::string getNameFromOpt(int optID){
+	std::string getNameFromOpt(int optID)
+	{
 		return menuName + std::string("_") + std::to_string((int)(options[optID].x * 100.0)) + std::to_string((int)(options[optID].y * 100.0)) + std::string("g") + std::to_string((int)(options[optID].group));
 	}
 

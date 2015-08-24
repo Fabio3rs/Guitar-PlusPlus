@@ -278,6 +278,30 @@ int CLuaFunctions::newMenu(lua_State *L)
 	return p.rtn();
 }
 
+
+/*
+*
+*/
+int CLuaFunctions::assingGameFunctionToMenuOption(lua_State *L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 3 && lua_isstring(L, 1) && lua_isnumber(L, 2) && lua_isstring(L, 3))
+	{
+		std::string menuName, gameFunction;
+		int optID;
+
+		p >> menuName;
+		p >> optID;
+		p >> gameFunction;
+
+		auto &menu = GPPGame::GuitarPP().getMenuByName(menuName);
+
+		menu.options[optID].menusXRef.push_back(gameFunction);
+	}
+	return p.rtn();
+}
+
 /*
 *
 */
@@ -521,6 +545,29 @@ int CLuaFunctions::getActualMenu(lua_State *L)
 	return p.rtn();
 }
 
+/*
+*
+*/
+int CLuaFunctions::getGameCallback(lua_State *L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 1 && lua_isstring(L, 1))
+	{
+		std::string param = lua_tostring(L, 1);
+
+		for (auto &s : GPPGame::GuitarPP().gameCallbacksWrapper)
+		{
+			if (s.second == param)
+			{
+				p << s.first;
+			}
+		}
+	}
+
+	return p.rtn();
+}
+
 void CLuaFunctions::registerFunctions(lua_State *L)
 {
 	lua_register(L, "setConfigs", setConfigs);
@@ -538,7 +585,10 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "assingMenuToOtherMenuOption", assingMenuToOtherMenuOption);
 	lua_register(L, "setMenuBackgroundTexture", setMenuBackgroundTexture);
 	lua_register(L, "getActualMenu", getActualMenu);
+	lua_register(L, "getGameCallback", getGameCallback);
+	lua_register(L, "assingGameFunctionToMenuOption", assingGameFunctionToMenuOption);
 }
+
 
 template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const T &value)
 {

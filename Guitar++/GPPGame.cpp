@@ -10,7 +10,8 @@
 /*
 Provide default settings for the window
 */
-GPPGame::gameWindow GPPGame::getWindowDefaults(bool safeMode){
+GPPGame::gameWindow GPPGame::getWindowDefaults(bool safeMode)
+{
 	gameWindow w;
 
 	if (safeMode){
@@ -39,23 +40,44 @@ GPPGame::gameWindow GPPGame::getWindowDefaults(bool safeMode){
 	return w;
 }
 
-CMenu &GPPGame::getMenuByName(const std::string &name){
+CMenu &GPPGame::getMenuByName(const std::string &name)
+{
 	return gameMenus[name];
 }
 
-CMenu &GPPGame::newMenu(){
+void GPPGame::eraseGameMenusAutoCreateds()
+{
+	for (auto it = gameMenus.begin(); it != gameMenus.end(); /******/)
+	{
+		if ((*it).second.gameMenu)
+		{
+			++it;
+		}
+		else
+		{
+			it = gameMenus.erase(it);
+		}
+	}
+}
+
+CMenu &GPPGame::newMenu()
+{
 	CMenu m;
 	gameMenus[m.getName()] = m;
+	gameMenus[m.getName()].gameMenu = true;
 	return gameMenus[m.getName()];
 }
 
-CMenu &GPPGame::newNamedMenu(const std::string &name){
+CMenu &GPPGame::newNamedMenu(const std::string &name)
+{
 	CMenu m(name);
 	gameMenus[m.getName()] = m;
+	gameMenus[m.getName()].gameMenu = true;
 	return gameMenus[m.getName()];
 }
 
-void GPPGame::settWindowConfigs(const gameWindow &w){
+void GPPGame::settWindowConfigs(const gameWindow &w)
+{
 	windowCFGs = w;
 }
 
@@ -79,16 +101,19 @@ void GPPGame::renderFrame()
 	CLuaH::Lua().runEvent("posRenderFrame");
 }
 
-GPPGame &GPPGame::GuitarPP(){
+GPPGame &GPPGame::GuitarPP()
+{
 	static GPPGame game;
 	return game;
 }
 
-double GPPGame::getWindowProportion(){
+double GPPGame::getWindowProportion()
+{
 	return CEngine::engine().windowWidth / CEngine::engine().windowHeight;
 }
 
-const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript){
+const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript)
+{
 	auto &textInst = gTextures[(path + "/" + texture)];
 
 	if (luaScript)
@@ -149,7 +174,8 @@ const GPPGame::CTheme &GPPGame::loadThemes(const std::string &theme, CLuaH::luaS
 	return gThemes[theme];
 }
 
-void GPPGame::loadAllThemes(){
+void GPPGame::loadAllThemes()
+{
 	const std::string path = "data/themes";
 
 	auto extension_from_filename = [](const std::string &fname)
@@ -185,6 +211,21 @@ void GPPGame::loadAllThemes(){
 		FindClose(hFind);
 	}
 
+}
+
+const std::string GPPGame::addGameCallbacks(const std::string &n, func_t function)
+{
+	std::string str = std::string("game_callback_") + std::to_string(rand()) + "_" + n;
+
+	gameCallbacks[str] = function;
+	gameCallbacksWrapper[str] = n;
+
+	return str;
+}
+
+GPPGame::func_t GPPGame::getCallback(const std::string &str)
+{
+	return gameCallbacks[str];
 }
 
 void GPPGame::openMenus()
@@ -306,16 +347,42 @@ void GPPGame::openMenus()
 				else if (opt.menusXRef.size() == 1)
 				{
 					menusStack.push_back(&getMenuByName(opt.menusXRef[0]));
-					lua.runEvent("menusNext");
+					auto &m = menusStack.back();
+
+					if (m && !m->gameMenu)
+					{
+						auto function = getCallback(opt.menusXRef[0]);
+						if (function)
+						{
+							lua.runEvent("menusGameCallbackNext");
+							function(opt.menusXRef[0]);
+						}
+						else
+						{
+							CLog::log() << (opt.menusXRef[0] + " is null");
+						}
+
+						menusStack.pop_back();
+					}
+					else{
+						lua.runEvent("menusNext");
+					}
 					break;
 				}
 			}
 		}
 
+		eraseGameMenusAutoCreateds();
+
 		GPPGame::GuitarPP().renderFrame();
 	}
 
 	menusStack.clear();
+}
+
+void GPPGame::teste(const std::string &name)
+{
+	std::cout << name << std::endl;;
 }
 
 void GPPGame::CTheme::apply()
@@ -342,7 +409,8 @@ GPPGame::CTheme::CTheme()
 /*
 Lua events and creates window
 */
-int GPPGame::createWindow(){
+int GPPGame::createWindow()
+{
 	CLuaH::Lua().runEvent("preCreateWindow");
 	std::string title = "Guitar++";
 
@@ -371,15 +439,18 @@ void GPPGame::setVSyncMode(int mode)
 	CEngine::engine().setVSyncMode(mode);
 }
 
-void GPPGame::setMainMenu(CMenu &m){
+void GPPGame::setMainMenu(CMenu &m)
+{
 	mainMenu = &m;
 }
 
-CMenu *GPPGame::getMainMenu(){
+CMenu *GPPGame::getMainMenu()
+{
 	return mainMenu;
 }
 
-GPPGame::GPPGame(){
+GPPGame::GPPGame()
+{
 	// Load lua scripts from "data" folder
 	CLuaH::Lua().loadFiles("data");
 
