@@ -83,6 +83,7 @@
   <ItemGroup>
     <ClCompile Include="CEngine.cpp" />
     <ClCompile Include="CFonts.cpp" />
+    <ClCompile Include="CGamePlay.cpp" />
     <ClCompile Include="CLog.cpp" />
     <ClCompile Include="CLuaFunctions.cpp" />
     <ClCompile Include="CLuaH.cpp" />
@@ -131,6 +132,7 @@
   <ItemGroup>
     <ClInclude Include="CEngine.h" />
     <ClInclude Include="CFonts.h" />
+    <ClInclude Include="CGamePlay.h" />
     <ClInclude Include="CLog.h" />
     <ClInclude Include="CLuaFunctions.hpp" />
     <ClInclude Include="CLuaH.hpp" />
