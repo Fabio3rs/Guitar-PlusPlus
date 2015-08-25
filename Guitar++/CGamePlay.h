@@ -16,6 +16,13 @@
 
 class CGamePlay{
 	void updatePlayer(CPlayer &player);
+	void renderPlayer(CPlayer &player);
+	void renderIndivdualNote(int id, double pos, unsigned int Texture, CPlayer &player);
+	double getRunningMusicTime(CPlayer &player);
+	double time2Position(double Time, CPlayer &player);
+	void renderNote(CPlayer::NotesData::Note &note, CPlayer &player);
+
+	double speedMp;
 
 public:
 	std::deque < CPlayer > players;

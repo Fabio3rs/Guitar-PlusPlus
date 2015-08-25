@@ -7,6 +7,7 @@
 #include <deque>
 #include <iostream>
 #include <algorithm>
+#include <cstdint>
 
 enum notesFlags{
 	nf_green = 1, nf_red = 2, nf_yellow = 4, nf_blue = 8, nf_orange = 16,
@@ -74,9 +75,10 @@ private:
 	/**/
 
 	int combo;
-	bool plusEnabled;
 
 public:
+	std::deque<NotesData::Note> buffer;
+
 	void addPointsByNoteDoed();
 	void addPointsByDoingLongNote();
 	double comboToMultiplier();
@@ -88,6 +90,8 @@ public:
 	void updateControls();
 	void breakCombo();
 
+	bool plusEnabled;
+
 	NotesData Notes;
 
 	bool loadSong(const std::string &path);
@@ -95,6 +99,8 @@ public:
 	bool canDoHOPO;
 
 	std::string playerSave;
+
+	double startTime;
 
 	CPlayer(const char *name);
 };

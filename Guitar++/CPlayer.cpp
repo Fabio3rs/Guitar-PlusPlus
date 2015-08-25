@@ -514,4 +514,6 @@ CPlayer::NotesData::~NotesData(){
 CPlayer::CPlayer(const char *name){
 	combo = 0;
 	plusEnabled = false;
+	startTime = CEngine::engine().getTime();
+	plusEnabled = false;
 }

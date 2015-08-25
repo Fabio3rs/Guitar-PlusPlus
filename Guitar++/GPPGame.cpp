@@ -63,8 +63,17 @@ void GPPGame::startModule(const std::string &name)
 
 	game.setRunningModule(realname);
 
+	module.players.push_back(CPlayer("xi"));
+	module.players.back().loadSongOnlyChart("TTFAF");
+	module.players.back().startTime = CEngine::engine().getTime();
+
 	while (CEngine::engine().windowOpened()) {
 		GPPGame::GuitarPP().clearScreen();
+
+		if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
+		{
+			//game.openMenus();
+		}
 
 		module.update();
 
