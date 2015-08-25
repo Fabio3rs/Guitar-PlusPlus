@@ -14,6 +14,7 @@
 #include <Windows.h>
 #include <Psapi.h>
 #include "CFonts.h"
+#include "CPlayer.h"
 
 int main(int argc, char* argv[])
 {
@@ -151,6 +152,16 @@ int main(int argc, char* argv[])
 	RenderData.TextureY2 = 0.0;
 
 	RenderData.Text = menu.getTextId();
+
+	//CPlayer player("xi");
+
+	//player.loadSongOnlyChart("TTFAF");
+
+//	for (auto &p : player.Notes.gNotes)
+//	{
+	//	std::cout << p.time << std::endl;
+	//}
+
 
 	game.openMenus();
 

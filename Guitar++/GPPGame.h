@@ -9,6 +9,7 @@
 #include "CLuaFunctions.hpp"
 #include "CMenu.h"
 #include "CEngine.h"
+#include "CGamePlay.h"
 
 class GPPGame{
 	std::unordered_map <std::string, CMenu> gameMenus;
@@ -118,6 +119,8 @@ public:
 
 	std::unordered_map <std::string, func_t> gameCallbacks;
 	std::unordered_map <std::string, std::string> gameCallbacksWrapper;
+
+	std::unordered_map <std::string, CGamePlay> gameModules;
 	
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
 	const CTheme &loadThemes(const std::string &theme, CLuaH::luaScript *luaScript = nullptr);
