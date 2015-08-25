@@ -126,7 +126,10 @@ public:
 	const CTheme &loadThemes(const std::string &theme, CLuaH::luaScript *luaScript = nullptr);
 	const std::string addGameCallbacks(const std::string &n, func_t function);
 
+	std::string getCallBackRealName(const std::string &str);
+
 	static void teste(const std::string &name);
+	static void startModule(const std::string &name);
 
 	void loadAllThemes();
 

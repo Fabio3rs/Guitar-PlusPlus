@@ -561,6 +561,7 @@ int CLuaFunctions::getGameCallback(lua_State *L)
 			if (s.second == param)
 			{
 				p << s.first;
+				break;
 			}
 		}
 	}

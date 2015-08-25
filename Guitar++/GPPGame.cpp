@@ -45,6 +45,25 @@ CMenu &GPPGame::getMenuByName(const std::string &name)
 	return gameMenus[name];
 }
 
+void GPPGame::startModule(const std::string &name)
+{
+	auto &game = GPPGame::GuitarPP();
+	auto &module = game.gameModules[game.getCallBackRealName(name)];
+
+	while (CEngine::engine().windowOpened()) {
+		GPPGame::GuitarPP().clearScreen();
+
+		module.update();
+
+
+
+
+		module.render();
+
+		GPPGame::GuitarPP().renderFrame();
+	}
+}
+
 void GPPGame::eraseGameMenusAutoCreateds()
 {
 	for (auto it = gameMenus.begin(); it != gameMenus.end(); /******/)
@@ -221,6 +240,18 @@ const std::string GPPGame::addGameCallbacks(const std::string &n, func_t functio
 	gameCallbacksWrapper[str] = n;
 
 	return str;
+}
+
+std::string GPPGame::getCallBackRealName(const std::string &str)
+{
+	for (auto &s : gameCallbacksWrapper)
+	{
+		if (s.second == str)
+		{
+			return s.first;
+		}
+	}
+	return "";
 }
 
 GPPGame::func_t GPPGame::getCallback(const std::string &str)

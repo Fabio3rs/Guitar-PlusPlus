@@ -19,10 +19,15 @@ class CGamePlay{
 public:
 	std::deque < CPlayer > players;
 
+	std::string backgroundTexture;
+
 	//static CGamePlay &gamePlay();
 
 	void update();
 	void render();
+
+
+	void resetModule();
 
 	CGamePlay();
 };

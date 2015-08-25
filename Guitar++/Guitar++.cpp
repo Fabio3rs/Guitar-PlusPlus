@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 		opt.status = 0;
 		opt.type = CMenu::menusOPT::textbtn;
 
-		std::string testecallback = game.addGameCallbacks("teste", GPPGame::teste);
+		std::string testecallback = game.addGameCallbacks("hello_world", GPPGame::startModule);
 		opt.menusXRef.push_back(testecallback);
 
 		startOP = mainMenu.addOpt(opt);
