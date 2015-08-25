@@ -454,20 +454,24 @@ CPlayer::NotesData::NotesData(){
 	lastNotePicked = -1;
 	longNoteComb = 0;
 
-	for(auto &fretNotePickedTime : fretsNotePickedTime){
+	for(auto &fretNotePickedTime : fretsNotePickedTime)
+	{
 		fretNotePickedTime = 0.0;
 	}
 
-	for(auto &inLN : inLongNote){
+	for(auto &inLN : inLongNote)
+	{
 		inLN = false;
 	}
 
-	for(auto &LNID : longNoteID){
+	for(auto &LNID : longNoteID)
+	{
 		LNID = -1;
 	}
 }
 
-void CPlayer::updateControls(){
+void CPlayer::updateControls()
+{
 	if (playerType & (int)playerTypes::local_main || playerType & (int)playerTypes::local){
 		//Controls.updateInst();
 	}

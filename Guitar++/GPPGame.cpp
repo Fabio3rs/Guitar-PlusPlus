@@ -45,10 +45,23 @@ CMenu &GPPGame::getMenuByName(const std::string &name)
 	return gameMenus[name];
 }
 
+void GPPGame::setRunningModule(const std::string m)
+{
+	runningModule = m;
+}
+
 void GPPGame::startModule(const std::string &name)
 {
 	auto &game = GPPGame::GuitarPP();
-	auto &module = game.gameModules[game.getCallBackRealName(name)];
+	auto realname = game.getCallBackRealName(name);
+	auto &module = game.gameModules[realname];
+
+	if (game.getRunningModule().size() > 0)
+	{
+		throw gameException("A module is already running: " + name);
+	}
+
+	game.setRunningModule(realname);
 
 	while (CEngine::engine().windowOpened()) {
 		GPPGame::GuitarPP().clearScreen();
@@ -259,12 +272,17 @@ GPPGame::func_t GPPGame::getCallback(const std::string &str)
 	return gameCallbacks[str];
 }
 
-void GPPGame::openMenus()
+std::string GPPGame::getRunningModule()
+{
+	return runningModule;
+}
+
+void GPPGame::openMenus(CMenu *startMenu)
 {
 	auto &engine = CEngine::engine();
 	auto &lua = CLuaH::Lua();
 
-	menusStack.push_back(getMainMenu());
+	menusStack.push_back(startMenu);
 
 	auto create_menu = [&](const std::deque < std::string > &menusXRef)
 	{
@@ -382,15 +400,25 @@ void GPPGame::openMenus()
 
 					if (m && !m->gameMenu)
 					{
-						auto function = getCallback(opt.menusXRef[0]);
-						if (function)
-						{
-							lua.runEvent("menusGameCallbackNext");
-							function(opt.menusXRef[0]);
+						try{
+							auto function = getCallback(opt.menusXRef[0]);
+							if (function)
+							{
+								lua.runEvent("menusGameCallbackNext");
+								function(opt.menusXRef[0]);
+							}
+							else
+							{
+								CLog::log() << (opt.menusXRef[0] + " is null");
+							}
 						}
-						else
-						{
-							CLog::log() << (opt.menusXRef[0] + " is null");
+						catch (const std::exception &e){
+							CLog::log() << e.what();
+							CLuaH::multiCallBackParams_t param;
+
+							param.push_back(e.what());
+
+							lua.runEventWithParams("catchedException", param);
 						}
 
 						menusStack.pop_back();

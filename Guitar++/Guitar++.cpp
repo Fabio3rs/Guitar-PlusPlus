@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
 	//}
 
 
-	game.openMenus();
+	game.openMenus(game.getMainMenu());
 
 	/*while (CEngine::engine().windowOpened()){
 		GPPGame::GuitarPP().clearScreen();

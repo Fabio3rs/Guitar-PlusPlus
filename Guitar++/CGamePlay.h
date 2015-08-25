@@ -15,6 +15,7 @@
 #include "CPlayer.h"
 
 class CGamePlay{
+	void updatePlayer(CPlayer &player);
 
 public:
 	std::deque < CPlayer > players;

@@ -2,12 +2,20 @@
 #include "CEngine.h"
 #include "GPPGame.h"
 
-
-void CGamePlay::update()
+void CGamePlay::updatePlayer(CPlayer &player)
 {
 
 
 
+
+}
+
+void CGamePlay::update()
+{
+	for (auto &p : players)
+	{
+		updatePlayer(p);
+	}
 }
 
 void CGamePlay::resetModule()

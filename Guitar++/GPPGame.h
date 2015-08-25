@@ -10,6 +10,27 @@
 #include "CMenu.h"
 #include "CEngine.h"
 #include "CGamePlay.h"
+#include <exception>
+
+class gameException : public std::exception{
+	std::string str;
+
+public:
+	const char *what() const
+	{
+		return str.c_str();
+	}
+
+	inline gameException(const std::string &s) : std::exception(s.c_str()), str(s)
+	{
+
+	}
+
+	inline gameException()
+	{
+
+	}
+};
 
 class GPPGame{
 	std::unordered_map <std::string, CMenu> gameMenus;
@@ -17,6 +38,8 @@ class GPPGame{
 	CMenu *mainMenu;
 
 	std::deque < CMenu* > menusStack;
+
+	std::string runningModule;
 
 public:
 	typedef void(*func_t)(const std::string &name);
@@ -121,6 +144,8 @@ public:
 	std::unordered_map <std::string, std::string> gameCallbacksWrapper;
 
 	std::unordered_map <std::string, CGamePlay> gameModules;
+
+	std::string getRunningModule();
 	
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
 	const CTheme &loadThemes(const std::string &theme, CLuaH::luaScript *luaScript = nullptr);
@@ -150,7 +175,7 @@ public:
 
 	void setVSyncMode(int mode);
 
-	void openMenus();
+	void openMenus(CMenu *startMenu);
 
 	inline CMenu *getActualMenu()
 	{
@@ -172,6 +197,8 @@ private:
 	gameWindow		windowCFGs; // Actual config
 
 	GPPGame();
+
+	void setRunningModule(const std::string m);
 
 public:
 	const gameWindow &getWindowConfig() const{ return windowCFGs; };
