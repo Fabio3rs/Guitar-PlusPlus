@@ -20,7 +20,7 @@ enum playerTypes{local_main, local, lan, lan_main};
 
 struct fretsPosition{
 	double lineFretSize, columnSize;
-	unsigned int Texture;
+	unsigned int notesTexture, strikeLineTexture;
 
 	struct ps {
 		int x, y;
@@ -76,7 +76,7 @@ struct fretsPosition{
 		FretIMGPos[sAIDTI(4, 3)] = ps(7, 2);
 		FretIMGPos[sAIDTI(4, 4)] = ps(0, 3);
 
-		Texture = 0;
+		notesTexture = strikeLineTexture = 0;
 	}
 };
 

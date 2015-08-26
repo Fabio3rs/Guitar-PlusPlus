@@ -113,20 +113,63 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 	}
 }
 
+void CGamePlay::renderIndividualLine(int id, double pos1, double pos2, unsigned int Texture, CPlayer &player)
+{
+	CEngine::RenderDoubleStruct TempStruct3D;
+
+	double runningTime = getRunningMusicTime(player);
+	double rtime = runningTime - pos1;
+	double rtime2 = runningTime - (pos1 + pos2);
+
+	const double size = 0.2;
+	const double position = -0.51;
+
+	double nCalc = rtime * speedMp;
+	double nCalc2 = rtime2 * speedMp;
+
+	nCalc += 0.55 + size;
+	nCalc2 += 0.55 + size * 1.5;
+
+	TempStruct3D.Text = Texture;
+	TempStruct3D.TextureX1 = 0.0;
+	TempStruct3D.TextureX2 = 1.0;
+	TempStruct3D.TextureY1 = 1.0;
+	TempStruct3D.TextureY2 = 0.0;
+
+	TempStruct3D.x1 = position + (double(id) * size / 48.0) + (double(id) * size);
+	TempStruct3D.x2 = TempStruct3D.x1 + size;
+	TempStruct3D.x3 = TempStruct3D.x1 + size;
+	TempStruct3D.x4 = TempStruct3D.x1;
+
+	TempStruct3D.y1 = -0.5;
+	TempStruct3D.y2 = TempStruct3D.y1;
+	TempStruct3D.y3 = -0.5;
+	TempStruct3D.y4 = TempStruct3D.y3;
+
+	TempStruct3D.z1 = nCalc;
+	TempStruct3D.z2 = TempStruct3D.z1;
+	TempStruct3D.z3 = nCalc2;
+	TempStruct3D.z4 = TempStruct3D.z3;
+
+	//CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+
+	CEngine::engine().Render3DQuad(TempStruct3D);
+}
+
 void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 	double time = /*time2Position(*/note.time/*)*/;
 	for (int i = 0; i < 5; i++){
 		if (note.type & (int)pow(2, i)){
-			unsigned int texture = GPPGame::GuitarPP().loadTexture("data/sprites", "Strums.tga").getTextId();
+			unsigned int texture = fretsText.notesTexture;
 			if (note.type & notesFlags::nf_doing_slide){
 				time = 0.0;
 			}
 
 			if (note.lTime > 0.0 && note.type & notesFlags::nf_doing_slide){
-				//renderIndividualLine(i, time, note.lTime, CTheme::inst().SPR["line"]);
+				renderIndividualLine(i, time, note.lTime, GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId(), player);
 			}
 			else if (note.type & notesFlags::nf_slide && !(note.type & notesFlags::nf_slide_picked)){
-				//renderIndividualLine(i, time, note.lTime, CTheme::inst().SPR["line"]);
+				renderIndividualLine(i, time, note.lTime, GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId(), player);
 			}
 
 			/*if ((note.type & notesFlags::nf_not_hopo) ^ notesFlags::nf_not_hopo){
@@ -260,7 +303,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	for (int i = 0; i < 5; i++)
 	{
-		renderIndivdualStrikeButton(i, 0.0, GPPGame::GuitarPP().loadTexture("data/sprites", "frets.tga").getTextId(), 3, player);
+		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 3, player);
 	}
 
 
@@ -367,7 +410,8 @@ CGamePlay::CGamePlay()
 
 	fretsTextures = "default";
 	fretsText = GPPGame::GuitarPP().frets[fretsTextures];
-	
+	fretsText.notesTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "Strums.tga").getTextId();
+	fretsText.strikeLineTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "frets.tga").getTextId();
 }
 
 
