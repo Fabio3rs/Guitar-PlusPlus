@@ -162,6 +162,9 @@ int main(int argc, char* argv[])
 	//	std::cout << p.time << std::endl;
 	//}
 
+	//char buffer[4096];
+	//GetSystemDirectory(buffer, sizeof(buffer) / sizeof(char));
+	//std::cout << buffer << std::endl;
 
 	game.openMenus(game.getMainMenu());
 

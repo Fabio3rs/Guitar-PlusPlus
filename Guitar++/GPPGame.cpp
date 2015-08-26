@@ -61,6 +61,8 @@ void GPPGame::startModule(const std::string &name)
 		throw gameException("A module is already running: " + name);
 	}
 
+	game.setVSyncMode(0);
+
 	game.setRunningModule(realname);
 
 	module.players.push_back(CPlayer("xi"));

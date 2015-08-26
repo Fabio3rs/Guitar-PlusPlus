@@ -42,6 +42,7 @@ class GPPGame{
 	std::string runningModule;
 
 public:
+
 	typedef void(*func_t)(const std::string &name);
 
 	// Texture instance manager
