@@ -274,7 +274,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 			if (gNotes.size() == 0){
 				Note newNote;
 				newNote.time = Nts[i].time;
-				newNote.unmodifiedTime = Nts[i].time;
+				//newNote.unmodifiedTime = Nts[i].time;
 				newNote.lTime = Nts[i].lTime;
 				newNote.type = (int)pow(2, Nts[i].type);
 				if (newNote.lTime > 0.0) newNote.type |= nf_slide;
@@ -291,7 +291,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 				else{
 					Note newNote;
 					newNote.time = Nts[i].time;
-					newNote.unmodifiedTime = Nts[i].time;
+					//newNote.unmodifiedTime = Nts[i].time;
 					newNote.lTime = Nts[i].lTime;
 					newNote.type = (int)pow(2, Nts[i].type);
 					if (newNote.lTime > 0.0) newNote.type |= nf_slide;
@@ -373,7 +373,7 @@ bool CPlayer::NotesData::loadChart(const char *chartFile){
 					if(gNotes.size() == 0){
 						Note newNote;
 						newNote.time = ntInfoTime;
-						newNote.unmodifiedTime = ntInfoTime;
+						//newNote.unmodifiedTime = ntInfoTime;
 						newNote.lTime = ntInfoLTime;
 						newNote.type = (int)pow(2, ntIDInfo);
 						if(newNote.lTime > 0.0) newNote.type |= nf_slide;
@@ -389,7 +389,7 @@ bool CPlayer::NotesData::loadChart(const char *chartFile){
 						}else{
 							Note newNote;
 							newNote.time = ntInfoTime;
-							newNote.unmodifiedTime = ntInfoTime;
+							//newNote.unmodifiedTime = ntInfoTime;
 							newNote.lTime = ntInfoLTime;
 							newNote.type = (int)pow(2, ntIDInfo);
 							if(newNote.lTime > 0.0) newNote.type |= nf_slide;

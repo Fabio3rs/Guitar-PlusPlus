@@ -7,19 +7,21 @@
 void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player) {
 	CEngine::RenderDoubleStruct TempStruct3D;
 
+	//auto &frets = GPPGame::GuitarPP().frets[fretsTextures];
+
 	double nCalc = pos;
 
-	const double size = 0.25; // 0.218
-	const double position = -0.56; // 1.090
+	const double size = 0.25;
+	const double position = -0.56;
 
 	TempStruct3D.Text = Texture;
 
-	TempStruct3D.TextureX1 = FretIMGPos[sAIDTI(state, id)].x * columnSize;
-	TempStruct3D.TextureX2 = TempStruct3D.TextureX1 + columnSize;
-	TempStruct3D.TextureY1 = 1.0 - FretIMGPos[sAIDTI(state, id)].y * lineFretSize;
-	TempStruct3D.TextureY2 = TempStruct3D.TextureY1 - lineFretSize;
+	TempStruct3D.TextureX1 = fretsText.FretIMGPos[fretsText.sAIDTI(state, id)].x * fretsText.columnSize;
+	TempStruct3D.TextureX2 = TempStruct3D.TextureX1 + fretsText.columnSize;
+	TempStruct3D.TextureY1 = 1.0 - fretsText.FretIMGPos[fretsText.sAIDTI(state, id)].y * fretsText.lineFretSize;
+	TempStruct3D.TextureY2 = TempStruct3D.TextureY1 - fretsText.lineFretSize;
 
-	TempStruct3D.x1 = position + /*(double(id) * size / 10000.0) +*/ (double(id) * size / 1.15);
+	TempStruct3D.x1 = position + (double(id) * size / 1.15);
 	TempStruct3D.x2 = TempStruct3D.x1 + size;
 	TempStruct3D.x3 = TempStruct3D.x1 + size;
 	TempStruct3D.x4 = TempStruct3D.x1;
@@ -105,23 +107,6 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 		TempStruct3D.z3 = nCalc + size * 2.0;
 		TempStruct3D.z4 = TempStruct3D.z3;
 
-
-		/*auto shadowCreate = [pos, this](CEngine::RenderDoubleStruct TempStruct3D, double p2a){
-		CEngine::inst().setColor(0.0, 0.0, 0.0, p2a / 1.5);
-
-		double calc = abs((1.5 - pos) / 100.0);
-
-		TempStruct3D.y1 += calc;
-		TempStruct3D.y2 += calc;
-		TempStruct3D.y3 += calc;
-		TempStruct3D.y4 += calc;
-
-		CEngine::inst().Render3DQuad(TempStruct3D);
-
-		};*/
-
-		//double p2a = pos2Alpha(time2Position(pos, player));
-		//shadowCreate(TempStruct3D, p2a);
 		CEngine::engine().setColor(1.0, 1.0, 1.0, pos2Alpha(- TempStruct3D.z1 / 5.5));
 
 		CEngine::engine().Render3DQuad(TempStruct3D);
@@ -152,7 +137,7 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 			texture = CTheme::inst().SPR["PlusNote"];
 			}*/
 
-			if (!(note.type & notesFlags::nf_picked)) renderIndivdualNote(i, note.unmodifiedTime, texture, player);
+			if (!(note.type & notesFlags::nf_picked)) renderIndivdualNote(i, time, texture, player);
 		}
 	}
 }
@@ -190,7 +175,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 }
 
-void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, double y1, double y2, double y3, double y4, unsigned int Text){
+void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text){
 	auto positionCalcByT = [this](double p, double prop){
 		double cCalc = -p * 5.0;
 		double propSpeeed = 5.0 / speedMp;
@@ -240,6 +225,14 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 void CGamePlay::renderPlayer(CPlayer &player)
 {
+	auto &lua = CLuaH::Lua();
+
+	CLuaH::multiCallBackParams_t m;
+
+	m.push_back("player 0");
+
+	lua.runEventWithParams("preRenderPlayer", m);
+
 	{
 		CEngine::cameraSET usingCamera;
 		usingCamera.eyex = 0.0;
@@ -254,9 +247,13 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		CEngine::engine().setCamera(usingCamera);
 	}
-	double fl = 1.0f, fi = 0.0, FBPcalc = 1, fretboardData[] = { -0.51, 0.51, 0.51, -0.51, -1.0, -1.0, 0.4, 0.4 }, FBP = 0.0;
 
-	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], fretboardData[4], fretboardData[5], fretboardData[6], fretboardData[7], GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId());
+
+
+	double fretboardData[] = { -0.51, 0.51, 0.51, -0.51, -1.0, -1.0, 0.4, 0.4 };
+
+
+	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId());
 
 
 
@@ -292,6 +289,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		CEngine::engine().setCamera(usingCamera);
 	}
+
+	lua.runEventWithParams("posRenderPlayer", m);
 }
 
 void CGamePlay::update()
@@ -362,48 +361,13 @@ CGamePlay &CGamePlay::gamePlay()
 	return game;
 }*/
 
-int CGamePlay::sAIDTI(int state, int id)
-{
-	return (state + 1) * 5 + id;
-}
-
 CGamePlay::CGamePlay()
 {
 	speedMp = 2.5;
 
-	lineFretSize = 1.0 / 4.0;
-	columnSize = 1.0 / 8.0;
-
-	FretIMGPos[sAIDTI(0, 0)] = ps(0, 0);
-	FretIMGPos[sAIDTI(0, 1)] = ps(1, 0);
-	FretIMGPos[sAIDTI(0, 2)] = ps(2, 0);
-	FretIMGPos[sAIDTI(0, 3)] = ps(3, 0);
-	FretIMGPos[sAIDTI(0, 4)] = ps(4, 0);
-
-	FretIMGPos[sAIDTI(1, 0)] = ps(5, 0);
-	FretIMGPos[sAIDTI(1, 1)] = ps(6, 0);
-	FretIMGPos[sAIDTI(1, 2)] = ps(7, 0);
-	FretIMGPos[sAIDTI(1, 3)] = ps(0, 1);
-	FretIMGPos[sAIDTI(1, 3)] = ps(0, 1);
-	FretIMGPos[sAIDTI(1, 4)] = ps(1, 1);
-
-	FretIMGPos[sAIDTI(2, 0)] = ps(2, 1);
-	FretIMGPos[sAIDTI(2, 1)] = ps(3, 1);
-	FretIMGPos[sAIDTI(2, 2)] = ps(4, 1);
-	FretIMGPos[sAIDTI(2, 3)] = ps(5, 1);
-	FretIMGPos[sAIDTI(2, 4)] = ps(6, 1);
-
-	FretIMGPos[sAIDTI(3, 0)] = ps(7, 1);
-	FretIMGPos[sAIDTI(3, 1)] = ps(0, 2);
-	FretIMGPos[sAIDTI(3, 2)] = ps(1, 2);
-	FretIMGPos[sAIDTI(3, 3)] = ps(2, 2);
-	FretIMGPos[sAIDTI(3, 4)] = ps(3, 2);
-
-	FretIMGPos[sAIDTI(4, 0)] = ps(4, 2);
-	FretIMGPos[sAIDTI(4, 1)] = ps(5, 2);
-	FretIMGPos[sAIDTI(4, 2)] = ps(6, 2);
-	FretIMGPos[sAIDTI(4, 3)] = ps(7, 2);
-	FretIMGPos[sAIDTI(4, 4)] = ps(0, 3);
+	fretsTextures = "default";
+	fretsText = GPPGame::GuitarPP().frets[fretsTextures];
+	
 }
 
 

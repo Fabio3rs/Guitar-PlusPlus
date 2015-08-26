@@ -146,6 +146,8 @@ public:
 
 	std::unordered_map <std::string, CGamePlay> gameModules;
 
+	std::unordered_map <std::string, fretsPosition> frets;
+
 	std::string getRunningModule();
 	
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
