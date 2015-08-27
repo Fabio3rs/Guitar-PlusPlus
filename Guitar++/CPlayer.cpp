@@ -35,6 +35,11 @@ std::string CPlayer::smartChartSearch(const std::string &path){
 	return "";
 }
 
+void CPlayer::update()
+{
+
+}
+
 std::string CPlayer::smartSongSearch(const std::string &path){
 	auto file_exists = [](const std::string &fileName){
 		return std::fstream(fileName).is_open();
@@ -516,4 +521,5 @@ CPlayer::CPlayer(const char *name){
 	plusEnabled = false;
 	startTime = CEngine::engine().getTime();
 	plusEnabled = false;
+	musicRunningTime = 0.0;
 }

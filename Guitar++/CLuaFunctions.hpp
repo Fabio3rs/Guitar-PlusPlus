@@ -154,6 +154,7 @@ public:
 	*/
 	void registerFunctions(lua_State *L);
 
+
 	/*
 	* Register default game globals
 	*/

@@ -15,11 +15,13 @@ public:
 	struct key{
 		double t;
 		bool pressed, lastFramePressed;
+		double data;
 
 		inline key()
 		{
 			pressed = lastFramePressed = false;
 			t = 0.0;
+			data = 0.0;
 		}
 	};
 
@@ -35,6 +37,8 @@ public:
 	class CPlayerControls{
 
 	public:
+		std::unordered_map < int, int > keys;
+
 		CPlayerControls();
 	};
 };

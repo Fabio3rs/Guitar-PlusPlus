@@ -11,6 +11,8 @@
 #include "CEngine.h"
 #include "CGamePlay.h"
 #include <exception>
+#include <atomic>
+#include <thread>
 
 class gameException : public std::exception{
 	std::string str;
@@ -37,7 +39,7 @@ class GPPGame{
 
 	CMenu *mainMenu;
 
-	std::deque < CMenu* > menusStack;
+	CMenu *currentMenu;
 
 	std::string runningModule;
 
@@ -158,6 +160,7 @@ public:
 
 	static void teste(const std::string &name);
 	static void startModule(const std::string &name);
+	static void benchmark(const std::string &name);
 
 	void loadAllThemes();
 
@@ -182,15 +185,16 @@ public:
 
 	inline CMenu *getActualMenu()
 	{
-		CMenu *result = nullptr;
-		if (menusStack.size() > 0)
-		{
-			result = menusStack.back();
-		}
-		return result;
+		return currentMenu;
 	}
 
 private:
+	struct loadThreadData{
+		std::atomic<bool> processing;
+	};
+
+	static void loadThread(CGamePlay &module, loadThreadData &l);
+
 	void eraseGameMenusAutoCreateds();
 
 	GPPGame(GPPGame&) = delete;

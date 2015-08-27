@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <Windows.h>
 #include "CControls.h"
+#include <functional>
+#include "CFonts.h"
 
 /*
 Provide default settings for the window
@@ -41,6 +43,56 @@ GPPGame::gameWindow GPPGame::getWindowDefaults(bool safeMode)
 	return w;
 }
 
+
+void GPPGame::benchmark(const std::string &name)
+{
+	auto &game = GPPGame::GuitarPP();
+	auto realname = game.getCallBackRealName(name);
+	auto &module = game.gameModules[realname];
+
+	if (game.getRunningModule().size() > 0)
+	{
+		throw gameException("A module is already running: " + name);
+	}
+
+	game.setVSyncMode(0);
+
+	game.setRunningModule(realname + "benchmark");
+
+
+	module.players.push_back(CPlayer("benchmark"));
+	module.players.back().loadSongOnlyChart("TTFAF");
+	module.players.back().startTime = CEngine::engine().getTime();
+
+	double sTime = CEngine::engine().getTime();
+
+	/*struct {
+	};*/
+
+
+	std::deque<double> data;
+
+	while (CEngine::engine().windowOpened()) {
+		GPPGame::GuitarPP().clearScreen();
+
+		if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
+		{
+			break;
+		}
+
+		module.update();
+
+
+
+
+		module.render();
+
+		GPPGame::GuitarPP().renderFrame();
+	}
+
+	game.setRunningModule("");
+}
+
 CMenu &GPPGame::getMenuByName(const std::string &name)
 {
 	return gameMenus[name];
@@ -49,6 +101,13 @@ CMenu &GPPGame::getMenuByName(const std::string &name)
 void GPPGame::setRunningModule(const std::string m)
 {
 	runningModule = m;
+}
+
+void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
+{
+	module.players.back().loadSongOnlyChart("TTFAF");
+
+	l.processing = false;
 }
 
 void GPPGame::startModule(const std::string &name)
@@ -67,26 +126,86 @@ void GPPGame::startModule(const std::string &name)
 	game.setRunningModule(realname);
 
 	module.players.push_back(CPlayer("xi"));
-	module.players.back().loadSongOnlyChart("TTFAF");
-	module.players.back().startTime = CEngine::engine().getTime();
+
+	loadThreadData l;
+
+	l.processing = true;
+
+	std::thread load(loadThread, std::ref(module), std::ref(l));
+
+	while (CEngine::engine().windowOpened() && l.processing) {
+		GPPGame::GuitarPP().clearScreen();
+
+		CFonts::fonts().drawTextInScreen("loading", -0.4, 0.0, 0.1);
+
+		GPPGame::GuitarPP().renderFrame();
+	}
+
+
+	double startTime = module.players.back().startTime = CEngine::engine().getTime() + 3.0;
+	double openMenuTime = 0.0;
+	module.players.back().musicRunningTime = -3.0;
+
+	bool enterInMenu = false, esc = false;
 
 	while (CEngine::engine().windowOpened()) {
 		GPPGame::GuitarPP().clearScreen();
 
 		if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
 		{
-			//game.openMenus();
+			esc = true;
+		}
+		else if (esc)
+		{
+			enterInMenu = true;
+		}
+		else
+		{
+			enterInMenu = false;
 		}
 
-		module.update();
+
+
+		if (enterInMenu)
+		{
+			openMenuTime = CEngine::engine().getTime();
+
+			game.openMenus(game.getMainMenu());
+
+			double time = CEngine::engine().getTime();
+
+			for (auto &p : module.players)
+			{
+				p.startTime += time - openMenuTime;
+			}
+
+			enterInMenu = false;
+			esc = false;
+		}
+		else
+		{
+			module.update();
 
 
 
 
-		module.render();
+			module.render();
+
+			double time = CEngine::engine().getTime();
+
+			if ((startTime - time) > 0.0)
+			{
+				CFonts::fonts().drawTextInScreen(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
+			}
+		}
+
+
+
 
 		GPPGame::GuitarPP().renderFrame();
 	}
+
+	if (load.joinable()) load.join();
 }
 
 void GPPGame::eraseGameMenusAutoCreateds()
@@ -294,7 +413,12 @@ void GPPGame::openMenus(CMenu *startMenu)
 	auto &engine = CEngine::engine();
 	auto &lua = CLuaH::Lua();
 
+	std::deque < CMenu* > menusStack;
+
 	menusStack.push_back(startMenu);
+
+	currentMenu = startMenu;
+
 
 	auto create_menu = [&](const std::deque < std::string > &menusXRef)
 	{
@@ -361,6 +485,7 @@ void GPPGame::openMenus(CMenu *startMenu)
 	{
 		clearScreen();
 		auto &menu = *menusStack.back();
+		currentMenu = &menu;
 
 		menu.update();
 
@@ -449,6 +574,8 @@ void GPPGame::openMenus(CMenu *startMenu)
 	}
 
 	menusStack.clear();
+
+	currentMenu = nullptr;
 }
 
 void GPPGame::teste(const std::string &name)

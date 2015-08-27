@@ -143,6 +143,8 @@ private:
 public:
 	std::deque<NotesData::Note> buffer;
 
+	double musicRunningTime;
+
 	void addPointsByNoteDoed();
 	void addPointsByDoingLongNote();
 	double comboToMultiplier();
@@ -157,6 +159,8 @@ public:
 	bool plusEnabled;
 
 	NotesData Notes;
+
+	void update();
 
 	bool loadSong(const std::string &path);
 	bool loadSongOnlyChart(const std::string &path);

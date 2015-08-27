@@ -4,7 +4,8 @@
 #include "CFonts.h"
 
 
-void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player) {
+void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player)
+{
 	CEngine::RenderDoubleStruct TempStruct3D;
 
 	//auto &frets = GPPGame::GuitarPP().frets[fretsTextures];
@@ -42,14 +43,16 @@ void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Tex
 
 double CGamePlay::getRunningMusicTime(CPlayer &player)
 {
-	return CEngine::engine().getTime() - player.startTime;;
+	return player.musicRunningTime *gSpeed;
 }
 
-double CGamePlay::time2Position(double Time, CPlayer &player){
+double CGamePlay::time2Position(double Time, CPlayer &player)
+{
 	return ((getRunningMusicTime(player) - Time) * -1.0) / 1.5;
 }
 
-double CGamePlay::pos2Alpha(double pos){
+double CGamePlay::pos2Alpha(double pos)
+{
 	double result = 0.0;
 
 	double minPosMinAlpha = 1.5, maxPosMaxAlpha = 0.6, dif = minPosMinAlpha - maxPosMaxAlpha;
@@ -67,7 +70,8 @@ double CGamePlay::pos2Alpha(double pos){
 	return result;
 }
 
-void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CPlayer &player){
+void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CPlayer &player)
+{
 	CEngine::RenderDoubleStruct TempStruct3D;
 	double rtime = getRunningMusicTime(player) - pos;
 
@@ -165,14 +169,17 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 				time = 0.0;
 			}
 
-			if (note.lTime > 0.0 && note.type & notesFlags::nf_doing_slide){
+			if (note.lTime > 0.0 && note.type & notesFlags::nf_doing_slide)
+			{
 				renderIndividualLine(i, time, note.lTime, GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId(), player);
 			}
-			else if (note.type & notesFlags::nf_slide && !(note.type & notesFlags::nf_slide_picked)){
+			else if (note.type & notesFlags::nf_slide && !(note.type & notesFlags::nf_slide_picked))
+			{
 				renderIndividualLine(i, time, note.lTime, GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId(), player);
 			}
 
-			if ((note.type & notesFlags::nf_not_hopo) ^ notesFlags::nf_not_hopo){
+			if ((note.type & notesFlags::nf_not_hopo) ^ notesFlags::nf_not_hopo)
+			{
 				texture = GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId();
 			}
 
@@ -191,9 +198,11 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	auto &gNotes = player.Notes.gNotes;
 	auto &engine = CEngine::engine();
 
+	player.musicRunningTime += engine.getDeltaTime() * gSpeed;
+
 	player.buffer.clear();
 
-	double musicTime = engine.getTime() - player.startTime;
+	double musicTime = getRunningMusicTime(player);
 
 	for (size_t i = notes.notePos, size = gNotes.size(); i < size; i++)
 	{
@@ -268,12 +277,12 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 void CGamePlay::setHyperSpeed(double s)
 {
-
+	speedMp = s;
 }
 
 void CGamePlay::setMusicSpeed(double s)
 {
-
+	gSpeed = s;
 }
 
 void CGamePlay::renderPlayer(CPlayer &player)
@@ -423,6 +432,8 @@ CGamePlay &CGamePlay::gamePlay()
 CGamePlay::CGamePlay()
 {
 	speedMp = 2.5;
+
+	gSpeed = 1.0;
 
 	fretsTextures = "default";
 	fretsText = GPPGame::GuitarPP().frets[fretsTextures];

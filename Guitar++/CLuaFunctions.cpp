@@ -227,7 +227,6 @@ int CLuaFunctions::newGamePlayModule(lua_State *L)
 	}
 
 	return p.rtn();
-
 }
 
 /*
