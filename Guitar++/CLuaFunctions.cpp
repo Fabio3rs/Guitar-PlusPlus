@@ -189,6 +189,48 @@ int CLuaFunctions::setConfigs(lua_State *L)
 }
 
 /*
+*
+*/
+int CLuaFunctions::newGamePlayModule(lua_State *L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 1 && lua_isstring(L, 1)){
+		std::string name;
+
+		p >> name;
+
+		auto &module = GPPGame::GuitarPP().gameModules[name];
+
+		lua_getglobal(L, "backgroundTexture");
+
+		if (lua_isstring(L, -1))
+			module.backgroundTexture = lua_tostring(L, -1);
+
+
+		lua_getglobal(L, "fretsTextures");
+
+		if (lua_isstring(L, -1))
+			module.fretsTextures = lua_tostring(L, -1);
+
+
+		lua_getglobal(L, "musicSpeed");
+
+		if (lua_isnumber(L, -1))
+			module.setMusicSpeed(lua_tonumber(L, -1));
+
+
+		lua_getglobal(L, "hyperSpeed");
+
+		if (lua_isnumber(L, -1))
+			module.setHyperSpeed(lua_tonumber(L, -1));
+	}
+
+	return p.rtn();
+
+}
+
+/*
 * Load a texture (load file & load opengl texture)
 */
 int CLuaFunctions::loadTexture(lua_State *L)

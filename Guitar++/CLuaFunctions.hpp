@@ -142,6 +142,11 @@ public:
 	static int addTextureToFont(lua_State *L);
 
 
+	/*
+	*
+	*/
+	static int newGamePlayModule(lua_State *L);
+
 
 
 	/*

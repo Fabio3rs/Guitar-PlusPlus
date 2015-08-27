@@ -172,9 +172,9 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 				renderIndividualLine(i, time, note.lTime, GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId(), player);
 			}
 
-			/*if ((note.type & notesFlags::nf_not_hopo) ^ notesFlags::nf_not_hopo){
-				texture = CTheme::inst().SPR["HopoNote"];
-			}*/
+			if ((note.type & notesFlags::nf_not_hopo) ^ notesFlags::nf_not_hopo){
+				texture = GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId();
+			}
 
 			/*if (note.type & notesFlags::plus_mid || note.type & notesFlags::plus_end){
 			texture = CTheme::inst().SPR["PlusNote"];
@@ -266,6 +266,16 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 	}
 }
 
+void CGamePlay::setHyperSpeed(double s)
+{
+
+}
+
+void CGamePlay::setMusicSpeed(double s)
+{
+
+}
+
 void CGamePlay::renderPlayer(CPlayer &player)
 {
 	auto &lua = CLuaH::Lua();
@@ -355,19 +365,23 @@ void CGamePlay::render()
 	CEngine::RenderDoubleStruct RenderData;
 
 	auto &game = GPPGame::GuitarPP();
-	auto &menu = game.loadTexture("data/sprites", "83sfq98a.tga");
+	auto &menu = game.loadTexture("data/sprites", "5168047.tga");
 
 	double prop = (double)menu.getImgWidth() / (double)menu.getImgHeight();
+
+	CEngine::engine().setScale(1.5, 1.5, 1.0);
+
+	double y = 0.3;
 
 	RenderData.x1 = -prop;
 	RenderData.x2 = prop;
 	RenderData.x3 = prop;
 	RenderData.x4 = -prop;
 
-	RenderData.y1 = 1.0;
-	RenderData.y2 = 1.0;
-	RenderData.y3 = -1.0;
-	RenderData.y4 = -1.0;
+	RenderData.y1 = 1.0 + y;
+	RenderData.y2 = 1.0 + y;
+	RenderData.y3 = -1.0 + y;
+	RenderData.y4 = -1.0 + y;
 
 	RenderData.z1 = 0.0;
 	RenderData.z2 = 0.0;
@@ -382,6 +396,8 @@ void CGamePlay::render()
 	RenderData.Text = menu.getTextId();
 
 	CEngine::engine().Render2DQuad(RenderData);
+
+	CEngine::engine().matrixReset();
 
 	//*******************************************************************************************************
 
