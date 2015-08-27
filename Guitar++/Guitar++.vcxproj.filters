@@ -165,6 +165,9 @@
     <ClCompile Include="CGamePlay.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CControls.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPPGame.h">
@@ -210,6 +213,9 @@
       <Filter>Header Files\utf8</Filter>
     </ClInclude>
     <ClInclude Include="CGamePlay.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CControls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

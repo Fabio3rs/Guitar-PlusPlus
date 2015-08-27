@@ -83,6 +83,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CControls.cpp" />
     <ClCompile Include="CEngine.cpp" />
     <ClCompile Include="CFonts.cpp" />
     <ClCompile Include="CGamePlay.cpp" />
@@ -132,6 +133,7 @@
     <ClCompile Include="tga.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CControls.h" />
     <ClInclude Include="CEngine.h" />
     <ClInclude Include="CFonts.h" />
     <ClInclude Include="CGamePlay.h" />
