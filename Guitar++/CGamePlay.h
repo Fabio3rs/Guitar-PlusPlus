@@ -30,6 +30,10 @@ class CGamePlay{
 
 
 public:
+	void setHyperSpeed(double s);
+	void setMusicSpeed(double s);
+
+
 	fretsPosition fretsText;
 	std::string fretsTextures;
 

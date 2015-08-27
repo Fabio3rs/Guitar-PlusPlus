@@ -6,6 +6,7 @@
 #include "CLog.h"
 #include <filesystem>
 #include <Windows.h>
+#include "CControls.h"
 
 /*
 Provide default settings for the window
