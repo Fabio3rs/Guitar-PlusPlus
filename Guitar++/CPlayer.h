@@ -145,6 +145,8 @@ public:
 
 	double musicRunningTime;
 
+	bool fretsPressed[5];
+
 	void addPointsByNoteDoed();
 	void addPointsByDoingLongNote();
 	double comboToMultiplier();

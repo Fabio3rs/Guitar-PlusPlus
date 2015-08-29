@@ -37,7 +37,11 @@ std::string CPlayer::smartChartSearch(const std::string &path){
 
 void CPlayer::update()
 {
-
+	int i = 0;
+	for (auto &f : fretsPressed)
+	{
+		f = CEngine::engine().getKey(GLFW_KEY_1 + i++);
+	}
 }
 
 std::string CPlayer::smartSongSearch(const std::string &path){

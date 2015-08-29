@@ -75,7 +75,8 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 	CEngine::RenderDoubleStruct TempStruct3D;
 	double rtime = getRunningMusicTime(player) - pos;
 
-	if (rtime > -5.0){
+	if (rtime > -5.0)
+	{
 		double size = 0.2;
 		double position = -0.51;
 
@@ -87,7 +88,8 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 
 		nCalc += 0.55;
 
-		if (player.plusEnabled){
+		if (player.plusEnabled)
+		{
 			TempStruct3D.TextureY1 = 0.5;
 			TempStruct3D.TextureY2 = 0.0;
 		}
@@ -155,9 +157,12 @@ void CGamePlay::renderIndividualLine(int id, double pos1, double pos2, unsigned 
 	TempStruct3D.z3 = nCalc2;
 	TempStruct3D.z4 = TempStruct3D.z3;
 
+	TempStruct3D.alphaBottom = pos2Alpha(-TempStruct3D.z3 / 5.5);
+	TempStruct3D.alphaTop = pos2Alpha(-TempStruct3D.z2 / 5.5);
+
 	//CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 
-	CEngine::engine().Render3DQuad(TempStruct3D);
+	CEngine::engine().Render3DQuadWithAlpha(TempStruct3D);
 }
 
 void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
@@ -198,6 +203,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	auto &gNotes = player.Notes.gNotes;
 	auto &engine = CEngine::engine();
 
+	player.update();
+
 	player.musicRunningTime += engine.getDeltaTime() * gSpeed;
 
 	player.buffer.clear();
@@ -212,6 +219,19 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 		if (endNoteTime > -1.5 && noteTime < 5.0)
 		{
+			if (noteTime > -0.1 && noteTime < 0.05 && !(note.type & notesFlags::nf_picked))
+			{
+				for (int i = 0; i < 5; i++){
+					if (note.type & (int)pow(2, i)){
+						notes.fretsNotePickedTime[i] = engine.getTime();
+					}
+				}
+
+				if (note.lTime == 0.0) note.type |= notesFlags::nf_picked;
+				note.type |= notesFlags::nf_doing_slide;
+			}
+
+
 			player.buffer.push_front(note);
 		}
 		else if (endNoteTime < -1.5)
@@ -322,7 +342,10 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	for (int i = 0; i < 5; i++)
 	{
+		//renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 4, player);
 		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 3, player);
+		if (player.fretsPressed[i])
+			renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 0, player);
 	}
 
 
@@ -333,6 +356,23 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		renderNote(n, player);
 	}
 
+
+	for (int i = 0; i < 5; i++)
+	{
+		double pressT = CEngine::engine().getTime() - player.Notes.fretsNotePickedTime[i];
+
+		pressT /= 0.15;
+
+		if (pressT > 1.0)
+		{
+			continue;
+		}
+
+		pressT *= 3;
+		int p = (int)floor(pressT + 1) % 3;
+
+		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, p, player);
+	}
 
 
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
