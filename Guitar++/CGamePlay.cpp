@@ -223,8 +223,10 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		{
 			if (noteTime > -0.1 && noteTime < 0.05 && !(note.type & notesFlags::nf_picked))
 			{
-				for (int i = 0; i < 5; i++){
-					if (note.type & (int)pow(2, i)){
+				for (int i = 0; i < 5; i++)
+				{
+					if (note.type & (int)pow(2, i))
+					{
 						notes.fretsNotePickedTime[i] = engine.getTime();
 					}
 				}

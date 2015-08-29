@@ -265,7 +265,8 @@ private:
 			return false;
 		}
 
-		void allocAll(int polysNum){
+		void allocAll(int polysNum)
+		{
 			verticesBuffer = std::unique_ptr< double[] >(new double[polysNum * 12]);
 			this->polysNum = polysNum;
 		}
@@ -327,7 +328,7 @@ public:
 		}
 	};
 
-	const inline void *getWindow(){ return window; }
+	const inline void *getWindow() const{ return window; }
 
 	struct Resolution{
 		int 	width;
@@ -387,9 +388,9 @@ public:
 	void setScale(double x, double y, double z);
 
 	double getTime();
-	inline double getDeltaTime(){return DeltaTime;}
+	inline double getDeltaTime() const{return DeltaTime;}
 	int getMouseButton(int btn);
-	inline const int &getFPS() { return FPS; }
+	inline const int &getFPS() const{ return FPS; }
 
 	void setVSyncMode(int mode);
 
