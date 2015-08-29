@@ -217,6 +217,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		double noteTime = note.time - musicTime;
 		double endNoteTime = noteTime + note.lTime;
 
+		double rtime = (musicTime - note.time) * speedMp / gSpeed;
+
 		if (endNoteTime > -1.5 && noteTime < 5.0)
 		{
 			if (noteTime > -0.1 && noteTime < 0.05 && !(note.type & notesFlags::nf_picked))
@@ -227,12 +229,17 @@ void CGamePlay::updatePlayer(CPlayer &player)
 					}
 				}
 
-				if (note.lTime == 0.0) note.type |= notesFlags::nf_picked;
+				if (note.lTime == 0.0)
+				{
+					note.type |= notesFlags::nf_picked;
+				}
 				note.type |= notesFlags::nf_doing_slide;
 			}
 
-
-			player.buffer.push_front(note);
+			if ((note.type & notesFlags::nf_picked) == 0 && pos2Alpha(rtime + 0.55) > 0.0)
+			{
+				player.buffer.push_front(note);
+			}
 		}
 		else if (endNoteTime < -1.5)
 		{
@@ -391,6 +398,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		CEngine::engine().setCamera(usingCamera);
 	}
+
+	CFonts::fonts().drawTextInScreen(std::to_string(player.buffer.size()), 0.0, 0.5, 0.1);
 
 	lua.runEventWithParams("posRenderPlayer", m);
 }
