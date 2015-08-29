@@ -183,6 +183,13 @@ int CLuaFunctions::setConfigs(lua_State *L)
 		cfg.VSyncMode = lua_tointeger(L, -1);
 
 
+
+	lua_getglobal(L, "AntiAliasing");
+
+	if (lua_isnumber(L, -1))
+		cfg.AA = lua_tointeger(L, -1);
+
+
 	GPPGame::GuitarPP().settWindowConfigs(cfg);
 
 	return 0;
