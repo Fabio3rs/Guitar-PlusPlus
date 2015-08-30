@@ -469,8 +469,6 @@ void CGamePlay::render()
 	//*******************************************************************************************************
 
 	CFonts::fonts().drawTextInScreen(std::to_string(CEngine::engine().getFPS()), 0.8, 0.8, 0.1);
-
-
 }
 
 /*

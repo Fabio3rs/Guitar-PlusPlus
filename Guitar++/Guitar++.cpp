@@ -153,45 +153,9 @@ int main(int argc, char* argv[])
 
 	RenderData.Text = menu.getTextId();
 
-	//CPlayer player("xi");
-
-	//player.loadSongOnlyChart("TTFAF");
-
-//	for (auto &p : player.Notes.gNotes)
-//	{
-	//	std::cout << p.time << std::endl;
-	//}
-
-	//char buffer[4096];
-	//GetSystemDirectory(buffer, sizeof(buffer) / sizeof(char));
-	//std::cout << buffer << std::endl;
-
 	game.openMenus(game.getMainMenu());
 
-	/*while (CEngine::engine().windowOpened()){
-		GPPGame::GuitarPP().clearScreen();
 
-		mainMenu.update();
-
-		CEngine::engine().Render2DQuad(RenderData);
-
-		PROCESS_MEMORY_COUNTERS memCounter;
-		bool result = GetProcessMemoryInfo(GetCurrentProcess(),
-			&memCounter,
-			sizeof(memCounter)) != 0;
-
-		double d = memCounter.WorkingSetSize;
-
-		d /= 1024 * 1024;
-
-		CFonts::fonts().drawTextInScreen(std::to_string(d) + " MB", -0.5, 0.8, 0.05);
-		//CFonts::fonts().drawTextInScreen(std::to_string(memCounter.PageFaultCount), 0.0, 0.8, 0.05);
-
-
-		mainMenu.render();
-
-		GPPGame::GuitarPP().renderFrame();
-	}*/
 
 	lua.runEvent("atExit");
 	lua.unloadAll();
