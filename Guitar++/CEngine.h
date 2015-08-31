@@ -212,6 +212,9 @@ public:
 	double mouseX, mouseY;
 
 private:
+	void gluPerspective(double fovy, double aspect, double zNear, double zFar);
+
+
 	double lastFrameTime, lastFPSSwapTime, DeltaTime;
 	int FPS, tmpFPS;
 	unsigned int lastUsedTexture;

@@ -68,6 +68,57 @@ void CEngine::Rotate(double a, double x, double y, double z){
 	glRotated(a, x, y, z);
 }
 
+void sub_50E0C1F8(double *a1)
+{
+	*(double *)a1 = 1.0;
+	*(double *)(a1 + 32) = 0.0;
+	*(double *)(a1 + 64) = 0.0;
+	*(double *)(a1 + 96) = 0.0;
+	*(double *)(a1 + 8) = 0.0;
+	*(double *)(a1 + 72) = 0.0;
+	*(double *)(a1 + 104) = 0.0;
+	*(double *)(a1 + 16) = 0.0;
+	*(double *)(a1 + 48) = 0.0;
+	*(double *)(a1 + 112) = 0.0;
+	*(double *)(a1 + 24) = 0.0;
+	*(double *)(a1 + 56) = 0.0;
+	*(double *)(a1 + 88) = 0.0;
+	*(double *)(a1 + 40) = 1.0;
+	*(double *)(a1 + 80) = 1.0;
+	*(double *)(a1 + 120) = 1.0;
+}
+
+void CEngine::gluPerspective(double fovy, double aspect, double zNear, double zFar)
+{
+	double v4;
+	double v5;
+	const GLdouble *v6;
+	double v7;
+	GLdouble v8;
+	double v9;
+	double v10;
+	double v11;
+	double v12;
+	double v13;
+	double v14;
+
+	v8 = fovy * 0.5 * 3.141592653589793 / 180.0;
+	v7 = zFar - zNear;
+	v4 = sin(v8);
+	if (v7 != 0.0 && 0.0 != v4 && aspect != 0.0)
+	{
+		v5 = cos(v8) / v4;
+		sub_50E0C1F8(&v9); // matrix set?
+		v9 = v5 / aspect;
+		v10 = v5;
+		v11 = -((zNear + zFar) / v7);
+		v12 = -1.0;
+		v13 = zFar * (zNear * -2.0) / v7;
+		v14 = 0.0;
+		glMultMatrixd(&v7);
+	}
+}
+
 void CEngine::matrixReset(){
 	glLoadIdentity();
 
