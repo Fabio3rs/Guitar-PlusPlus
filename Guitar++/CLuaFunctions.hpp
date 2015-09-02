@@ -34,7 +34,7 @@ public:
 		template<class T>
 		inline LuaParams &operator>>(T &param){
 			if (stck <= num_params){
-				param = (T)(lua_tounsigned(L, stck));
+				param = (T)(lua_tointeger(L, stck));
 				++stck;
 			}
 			else

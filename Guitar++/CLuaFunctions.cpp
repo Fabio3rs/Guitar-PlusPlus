@@ -46,7 +46,7 @@ CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator<<(int param)
 
 CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator<<(size_t param)
 {
-	lua_pushunsigned(L, param);
+	lua_pushinteger(L, param);
 	++ret;
 
 	return *this;
@@ -105,7 +105,7 @@ CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator>>(int &param)
 CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator>>(void *&param)
 {
 	if (stck <= num_params){
-		param = (void*)lua_tounsigned(L, stck);
+		param = (void*)lua_topointer(L, stck);
 		++stck;
 	}
 	else
