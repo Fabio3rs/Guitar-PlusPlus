@@ -9,6 +9,7 @@
 #include <fstream>
 #include <unordered_map>
 #include "CLog.h"
+#include <filesystem>
 
 CLuaH &CLuaH::Lua()
 {
