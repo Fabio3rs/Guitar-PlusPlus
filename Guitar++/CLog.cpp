@@ -11,7 +11,6 @@
 
 int InstallExceptionCatcher(void(*cb)(const char* buffer));
 
-CLog *CLog::thisptr = nullptr;
 //char *CLog::TimeStringBuffer = new char[0x400];
 char *CLog::multiRegisterBuffer = new char[0x2000];
 
@@ -20,14 +19,7 @@ CLog &CLog::log(void){
 	return Log;
 }
 
-void finish(){
-	if (CLog::thisptr){
-		CLog::log().FinishLog();
-	}
-}
-
 CLog::CLog(const std::string &NameOfFile){
-	CLog::thisptr = this;
 	Finished = false;
 	FileName = NameOfFile;
 	LogFile.rdbuf()->pubsetbuf(0, 0);
@@ -38,7 +30,6 @@ CLog::CLog(const std::string &NameOfFile){
 	LogContents = "*********************************************** \nLog started at: ";
 	LogContents += GetDateAndTime();
 	LogContents += "\n*********************************************** \n\n";
-	atexit(finish);
 
 	InstallExceptionCatcher([](const char *buffer){
 		CLuaH::Lua().runEvent("emergencyLogSave");
@@ -50,7 +41,6 @@ CLog::CLog(const std::string &NameOfFile){
 
 CLog::~CLog(){
 	FinishLog();
-	CLog::thisptr = nullptr;
 }
 
 std::string CLog::GetDateAndTime(){

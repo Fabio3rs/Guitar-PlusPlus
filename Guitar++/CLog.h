@@ -40,8 +40,7 @@ class CLog{
 public:
 	//static char *TimeStringBuffer;
 	static char *multiRegisterBuffer;
-	
-	static CLog *thisptr;
+
 	bool Finished;
 	
 	~CLog();
