@@ -88,7 +88,7 @@ void sub_50E0C1F8(double *a1)
 	*(double *)(a1 + 120) = 1.0;
 }
 
-void CEngine::gluPerspective(double fovy, double aspect, double zNear, double zFar)
+/*void CEngine::gluPerspective(double fovy, double aspect, double zNear, double zFar)
 {
 	double v4;
 	double v5;
@@ -117,7 +117,7 @@ void CEngine::gluPerspective(double fovy, double aspect, double zNear, double zF
 		v14 = 0.0;
 		glMultMatrixd(&v7);
 	}
-}
+}*/
 
 void CEngine::matrixReset(){
 	glLoadIdentity();

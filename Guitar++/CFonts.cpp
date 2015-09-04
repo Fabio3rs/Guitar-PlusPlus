@@ -31,6 +31,11 @@ CFonts::Font::fontTexture::fontTexture()
 	lines = columns = 0;
 }
 
+double CFonts::getCenterPos(int charsnum, double size, double posX1)
+{
+	return posX1 - (((double)(charsnum)* size / 1.5) + (size / 2.0)) / 2.0;
+}
+
 void CFonts::Font::registerTexture(const std::string &path, const std::string &texture, const std::wstring &textChars)
 {
 	const std::string name = (path + "/" + texture);
@@ -114,7 +119,7 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 	auto &fontToUse = fontsReg[fontName];
 
 	double CharPos = 0.0;
-	const double sizeDiv1_4 = size / 1.4, sizeDiv2_0 = size / 2.0;
+	const double sizeDiv1_5 = size / 1.5, sizeDiv2_0 = size / 2.0;
 	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
 
 	CEngine::RenderDoubleStruct RenderData;
@@ -144,7 +149,7 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 
 			RenderData.Text = text.getTextId();
 
-			CharPos = posX1PlusSizeDiv2_0 + (((double)i) * sizeDiv1_4);
+			CharPos = posX1PlusSizeDiv2_0 + (((double)i) * sizeDiv1_5);
 
 			RenderData.x1 = CharPos;
 			RenderData.x2 = CharPos + size;

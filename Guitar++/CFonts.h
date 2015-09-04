@@ -104,7 +104,7 @@ public:
 	// Adds Texture to font and create a font inst if doesnt exists
 	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::wstring &textChars);
 	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars);
-
+	double								getCenterPos(int charsnum, double size, double posX1);
 
 	void								drawTextInScreen(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName = "default");
 

@@ -212,7 +212,7 @@ public:
 	double mouseX, mouseY;
 
 private:
-	void gluPerspective(double fovy, double aspect, double zNear, double zFar);
+	//void gluPerspective(double fovy, double aspect, double zNear, double zFar);
 
 
 	double lastFrameTime, lastFPSSwapTime, DeltaTime;
