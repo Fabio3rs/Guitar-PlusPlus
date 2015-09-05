@@ -156,7 +156,6 @@ int main(int argc, char* argv[])
 	game.openMenus(game.getMainMenu());
 
 
-
 	lua.runEvent("atExit");
 	lua.unloadAll();
 	return 0;
