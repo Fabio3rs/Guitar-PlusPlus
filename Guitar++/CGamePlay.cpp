@@ -480,9 +480,9 @@ CGamePlay &CGamePlay::gamePlay()
 
 CGamePlay::CGamePlay()
 {
-	speedMp = 2.5;
+	speedMp = 2.5; // equivalent to Guitar Hero's hyperspeed
 
-	gSpeed = 1.0;
+	gSpeed = 1.0; // music speed
 
 	fretsTextures = "default";
 	fretsText = GPPGame::GuitarPP().frets[fretsTextures];

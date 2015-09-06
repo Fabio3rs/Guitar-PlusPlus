@@ -125,8 +125,10 @@ int main(int argc, char* argv[])
 
 	//GPPGame::GuitarPP().setVSyncMode(1);
 
+	// menu background texture
 	auto &menu = game.loadTexture("data/sprites", "menu.tga");
 
+	//***********************************************
 	CEngine::RenderDoubleStruct RenderData;
 
 	double prop = (double)menu.getImgWidth() / (double)menu.getImgHeight();
@@ -152,6 +154,7 @@ int main(int argc, char* argv[])
 	RenderData.TextureY2 = 0.0;
 
 	RenderData.Text = menu.getTextId();
+	//////////////////////////////////////////////
 
 	game.openMenus(game.getMainMenu());
 
