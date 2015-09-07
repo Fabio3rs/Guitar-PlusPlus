@@ -141,6 +141,8 @@ private:
 	int combo;
 
 public:
+	int BPMNowBuffer;
+
 	std::deque<NotesData::Note> buffer;
 
 	double musicRunningTime;

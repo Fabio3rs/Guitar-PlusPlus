@@ -526,4 +526,6 @@ CPlayer::CPlayer(const char *name){
 	startTime = CEngine::engine().getTime();
 	plusEnabled = false;
 	musicRunningTime = 0.0;
+
+	BPMNowBuffer = 0;
 }

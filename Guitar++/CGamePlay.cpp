@@ -3,6 +3,65 @@
 #include "GPPGame.h"
 #include "CFonts.h"
 
+void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Player)
+{
+	CEngine::RenderDoubleStruct TempStruct3D;
+	double posX1, notaSize, X3, X4, Y3, Y4;
+	const double pos = -0.492;
+	double rtime = getRunningMusicTime(Player) - position;
+
+	double nCalc = rtime * speedMp;
+
+	nCalc += 0.55;
+
+	const double size = 0.25;
+
+	TempStruct3D.Text = Texture;
+
+	TempStruct3D.x1 = pos;
+	TempStruct3D.x2 = pos * -1.0;
+	TempStruct3D.x3 = TempStruct3D.x2;
+	TempStruct3D.x4 = TempStruct3D.x1;
+
+	TempStruct3D.y1 = -0.5;
+	TempStruct3D.y2 = TempStruct3D.y1;
+	TempStruct3D.y3 = -0.5;
+	TempStruct3D.y4 = TempStruct3D.y3;
+
+	TempStruct3D.z1 = nCalc;
+	TempStruct3D.z2 = TempStruct3D.z1;
+	TempStruct3D.z3 = nCalc + size;
+	TempStruct3D.z4 = TempStruct3D.z3;
+
+	TempStruct3D.TextureX1 = 0.0f;
+	TempStruct3D.TextureX2 = 1.0f;
+	TempStruct3D.TextureY1 = 1.0f;
+	TempStruct3D.TextureY2 = 0.0f;
+
+	CEngine::engine().setColor(1.0, 1.0, 1.0, pos2Alpha(-TempStruct3D.z1 / 5.5));
+	CEngine::engine().Render3DQuad(TempStruct3D);
+}
+
+void CGamePlay::drawBPMLines(CPlayer &Player)
+{
+	double time = getRunningMusicTime(Player) - 0.5;
+
+	if (Player.Notes.BPM.size() > 0){
+		double BPS = 30.0 / Player.Notes.BPM[Player.BPMNowBuffer].lTime;
+
+		int Multi = time / BPS;
+		double tCalc = 0.0;
+
+		for (int i = 0; tCalc < 5.0; i++){
+			drawBPMLine((Multi * BPS) + tCalc, GPPGame::GuitarPP().loadTexture("data/sprites", "v.tga").getTextId() , Player);
+
+			tCalc = BPS * i;
+		}
+	}
+
+
+	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+}
 
 void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player)
 {
@@ -346,7 +405,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId());
 
-
+	drawBPMLines(player);
 
 
 	for (int i = 0; i < 5; i++)
