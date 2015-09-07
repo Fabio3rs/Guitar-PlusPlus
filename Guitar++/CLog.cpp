@@ -31,7 +31,8 @@ CLog::CLog(const std::string &NameOfFile){
 	LogContents += GetDateAndTime();
 	LogContents += "\n*********************************************** \n\n";
 
-	InstallExceptionCatcher([](const char *buffer){
+	InstallExceptionCatcher([](const char *buffer)
+	{
 		CLuaH::Lua().runEvent("emergencyLogSave");
 		log() << buffer;
 		log().SaveBuffer();
