@@ -1,4 +1,5 @@
 #pragma once
+// brmodstudio.forumeiros.com
 #ifndef __GUITARPP_CPLAYER_H_
 #define __GUITARPP_CPLAYER_H_
 

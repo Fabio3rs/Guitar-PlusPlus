@@ -1,4 +1,5 @@
 #pragma once
+// brmodstudio.forumeiros.com
 #ifndef _LUA_HOOKER_CLUAH_HPP_
 #define _LUA_HOOKER_CLUAH_HPP_
 

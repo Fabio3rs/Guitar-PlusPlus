@@ -1,5 +1,6 @@
 ﻿// Guitar++.cpp : Defines the entry point for the console application.
 //
+// brmodstudio.forumeiros.com
 
 #include <iostream>
 #include <exception>
@@ -124,8 +125,6 @@ int main(int argc, char* argv[])
 	lua.runEvent("mainMenuSetted");
 
 	GPPGame::GuitarPP().setVSyncMode(1);
-
-
 
 	// menu background texture
 	auto &menu = game.loadTexture("data/sprites", "menu.tga");

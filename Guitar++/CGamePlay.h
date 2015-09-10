@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _GUITAR_PP_CGAMEPLAY_h_
 #define _GUITAR_PP_CGAMEPLAY_h_
+// brmodstudio.forumeiros.com
 
 #include <memory>
 #include <algorithm>
