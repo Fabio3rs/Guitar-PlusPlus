@@ -125,6 +125,8 @@ int main(int argc, char* argv[])
 
 	GPPGame::GuitarPP().setVSyncMode(1);
 
+
+
 	// menu background texture
 	auto &menu = game.loadTexture("data/sprites", "menu.tga");
 
