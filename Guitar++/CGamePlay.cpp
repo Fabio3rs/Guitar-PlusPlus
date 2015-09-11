@@ -53,7 +53,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		double tCalc = 0.0;
 
 		for (int i = 0; tCalc < 5.0; i++){
-			drawBPMLine((Multi * BPS) + tCalc, GPPGame::GuitarPP().loadTexture("data/sprites", "v.tga").getTextId() , Player);
+			drawBPMLine((Multi * BPS) + tCalc, BPMTextID, Player);
 
 			tCalc = BPS * i;
 		}
@@ -405,7 +405,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId());
 
-	drawBPMLines(player);
+	if (showBPMLines) drawBPMLines(player);
 
 
 	for (int i = 0; i < 5; i++)
@@ -425,6 +425,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}
 
 
+	// ********************************************** STRIKE LINE BTN -
 	for (int i = 0; i < 5; i++)
 	{
 		double pressT = CEngine::engine().getTime() - player.Notes.fretsNotePickedTime[i];
@@ -441,6 +442,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, p, player);
 	}
+
 
 
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
@@ -547,6 +549,12 @@ CGamePlay::CGamePlay()
 	fretsText = GPPGame::GuitarPP().frets[fretsTextures];
 	fretsText.notesTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "Strums.tga").getTextId();
 	fretsText.strikeLineTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "frets.tga").getTextId();
+
+	BPMLineText = "v.tga";
+
+	BPMTextID = GPPGame::GuitarPP().loadTexture("data/sprites", BPMLineText).getTextId();
+
+	showBPMLines = true;
 }
 
 

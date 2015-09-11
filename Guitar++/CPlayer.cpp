@@ -186,7 +186,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		return BPM / 1000.0 * 3.2;
 	};
 
-	auto getNoteTime = [&pureBPMToCalcBPM](const BPMContainer &BPMs, int pos, int off){
+	auto getNoteTime = [&pureBPMToCalcBPM](const BPMContainer &BPMs, int64_t pos, int64_t off){
 		double timeT = 0.0;
 		int i = 0;
 
@@ -236,7 +236,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 	int p = 0;
 	for (auto &BP : BPMs){
 		Note newNote;
-		newNote.time = getNoteTime(BPMs, p, BP.offset);
+		newNote.time = getNoteTime(BPMs, p, (int64_t)BP.offset);
 		newNote.lTime = BP.BPM / 1000.0;
 
 		BPM.push_back(newNote);

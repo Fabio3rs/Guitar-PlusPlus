@@ -26,19 +26,17 @@
 #include <assimp/postprocess.h>     // Post processing flags
 */
 
-unsigned int *CEngine::bitArray = nullptr;
-
 CEngine &CEngine::engine(){
 	static CEngine eng;
 	return eng;
 }
 
-const uint32_t CEngine::bitValues[32] = {
+/*const uint32_t CEngine::bitValues[32] = {
 	1, 2, 4, 8, 16, 32, 64, 128,
 	256, 512, 1024, 2048, 4096, 8192, 16384, 32768,
 	65536, 131072, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000,
 	0x1000000, 0x2000000, 0x4000000, 0x8000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000
-};
+};*/
 
 bool CEngine::pauseSoundStream(int handle){
 	return /*BASS_ChannelPause(handle) !=*/ 0;
@@ -282,7 +280,7 @@ static void windowCallBack(GLFWwindow *window, int w, int h){
 		engine.getWindowCallbackFunction()(w, h, posUpdate);
 }
 
-void CEngine::setBitState(unsigned int *array, unsigned int bitSet, bool state){
+/*void CEngine::setBitState(unsigned int *array, unsigned int bitSet, bool state){
 	if (array){
 		int index = bitSet >> 5, bit = bitValues[bitSet % 32];
 
@@ -303,7 +301,7 @@ void CEngine::setBitState(unsigned int *array, unsigned int bitSet, bool state){
 			::glDisable(bitSet);
 		}
 	}
-}
+}*/
 
 void CEngine::glEnable(int num){
 	//if (num >= glStates.size())

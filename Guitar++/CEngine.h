@@ -223,12 +223,11 @@ private:
 	unsigned int cursorText;
 
 	std::string keyboardNoise;
-	const static uint32_t bitValues[32];
-	static unsigned int *bitArray;
+	//const static uint32_t bitValues[32];
 
 	std::bitset <0x18000> glStates;
 
-	void setBitState(unsigned int *array, unsigned int bitSet, bool state);
+	//void setBitState(unsigned int *array, unsigned int bitSet, bool state);
 
 	struct audioInfo{
 		const char *fileName;
@@ -243,6 +242,8 @@ private:
 
 	double lastUpdatedNoise, updateNoiseInterval;
 
+
+	// TODO: make once allocation
 	class CCircleStream{
 		unsigned int GlBuffer;
 		std::unique_ptr < double[] > verticesBuffer;
@@ -283,6 +284,7 @@ private:
 	};
 
 	std::unordered_map<int, CCircleStream> circlesBuffer;
+	//*****************************************
 
 public:
 	double eyex,

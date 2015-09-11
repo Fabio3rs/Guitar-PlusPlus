@@ -39,7 +39,10 @@ public:
 
 
 	fretsPosition fretsText;
-	std::string fretsTextures;
+	std::string fretsTextures, BPMLineText;
+	int BPMTextID;
+
+	bool showBPMLines;
 
 	std::deque < CPlayer > players;
 
