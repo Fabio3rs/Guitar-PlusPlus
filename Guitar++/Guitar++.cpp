@@ -21,6 +21,10 @@ int main(int argc, char* argv[])
 {
 	CLog::log(); // Start logging before everything, to avoid non-logged crashes
 	auto &game = GPPGame::GuitarPP();
+
+	game.parseParameters(argc, argv);
+
+
 	auto &lua = CLuaH::Lua();
 
 	game.loadAllThemes();

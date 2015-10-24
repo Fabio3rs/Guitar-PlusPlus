@@ -43,6 +43,8 @@ class GPPGame{
 
 	std::string runningModule;
 
+	bool devMode;
+
 public:
 
 	typedef void(*func_t)(const std::string &name);
@@ -149,6 +151,11 @@ public:
 	std::unordered_map <std::string, CGamePlay> gameModules;
 
 	std::unordered_map <std::string, fretsPosition> frets;
+
+	void setDevMode(bool mode);
+
+	std::map<std::string, bool>				 cmdparams;
+	void parseParameters(int argc, char *argv[]);
 
 	std::string getRunningModule();
 	

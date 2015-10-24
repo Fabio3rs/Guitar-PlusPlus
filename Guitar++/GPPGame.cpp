@@ -110,6 +110,27 @@ void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 	l.processing = false;
 }
 
+void GPPGame::parseParameters(int argc, char *argv[])
+{
+	for (int i = 0; i < argc; ++i)
+	{
+		if (argv[i])
+		{
+			if (argv[i][0] == '-' || argv[i][0] == '/')
+			{
+				cmdparams[&((argv[i])[1])] = true;
+			}
+		}
+	}
+
+	setDevMode(cmdparams["dev"]);
+}
+
+void GPPGame::setDevMode(bool mode)
+{
+	devMode = mode;
+}
+
 void GPPGame::startModule(const std::string &name)
 {
 	auto &game = GPPGame::GuitarPP();
@@ -668,6 +689,8 @@ GPPGame::GPPGame()
 	windowCFGs = getWindowDefaults();
 
 	srand((unsigned int)time(0));
+
+	devMode = false;
 
 	mainMenu = nullptr;
 }
