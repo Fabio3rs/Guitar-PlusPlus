@@ -191,7 +191,13 @@ void GPPGame::startModule(const std::string &name)
 		{
 			openMenuTime = CEngine::engine().getTime();
 
-			game.openMenus(game.getMainMenu());
+			game.openMenus(&module.moduleMenu);
+
+			if (module.moduleMenu.options[module.exitModuleOpt].status & 1)
+			{
+				module.resetModule();
+				break;
+			}
 
 			double time = CEngine::engine().getTime();
 

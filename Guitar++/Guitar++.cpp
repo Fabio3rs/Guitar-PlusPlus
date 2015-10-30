@@ -27,8 +27,6 @@ int main(int argc, char* argv[])
 
 	auto &lua = CLuaH::Lua();
 
-	game.loadAllThemes();
-	game.gThemes["gppdefaulttheme"].apply();
 
 	// Configuration file
 	auto &script = lua.newScript(".", "Config.lua");
@@ -42,6 +40,13 @@ int main(int argc, char* argv[])
 
 	// Window
 	game.createWindow();
+
+
+	game.loadAllThemes();
+	game.gThemes["gppdefaulttheme"].apply();
+
+
+
 
 	game.loadBasicSprites();
 

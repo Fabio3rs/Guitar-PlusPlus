@@ -555,6 +555,37 @@ CGamePlay::CGamePlay()
 	BPMTextID = GPPGame::GuitarPP().loadTexture("data/sprites", BPMLineText).getTextId();
 
 	showBPMLines = true;
+
+
+	{
+		CMenu::menuOpt opt;
+
+		opt.text = "Voltar";
+		opt.y = 0.4;
+		opt.x = -0.5;
+		opt.size = 0.075;
+		opt.group = 1;
+		opt.status = 0;
+		opt.type = CMenu::menusOPT::textbtn;
+		opt.goback = true;
+
+		/*exitModuleOpt = */moduleMenu.addOpt(opt);
+	}
+
+	{
+		CMenu::menuOpt opt;
+
+		opt.text = "Sair";
+		opt.y = -0.4;
+		opt.x = -0.5;
+		opt.size = 0.075;
+		opt.group = 1;
+		opt.status = 0;
+		opt.type = CMenu::menusOPT::textbtn;
+		opt.goback = true;
+
+		exitModuleOpt = moduleMenu.addOpt(opt);
+	}
 }
 
 

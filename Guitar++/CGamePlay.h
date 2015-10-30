@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "CPlayer.h"
+#include "CMenu.h"
 
 class CGamePlay{
 	void renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text);
@@ -37,6 +38,8 @@ public:
 	void setHyperSpeed(double s);
 	void setMusicSpeed(double s);
 
+	CMenu moduleMenu;
+	int exitModuleOpt;
 
 	fretsPosition fretsText;
 	std::string fretsTextures, BPMLineText;
