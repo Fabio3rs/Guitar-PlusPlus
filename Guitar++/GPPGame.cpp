@@ -43,6 +43,13 @@ GPPGame::gameWindow GPPGame::getWindowDefaults(bool safeMode)
 	return w;
 }
 
+void GPPGame::helpMenu(const std::string &name)
+{
+	//std::cout << "aaa\n";
+
+
+
+}
 
 void GPPGame::benchmark(const std::string &name)
 {

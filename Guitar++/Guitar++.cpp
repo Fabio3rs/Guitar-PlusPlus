@@ -31,7 +31,8 @@ int main(int argc, char* argv[])
 	// Configuration file
 	auto &script = lua.newScript(".", "Config.lua");
 
-	if (script.luaState){
+	if (script.luaState)
+	{
 		lua.runScript(script);
 	}
 
@@ -111,6 +112,9 @@ int main(int argc, char* argv[])
 		opt.group = 1;
 		opt.status = 0;
 		opt.type = CMenu::menusOPT::textbtn;
+
+		std::string testecallback = game.addGameCallbacks("gameHelpMenu", GPPGame::helpMenu);
+		opt.menusXRef.push_back(testecallback);
 
 		ajudaOp = mainMenu.addOpt(opt);
 	}

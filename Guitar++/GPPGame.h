@@ -195,6 +195,8 @@ public:
 		return currentMenu;
 	}
 
+	static void helpMenu(const std::string &name);
+
 private:
 	struct loadThreadData{
 		std::atomic<bool> processing;
