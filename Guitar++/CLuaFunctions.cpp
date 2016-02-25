@@ -289,6 +289,7 @@ int CLuaFunctions::setCallBackToEvent(lua_State *L)
 		int	fnRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
 		CLuaH::Lua().getLastScript().callbacks[eventName] = fnRef;
+		CLuaH::Lua().getLastScript().callbacksAdded = true;
 	}
 
 

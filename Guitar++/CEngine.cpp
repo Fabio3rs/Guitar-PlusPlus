@@ -916,6 +916,13 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	glfwSetWindowSizeCallback((GLFWwindow*)window, windowCallBack);
 	windowCallBack((GLFWwindow*)window, w, h);
 
+	GLenum err = glewInit();
+	if (GLEW_OK != err){
+		/* Problem: glewInit failed, something is seriously wrong. */
+		MessageBoxA(0, (char*)glewGetErrorString(err), "Error: %s\n", 0);
+	}
+	glUseProgram(0);
+
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
 	/*for (int i = 0, size = glStates.size(); i < size; i++){
@@ -991,7 +998,7 @@ void CEngine::Render2DQuad(const RenderDoubleStruct &quad2DData){
 }
 
 void CEngine::Render2DCircle(double x, double y, double percent, double radius, double lineWeight, int polysNum, int maxPolys, unsigned int &bufferID){
-	if (bufferID < 0){
+	if (bufferID == (~0)){
 		bufferID = circlesBuffer.size();
 
 		auto &stream = circlesBuffer[bufferID];

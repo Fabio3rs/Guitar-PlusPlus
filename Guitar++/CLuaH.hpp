@@ -8,6 +8,7 @@
 #include <map>
 #include <deque>
 #include <unordered_map>
+#include <cstdint>
 
 class CLuaH
 {
@@ -42,7 +43,12 @@ public:
 		std::string											filePath;
 		std::string											fileName;
 		std::unordered_map < std::string, int >				callbacks;
-		std::unordered_map <std::string, unsigned int>		textureList; // useless?
+		std::unordered_map < std::string, int >				cheats;
+		std::unordered_map < uintptr_t, int >				hooks;
+
+		bool												cheatsAdded;
+		bool												callbacksAdded;
+		bool												hooksAdded;
 
 		void unload(); // clean lua state, containers, etc.
 
@@ -68,6 +74,7 @@ public:
 		double num;
 		int boolean;
 		int function;
+		int64_t inumber;
 
 	public:
 		int getType() const{
@@ -106,8 +113,8 @@ public:
 		}
 
 		void set(int n){
-			num = n;
-			type = LUA_TNUMBER;
+			inumber = num = n;
+			type = LUA_TNUMBER | 0xF0000000;
 		}
 
 		void set(bool n){
@@ -115,10 +122,14 @@ public:
 			type = LUA_TBOOLEAN;
 		}
 
-		void pushToLuaStack(lua_State *L){
+		void pushToLuaStack(lua_State *L) const{
 			switch (type)
 			{
 			case LUA_TNIL:
+				break;
+
+			case (LUA_TNUMBER | 0xF0000000):
+				lua_pushinteger(L, inumber);
 				break;
 
 			case LUA_TNUMBER:
@@ -161,7 +172,15 @@ public:
 				break;
 
 			case LUA_TNUMBER:
-				num = lua_tonumber(L, idx);
+				if (lua_isinteger(L, idx))
+				{
+					type = (LUA_TNUMBER | 0xF0000000);
+					inumber = num = lua_tointeger(L, idx);
+				}
+				else{
+					num = lua_tonumber(L, idx);
+				}
+
 				break;
 
 			case LUA_TBOOLEAN:
@@ -196,6 +215,7 @@ public:
 		customParam(){
 			type = LUA_TNIL;
 			num = 0.0;
+			inumber = 0;
 			boolean = NULL;
 			function = NULL;
 		}
@@ -206,6 +226,7 @@ public:
 			function = NULL;
 			str = s;
 			type = LUA_TSTRING;
+			inumber = 0;
 		}
 
 		customParam(const char *s){
@@ -214,6 +235,7 @@ public:
 			function = NULL;
 			str = s;
 			type = LUA_TSTRING;
+			inumber = 0;
 		}
 
 		customParam(double n){
@@ -221,13 +243,15 @@ public:
 			function = NULL;
 			num = n;
 			type = LUA_TNUMBER;
+			inumber = 0;
 		}
 
 		customParam(int n){
 			boolean = NULL;
 			function = NULL;
 			num = n;
-			type = LUA_TNUMBER;
+			type = (LUA_TNUMBER | 0xF0000000);
+			inumber = n;
 		}
 
 		customParam(bool n){
@@ -235,6 +259,7 @@ public:
 			function = NULL;
 			boolean = n;
 			type = LUA_TBOOLEAN;
+			inumber = 0;
 		}
 	};
 
@@ -258,6 +283,7 @@ public:
 	* New script and DO NOT add it to quere
 	*/
 	luaScript					newScript(const std::string &path, const std::string &f);
+	luaScript					newScriptR(const std::string &memf, const std::string &name);
 
 	/*
 	* New script and add it to quere
@@ -274,11 +300,13 @@ public:
 	* Run a especific event (calls him specifics callbacks)
 	*/
 	void						runEvent(std::string name);
+	void						runCheatEvent(std::string name);
+	void						runHookEvent(uintptr_t address);
 	
 	/*
 	* Run a especific with parameteres (calls him specifics callbacks)
 	*/
-	void						runEventWithParams(const std::string &name, multiCallBackParams_t &params);
+	void						runEventWithParams(const std::string &name, const multiCallBackParams_t &params);
 
 	/*
 	* Run a internal event (calls him specifics callbacks)
@@ -298,13 +326,15 @@ public:
 	/*
 	* Get last runned (or running) script
 	*/
-	inline luaScript &getLastScript(){ return *lastScript; }
+	inline luaScript &getLastScript(){ return *lastScript.back(); }
 
-
+	
 
 	void unloadAll();
 
 private:
+	std::vector < luaScript* > lastScript;
+
 	CLuaH(const CLuaH&) = delete;
 
 
@@ -315,8 +345,6 @@ private:
 
 	void catchErrorString(lua_State *L);
 	void catchErrorString(const luaScript &L);
-
-	luaScript *lastScript;
 
 	CLuaH();
 };

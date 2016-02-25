@@ -142,6 +142,7 @@ int main(int argc, char* argv[])
 	// menu background texture
 	auto &menu = game.loadTexture("data/sprites", "menu.tga");
 
+
 	//***********************************************
 	CEngine::RenderDoubleStruct RenderData;
 
@@ -170,6 +171,8 @@ int main(int argc, char* argv[])
 	RenderData.Text = menu.getTextId();
 	//////////////////////////////////////////////
 
+
+	//game.getMainMenu()->backgroundTexture = menu.getGTextureName();
 	game.openMenus(game.getMainMenu());
 
 

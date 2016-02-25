@@ -161,7 +161,8 @@ void GPPGame::startModule(const std::string &name)
 
 	std::thread load(loadThread, std::ref(module), std::ref(l));
 
-	while (CEngine::engine().windowOpened() && l.processing) {
+	while (CEngine::engine().windowOpened() && l.processing)
+	{
 		GPPGame::GuitarPP().clearScreen();
 
 		CFonts::fonts().drawTextInScreen("loading", -0.4, 0.0, 0.1);
@@ -176,7 +177,8 @@ void GPPGame::startModule(const std::string &name)
 
 	bool enterInMenu = false, esc = false;
 
-	while (CEngine::engine().windowOpened()) {
+	while (CEngine::engine().windowOpened())
+	{
 		GPPGame::GuitarPP().clearScreen();
 
 		if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))

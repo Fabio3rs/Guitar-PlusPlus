@@ -292,6 +292,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 				if (note.lTime == 0.0)
 				{
+					player.doNote(i);
 					note.type |= notesFlags::nf_picked;
 				}
 				note.type |= notesFlags::nf_doing_slide;
@@ -462,7 +463,111 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		CEngine::engine().setCamera(usingCamera);
 	}
 
-	CFonts::fonts().drawTextInScreen(std::to_string(player.buffer.size()), 0.0, 0.5, 0.1);
+	//CFonts::fonts().drawTextInScreen(std::to_string(player.buffer.size()), 0.0, 0.5, 0.1);
+
+	///////////******************************************
+
+	auto &engine = CEngine::engine();
+
+	CEngine::RenderDoubleStruct HUDBackground;
+
+	HUDBackground.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "HUD.tga").getTextId();
+
+	double neg = -0.1;
+
+	HUDBackground.x1 = -1.0 + neg;
+	HUDBackground.x2 = -0.6 + neg;
+	HUDBackground.x3 = -0.6 + neg;
+	HUDBackground.x4 = -1.0 + neg;
+
+	HUDBackground.y1 = 0.1875;
+	HUDBackground.y2 = 0.1875;
+	HUDBackground.y3 = -0.5;
+	HUDBackground.y4 = -0.5;
+
+	HUDBackground.TextureX1 = 0.0;
+	HUDBackground.TextureX2 = 1.0;
+	HUDBackground.TextureY1 = 1.0;
+	HUDBackground.TextureY2 = 0.0;
+
+	engine.Render2DQuad(HUDBackground);
+
+	double multi = player.comboToMultiplierWM();
+	double circleMultiPercent = multi >= 4.0 ? 100.0 : (multi - floor(multi)) * 100.0;
+	double circlePublicAprov = (player.publicAprov / player.maxPublicAprov) * 100.0;
+	double circleLoadPercent = (player.plusLoadB / player.maxPlusPower * 5.0) * 100.0;
+	double circlePercent = (player.plusPower / player.maxPlusPower) * 100.0;
+
+	engine.setColor(1.0, 1.0, 1.0, 1.0);
+
+	if (circleMultiPercent > 0.0){
+		double zeroToOne = circleMultiPercent / 100.0;
+
+		engine.setColor(0.0, 0.4, 1.0, 1.0);
+		engine.Render2DCircle(-0.8 + neg, -0.31, circleMultiPercent, 0.01, 0.041, 200.0 * zeroToOne, 200, player.multiplierBuffer);
+	}
+
+	if (player.Notes.gNotes.size() > 0){
+		double musicTotalCorrect = (player.correctNotes / player.Notes.gNotes.size()) * 100.0;
+
+		if (musicTotalCorrect > 0.0)
+		{
+			engine.setColor(0.4, 1.0, 0.4, 1.0);
+			engine.Render2DCircle(-0.8 + neg, -0.31, musicTotalCorrect, 0.05, 0.041, 400.0 * musicTotalCorrect / 100.0, 400, player.correctNotesBuffer);
+		}
+	}
+
+	if (circlePublicAprov > 0.0){
+		/*double full[] = { 0.0, 1.0, 0.0, 1.0 };
+		double med[] = { 1.0, 1.0, 0.0, 1.0 };
+		double zer[] = { 1.0, 0.0, 0.0, 1.0 };*/
+
+		double zeroToOne = circlePublicAprov / 100.0;
+
+		engine.setColor(1.0 - 1.0 * zeroToOne, 1.0 * zeroToOne, 0.0, 1.0);
+		engine.Render2DCircle(-0.8 + neg, -0.31, circlePublicAprov, 0.09, 0.041, 600.0 * zeroToOne, 600, player.publicApprovBuffer);
+	}
+
+	if (circleLoadPercent > circlePercent){
+		if (circleLoadPercent > 0.0){
+			double zeroToOne = circleLoadPercent / 100.0;
+
+			engine.setColor(0.4, 1.0, 0.4, 1.0);
+			engine.Render2DCircle(-0.8 + neg, -0.31, circleLoadPercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusLoadBuffer);
+		}
+
+		if (circlePercent > 0.0){
+			double zeroToOne = circlePercent / 100.0;
+
+			engine.setColor(0.0, 1.0, 1.0, 1.0);
+			engine.Render2DCircle(-0.8 + neg, -0.31, circlePercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusCircleBuffer);
+		}
+	}
+	else{
+		if (circlePercent > 0.0){
+			double zeroToOne = circlePercent / 100.0;
+
+			engine.setColor(0.0, 1.0, 1.0, 1.0);
+			engine.Render2DCircle(-0.8 + neg, -0.31, circlePercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusCircleBuffer);
+		}
+
+		if (circleLoadPercent > 0.0){
+			double zeroToOne = circleLoadPercent / 100.0;
+
+			engine.setColor(0.4, 1.0, 0.4, 1.0);
+			engine.Render2DCircle(-0.8 + neg, -0.31, circleLoadPercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusLoadBuffer);
+		}
+	}
+
+	engine.setColor(1.0, 1.0, 1.0, 1.0);
+
+	CFonts::fonts().drawTextInScreen(std::to_string(player.getCombo()), -1.125, 0.04, 0.1);
+	CFonts::fonts().drawTextInScreen(std::to_string(player.getPoints()), -1.12, -0.1, 0.06);
+	CFonts::fonts().drawTextInScreen(std::to_string((int)player.comboToMultiplier()), -1.0, -0.37, 0.1);
+
+
+
+	/////////////***************************************
 
 	lua.runEventWithParams("posRenderPlayer", m);
 }
@@ -529,7 +634,7 @@ void CGamePlay::render()
 
 	//*******************************************************************************************************
 
-	CFonts::fonts().drawTextInScreen(std::to_string(CEngine::engine().getFPS()), 0.8, 0.8, 0.1);
+	CFonts::fonts().drawTextInScreen(std::to_string(CEngine::engine().getFPS()) + " FPS", 0.8, 0.8, 0.1);
 }
 
 /*

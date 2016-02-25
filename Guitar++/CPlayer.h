@@ -139,7 +139,7 @@ public:
 private:
 	/**/
 
-	int combo;
+	int64_t points, combo;
 
 public:
 	int BPMNowBuffer;
@@ -161,6 +161,8 @@ public:
 	void updateControls();
 	void breakCombo();
 
+	void doNote(int64_t i);
+
 	bool plusEnabled;
 
 	NotesData Notes;
@@ -173,7 +175,13 @@ public:
 
 	std::string playerSave;
 
-	double startTime;
+	double startTime, plusThunterStrikeStart, plusPower, plusParticleEffectPosition, maxPlusPower, plusLoadF, plusLoadB, plusLoadInterval;
+	double publicAprov, maxPublicAprov, correctNotes;
+
+	unsigned int plusCircleBuffer, plusLoadBuffer, publicApprovBuffer, correctNotesBuffer, multiplierBuffer;
+
+	int64_t getCombo();
+	int64_t getPoints();
 
 	CPlayer(const char *name);
 };

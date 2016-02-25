@@ -503,7 +503,17 @@ void CPlayer::breakCombo()
 
 double CPlayer::comboToMultiplierWM()
 {
+	return comboToMultiplier();
+}
 
+int64_t CPlayer::getCombo()
+{
+	return combo;
+}
+
+int64_t CPlayer::getPoints()
+{
+	return points;
 }
 
 double CPlayer::comboToMultiplier()
@@ -516,16 +526,41 @@ double CPlayer::comboToMultiplier()
 	return result * (plusEnabled + 1.0);
 }
 
+void CPlayer::doNote(int64_t i)
+{
+	if (!(Notes.gNotes[i].type & notesFlags::nf_picked))
+	{
+		++combo;
+		++correctNotes;
+
+		points += comboToMultiplier() * 200.0;
+
+		publicAprov++;
+
+		if (publicAprov > maxPublicAprov)
+		{
+			publicAprov = maxPublicAprov;
+		}
+	}
+}
+
 CPlayer::NotesData::~NotesData(){
 	unloadChart();
 }
 
 CPlayer::CPlayer(const char *name){
-	combo = 0;
-	plusEnabled = false;
+	points = combo = 0;
 	startTime = CEngine::engine().getTime();
 	plusEnabled = false;
 	musicRunningTime = 0.0;
 
 	BPMNowBuffer = 0;
+
+	plusThunterStrikeStart = plusPower = plusParticleEffectPosition = maxPlusPower = plusLoadF = plusLoadB = plusLoadInterval = 0.0;
+	plusCircleBuffer = plusLoadBuffer = publicApprovBuffer = correctNotesBuffer = multiplierBuffer = -1uL;
+
+
+	maxPlusPower = 1.0;
+	maxPublicAprov = 120.0;
+	publicAprov = maxPublicAprov / 2.0;
 }
