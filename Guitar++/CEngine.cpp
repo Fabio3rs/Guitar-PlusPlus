@@ -39,7 +39,7 @@ CEngine &CEngine::engine(){
 };*/
 
 bool CEngine::pauseSoundStream(int handle){
-	return /*BASS_ChannelPause(handle) !=*/ 0;
+	return BASS_ChannelPause(handle) != 0;
 }
 
 std::deque<CEngine::Resolution> CEngine::getPossibleVideoModes(){
@@ -180,14 +180,12 @@ void CEngine::setColor(double r, double g, double b, double a){
 }
 
 bool CEngine::loadSoundStream(const char *fileName, int &handle){
-	/*handle = BASS_StreamCreateFile(false, fileName, 0, 0, 0);
-	BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE);
-	*/
-	return true;
+	handle = BASS_StreamCreateFile(false, fileName, 0, 0, 0);
+	return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE) && handle != 0;
 }
 
 bool CEngine::playSoundStream(int handle){
-	return /*BASS_ChannelPlay(handle, false) !=*/ 0;
+	return BASS_ChannelPlay(handle, false) != 0;
 }
 
 double CEngine::getTime(){
@@ -1176,7 +1174,7 @@ CEngine::CEngine(){
 	FPS = 0;
 	tmpFPS = 0;
 
-	//BASS_Init(-1, 44100, 0, 0, NULL);
+	BASS_Init(-1, 44100, 0, 0, NULL);
 	lastUpdatedNoise = 0.0;
 	updateNoiseInterval = 0.2;
 

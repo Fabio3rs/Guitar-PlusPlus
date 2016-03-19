@@ -176,6 +176,7 @@ void GPPGame::startModule(const std::string &name)
 	module.players.back().musicRunningTime = -3.0;
 
 	bool enterInMenu = false, esc = false;
+	int musicstartedg = 0;
 
 	while (CEngine::engine().windowOpened())
 	{
@@ -198,6 +199,12 @@ void GPPGame::startModule(const std::string &name)
 
 		if (enterInMenu)
 		{
+			if (musicstartedg == 2)
+			{
+				CEngine::engine().pauseSoundStream(module.players.back().songAudioID);
+				musicstartedg = 0;
+			}
+
 			openMenuTime = CEngine::engine().getTime();
 
 			game.openMenus(&module.moduleMenu);
@@ -229,9 +236,18 @@ void GPPGame::startModule(const std::string &name)
 
 			double time = CEngine::engine().getTime();
 
+			if (musicstartedg == 0) musicstartedg = 1;
+
 			if ((startTime - time) > 0.0)
 			{
 				CFonts::fonts().drawTextInScreen(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
+				musicstartedg = 0;
+			}
+
+			if (musicstartedg == 1)
+			{
+				CEngine::engine().playSoundStream(module.players.back().songAudioID);
+				musicstartedg = 2;
 			}
 		}
 

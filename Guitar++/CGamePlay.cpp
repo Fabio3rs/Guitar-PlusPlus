@@ -102,7 +102,7 @@ void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Tex
 
 double CGamePlay::getRunningMusicTime(CPlayer &player)
 {
-	return player.musicRunningTime *gSpeed;
+	return player.musicRunningTime * gSpeed;
 }
 
 double CGamePlay::time2Position(double Time, CPlayer &player)
@@ -317,7 +317,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 }
 
 void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text){
-	auto positionCalcByT = [this](double p, double prop){
+	auto positionCalcByT = [this](double p, double prop)
+	{
 		double cCalc = -p * 5.0;
 		double propSpeeed = 5.0 / speedMp;
 
@@ -325,13 +326,14 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 		cCalc *= 100000.0;
 		cCalc = (int)cCalc % (int)(150000 * prop);
-		return cCalc /= 100000.0;
+		return cCalc / 100000.0;
 	};
 	
 	double musicRunningTime = getRunningMusicTime(player) - 4.0;
 	double cCalc = positionCalcByT(musicRunningTime, (x2 - x1));
 
-	for (int i = -2; i < 8; i++){
+	for (int i = -2; i < 8; i++)
+	{
 		CEngine::RenderDoubleStruct FretBoardStruct;
 
 		FretBoardStruct.x1 = x1;
@@ -518,10 +520,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}
 
 	if (circlePublicAprov > 0.0){
-		/*double full[] = { 0.0, 1.0, 0.0, 1.0 };
-		double med[] = { 1.0, 1.0, 0.0, 1.0 };
-		double zer[] = { 1.0, 0.0, 0.0, 1.0 };*/
-
 		double zeroToOne = circlePublicAprov / 100.0;
 
 		engine.setColor(1.0 - 1.0 * zeroToOne, 1.0 * zeroToOne, 0.0, 1.0);

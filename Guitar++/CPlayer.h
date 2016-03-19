@@ -142,6 +142,8 @@ private:
 	int64_t points, combo;
 
 public:
+	int songAudioID;
+
 	int BPMNowBuffer;
 
 	std::deque<NotesData::Note> buffer;
