@@ -9,6 +9,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstdint>
+#include "CEngine.h"
 
 enum notesFlags{
 	nf_green = 1, nf_red = 2, nf_yellow = 4, nf_blue = 8, nf_orange = 16,
@@ -97,6 +98,7 @@ public:
 	public:
 		size_t notePos;
 		int64_t lastNotePicked;
+		std::string instrument;
 
 		double fretsNotePickedTime[5];
 		bool inLongNote[5];
@@ -143,6 +145,7 @@ private:
 
 public:
 	int songAudioID;
+	int instrumentSound;
 
 	int BPMNowBuffer;
 
@@ -171,6 +174,9 @@ public:
 
 	void update();
 
+	void instrumentPlay();
+	void instrumentPause();
+
 	bool loadSong(const std::string &path);
 	bool loadSongOnlyChart(const std::string &path);
 	bool canDoHOPO;
@@ -184,6 +190,8 @@ public:
 
 	int64_t getCombo();
 	int64_t getPoints();
+
+	CEngine::cameraSET playerCamera;
 
 	CPlayer(const char *name);
 };

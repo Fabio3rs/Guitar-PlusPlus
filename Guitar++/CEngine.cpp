@@ -184,6 +184,14 @@ bool CEngine::loadSoundStream(const char *fileName, int &handle){
 	return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE) && handle != 0;
 }
 
+bool CEngine::unloadSoundStream(int &handle)
+{
+	auto r = BASS_StreamFree(handle);
+	handle = -1;
+	return r;
+}
+
+
 bool CEngine::playSoundStream(int handle){
 	return BASS_ChannelPlay(handle, false) != 0;
 }

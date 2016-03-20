@@ -72,14 +72,12 @@ bool CPlayer::loadSongOnlyChart(const std::string &path){
 
 	bool isChartOpen = fullFilePath.find(".chart") != std::string::npos ? Notes.loadFeedbackChart(fullFilePath.c_str()) : Notes.loadChart(fullFilePath.c_str());
 
-	songAudioID = -1;
-
-	if (isChartOpen){
-
-		CLog::log() << smartSongSearch(path);
-		CLog::log() << "loadSoundStream result: " + std::to_string(CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/") + smartSongSearch(path)).c_str(), songAudioID));
-		CLog::log() << std::to_string(songAudioID);
+	if (songAudioID != -1 && songAudioID)
+	{
+		CEngine::engine().unloadSoundStream(songAudioID);
 	}
+
+	songAudioID = -1;
 
 	return true;
 }
@@ -89,13 +87,33 @@ bool CPlayer::loadSong(const std::string &path){
 
 	bool isChartOpen = fullFilePath.find(".chart") != std::string::npos ? Notes.loadFeedbackChart(fullFilePath.c_str()) : Notes.loadChart(fullFilePath.c_str());
 
+	if (songAudioID != -1 && songAudioID)
+	{
+		CEngine::engine().unloadSoundStream(songAudioID);
+	}
+
+	if (instrumentSound != -1 && instrumentSound)
+	{
+		CEngine::engine().unloadSoundStream(instrumentSound);
+	}
+
 	songAudioID = -1;
 
 	if (isChartOpen){
-
 		CLog::log() << smartSongSearch(path);
 		CLog::log() << "loadSoundStream result: " + std::to_string(CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/") + smartSongSearch(path)).c_str(), songAudioID));
 		CLog::log() << std::to_string(songAudioID);
+
+		if (Notes.instrument == "[ExpertSingle]")
+		{
+			CLog::log() << "loadSoundStream instrumentSound result: " + std::to_string(CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/guitar.ogg")).c_str(), instrumentSound));
+			CLog::log() << std::to_string(songAudioID);
+		}
+		else if (Notes.instrument == "[ExpertDoubleBass]")
+		{
+			CLog::log() << "loadSoundStream instrumentSound result: " + std::to_string(CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/rhythm.ogg")).c_str(), instrumentSound));
+			CLog::log() << std::to_string(songAudioID);
+		}
 	}
 
 	return true;
@@ -260,8 +278,8 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 	parseFeedBackChart(feedBackChartMap, chartFile);
 	BPMRead(BPMs, feedBackChartMap);
-	noteRead(Nts, BPMs, feedBackChartMap, "[ExpertSingle]");
-
+	noteRead(Nts, BPMs, feedBackChartMap, instrument); // Default: "[ExpertSingle]"
+	
 	int p = 0;
 	for (auto &BP : BPMs){
 		Note newNote;
@@ -502,6 +520,8 @@ CPlayer::NotesData::NotesData(){
 	lastNotePicked = -1;
 	longNoteComb = 0;
 
+	instrument = "[ExpertSingle]";
+
 	for(auto &fretNotePickedTime : fretsNotePickedTime)
 	{
 		fretNotePickedTime = 0.0;
@@ -587,12 +607,24 @@ CPlayer::NotesData::~NotesData(){
 	unloadChart();
 }
 
+void CPlayer::instrumentPlay()
+{
+	CEngine::engine().playSoundStream(instrumentSound);
+}
+
+void CPlayer::instrumentPause()
+{
+	CEngine::engine().pauseSoundStream(instrumentSound);
+}
+
 CPlayer::CPlayer(const char *name){
 	songAudioID = -1;
 	points = combo = 0;
 	startTime = CEngine::engine().getTime();
 	plusEnabled = false;
 	musicRunningTime = 0.0;
+
+	instrumentSound = 0;
 
 	BPMNowBuffer = 0;
 
@@ -603,4 +635,15 @@ CPlayer::CPlayer(const char *name){
 	maxPlusPower = 1.0;
 	maxPublicAprov = 120.0;
 	publicAprov = maxPublicAprov / 2.0;
+
+
+	playerCamera.eyex = 0.0;
+	playerCamera.eyey = 0.2;
+	playerCamera.eyez = 2.3;
+	playerCamera.centerx = 0;
+	playerCamera.centery = -0.2;
+	playerCamera.centerz = 0;
+	playerCamera.upx = 0;
+	playerCamera.upy = 1;
+	playerCamera.upz = 0;
 }

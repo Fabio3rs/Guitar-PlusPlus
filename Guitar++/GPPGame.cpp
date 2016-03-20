@@ -112,7 +112,9 @@ void GPPGame::setRunningModule(const std::string m)
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
-	module.players.back().loadSongOnlyChart("TTFAF");
+	module.players[0].loadSongOnlyChart("Before I Forget");
+	module.players[1].loadSong("Before I Forget");
+	module.players.back().loadSong("Before I Forget");
 
 	l.processing = false;
 }
@@ -153,6 +155,43 @@ void GPPGame::startModule(const std::string &name)
 
 	game.setRunningModule(realname);
 
+	{
+		module.players.push_back(CPlayer("xi 3"));
+		auto &playerCamera = module.players.back().playerCamera;
+
+		module.players.back().Notes.instrument = "[ExpertDoubleBass]";
+
+		playerCamera.eyex = 0.65;
+		playerCamera.eyey = 0.2;
+		playerCamera.eyez = 2.3;
+		playerCamera.centerx = 1.3;
+		playerCamera.centery = -0.2;
+		playerCamera.centerz = 0;
+		playerCamera.upx = 0;
+		playerCamera.upy = 1;
+		playerCamera.upz = 0;
+	}
+
+	{
+		module.players.push_back(CPlayer("xi 2"));
+
+		module.players.back().Notes.instrument = "[ExpertDoubleBass]";
+
+		auto &playerCamera = module.players.back().playerCamera;
+
+		playerCamera.eyex = -0.65;
+		playerCamera.eyey = 0.2;
+		playerCamera.eyez = 2.3;
+		playerCamera.centerx = -1.3;
+		playerCamera.centery = -0.2;
+		playerCamera.centerz = 0;
+		playerCamera.upx = 0;
+		playerCamera.upy = 1;
+		playerCamera.upz = 0;
+	}
+
+
+
 	module.players.push_back(CPlayer("xi"));
 
 	loadThreadData l;
@@ -168,6 +207,12 @@ void GPPGame::startModule(const std::string &name)
 		CFonts::fonts().drawTextInScreen("loading", -0.4, 0.0, 0.1);
 
 		GPPGame::GuitarPP().renderFrame();
+	}
+
+	for (auto &p : module.players)
+	{
+		p.startTime = CEngine::engine().getTime() + 3.0;
+		p.musicRunningTime = -3.0;
 	}
 
 
@@ -201,6 +246,11 @@ void GPPGame::startModule(const std::string &name)
 		{
 			if (musicstartedg == 2)
 			{
+				for (auto &p : module.players)
+				{
+					p.instrumentPause();
+				}
+
 				CEngine::engine().pauseSoundStream(module.players.back().songAudioID);
 				musicstartedg = 0;
 			}
@@ -247,6 +297,12 @@ void GPPGame::startModule(const std::string &name)
 			if (musicstartedg == 1)
 			{
 				CEngine::engine().playSoundStream(module.players.back().songAudioID);
+
+				for (auto &p : module.players)
+				{
+					p.instrumentPlay();
+				}
+
 				musicstartedg = 2;
 			}
 		}

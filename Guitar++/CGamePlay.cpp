@@ -387,7 +387,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	lua.runEventWithParams("preRenderPlayer", m);
 
 	{
-		CEngine::cameraSET usingCamera;
+		/*CEngine::cameraSET usingCamera;
 		usingCamera.eyex = 0.0;
 		usingCamera.eyey = 0.2;
 		usingCamera.eyez = 2.3;
@@ -396,9 +396,9 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		usingCamera.centerz = 0;
 		usingCamera.upx = 0;
 		usingCamera.upy = 1;
-		usingCamera.upz = 0;
+		usingCamera.upz = 0;*/
 
-		CEngine::engine().setCamera(usingCamera);
+		CEngine::engine().setCamera(player.playerCamera);
 	}
 
 
@@ -581,7 +581,7 @@ void CGamePlay::update()
 void CGamePlay::resetModule()
 {
 	players.clear();
-
+	chartInstruments.clear();
 }
 
 void CGamePlay::render()

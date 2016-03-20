@@ -390,6 +390,7 @@ public:
 	bool loadSoundStream(const char *fileName, int &handle);
 	bool playSoundStream(int handle);
 	bool pauseSoundStream(int handle);
+	bool unloadSoundStream(int &handle);
 
 	void setScale(double x, double y, double z);
 
