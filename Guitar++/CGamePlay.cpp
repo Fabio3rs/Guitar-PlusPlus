@@ -397,9 +397,9 @@ void CGamePlay::updatePlayer(CPlayer &player)
 						notes.notePos = id - 1;
 					}
 
-					if (engine.getTime() - player.Notes.fretsNotePickedTime[ji] > 0.06)
+					if (engine.getTime() - player.Notes.fretsNotePickedTime[ji] > 0.05)
 					{
-						player.Notes.fretsNotePickedTime[ji] = engine.getTime() - 0.06;
+						player.Notes.fretsNotePickedTime[ji] = engine.getTime() - 0.05;
 					}
 				}
 			}
