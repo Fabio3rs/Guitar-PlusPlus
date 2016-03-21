@@ -282,11 +282,14 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		{
 			if (noteTime > -0.1 && noteTime < 0.05 && !(note.type & notesFlags::nf_picked))
 			{
-				for (int i = 0; i < 5; i++)
 				{
-					if (note.type & (int)pow(2, i))
+					for (int ji = 0; ji < 5; ji++)
 					{
-						notes.fretsNotePickedTime[i] = engine.getTime();
+						if (note.type & (int)pow(2, ji))
+						{
+							notes.fretsNotePickedTime[ji] = engine.getTime();
+							player.notesSlide[ji] = -1;
+						}
 					}
 				}
 
@@ -295,7 +298,25 @@ void CGamePlay::updatePlayer(CPlayer &player)
 					player.doNote(i);
 					note.type |= notesFlags::nf_picked;
 				}
-				note.type |= notesFlags::nf_doing_slide;
+				else if (!(note.type & notesFlags::nf_doing_slide))
+				{
+					player.doNote(i);
+				}
+
+				if (note.lTime > 0.0)
+				{
+					note.type |= notesFlags::nf_doing_slide;
+
+					{
+						for (int ji = 0; ji < 5; ji++)
+						{
+							if (note.type & (int)pow(2, ji))
+							{
+								player.notesSlide[ji] = i;
+							}
+						}
+					}
+				}
 			}
 
 			if ((note.type & notesFlags::nf_picked) == 0 && pos2Alpha(rtime + 0.55) > 0.0)
@@ -313,6 +334,30 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		}
 	}
 
+	{
+		for (int ji = 0; ji < 5; ji++)
+		{
+			int64_t id = player.notesSlide[ji];
+			if (id != -1)
+			{
+				auto &note = player.Notes.gNotes[id];
+				double noteTime = note.time - musicTime;
+				double endNoteTime = noteTime + note.lTime;
+
+				if (endNoteTime < 0.07)
+				{
+					player.notesSlide[ji] = -1;
+				}
+				else
+				{
+					if (engine.getTime() - player.Notes.fretsNotePickedTime[ji] > 0.06)
+					{
+						player.Notes.fretsNotePickedTime[ji] = engine.getTime() - 0.06;
+					}
+				}
+			}
+		}
+	}
 
 }
 

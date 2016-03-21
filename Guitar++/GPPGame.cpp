@@ -112,9 +112,9 @@ void GPPGame::setRunningModule(const std::string m)
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
-	module.players[0].loadSongOnlyChart("Before I Forget");
-	module.players[1].loadSong("Before I Forget");
-	module.players.back().loadSong("Before I Forget");
+	module.players[0].loadSongOnlyChart("Slow Ride");
+	module.players[1].loadSong("Slow Ride");
+	module.players.back().loadSong("Slow Ride");
 
 	l.processing = false;
 }

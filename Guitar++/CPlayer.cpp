@@ -624,6 +624,8 @@ CPlayer::CPlayer(const char *name){
 	plusEnabled = false;
 	musicRunningTime = 0.0;
 
+	memset(notesSlide, -1, sizeof(notesSlide));
+
 	instrumentSound = 0;
 
 	BPMNowBuffer = 0;

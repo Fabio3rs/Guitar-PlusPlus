@@ -154,6 +154,7 @@ public:
 	double musicRunningTime;
 
 	bool fretsPressed[5];
+	int64_t notesSlide[5];
 
 	void addPointsByNoteDoed();
 	void addPointsByDoingLongNote();
