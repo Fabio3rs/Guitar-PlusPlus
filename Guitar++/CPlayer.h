@@ -147,6 +147,8 @@ public:
 	int songAudioID;
 	int instrumentSound;
 
+	std::string plname;
+
 	int BPMNowBuffer;
 
 	std::deque<NotesData::Note> buffer;

@@ -617,7 +617,9 @@ void CPlayer::instrumentPause()
 	CEngine::engine().pauseSoundStream(instrumentSound);
 }
 
-CPlayer::CPlayer(const char *name){
+CPlayer::CPlayer(const char *name)
+{
+	plname = name;
 	songAudioID = -1;
 	points = combo = 0;
 	startTime = CEngine::engine().getTime();

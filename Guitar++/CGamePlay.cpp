@@ -225,17 +225,17 @@ void CGamePlay::renderIndividualLine(int id, double pos1, double pos2, unsigned 
 }
 
 void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
-	double time = /*time2Position(*/note.time/*)*/;
+	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
 	for (int i = 0; i < 5; i++){
 		if (note.type & (int)pow(2, i)){
 			unsigned int texture = fretsText.notesTexture;
-			if (note.type & notesFlags::nf_doing_slide){
-				time = 0.0;
-			}
+			/*if (note.type & notesFlags::nf_doing_slide){
+				time = ltimet;
+			}*/
 
 			if (note.lTime > 0.0 && note.type & notesFlags::nf_doing_slide)
 			{
-				renderIndividualLine(i, time, note.lTime, GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId(), player);
+				renderIndividualLine(i, ltimet, time - ltimet + note.lTime, GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId(), player);
 			}
 			else if (note.type & notesFlags::nf_slide && !(note.type & notesFlags::nf_slide_picked))
 			{
@@ -251,7 +251,7 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 			texture = CTheme::inst().SPR["PlusNote"];
 			}*/
 
-			if (!(note.type & notesFlags::nf_picked)) renderIndivdualNote(i, time, texture, player);
+			if (!(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, player);
 		}
 	}
 }
@@ -270,6 +270,22 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	double musicTime = getRunningMusicTime(player);
 
+	double minendtime = 0.0, minendtimei = notes.notePos;
+	//bool minendtimeslide = false;
+
+	bool inslide = false, inslide2 = false;
+
+	for (int ji = 0; ji < 5; ji++)
+	{
+		if (gNotes[notes.notePos].type & (int)pow(2, ji))
+		{
+			if (player.notesSlide[ji] != -1)
+			{
+				inslide = true;
+			}
+		}
+	}
+
 	for (size_t i = notes.notePos, size = gNotes.size(); i < size; i++)
 	{
 		auto &note = gNotes[i];
@@ -277,6 +293,34 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		double endNoteTime = noteTime + note.lTime;
 
 		double rtime = (musicTime - note.time) * speedMp / gSpeed;
+
+		if (!inslide && !inslide2)
+		{
+			minendtime = endNoteTime;
+			minendtimei = i;
+
+			if (i > 0)
+			{
+				minendtimei = i - 1;
+			}
+
+			if (i > 2)
+			{
+				minendtimei = i - 2;
+			}
+
+			if (i > 5)
+			{
+				minendtimei = i - 5;
+			}
+		}
+
+		if (noteTime <= 5.0){
+			if ((note.type & notesFlags::nf_picked) == 0)
+			{
+				player.buffer.push_front(note);
+			}
+		}
 
 		if (endNoteTime > -1.5 && noteTime < 5.0)
 		{
@@ -307,6 +351,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				{
 					note.type |= notesFlags::nf_doing_slide;
 
+					inslide2 = true;
+
 					{
 						for (int ji = 0; ji < 5; ji++)
 						{
@@ -318,17 +364,12 @@ void CGamePlay::updatePlayer(CPlayer &player)
 					}
 				}
 			}
-
-			if ((note.type & notesFlags::nf_picked) == 0 && pos2Alpha(rtime + 0.55) > 0.0)
-			{
-				player.buffer.push_front(note);
-			}
 		}
-		else if (endNoteTime < -1.5)
+		else if (minendtime < -2.0)
 		{
-			notes.notePos = i;
+			notes.notePos = minendtimei;
 		}
-		else if (endNoteTime > 5)
+		else if (noteTime > 5.0)
 		{
 			break;
 		}
@@ -344,12 +385,18 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				double noteTime = note.time - musicTime;
 				double endNoteTime = noteTime + note.lTime;
 
-				if (endNoteTime < 0.07)
+				if (endNoteTime < 0.1)
 				{
 					player.notesSlide[ji] = -1;
+					note.type |= notesFlags::nf_picked;
 				}
 				else
 				{
+					if (id > 0)
+					{
+						notes.notePos = id - 1;
+					}
+
 					if (engine.getTime() - player.Notes.fretsNotePickedTime[ji] > 0.06)
 					{
 						player.Notes.fretsNotePickedTime[ji] = engine.getTime() - 0.06;
@@ -520,17 +567,17 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	HUDBackground.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "HUD.tga").getTextId();
 
-	double neg = -0.1;
+	double neg = 0.1, negy = 0.05;
 
 	HUDBackground.x1 = -1.0 + neg;
 	HUDBackground.x2 = -0.6 + neg;
 	HUDBackground.x3 = -0.6 + neg;
 	HUDBackground.x4 = -1.0 + neg;
 
-	HUDBackground.y1 = 0.1875;
-	HUDBackground.y2 = 0.1875;
-	HUDBackground.y3 = -0.5;
-	HUDBackground.y4 = -0.5;
+	HUDBackground.y1 = 0.1875 + negy;
+	HUDBackground.y2 = 0.1875 + negy;
+	HUDBackground.y3 = -0.5 + negy;
+	HUDBackground.y4 = -0.5 + negy;
 
 	HUDBackground.TextureX1 = 0.0;
 	HUDBackground.TextureX2 = 1.0;
@@ -551,7 +598,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		double zeroToOne = circleMultiPercent / 100.0;
 
 		engine.setColor(0.0, 0.4, 1.0, 1.0);
-		engine.Render2DCircle(-0.8 + neg, -0.31, circleMultiPercent, 0.01, 0.041, 200.0 * zeroToOne, 200, player.multiplierBuffer);
+		engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circleMultiPercent, 0.01, 0.041, 200.0 * zeroToOne, 200, player.multiplierBuffer);
 	}
 
 	if (player.Notes.gNotes.size() > 0){
@@ -560,7 +607,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		if (musicTotalCorrect > 0.0)
 		{
 			engine.setColor(0.4, 1.0, 0.4, 1.0);
-			engine.Render2DCircle(-0.8 + neg, -0.31, musicTotalCorrect, 0.05, 0.041, 400.0 * musicTotalCorrect / 100.0, 400, player.correctNotesBuffer);
+			engine.Render2DCircle(-0.8 + neg, -0.31 + negy, musicTotalCorrect, 0.05, 0.041, 400.0 * musicTotalCorrect / 100.0, 400, player.correctNotesBuffer);
 		}
 	}
 
@@ -568,7 +615,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		double zeroToOne = circlePublicAprov / 100.0;
 
 		engine.setColor(1.0 - 1.0 * zeroToOne, 1.0 * zeroToOne, 0.0, 1.0);
-		engine.Render2DCircle(-0.8 + neg, -0.31, circlePublicAprov, 0.09, 0.041, 600.0 * zeroToOne, 600, player.publicApprovBuffer);
+		engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circlePublicAprov, 0.09, 0.041, 600.0 * zeroToOne, 600, player.publicApprovBuffer);
 	}
 
 	if (circleLoadPercent > circlePercent){
@@ -576,14 +623,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 			double zeroToOne = circleLoadPercent / 100.0;
 
 			engine.setColor(0.4, 1.0, 0.4, 1.0);
-			engine.Render2DCircle(-0.8 + neg, -0.31, circleLoadPercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusLoadBuffer);
+			engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusLoadBuffer);
 		}
 
 		if (circlePercent > 0.0){
 			double zeroToOne = circlePercent / 100.0;
 
 			engine.setColor(0.0, 1.0, 1.0, 1.0);
-			engine.Render2DCircle(-0.8 + neg, -0.31, circlePercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusCircleBuffer);
+			engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusCircleBuffer);
 		}
 	}
 	else{
@@ -591,24 +638,22 @@ void CGamePlay::renderPlayer(CPlayer &player)
 			double zeroToOne = circlePercent / 100.0;
 
 			engine.setColor(0.0, 1.0, 1.0, 1.0);
-			engine.Render2DCircle(-0.8 + neg, -0.31, circlePercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusCircleBuffer);
+			engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusCircleBuffer);
 		}
 
 		if (circleLoadPercent > 0.0){
 			double zeroToOne = circleLoadPercent / 100.0;
 
 			engine.setColor(0.4, 1.0, 0.4, 1.0);
-			engine.Render2DCircle(-0.8 + neg, -0.31, circleLoadPercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusLoadBuffer);
+			engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusLoadBuffer);
 		}
 	}
 
 	engine.setColor(1.0, 1.0, 1.0, 1.0);
 
-	CFonts::fonts().drawTextInScreen(std::to_string(player.getCombo()), -1.125, 0.04, 0.1);
-	CFonts::fonts().drawTextInScreen(std::to_string(player.getPoints()), -1.12, -0.1, 0.06);
-	CFonts::fonts().drawTextInScreen(std::to_string((int)player.comboToMultiplier()), -1.0, -0.37, 0.1);
-
-
+	CFonts::fonts().drawTextInScreen(std::to_string(player.getCombo()), -1.025 + neg, 0.04 + negy, 0.1);
+	CFonts::fonts().drawTextInScreen(std::to_string(player.getPoints()), -1.02 + neg, -0.1 + negy, 0.06);
+	CFonts::fonts().drawTextInScreen(std::to_string((int)player.comboToMultiplier()), -0.9 + neg, -0.37 + negy, 0.1);
 
 	/////////////***************************************
 
