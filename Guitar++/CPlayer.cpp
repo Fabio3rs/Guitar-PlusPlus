@@ -25,7 +25,9 @@ std::string CPlayer::smartChartSearch(const std::string &path){
 		path + ".GPPXT",
 		path + ".chart",
 		"Chart.GPPXT",
-		"Chart.chart"
+		"Chart.chart",
+		"notes.chart",
+		"chart.chart"
 	};
 
 	for (auto &str : chartFormats){
@@ -102,17 +104,14 @@ bool CPlayer::loadSong(const std::string &path){
 	if (isChartOpen){
 		CLog::log() << smartSongSearch(path);
 		CLog::log() << "loadSoundStream result: " + std::to_string(CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/") + smartSongSearch(path)).c_str(), songAudioID));
-		CLog::log() << std::to_string(songAudioID);
 
 		if (Notes.instrument == "[ExpertSingle]")
 		{
 			CLog::log() << "loadSoundStream instrumentSound result: " + std::to_string(CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/guitar.ogg")).c_str(), instrumentSound));
-			CLog::log() << std::to_string(songAudioID);
 		}
 		else if (Notes.instrument == "[ExpertDoubleBass]")
 		{
 			CLog::log() << "loadSoundStream instrumentSound result: " + std::to_string(CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/rhythm.ogg")).c_str(), instrumentSound));
-			CLog::log() << std::to_string(songAudioID);
 		}
 	}
 

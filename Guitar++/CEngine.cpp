@@ -883,6 +883,12 @@ void CEngine::renderFrame(){
 	}*/
 }
 
+void CEngine::GLFWerrorfun(int error, const char *description)
+{
+	if (engine().errorCallbackFun)
+		engine().errorCallbackFun(error, description);
+}
+
 bool CEngine::windowOpened(){
 	return !glfwWindowShouldClose((GLFWwindow*)window);
 }
@@ -914,7 +920,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	window = glfwCreateWindow(w, h, name, monitor, NULL);
 
 	if (!window){
-		throw std::logic_error("Can't open GLFW window");
+		throw std::logic_error("Can't open GLFW window - verify your video's driver");
 	}
 
 	glfwMakeContextCurrent((GLFWwindow*)window);
@@ -1171,6 +1177,8 @@ CEngine::CEngine(){
 	glMajor = 1;
 	glMinor = 1;
 	lastUsedTexture = 0;
+
+	glfwSetErrorCallback(GLFWerrorfun);
 
 	if (!glfwInit()){
 		throw std::logic_error("Fail to initialize GLFW");

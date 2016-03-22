@@ -17,6 +17,9 @@
 #include <deque>
 #include <map>
 #include <unordered_map>
+#include <algorithm>
+#include <utility>
+#include <functional>
 
 #ifndef GLFW_KEY_MENU
 /* The unknown key */
@@ -212,9 +215,11 @@ public:
 
 	double mouseX, mouseY;
 
+	std::function <void(int, const std::string &e)> errorCallbackFun;
+
 private:
 	//void gluPerspective(double fovy, double aspect, double zNear, double zFar);
-
+	static void GLFWerrorfun(int error, const char *description);
 
 	double lastFrameTime, lastFPSSwapTime, DeltaTime;
 	int FPS, tmpFPS;

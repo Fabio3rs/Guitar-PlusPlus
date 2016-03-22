@@ -768,6 +768,11 @@ CMenu *GPPGame::getMainMenu()
 	return mainMenu;
 }
 
+void GPPGame::logError(int code, const std::string &e)
+{
+	CLog::log() << std::to_string(code) + ": " + e;
+}
+
 GPPGame::GPPGame()
 {
 	// Load lua scripts from "data" folder
@@ -780,4 +785,6 @@ GPPGame::GPPGame()
 	devMode = false;
 
 	mainMenu = nullptr;
+
+	CEngine::engine().errorCallbackFun = logError;
 }

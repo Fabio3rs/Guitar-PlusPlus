@@ -219,6 +219,8 @@ private:
 public:
 	const gameWindow &getWindowConfig() const{ return windowCFGs; };
 	int createWindow();
+
+	static void logError(int code, const std::string &e);
 };
 
 #endif
