@@ -26,7 +26,6 @@ int main(int argc, char* argv[])
 		catch (const std::exception &e)
 		{
 			MessageBoxA(0, e.what(), "Error", 0);
-
 			return 1;
 		}
 

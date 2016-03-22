@@ -209,8 +209,8 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		std::sort(BPMs.begin(), BPMs.end());
 	};
 
-	auto pureBPMToCalcBPM = [](double BPM){
-		return BPM / 1000.0 * 3.2;
+	auto pureBPMToCalcBPM = [this](double BPM){
+		return (BPM / 1000.0 * 3.2) * chartResolutionProp;
 	};
 
 	auto getNoteTime = [&pureBPMToCalcBPM](const BPMContainer &BPMs, int64_t pos, int64_t off){
@@ -275,7 +275,22 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		}
 	};
 
+	auto fillChartInfo = [&](parsedChart &chartMap)
+	{
+		auto &Song = chartMap["[Song]"];
+		
+		chartResolutionProp = std::stod(Song["Resolution"][0]) / 192.0;
+
+		std::cout << chartResolutionProp << std::endl;
+	};
+
+
+
+
 	parseFeedBackChart(feedBackChartMap, chartFile);
+
+	fillChartInfo(feedBackChartMap);
+
 	BPMRead(BPMs, feedBackChartMap);
 	noteRead(Nts, BPMs, feedBackChartMap, instrument); // Default: "[ExpertSingle]"
 	
@@ -489,6 +504,7 @@ void CPlayer::NotesData::unloadChart(){
 	notePos = 0;
 	lastNotePicked = -1;
 	longNoteComb = 0;
+	chartResolutionProp = 1.0;
 
 	for (auto &fretNotePickedTime : fretsNotePickedTime){
 		fretNotePickedTime = 0.0;
@@ -518,6 +534,7 @@ CPlayer::NotesData::NotesData(){
 	notePos = 0;
 	lastNotePicked = -1;
 	longNoteComb = 0;
+	chartResolutionProp = 1.0;
 
 	instrument = "[ExpertSingle]";
 

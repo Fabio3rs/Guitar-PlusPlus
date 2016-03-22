@@ -63,6 +63,43 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 }
 
+void CGamePlay::renderIndivdualFlame(int id, double pos, unsigned int Texture, int state, double sizeproportion, CPlayer &player)
+{
+	CEngine::RenderDoubleStruct TempStruct3D;
+
+	double nCalc = pos;
+
+	const double size = 0.25;
+	const double position = -0.56;
+
+	TempStruct3D.Text = Texture;
+
+	TempStruct3D.TextureX1 = 1.0 / 4.0 * (double)state;
+	TempStruct3D.TextureX2 = 1.0 / 4.0 * (double)state + 1.0 / 4.0;
+	TempStruct3D.TextureY1 = 1.0;
+	TempStruct3D.TextureY2 = 0.0;
+
+	TempStruct3D.x1 = position + (double(id) * size / 1.15) + (size - size * sizeproportion) / 2.0;
+	TempStruct3D.x2 = TempStruct3D.x1 + size * sizeproportion;
+	TempStruct3D.x3 = TempStruct3D.x1 + size * sizeproportion;
+	TempStruct3D.x4 = TempStruct3D.x1;
+
+	TempStruct3D.y1 = -0.5 + size * sizeproportion;
+	TempStruct3D.y2 = TempStruct3D.y1;
+	TempStruct3D.y3 = -0.5;
+	TempStruct3D.y4 = TempStruct3D.y3;
+
+	TempStruct3D.z1 = nCalc + size * 4.0;
+	TempStruct3D.z2 = TempStruct3D.z1;
+	TempStruct3D.z3 = TempStruct3D.z1;
+	TempStruct3D.z4 = TempStruct3D.z3;
+
+	TempStruct3D.alphaBottom = 1.0;
+	TempStruct3D.alphaTop = 0.1;
+
+	CEngine::engine().Render3DQuadWithAlpha(TempStruct3D);
+}
+
 void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
@@ -519,6 +556,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		renderNote(n, player);
 	}
 
+	double BPMT = player.Notes.BPM[player.BPMNowBuffer].lTime / 120.0;
+	int flamepos = (int)(CEngine::engine().getTime() * 12.0 / BPMT) % 4;
 
 	// ********************************************** STRIKE LINE BTN -
 	for (int i = 0; i < 5; i++)
@@ -527,7 +566,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		pressT /= 0.15;
 
-		if (pressT > 1.0)
+		if (pressT > 1.0 && player.notesSlide[i] == -1)
 		{
 			continue;
 		}
@@ -536,6 +575,11 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		int p = (int)floor(pressT + 1) % 3;
 
 		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, p, player);
+
+		if (flamepos < 3) renderIndivdualFlame(i, -0.35, fireText, flamepos + 1, 0.7, player);
+		renderIndivdualFlame(i, -0.32, fireText, flamepos, 0.8, player);
+		renderIndivdualFlame(i, -0.29, fireText, flamepos, 0.75, player);
+		if (flamepos > 0) renderIndivdualFlame(i, -0.25, fireText, flamepos - 1, 0.7, player);
 	}
 
 
@@ -742,6 +786,7 @@ CGamePlay::CGamePlay()
 	fretsText = GPPGame::GuitarPP().frets[fretsTextures];
 	fretsText.notesTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "Strums.tga").getTextId();
 	fretsText.strikeLineTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "frets.tga").getTextId();
+	fireText = GPPGame::GuitarPP().loadTexture("data/sprites", "flamea.tga").getTextId();
 
 	BPMLineText = "v.tga";
 

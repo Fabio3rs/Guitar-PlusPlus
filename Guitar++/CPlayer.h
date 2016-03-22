@@ -100,6 +100,8 @@ public:
 		int64_t lastNotePicked;
 		std::string instrument;
 
+		double chartResolutionProp;
+
 		double fretsNotePickedTime[5];
 		bool inLongNote[5];
 		int longNoteComb;

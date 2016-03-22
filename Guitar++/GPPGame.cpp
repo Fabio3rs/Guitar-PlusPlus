@@ -112,9 +112,10 @@ void GPPGame::setRunningModule(const std::string m)
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
-	module.players[0].loadSongOnlyChart("Slow Ride");
-	module.players[1].loadSong("Slow Ride");
-	module.players.back().loadSong("Slow Ride");
+	std::string song = "Before I Forget";
+	module.players[0].loadSongOnlyChart(song);
+	module.players[1].loadSong(song);
+	module.players.back().loadSong(song);
 
 	l.processing = false;
 }
@@ -681,7 +682,7 @@ void GPPGame::openMenus(CMenu *startMenu)
 		const char prog[] = { "Programado por Fabio Rossini Sluzala" };
 		const char brmods[] = { "http://brmodstudio.forumeiros.com/" };
 		const char oneByte[] = { "http://2nibble.forumeiros.com/" };
-	
+		
 		CFonts::fonts().drawTextInScreen(prog, CFonts::fonts().getCenterPos(strlen(prog), 0.08, 0.0), -0.8, 0.08);
 
 		CEngine::engine().setColor(0.5, 0.5, 1.0, 1.0);
