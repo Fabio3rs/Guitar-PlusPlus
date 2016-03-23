@@ -416,6 +416,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		for (int ji = 0; ji < 5; ji++)
 		{
 			int64_t id = player.notesSlide[ji];
+
 			if (id != -1)
 			{
 				auto &note = player.Notes.gNotes[id];
@@ -429,10 +430,10 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				}
 				else
 				{
-					if (id > 0)
+					/*if (id > 0)
 					{
 						notes.notePos = id - 1;
-					}
+					}*/
 
 					if (engine.getTime() - player.Notes.fretsNotePickedTime[ji] > 0.05)
 					{
