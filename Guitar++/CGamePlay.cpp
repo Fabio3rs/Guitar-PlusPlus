@@ -540,10 +540,13 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	if (showBPMLines) drawBPMLines(player);
 
+	for (int i = 0; i < 5; i++)
+	{
+		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 4, player);
+	}
 
 	for (int i = 0; i < 5; i++)
 	{
-		//renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 4, player);
 		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 3, player);
 		if (player.fretsPressed[i])
 			renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 0, player);

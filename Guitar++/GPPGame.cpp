@@ -112,7 +112,7 @@ void GPPGame::setRunningModule(const std::string m)
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
-	std::string song = "Raining Blood";
+	std::string song = "Cliffs of Dover";
 	module.players[0].loadSongOnlyChart(song);
 	module.players[1].loadSong(song);
 	module.players.back().loadSong(song);

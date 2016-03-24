@@ -920,6 +920,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	window = glfwCreateWindow(w, h, name, monitor, NULL);
 
 	if (!window){
+		GLFWerrorfun(-1, "Can't open GLFW window - verify your video's driver");
 		throw std::logic_error("Can't open GLFW window - verify your video's driver");
 	}
 
@@ -931,6 +932,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	GLenum err = glewInit();
 	if (GLEW_OK != err){
 		/* Problem: glewInit failed, something is seriously wrong. */
+		GLFWerrorfun(err, (char*)glewGetErrorString(err));
 		MessageBoxA(0, (char*)glewGetErrorString(err), "Error: %s\n", 0);
 	}
 	glUseProgram(0);
