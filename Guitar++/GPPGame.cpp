@@ -112,10 +112,12 @@ void GPPGame::setRunningModule(const std::string m)
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
-	std::string song = "Cliffs of Dover";
+	std::string song = "2nd Dawn";
 	module.players[0].loadSongOnlyChart(song);
 	module.players[1].loadSong(song);
 	module.players.back().loadSong(song);
+
+	module.loadSongLyrics(song);
 
 	l.processing = false;
 }
@@ -284,6 +286,7 @@ void GPPGame::startModule(const std::string &name)
 
 
 			module.render();
+			module.renderLyrics();
 
 			double time = CEngine::engine().getTime();
 

@@ -9,6 +9,7 @@
 #include <map>
 #include <deque>
 #include <string>
+#include <fstream>
 #include <iostream>
 #include <cstdint>
 #include <cstdlib>
@@ -36,6 +37,17 @@ class CGamePlay{
 
 
 public:
+	struct lyricLine
+	{
+		double tstart, tend;
+		std::string lyric;
+	};
+
+	std::deque <lyricLine> songlyrics;
+	int songlyricsIndex;
+
+	void renderLyrics();
+
 	void setHyperSpeed(double s);
 	void setMusicSpeed(double s);
 
@@ -53,6 +65,8 @@ public:
 	std::deque < std::string > chartInstruments;
 
 	std::string backgroundTexture;
+
+	void loadSongLyrics(const std::string &song);
 
 	//static CGamePlay &gamePlay();
 

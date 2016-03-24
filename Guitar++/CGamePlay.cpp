@@ -496,6 +496,110 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 	}
 }
 
+void CGamePlay::renderLyrics()
+{
+	double time = players[0].musicRunningTime;
+
+	if (songlyrics.size() > songlyricsIndex)
+	{
+		if (time > songlyrics[songlyricsIndex].tend)
+		{
+			++songlyricsIndex;
+			return;
+		}
+
+		if (time > songlyrics[songlyricsIndex].tstart)
+		{
+			std::string &s = songlyrics[songlyricsIndex].lyric;
+			CFonts::fonts().drawTextInScreen(s, CFonts::fonts().getCenterPos(s.size(), 0.1, 0.0), 0.6, 0.1);
+		}
+	}
+}
+
+void CGamePlay::loadSongLyrics(const std::string &song)
+{
+	songlyrics.clear();
+	songlyricsIndex = 0;
+
+	std::string lyricFile = "data/songs/2nd Dawn/lyrics.srt";
+	std::ifstream lyrics(lyricFile);
+
+	auto deduceTime = [](int *a)
+	{
+		double result = 0;
+		result += (double)a[0] * 3600.0;
+		result += (double)a[1] * 60.0;
+		result += a[2];
+		result += (double)a[3] / 1000.0;
+
+		return result;
+	};
+
+	std::cout << lyricFile << lyrics.is_open() << std::endl;
+
+	if (lyrics.is_open())
+	{
+		char temp[1024] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+		int s = 0;
+		int id = 0, result = 0;
+		int sinc[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+		double offset = 0.0;
+
+		lyrics.seekg(0, std::ios::end);
+		std::cout << lyrics.tellg() << std::endl;
+		lyrics.seekg(0, std::ios::beg);
+
+		lyricLine l;
+
+		while (lyrics.getline(temp, sizeof(temp)))
+		{
+			if (strlen(temp) == 0)
+			{
+				continue;
+			}
+
+			switch (s++)
+			{
+			case 0:
+				result = sscanf(temp, "%d", &id);
+
+				if (result != 1)
+				{
+					//lyrics.close();
+				}
+				break;
+
+			case 1:
+				result = sscanf(temp, "%d:%d:%d,%d --> %d:%d:%d,%d", &sinc[0], &sinc[1], &sinc[2], &sinc[3], &sinc[4], &sinc[5], &sinc[6], &sinc[7]);
+
+				if (result == 8)
+				{
+					l.tstart = deduceTime(sinc) + offset;
+					l.tend = deduceTime(&sinc[4]) + offset;
+				}
+				break;
+
+			case 2:
+				l.lyric = temp;
+				songlyrics.push_back(l);
+				break;
+
+			default:
+				break;
+			}
+
+			if (s > 2)
+			{
+				s = 0;
+			}
+		}
+
+
+	}
+}
+
 void CGamePlay::setHyperSpeed(double s)
 {
 	speedMp = s;
@@ -720,6 +824,10 @@ void CGamePlay::resetModule()
 {
 	players.clear();
 	chartInstruments.clear();
+
+	songlyrics.clear();
+
+	songlyricsIndex = 0;
 }
 
 void CGamePlay::render()
@@ -785,6 +893,8 @@ CGamePlay::CGamePlay()
 	speedMp = 2.5; // equivalent to Guitar Hero's hyperspeed
 
 	gSpeed = 1.0; // music speed
+
+	songlyricsIndex = 0;
 
 	fretsTextures = "default";
 	fretsText = GPPGame::GuitarPP().frets[fretsTextures];
