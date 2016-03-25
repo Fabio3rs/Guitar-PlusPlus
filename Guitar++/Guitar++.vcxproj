@@ -97,6 +97,7 @@
     <ClCompile Include="CText.cpp" />
     <ClCompile Include="exception.cpp" />
     <ClCompile Include="GPPGame.cpp" />
+    <ClCompile Include="GPPOBJ.cpp" />
     <ClCompile Include="Guitar++.cpp" />
     <ClCompile Include="Lua\lapi.c" />
     <ClCompile Include="Lua\lauxlib.c" />
@@ -148,6 +149,7 @@
     <ClInclude Include="CPlayer.h" />
     <ClInclude Include="CText.h" />
     <ClInclude Include="GPPGame.h" />
+    <ClInclude Include="GPPOBJ.h" />
     <ClInclude Include="internal.h" />
     <ClInclude Include="objloader.hpp" />
     <ClInclude Include="utf8.h" />

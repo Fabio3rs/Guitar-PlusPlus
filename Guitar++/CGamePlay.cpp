@@ -84,9 +84,9 @@ void CGamePlay::renderIndivdualFlame(int id, double pos, unsigned int Texture, i
 	TempStruct3D.x3 = TempStruct3D.x1 + size * sizeproportion;
 	TempStruct3D.x4 = TempStruct3D.x1;
 
-	TempStruct3D.y1 = -0.5 + size * sizeproportion;
+	TempStruct3D.y1 = -0.45 + size * sizeproportion;
 	TempStruct3D.y2 = TempStruct3D.y1;
-	TempStruct3D.y3 = -0.5;
+	TempStruct3D.y3 = -0.45;
 	TempStruct3D.y4 = TempStruct3D.y3;
 
 	TempStruct3D.z1 = nCalc + size * 4.0;
@@ -98,6 +98,65 @@ void CGamePlay::renderIndivdualFlame(int id, double pos, unsigned int Texture, i
 	TempStruct3D.alphaTop = 0.1;
 
 	CEngine::engine().Render3DQuadWithAlpha(TempStruct3D);
+}
+
+void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int Texture, double state, CPlayer &player)
+{
+	CEngine::RenderDoubleStruct TempStruct3D;
+	double rtime = 0.0;
+
+	if (rtime > -5.0)
+	{
+		double size = 0.2;
+		double position = -0.51;
+
+		TempStruct3D.Text = Texture;
+		TempStruct3D.TextureX1 = double(id) * 0.2;
+		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;
+
+		double nCalc = rtime * speedMp;
+
+		nCalc += 0.55;
+
+		if (player.plusEnabled)
+		{
+			TempStruct3D.TextureY1 = 0.5;
+			TempStruct3D.TextureY2 = 0.0;
+		}
+		else{
+			TempStruct3D.TextureY1 = 1.0;
+			TempStruct3D.TextureY2 = 0.5;
+		}
+
+		TempStruct3D.x1 = position + (double(id) * size / 48.0) + (double(id) * size);
+		TempStruct3D.x2 = TempStruct3D.x1 + size;
+		TempStruct3D.x3 = TempStruct3D.x1 + size;
+		TempStruct3D.x4 = TempStruct3D.x1;
+
+		TempStruct3D.y1 = -0.5;
+		TempStruct3D.y2 = TempStruct3D.y1;
+		TempStruct3D.y3 = -0.5;
+		TempStruct3D.y4 = TempStruct3D.y3;
+
+		TempStruct3D.z1 = nCalc;
+		TempStruct3D.z2 = TempStruct3D.z1;
+		TempStruct3D.z3 = nCalc + size * 2.0;
+		TempStruct3D.z4 = TempStruct3D.z3;
+
+		CEngine::engine().setColor(1.0, 1.0, 1.0, pos2Alpha(-TempStruct3D.z1 / 5.5));
+
+		//CEngine::engine().Render3DQuad(TempStruct3D);
+
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
+		//CEngine::engine().setScale(1.2, 1.2, 1.2);
+		GPPGame::GuitarPP().triggerBASEOBJ.draw(GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId());
+		if (state != -10.0)
+		{
+			CEngine::engine().renderAt(0.0, state, 0.0);
+			GPPGame::GuitarPP().triggerOBJ.draw(GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId());
+		}
+		CEngine::engine().matrixReset();
+	}
 }
 
 void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player)
@@ -215,7 +274,7 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 
 		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
-		CEngine::engine().RenderCustomVericesFloat(&GPPGame::GuitarPP().vertices[0], &GPPGame::GuitarPP().uvs[0], GPPGame::GuitarPP().vertices.size(), GPPGame::GuitarPP().loadTexture("data/sprites", "Mask.tga").getTextId());
+		GPPGame::GuitarPP().noteOBJ.draw(GPPGame::GuitarPP().strumsTexture3D[id]);
 		CEngine::engine().matrixReset();
 	}
 }
@@ -651,14 +710,26 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	for (int i = 0; i < 5; i++)
 	{
-		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 4, player);
+		//renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 4, player);
 	}
 
 	for (int i = 0; i < 5; i++)
 	{
+
 		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 3, player);
 		if (player.fretsPressed[i])
 			renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 0, player);
+		renderIndivdualNote(i, getRunningMusicTime(player), 0, player);
+
+		double pressT = CEngine::engine().getTime() - player.Notes.fretsNotePickedTime[i];
+		double calcP = (-0.4 + sin(pressT / 0.05)) / 15.0 - 0.05;
+
+		if (pressT > 0.15 && player.notesSlide[i] == -1)
+		{
+			calcP = -10.0;
+		}
+
+		renderIndivdualStrikeButton3D(i, 0.0, 0, calcP, player);
 	}
 
 
@@ -672,11 +743,11 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	double BPMT = player.Notes.BPM[player.BPMNowBuffer].lTime / 120.0;
 	int flamepos = (int)(CEngine::engine().getTime() * 12.0 / BPMT) % 4;
 
+
 	// ********************************************** STRIKE LINE BTN -
 	for (int i = 0; i < 5; i++)
 	{
 		double pressT = CEngine::engine().getTime() - player.Notes.fretsNotePickedTime[i];
-		//renderIndivdualNote(i, getRunningMusicTime(player), 0, player);
 
 		pressT /= 0.15;
 
@@ -688,7 +759,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		pressT *= 3;
 		int p = (int)floor(pressT + 1) % 3;
 
-		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, p, player);
+		//renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, p, player);
 
 		if (flamepos < 3) renderIndivdualFlame(i, -0.35, fireText, flamepos + 1, 0.7, player);
 		renderIndivdualFlame(i, -0.32, fireText, flamepos, 0.8, player);

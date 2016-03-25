@@ -13,7 +13,7 @@
 #include <exception>
 #include <atomic>
 #include <thread>
-#include "objloader.hpp"
+#include "GPPOBJ.h"
 
 class gameException : public std::exception{
 	std::string str;
@@ -47,11 +47,6 @@ class GPPGame{
 	bool devMode;
 
 public:
-
-
-	std::vector<glm::vec3> vertices;
-	std::vector<glm::vec2> uvs;
-	std::vector<glm::vec3> normals; // Won't be used at the moment.
 
 	typedef void(*func_t)(const std::string &name);
 
@@ -202,6 +197,10 @@ public:
 	}
 
 	static void helpMenu(const std::string &name);
+	
+	GPPOBJ noteOBJ, triggerBASEOBJ, triggerOBJ;
+
+	unsigned int strumsTexture3D[6];
 
 private:
 	struct loadThreadData{

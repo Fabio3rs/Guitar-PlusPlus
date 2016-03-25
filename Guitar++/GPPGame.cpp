@@ -768,6 +768,15 @@ int GPPGame::createWindow()
 	}
 
 	CLuaH::Lua().runEvent("posCreateWindow");
+
+	int itext = 0;
+
+	for (auto &s : strumsTexture3D)
+	{
+		s = loadTexture("data/sprites", "Mask" + std::to_string(itext++) + ".tga").getTextId();
+	}
+	
+
 	return CEngine::engine().windowOpened(); // Is the window really open?
 }
 
@@ -791,14 +800,10 @@ void GPPGame::logError(int code, const std::string &e)
 	CLog::log() << std::to_string(code) + ": " + e;
 }
 
-GPPGame::GPPGame()
+GPPGame::GPPGame() : noteOBJ("GPP_Note.obj"), triggerBASEOBJ("TriggerBase.obj"), triggerOBJ("Trigger.obj")
 {
 	// Load lua scripts from "data" folder
 	CLuaH::Lua().loadFiles("data");
-
-	bool res = loadOBJ("GPP_Note.obj", vertices, uvs, normals);
-
-	std::cout << std::boolalpha << res << std::endl;
 
 	windowCFGs = getWindowDefaults();
 

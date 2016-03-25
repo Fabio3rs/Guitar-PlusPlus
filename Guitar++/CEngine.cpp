@@ -954,8 +954,8 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 		h = mode->height;
 	}
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 
 	if (AASamples)
 		glfwWindowHint(GLFW_SAMPLES, AASamples);
@@ -1000,6 +1000,10 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	//glEnable(GL_CULL_FACE);
 	glDepthFunc(GL_LESS);
 	//glEnable(GL_DEPTH_TEST);
+
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+
+	//glCullFace(GL_BACK);
 
 	cursorText = loadTexture("data/sprites/cursor.tga");
 	glfwSetInputMode((GLFWwindow*)window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
