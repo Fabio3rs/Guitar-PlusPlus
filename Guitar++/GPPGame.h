@@ -13,6 +13,7 @@
 #include <exception>
 #include <atomic>
 #include <thread>
+#include "objloader.hpp"
 
 class gameException : public std::exception{
 	std::string str;
@@ -46,6 +47,11 @@ class GPPGame{
 	bool devMode;
 
 public:
+
+
+	std::vector<glm::vec3> vertices;
+	std::vector<glm::vec2> uvs;
+	std::vector<glm::vec3> normals; // Won't be used at the moment.
 
 	typedef void(*func_t)(const std::string &name);
 

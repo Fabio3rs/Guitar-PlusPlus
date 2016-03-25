@@ -893,6 +893,49 @@ bool CEngine::windowOpened(){
 	return !glfwWindowShouldClose((GLFWwindow*)window);
 }
 
+unsigned int CEngine::vboSET(size_t size, void *buffer)
+{
+	GLuint vertexbuffer;
+	glGenBuffers(1, &vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, size, buffer, GL_STATIC_DRAW);
+
+	return vertexbuffer;
+}
+
+void CEngine::attribVBOBuff(int id, int size, unsigned int buffer)
+{
+	// 1rst attribute buffer : vertices
+	glEnableVertexAttribArray(id);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glVertexAttribPointer(
+		id,                  // attribute
+		size,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+		);
+}
+
+void CEngine::disableBuf(int id)
+{
+	glDisableVertexAttribArray(id);
+}
+
+void CEngine::bindTextOnSlot(int text, int slot)
+{
+	glActiveTexture(GL_TEXTURE0 + slot);
+	bindTexture(text);
+	// Set our "myTextureSampler" sampler to user Texture Unit 0
+	glUniform1i(text, 0);
+}
+
+void CEngine::drawBufArrays(int size)
+{
+	glDrawArrays(GL_TRIANGLES, 0, size);
+}
+
 void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	GLFWmonitor *monitor = nullptr;
 	if (fullScreen){
@@ -911,8 +954,8 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 		h = mode->height;
 	}
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
 	if (AASamples)
 		glfwWindowHint(GLFW_SAMPLES, AASamples);
@@ -954,6 +997,9 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	//glEnable(GL_CULL_FACE);
+	glDepthFunc(GL_LESS);
+	//glEnable(GL_DEPTH_TEST);
 
 	cursorText = loadTexture("data/sprites/cursor.tga");
 	glfwSetInputMode((GLFWwindow*)window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
@@ -1104,6 +1150,23 @@ void CEngine::Render2DCircle(double x, double y, double percent, double radius, 
 
 	glBindBuffer(GL_ARRAY_BUFFER_ARB, 0);
 	//glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
+}
+
+void CEngine::RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, int count, unsigned int texture)
+{
+	bindTexture(texture);
+
+	//glTranslated(0.0, 0.0, 0.0);
+
+	glTexCoordPointer(2, GL_FLOAT, 0, uvPtr);
+	glVertexPointer(3, GL_FLOAT, 0, vertexPtr);
+
+	glDrawArrays(GL_TRIANGLES, 0, count);
+}
+
+void CEngine::renderAt(double x, double y, double z)
+{
+	glTranslated(x, y, z);
 }
 
 void CEngine::Render3DQuad(const RenderDoubleStruct &quad3DData){

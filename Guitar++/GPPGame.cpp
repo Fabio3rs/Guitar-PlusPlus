@@ -9,6 +9,7 @@
 #include "CControls.h"
 #include <functional>
 #include "CFonts.h"
+#include "objloader.hpp"
 
 /*
 Provide default settings for the window
@@ -112,7 +113,7 @@ void GPPGame::setRunningModule(const std::string m)
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
-	std::string song = "2nd Dawn";
+	std::string song = "Slow Ride";
 	module.players[0].loadSongOnlyChart(song);
 	module.players[1].loadSong(song);
 	module.players.back().loadSong(song);
@@ -531,6 +532,9 @@ void GPPGame::openMenus(CMenu *startMenu)
 
 	currentMenu = startMenu;
 
+	//auto vertexbuffer = engine.vboSET(vertices.size() * sizeof(glm::vec3), &vertices[0]);
+	//auto uvbuffer = engine.vboSET(uvs.size() * sizeof(glm::vec2), &uvs[0]);
+
 
 	auto create_menu = [&](const std::deque < std::string > &menusXRef)
 	{
@@ -682,6 +686,16 @@ void GPPGame::openMenus(CMenu *startMenu)
 
 		eraseGameMenusAutoCreateds();
 
+		//engine.bindTextOnSlot(0, 0);
+
+		//engine.attribVBOBuff(0, 3, vertexbuffer);
+		//engine.attribVBOBuff(1, 2, uvbuffer);
+
+		//engine.RenderCustomVericesFloat(&vertices[0], &uvs[0], vertices.size());
+
+		//engine.disableBuf(0);
+		//engine.disableBuf(1);
+
 		const char prog[] = { "Programado por Fabio Rossini Sluzala" };
 		const char brmods[] = { "http://brmodstudio.forumeiros.com/" };
 		const char oneByte[] = { "http://2nibble.forumeiros.com/" };
@@ -781,6 +795,10 @@ GPPGame::GPPGame()
 {
 	// Load lua scripts from "data" folder
 	CLuaH::Lua().loadFiles("data");
+
+	bool res = loadOBJ("GPP_Note.obj", vertices, uvs, normals);
+
+	std::cout << std::boolalpha << res << std::endl;
 
 	windowCFGs = getWindowDefaults();
 

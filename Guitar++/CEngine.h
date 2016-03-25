@@ -381,11 +381,13 @@ public:
 	void glEnable(int num);
 	void glDisable(int num);
 
+	void renderAt(double x, double y, double z);
 	void loadModel();
 
 	/* Rendering functions */
 	void Render2DQuad(const RenderDoubleStruct &quad2DData);
 	void Render3DQuad(const RenderDoubleStruct &quad3DData);
+	void RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, int count, unsigned int texture);
 	void RenderMulti3DQuad(const std::deque<RenderDoubleStruct> &quad3DData, unsigned int &bufferID);
 	void Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData);
 	void Render2DCircle(double x, double y, double percent, double radius, double lineWeight, int polysNum, int maxPolys, unsigned int &bufferID);
@@ -403,6 +405,12 @@ public:
 	inline double getDeltaTime() const{return DeltaTime;}
 	int getMouseButton(int btn);
 	inline const int &getFPS() const{ return FPS; }
+
+	unsigned int vboSET(size_t size, void *buffer);
+	void attribVBOBuff(int id, int size, unsigned int buffer);
+	void disableBuf(int id);
+	void drawBufArrays(int size);
+	void bindTextOnSlot(int text, int slot);
 
 	void setVSyncMode(int mode);
 

@@ -133,6 +133,7 @@
     <ClCompile Include="Lua\lutf8lib.c" />
     <ClCompile Include="Lua\lvm.c" />
     <ClCompile Include="Lua\lzio.c" />
+    <ClCompile Include="objloader.cpp" />
     <ClCompile Include="tga.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -148,6 +149,7 @@
     <ClInclude Include="CText.h" />
     <ClInclude Include="GPPGame.h" />
     <ClInclude Include="internal.h" />
+    <ClInclude Include="objloader.hpp" />
     <ClInclude Include="utf8.h" />
     <ClInclude Include="utf8\checked.h" />
     <ClInclude Include="utf8\core.h" />

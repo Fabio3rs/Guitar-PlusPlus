@@ -171,6 +171,9 @@
     <ClCompile Include="Lua\lutf8lib.c">
       <Filter>Source Files\Lua</Filter>
     </ClCompile>
+    <ClCompile Include="objloader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPPGame.h">
@@ -219,6 +222,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CControls.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="objloader.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

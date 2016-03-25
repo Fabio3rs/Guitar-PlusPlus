@@ -211,7 +211,12 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 
 		CEngine::engine().setColor(1.0, 1.0, 1.0, pos2Alpha(- TempStruct3D.z1 / 5.5));
 
-		CEngine::engine().Render3DQuad(TempStruct3D);
+		//CEngine::engine().Render3DQuad(TempStruct3D);
+
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
+		//CEngine::engine().setScale(1.2, 1.2, 1.2);
+		CEngine::engine().RenderCustomVericesFloat(&GPPGame::GuitarPP().vertices[0], &GPPGame::GuitarPP().uvs[0], GPPGame::GuitarPP().vertices.size(), GPPGame::GuitarPP().loadTexture("data/sprites", "Mask.tga").getTextId());
+		CEngine::engine().matrixReset();
 	}
 }
 
@@ -521,7 +526,7 @@ void CGamePlay::loadSongLyrics(const std::string &song)
 	songlyrics.clear();
 	songlyricsIndex = 0;
 
-	std::string lyricFile = "data/songs/2nd Dawn/lyrics.srt";
+	std::string lyricFile = "data/songs/" + song + "/lyrics.srt";
 	std::ifstream lyrics(lyricFile);
 
 	auto deduceTime = [](int *a)
@@ -567,7 +572,7 @@ void CGamePlay::loadSongLyrics(const std::string &song)
 
 				if (result != 1)
 				{
-					//lyrics.close();
+					lyrics.close();
 				}
 				break;
 
@@ -671,6 +676,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	for (int i = 0; i < 5; i++)
 	{
 		double pressT = CEngine::engine().getTime() - player.Notes.fretsNotePickedTime[i];
+		//renderIndivdualNote(i, getRunningMusicTime(player), 0, player);
 
 		pressT /= 0.15;
 
@@ -689,7 +695,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		renderIndivdualFlame(i, -0.29, fireText, flamepos, 0.75, player);
 		if (flamepos > 0) renderIndivdualFlame(i, -0.25, fireText, flamepos - 1, 0.7, player);
 	}
-
 
 
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
