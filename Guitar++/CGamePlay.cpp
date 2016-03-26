@@ -786,7 +786,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}*/
 
 
-
+	CEngine::engine().activateNormals(true);
 
 	for (auto &n : player.buffer)
 	{
@@ -839,6 +839,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		renderIndivdualStrikeButton3D(i, 0.0, 0, 0.0, player);
 		renderIndivdualStrikeButton3DStrike(i, 0.0, 0, calcP, player);
 	}
+
+	CEngine::engine().activateNormals(false);
 
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 

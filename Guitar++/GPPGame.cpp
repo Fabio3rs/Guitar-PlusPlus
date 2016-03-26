@@ -113,7 +113,7 @@ void GPPGame::setRunningModule(const std::string m)
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
-	std::string song = "Cliffs of Dover";
+	std::string song = "2nd Dawn";
 	module.players[0].loadSongOnlyChart(song);
 	module.players[1].loadSong(song);
 	module.players.back().loadSong(song);
@@ -163,7 +163,7 @@ void GPPGame::startModule(const std::string &name)
 		module.players.push_back(CPlayer("xi 3"));
 		auto &playerCamera = module.players.back().playerCamera;
 
-		module.players.back().Notes.instrument = "[ExpertDoubleBass]";
+		//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
 
 		playerCamera.eyex = 0.65;
 		playerCamera.eyey = 0.2;
@@ -179,7 +179,7 @@ void GPPGame::startModule(const std::string &name)
 	{
 		module.players.push_back(CPlayer("xi 2"));
 
-		module.players.back().Notes.instrument = "[ExpertDoubleBass]";
+		//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
 
 		auto &playerCamera = module.players.back().playerCamera;
 

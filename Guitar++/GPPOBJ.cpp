@@ -3,7 +3,7 @@
 
 void GPPOBJ::draw(unsigned int texture)
 {
-	CEngine::engine().RenderCustomVericesFloat(&vertices[0], &uvs[0], vertices.size(), texture);
+	CEngine::engine().RenderCustomVericesFloat(&vertices[0], &uvs[0], &normals[0], vertices.size(), texture);
 }
 
 GPPOBJ::GPPOBJ(const std::string &path)

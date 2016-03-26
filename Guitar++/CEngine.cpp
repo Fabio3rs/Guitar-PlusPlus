@@ -936,6 +936,14 @@ void CEngine::drawBufArrays(int size)
 	glDrawArrays(GL_TRIANGLES, 0, size);
 }
 
+void CEngine::activateNormals(bool a)
+{
+	if (a)
+		glEnableClientState(GL_NORMAL_ARRAY);
+	else
+		glDisableClientState(GL_NORMAL_ARRAY);
+}
+
 void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	GLFWmonitor *monitor = nullptr;
 	if (fullScreen){
@@ -1174,11 +1182,14 @@ void CEngine::Render2DCircle(double x, double y, double percent, double radius, 
 	//glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
 }
 
-void CEngine::RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, int count, unsigned int texture)
+void CEngine::RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture)
 {
 	if (texture) bindTexture(texture);
 
 	//glTranslated(0.0, 0.0, 0.0);
+
+	if (normals)
+		glNormalPointer(GL_FLOAT, 0, normals);
 
 	glTexCoordPointer(2, GL_FLOAT, 0, uvPtr);
 	glVertexPointer(3, GL_FLOAT, 0, vertexPtr);

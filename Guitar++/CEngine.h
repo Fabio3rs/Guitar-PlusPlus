@@ -387,7 +387,7 @@ public:
 	/* Rendering functions */
 	void Render2DQuad(const RenderDoubleStruct &quad2DData);
 	void Render3DQuad(const RenderDoubleStruct &quad3DData);
-	void RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, int count, unsigned int texture);
+	void RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture);
 	void RenderMulti3DQuad(const std::deque<RenderDoubleStruct> &quad3DData, unsigned int &bufferID);
 	void Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData);
 	void Render2DCircle(double x, double y, double percent, double radius, double lineWeight, int polysNum, int maxPolys, unsigned int &bufferID);
@@ -414,6 +414,7 @@ public:
 	unsigned int getUniformLocation(unsigned int programID, const char *str);
 	void useShader(unsigned int programID);
 
+	void activateNormals(bool a);
 	void activate3DRender(bool a);
 
 	void setVSyncMode(int mode);
