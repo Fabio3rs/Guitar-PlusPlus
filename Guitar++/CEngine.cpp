@@ -954,8 +954,8 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 		h = mode->height;
 	}
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
 	if (AASamples)
 		glfwWindowHint(GLFW_SAMPLES, AASamples);
@@ -999,7 +999,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 	//glEnable(GL_CULL_FACE);
 	glDepthFunc(GL_LESS);
-	//glEnable(GL_DEPTH_TEST);
+	glEnable(GL_DEPTH_TEST);
 
 	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 
@@ -1008,6 +1008,24 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	cursorText = loadTexture("data/sprites/cursor.tga");
 	glfwSetInputMode((GLFWwindow*)window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 	//setVSyncMode(0);
+}
+
+void CEngine::activate3DRender(bool a)
+{
+	if (a)
+		glEnable(GL_DEPTH_TEST);
+	else
+		glDisable(GL_DEPTH_TEST);
+}
+
+void CEngine::useShader(unsigned int programID)
+{
+	glUseProgram(programID);
+}
+
+unsigned int CEngine::getUniformLocation(unsigned int programID, const char *str)
+{
+	return glGetUniformLocation(programID, str);;
 }
 
 void CEngine::setVSyncMode(int mode){
@@ -1030,7 +1048,7 @@ void CEngine::bindTexture(unsigned int text){
 }
 
 void CEngine::clearScreen(){
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
 }
 
@@ -1158,7 +1176,7 @@ void CEngine::Render2DCircle(double x, double y, double percent, double radius, 
 
 void CEngine::RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, int count, unsigned int texture)
 {
-	bindTexture(texture);
+	if (texture) bindTexture(texture);
 
 	//glTranslated(0.0, 0.0, 0.0);
 

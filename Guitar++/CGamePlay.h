@@ -21,6 +21,7 @@ class CGamePlay{
 	void renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text);
 	void renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player);
 	void renderIndivdualStrikeButton3D(int id, double pos, unsigned int Texture, double state, CPlayer &player);
+	void renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned int Texture, double state, CPlayer &player);
 	void renderIndivdualFlame(int id, double pos, unsigned int Texture, int state, double sizeproportion, CPlayer &player);
 	double pos2Alpha(double pos);
 	void updatePlayer(CPlayer &player);

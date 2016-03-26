@@ -2,6 +2,11 @@
 #include "CEngine.h"
 #include "GPPGame.h"
 #include "CFonts.h"
+#include <common/shader.hpp>
+
+unsigned int programID;
+unsigned int MatrixID;
+unsigned int TextureID;
 
 void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Player)
 {
@@ -23,9 +28,9 @@ void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Play
 	TempStruct3D.x3 = TempStruct3D.x2;
 	TempStruct3D.x4 = TempStruct3D.x1;
 
-	TempStruct3D.y1 = -0.5;
+	TempStruct3D.y1 = -0.4999;
 	TempStruct3D.y2 = TempStruct3D.y1;
-	TempStruct3D.y3 = -0.5;
+	TempStruct3D.y3 = -0.4999;
 	TempStruct3D.y4 = TempStruct3D.y3;
 
 	TempStruct3D.z1 = nCalc;
@@ -84,9 +89,9 @@ void CGamePlay::renderIndivdualFlame(int id, double pos, unsigned int Texture, i
 	TempStruct3D.x3 = TempStruct3D.x1 + size * sizeproportion;
 	TempStruct3D.x4 = TempStruct3D.x1;
 
-	TempStruct3D.y1 = -0.45 + size * sizeproportion;
+	TempStruct3D.y1 = -0.5 + size * sizeproportion;
 	TempStruct3D.y2 = TempStruct3D.y1;
-	TempStruct3D.y3 = -0.45;
+	TempStruct3D.y3 = -0.5;
 	TempStruct3D.y4 = TempStruct3D.y3;
 
 	TempStruct3D.z1 = nCalc + size * 4.0;
@@ -147,14 +152,71 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
-		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.52, TempStruct3D.z1 + size);
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
-		GPPGame::GuitarPP().triggerBASEOBJ.draw(GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId());
-		if (state != -10.0)
+		//CEngine::engine().useShader(programID);
+
+		GPPGame::GuitarPP().triggerBASEOBJ.draw(GPPGame::GuitarPP().strumsTexture3D[id]);
+		/*if (state != -10.0)
 		{
 			CEngine::engine().renderAt(0.0, state, 0.0);
 			GPPGame::GuitarPP().triggerOBJ.draw(GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId());
+		}*/
+		CEngine::engine().matrixReset();
+		//CEngine::engine().useShader(0);
+	}
+}
+
+
+void CGamePlay::renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned int Texture, double state, CPlayer &player)
+{
+	CEngine::RenderDoubleStruct TempStruct3D;
+	double rtime = 0.0;
+
+	if (rtime > -5.0)
+	{
+		double size = 0.2;
+		double position = -0.51;
+
+		TempStruct3D.Text = Texture;
+		TempStruct3D.TextureX1 = double(id) * 0.2;
+		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;
+
+		double nCalc = rtime * speedMp;
+
+		nCalc += 0.55;
+
+		if (player.plusEnabled)
+		{
+			TempStruct3D.TextureY1 = 0.5;
+			TempStruct3D.TextureY2 = 0.0;
 		}
+		else{
+			TempStruct3D.TextureY1 = 1.0;
+			TempStruct3D.TextureY2 = 0.5;
+		}
+
+		TempStruct3D.x1 = position + (double(id) * size / 48.0) + (double(id) * size);
+		TempStruct3D.x2 = TempStruct3D.x1 + size;
+		TempStruct3D.x3 = TempStruct3D.x1 + size;
+		TempStruct3D.x4 = TempStruct3D.x1;
+
+		TempStruct3D.y1 = -0.5;
+		TempStruct3D.y2 = TempStruct3D.y1;
+		TempStruct3D.y3 = -0.5;
+		TempStruct3D.y4 = TempStruct3D.y3;
+
+		TempStruct3D.z1 = nCalc;
+		TempStruct3D.z2 = TempStruct3D.z1;
+		TempStruct3D.z3 = nCalc + size * 2.0;
+		TempStruct3D.z4 = TempStruct3D.z3;
+
+		CEngine::engine().setColor(1.0, 1.0, 1.0, pos2Alpha(-TempStruct3D.z1 / 5.5));
+
+		//CEngine::engine().Render3DQuad(TempStruct3D);
+
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.54 + state, TempStruct3D.z1 + size);
+		GPPGame::GuitarPP().triggerOBJ.draw(GPPGame::GuitarPP().strumsTexture3D[id]);
 		CEngine::engine().matrixReset();
 	}
 }
@@ -307,9 +369,9 @@ void CGamePlay::renderIndividualLine(int id, double pos1, double pos2, unsigned 
 	TempStruct3D.x3 = TempStruct3D.x1 + size;
 	TempStruct3D.x4 = TempStruct3D.x1;
 
-	TempStruct3D.y1 = -0.5;
+	TempStruct3D.y1 = -0.4995;
 	TempStruct3D.y2 = TempStruct3D.y1;
-	TempStruct3D.y3 = -0.5;
+	TempStruct3D.y3 = -0.4995;
 	TempStruct3D.y4 = TempStruct3D.y3;
 
 	TempStruct3D.z1 = nCalc;
@@ -700,6 +762,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}
 
 
+	CEngine::engine().activate3DRender(true);
 
 	double fretboardData[] = { -0.51, 0.51, 0.51, -0.51, -1.0, -1.0, 0.4, 0.4 };
 
@@ -713,24 +776,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		//renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 4, player);
 	}
 
-	for (int i = 0; i < 5; i++)
+	/*for (int i = 0; i < 5; i++)
 	{
 
 		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 3, player);
 		if (player.fretsPressed[i])
 			renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 0, player);
-		renderIndivdualNote(i, getRunningMusicTime(player), 0, player);
-
-		double pressT = CEngine::engine().getTime() - player.Notes.fretsNotePickedTime[i];
-		double calcP = (-0.4 + sin(pressT / 0.05)) / 15.0 - 0.05;
-
-		if (pressT > 0.15 && player.notesSlide[i] == -1)
-		{
-			calcP = -10.0;
-		}
-
-		renderIndivdualStrikeButton3D(i, 0.0, 0, calcP, player);
-	}
+		//renderIndivdualNote(i, getRunningMusicTime(player), 0, player);
+	}*/
 
 
 
@@ -761,12 +814,31 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		//renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, p, player);
 
-		if (flamepos < 3) renderIndivdualFlame(i, -0.35, fireText, flamepos + 1, 0.7, player);
+		/*if (flamepos < 3) renderIndivdualFlame(i, -0.35, fireText, flamepos + 1, 0.7, player);
 		renderIndivdualFlame(i, -0.32, fireText, flamepos, 0.8, player);
 		renderIndivdualFlame(i, -0.29, fireText, flamepos, 0.75, player);
-		if (flamepos > 0) renderIndivdualFlame(i, -0.25, fireText, flamepos - 1, 0.7, player);
+		if (flamepos > 0) renderIndivdualFlame(i, -0.25, fireText, flamepos - 1, 0.7, player);*/
 	}
 
+
+	for (int i = 0; i < 5; i++)
+	{
+		double pressT = CEngine::engine().getTime() - player.Notes.fretsNotePickedTime[i];
+		double calcP = (sin(pressT / 0.05)) / 10.0 - 0.05;
+
+		if (pressT > 0.15 && player.notesSlide[i] == -1)
+		{
+			calcP = -10.0;
+
+			if (player.fretsPressed[i])
+			{
+				calcP = -0.05;
+			}
+		}
+
+		renderIndivdualStrikeButton3D(i, 0.0, 0, 0.0, player);
+		renderIndivdualStrikeButton3DStrike(i, 0.0, 0, calcP, player);
+	}
 
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 
@@ -788,6 +860,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	//CFonts::fonts().drawTextInScreen(std::to_string(player.buffer.size()), 0.0, 0.5, 0.1);
 
 	///////////******************************************
+
+	CEngine::engine().activate3DRender(false);
 
 	auto &engine = CEngine::engine();
 
@@ -911,7 +985,7 @@ void CGamePlay::render()
 	CEngine::RenderDoubleStruct RenderData;
 
 	auto &game = GPPGame::GuitarPP();
-	auto &menu = game.loadTexture("data/sprites", "5168047.tga");
+	/*auto &menu = game.loadTexture("data/sprites", "5168047.tga");
 
 	double prop = (double)menu.getImgWidth() / (double)menu.getImgHeight();
 
@@ -939,11 +1013,11 @@ void CGamePlay::render()
 	RenderData.TextureY1 = 1.0;
 	RenderData.TextureY2 = 0.0;
 
-	RenderData.Text = menu.getTextId();
+	RenderData.Text = menu.getTextId();*/
 
-	CEngine::engine().Render2DQuad(RenderData);
+	//CEngine::engine().Render2DQuad(RenderData);
 
-	CEngine::engine().matrixReset();
+	//CEngine::engine().matrixReset();
 
 	//*******************************************************************************************************
 
@@ -971,6 +1045,12 @@ CGamePlay::CGamePlay()
 	gSpeed = 1.0; // music speed
 
 	songlyricsIndex = 0;
+
+	programID = LoadShaders("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
+
+	// Get a handle for our "MVP" uniform
+	MatrixID = CEngine::engine().getUniformLocation(programID, "MVP");
+	TextureID = CEngine::engine().getUniformLocation(programID, "myTextureSampler");
 
 	fretsTextures = "default";
 	fretsText = GPPGame::GuitarPP().frets[fretsTextures];

@@ -411,6 +411,10 @@ public:
 	void disableBuf(int id);
 	void drawBufArrays(int size);
 	void bindTextOnSlot(int text, int slot);
+	unsigned int getUniformLocation(unsigned int programID, const char *str);
+	void useShader(unsigned int programID);
+
+	void activate3DRender(bool a);
 
 	void setVSyncMode(int mode);
 

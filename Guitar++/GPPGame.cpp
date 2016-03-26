@@ -113,7 +113,7 @@ void GPPGame::setRunningModule(const std::string m)
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
-	std::string song = "Slow Ride";
+	std::string song = "Cliffs of Dover";
 	module.players[0].loadSongOnlyChart(song);
 	module.players[1].loadSong(song);
 	module.players.back().loadSong(song);
@@ -600,6 +600,9 @@ void GPPGame::openMenus(CMenu *startMenu)
 	while (menusStack.size() != 0 && engine.windowOpened())
 	{
 		clearScreen();
+
+		engine.activate3DRender(false);
+
 		auto &menu = *menusStack.back();
 		currentMenu = &menu;
 
