@@ -219,6 +219,7 @@ void GPPGame::startModule(const std::string &name)
 		p.musicRunningTime = -3.0;
 	}
 
+	GPPGame::GuitarPP().HUDText = GPPGame::GuitarPP().loadTexture("data/sprites", "HUD.tga").getTextId();
 
 	double startTime = module.players.back().startTime = CEngine::engine().getTime() + 3.0;
 	double openMenuTime = 0.0;
@@ -815,6 +816,8 @@ GPPGame::GPPGame() : noteOBJ("GPP_Note.obj"), triggerBASEOBJ("TriggerBase.obj"),
 	devMode = false;
 
 	mainMenu = nullptr;
+
+	HUDText = 0;
 
 	CEngine::engine().errorCallbackFun = logError;
 }

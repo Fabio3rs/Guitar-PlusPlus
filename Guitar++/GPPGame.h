@@ -202,6 +202,8 @@ public:
 
 	unsigned int strumsTexture3D[6];
 
+	unsigned int HUDText;
+
 private:
 	struct loadThreadData{
 		std::atomic<bool> processing;

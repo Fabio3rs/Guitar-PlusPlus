@@ -43,7 +43,14 @@ void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Play
 	TempStruct3D.TextureY1 = 1.0f;
 	TempStruct3D.TextureY2 = 0.0f;
 
-	CEngine::engine().setColor(1.0, 1.0, 1.0, pos2Alpha(-TempStruct3D.z1 / 5.5));
+	double alpha = pos2Alpha(-TempStruct3D.z1 / 6.5);
+
+	if (alpha <= 0.0)
+	{
+		return;
+	}
+
+	CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
 	CEngine::engine().Render3DQuad(TempStruct3D);
 }
 
@@ -148,7 +155,14 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 		TempStruct3D.z3 = nCalc + size * 2.0;
 		TempStruct3D.z4 = TempStruct3D.z3;
 
-		CEngine::engine().setColor(1.0, 1.0, 1.0, pos2Alpha(-TempStruct3D.z1 / 5.5));
+		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
+
+		if (alpha <= 0.0)
+		{
+			return;
+		}
+
+		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
@@ -211,7 +225,15 @@ void CGamePlay::renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned
 		TempStruct3D.z3 = nCalc + size * 2.0;
 		TempStruct3D.z4 = TempStruct3D.z3;
 
-		CEngine::engine().setColor(1.0, 1.0, 1.0, pos2Alpha(-TempStruct3D.z1 / 5.5));
+
+		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
+
+		if (alpha <= 0.0)
+		{
+			return;
+		}
+
+		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
@@ -330,7 +352,15 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 		TempStruct3D.z3 = nCalc + size * 2.0;
 		TempStruct3D.z4 = TempStruct3D.z3;
 
-		CEngine::engine().setColor(1.0, 1.0, 1.0, pos2Alpha(- TempStruct3D.z1 / 5.5));
+
+		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
+
+		if (alpha <= 0.0)
+		{
+			return;
+		}
+
+		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
@@ -588,7 +618,7 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 	double musicRunningTime = getRunningMusicTime(player) - 4.0;
 	double cCalc = positionCalcByT(musicRunningTime, (x2 - x1));
 
-	for (int i = -2; i < 9; i++)
+	for (int i = -2; i < 8; i++)
 	{
 		CEngine::RenderDoubleStruct FretBoardStruct;
 
@@ -618,7 +648,12 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 		FretBoardStruct.alphaBottom = pos2Alpha(-FretBoardStruct.z3 / 5.5);
 		FretBoardStruct.alphaTop = pos2Alpha(-FretBoardStruct.z2 / 5.5);
 
-		CFonts::fonts().draw3DTextInScreen("TESTE", CFonts::fonts().getCenterPos(sizeof("TESTE") - 1, 0.2, x1 + (x2 - x1) / 2.0), -0.4992, FretBoardStruct.z1, 0.2, 0.0, -0.2);
+		if (FretBoardStruct.alphaBottom <= 0.0 && FretBoardStruct.alphaTop <= 0.0)
+		{
+			continue;
+		}
+
+		//CFonts::fonts().draw3DTextInScreen("TESTE", CFonts::fonts().getCenterPos(sizeof("TESTE") - 1, 0.2, x1 + (x2 - x1) / 2.0), -0.4992, FretBoardStruct.z1, 0.2, 0.0, -0.2);
 
 		CEngine::engine().Render3DQuadWithAlpha(FretBoardStruct);
 	}
@@ -755,7 +790,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	CLuaH::multiCallBackParams_t m;
 
-	m.push_back("player 0");
+	m.push_back(player.plname);
 
 	lua.runEventWithParams("preRenderPlayer", m);
 
@@ -882,7 +917,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	CEngine::RenderDoubleStruct HUDBackground;
 
-	HUDBackground.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "HUD.tga").getTextId();
+	HUDBackground.Text = GPPGame::GuitarPP().HUDText;
 
 	double neg = 0.1, negy = 0.05;
 
