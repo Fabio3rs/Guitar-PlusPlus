@@ -9,4 +9,5 @@ void GPPOBJ::draw(unsigned int texture)
 GPPOBJ::GPPOBJ(const std::string &path)
 {
 	bool res = loadOBJ(path.c_str(), vertices, uvs, normals);
+	vb = uvb = nvb = -1;
 }

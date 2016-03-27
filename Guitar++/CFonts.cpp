@@ -114,6 +114,66 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 	}
 }
 
+void CFonts::draw3DTextInScreen(const std::string &str, const double posX1, const double posY1, const double posZ1, const double sizeX, const double sizeY, const double sizeZ, const std::string &fontName)
+{
+	auto &fontToUse = fontsReg[fontName];
+
+	double CharPos = 0.0;
+	const double sizeDiv1_5 = sizeX / 1.5, sizeDiv2_0 = sizeX / 2.0;
+	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
+
+	CEngine::RenderDoubleStruct RenderData;
+
+	RenderData.y1 = posY1 + sizeY;
+	RenderData.y2 = posY1 + sizeY;
+	RenderData.y3 = posY1;
+	RenderData.y4 = posY1;
+
+	RenderData.z1 = posZ1 + sizeZ;
+	RenderData.z2 = posZ1 + sizeZ;
+	RenderData.z3 = posZ1;
+	RenderData.z4 = posZ1;
+
+	int i = 0;
+
+	const std::string st = str + " ";
+
+	auto it = st.begin();
+
+	for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
+	{
+		auto &chData = fontToUse.chars[ch];
+
+		if (chData.getText()){
+			auto &text = GPPGame::GuitarPP().gTextures[chData.getText()->getName()];
+			auto &fontsTextData = *chData.getText();
+
+			const double positionFromCharInTexture = chData.getPos();
+			const double sizeFromChar = 1.0 / (double)fontsTextData.getcolumns();
+			const double sizeOfLine = 1.0 / (double)fontsTextData.getlines();
+
+			RenderData.Text = text.getTextId();
+
+			CharPos = posX1PlusSizeDiv2_0 + (((double)i) * sizeDiv1_5);
+
+			RenderData.x1 = CharPos;
+			RenderData.x2 = CharPos + sizeX;
+			RenderData.x3 = CharPos + sizeX;
+			RenderData.x4 = CharPos;
+
+			RenderData.TextureY1 = 1.0 - (sizeOfLine * chData.getline());
+			RenderData.TextureY2 = RenderData.TextureY1 - sizeOfLine;
+
+			RenderData.TextureX1 = (positionFromCharInTexture * sizeFromChar);
+			RenderData.TextureX2 = (positionFromCharInTexture * sizeFromChar) + sizeFromChar;
+
+			CEngine::engine().Render3DQuad(RenderData);
+		}
+
+		++i;
+	}
+}
+
 void CFonts::drawTextInScreen(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName)
 {
 	auto &fontToUse = fontsReg[fontName];

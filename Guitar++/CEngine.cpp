@@ -944,6 +944,11 @@ void CEngine::activateNormals(bool a)
 		glDisableClientState(GL_NORMAL_ARRAY);
 }
 
+struct lightData{
+	float ambientLight[4], diffuseLight[4], specularLight[4], position[4], direction[4], angle;
+
+};
+
 void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	GLFWmonitor *monitor = nullptr;
 	if (fullScreen){
@@ -962,8 +967,8 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 		h = mode->height;
 	}
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 
 	if (AASamples)
 		glfwWindowHint(GLFW_SAMPLES, AASamples);
@@ -993,6 +998,54 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	/*for (int i = 0, size = glStates.size(); i < size; i++){
 		glStates[i] = glIsEnabled(i);
 	}*/
+	lightData l;
+
+	for (auto &t : l.ambientLight)
+	{
+		t = 0.5;
+	}
+
+	for (auto &t : l.direction)
+	{
+		t = 0.4;
+	}
+
+	for (auto &t : l.position)
+	{
+		t = 0.0;
+	}
+
+	for (auto &t : l.specularLight)
+	{
+		t = 0.2;
+	}
+
+	for (auto &t : l.diffuseLight)
+	{
+		t = 0.2;
+	}
+
+	l.angle = 90.0;
+	l.direction[2] = -0.5;
+
+	l.position[3] = -0.4;
+	l.position[2] = -0.5;
+
+
+	//glEnable(GL_LIGHTING);
+
+	//glEnable(GL_LIGHT0);
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, l.ambientLight);
+
+	glLightfv(GL_LIGHT0, GL_AMBIENT, l.ambientLight);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, l.diffuseLight);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, l.specularLight);
+	glLightfv(GL_LIGHT0, GL_EMISSION, l.specularLight);
+	glLightfv(GL_LIGHT0, GL_POSITION, l.position);
+
+	glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, l.angle);
+
+	glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, l.direction);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -1085,6 +1138,27 @@ void CEngine::Render2DQuad(const RenderDoubleStruct &quad2DData){
 	glVertexPointer(2, GL_DOUBLE, 0, vertexArray);
 
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void CEngine::RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture, unsigned int &vbuffer, unsigned int &uvbuffer, unsigned int &nvbuffer)
+{
+	if (vbuffer == (~0)){
+		glGenBuffers(1, &vbuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, vbuffer);
+		glBufferData(GL_ARRAY_BUFFER, count * sizeof(float) * 3, vertexPtr, GL_STATIC_DRAW);
+
+		glGenBuffers(1, &nvbuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, nvbuffer);
+		glBufferData(GL_ARRAY_BUFFER, count * sizeof(float) * 3, normals, GL_STATIC_DRAW);
+
+		glGenBuffers(1, &uvbuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+		glBufferData(GL_ARRAY_BUFFER, count * sizeof(float) * 2, uvPtr, GL_STATIC_DRAW);
+	}
+
+	if (texture) bindTexture(texture);
+
+
 }
 
 void CEngine::Render2DCircle(double x, double y, double percent, double radius, double lineWeight, int polysNum, int maxPolys, unsigned int &bufferID){

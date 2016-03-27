@@ -10,6 +10,7 @@ class GPPOBJ{
 	std::vector<glm::vec2> uvs;
 	std::vector<glm::vec3> normals;
 
+	unsigned int vb, uvb, nvb;
 
 public:
 	void draw(unsigned int texture);

@@ -588,7 +588,7 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 	double musicRunningTime = getRunningMusicTime(player) - 4.0;
 	double cCalc = positionCalcByT(musicRunningTime, (x2 - x1));
 
-	for (int i = -2; i < 8; i++)
+	for (int i = -2; i < 9; i++)
 	{
 		CEngine::RenderDoubleStruct FretBoardStruct;
 
@@ -617,6 +617,8 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 		FretBoardStruct.alphaBottom = pos2Alpha(-FretBoardStruct.z3 / 5.5);
 		FretBoardStruct.alphaTop = pos2Alpha(-FretBoardStruct.z2 / 5.5);
+
+		CFonts::fonts().draw3DTextInScreen("TESTE", CFonts::fonts().getCenterPos(sizeof("TESTE") - 1, 0.2, x1 + (x2 - x1) / 2.0), -0.4992, FretBoardStruct.z1, 0.2, 0.0, -0.2);
 
 		CEngine::engine().Render3DQuadWithAlpha(FretBoardStruct);
 	}
@@ -666,12 +668,13 @@ void CGamePlay::loadSongLyrics(const std::string &song)
 	if (lyrics.is_open())
 	{
 		char temp[1024] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+		char temp2[128] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 		int s = 0;
 		int id = 0, result = 0;
 		int sinc[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-		double offset = 0.0;
+		double offset = 0.0, offt;
 
 		lyrics.seekg(0, std::ios::end);
 		std::cout << lyrics.tellg() << std::endl;
@@ -683,6 +686,16 @@ void CGamePlay::loadSongLyrics(const std::string &song)
 		{
 			if (strlen(temp) == 0)
 			{
+				continue;
+			}
+
+			result = sscanf(temp, "%127s %lf", temp2, &offt);
+
+			if (result == 2 && std::string(temp2) == "offset")
+			{
+				offset = offt;
+
+				std::cout << "offset " << offt << std::endl;
 				continue;
 			}
 

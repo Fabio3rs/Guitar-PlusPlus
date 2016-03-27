@@ -107,6 +107,7 @@ public:
 	double								getCenterPos(int charsnum, double size, double posX1);
 
 	void								drawTextInScreen(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName = "default");
+	void								draw3DTextInScreen(const std::string &str, const double posX1, const double posY1, const double posZ1, const double sizeX, const double sizeY, const double sizeZ, const std::string &fontName = "default");
 
 
 	static CFonts &fonts();
