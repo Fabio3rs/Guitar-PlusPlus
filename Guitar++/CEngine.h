@@ -399,6 +399,8 @@ public:
 	bool playSoundStream(int handle);
 	bool pauseSoundStream(int handle);
 	bool unloadSoundStream(int &handle);
+	void setSoundTime(int handle, double time);
+	double getSoundTime(int handle);
 
 	void setScale(double x, double y, double z);
 

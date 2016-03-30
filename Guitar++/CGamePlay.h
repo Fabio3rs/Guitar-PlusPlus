@@ -31,6 +31,7 @@ class CGamePlay{
 	double time2Position(double Time, CPlayer &player);
 	void renderNote(CPlayer::NotesData::Note &note, CPlayer &player);
 	void renderIndividualLine(int id, double pos1, double pos2, unsigned int Texture, CPlayer &player);
+	void renderTimeOnNote(double pos, double time, CPlayer &player);
 
 	void drawBPMLines(CPlayer &Player);
 	void drawBPMLine(double position, unsigned int Texture, CPlayer &Player);

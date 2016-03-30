@@ -201,8 +201,12 @@ public:
 	GPPOBJ noteOBJ, triggerBASEOBJ, triggerOBJ;
 
 	unsigned int strumsTexture3D[6];
+	unsigned int hopoTexture3D[6];
 
-	unsigned int HUDText;
+	unsigned int sbaseTexture3D[6];
+	unsigned int striggerTexture3D[6];
+
+	unsigned int HUDText, fretboardText, lineText, HOPOSText;
 
 private:
 	struct loadThreadData{

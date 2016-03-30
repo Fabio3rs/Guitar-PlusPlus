@@ -114,8 +114,8 @@ void GPPGame::setRunningModule(const std::string m)
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
 	std::string song = "2nd Dawn";
-	module.players[0].loadSongOnlyChart(song);
-	module.players[1].loadSong(song);
+	//module.players[0].loadSongOnlyChart(song);
+	//module.players[1].loadSong(song);
 	module.players.back().loadSong(song);
 
 	module.loadSongLyrics(song);
@@ -158,7 +158,7 @@ void GPPGame::startModule(const std::string &name)
 	game.setVSyncMode(0);
 
 	game.setRunningModule(realname);
-
+	/*
 	{
 		module.players.push_back(CPlayer("xi 3"));
 		auto &playerCamera = module.players.back().playerCamera;
@@ -193,7 +193,7 @@ void GPPGame::startModule(const std::string &name)
 		playerCamera.upy = 1;
 		playerCamera.upz = 0;
 	}
-
+	*/
 
 
 	module.players.push_back(CPlayer("xi"));
@@ -220,6 +220,9 @@ void GPPGame::startModule(const std::string &name)
 	}
 
 	GPPGame::GuitarPP().HUDText = GPPGame::GuitarPP().loadTexture("data/sprites", "HUD.tga").getTextId();
+	GPPGame::GuitarPP().fretboardText = GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId();
+	GPPGame::GuitarPP().lineText = GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId();
+	GPPGame::GuitarPP().HOPOSText = GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId();
 
 	double startTime = module.players.back().startTime = CEngine::engine().getTime() + 3.0;
 	double openMenuTime = 0.0;
@@ -227,6 +230,8 @@ void GPPGame::startModule(const std::string &name)
 
 	bool enterInMenu = false, esc = false;
 	int musicstartedg = 0;
+
+	bool songTimeFixed = false;
 
 	while (CEngine::engine().windowOpened())
 	{
@@ -260,6 +265,8 @@ void GPPGame::startModule(const std::string &name)
 				musicstartedg = 0;
 			}
 
+			songTimeFixed = false;
+
 			openMenuTime = CEngine::engine().getTime();
 
 			game.openMenus(&module.moduleMenu);
@@ -284,11 +291,26 @@ void GPPGame::startModule(const std::string &name)
 		{
 			module.update();
 
+			if (!songTimeFixed && (CEngine::engine().getTime() - startTime) > 0.5)
+			{
+				CEngine::engine().setSoundTime(module.players.back().songAudioID, CEngine::engine().getTime() - startTime);
 
+				for (auto &p : module.players)
+				{
+					CEngine::engine().setSoundTime(p.instrumentSound, CEngine::engine().getTime() - startTime);
+				}
 
+				std::cout << "First note position: " << module.players.back().Notes.gNotes[0].time << std::endl;
+
+				songTimeFixed = true;
+			}
 
 			module.render();
 			module.renderLyrics();
+
+
+			//CFonts::fonts().drawTextInScreen("BASS" + std::to_string(CEngine::engine().getSoundTime(module.players.back().songAudioID)), 0.52, -0.4, 0.1);
+			//CFonts::fonts().drawTextInScreen("SONG" + std::to_string(CEngine::engine().getTime() - startTime), 0.52, -0.52, 0.1);
 
 			double time = CEngine::engine().getTime();
 
@@ -777,9 +799,31 @@ int GPPGame::createWindow()
 
 	for (auto &s : strumsTexture3D)
 	{
-		s = loadTexture("data/sprites", "Mask" + std::to_string(itext++) + ".tga").getTextId();
+		s = loadTexture("data/sprites", "strum" + std::to_string(itext++) + ".tga").getTextId();
 	}
-	
+
+	itext = 0;
+
+	for (auto &s : hopoTexture3D)
+	{
+		s = loadTexture("data/sprites", "hopo" + std::to_string(itext++) + ".tga").getTextId();
+	}
+
+	itext = 0;
+
+	for (auto &sb : sbaseTexture3D)
+	{
+		sb = loadTexture("data/sprites", "base" + std::to_string(itext++) + ".tga").getTextId();
+	}
+
+	itext = 0;
+
+	for (auto &st : striggerTexture3D)
+	{
+		st = loadTexture("data/sprites", "trigger" + std::to_string(itext++) + ".tga").getTextId();
+
+		std::cout << st << std::endl;
+	}
 
 	return CEngine::engine().windowOpened(); // Is the window really open?
 }
@@ -804,7 +848,7 @@ void GPPGame::logError(int code, const std::string &e)
 	CLog::log() << std::to_string(code) + ": " + e;
 }
 
-GPPGame::GPPGame() : noteOBJ("GPP_Note.obj"), triggerBASEOBJ("TriggerBase.obj"), triggerOBJ("Trigger.obj")
+GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"), triggerOBJ("data/models/Trigger.obj")
 {
 	// Load lua scripts from "data" folder
 	CLuaH::Lua().loadFiles("data");
@@ -818,6 +862,7 @@ GPPGame::GPPGame() : noteOBJ("GPP_Note.obj"), triggerBASEOBJ("TriggerBase.obj"),
 	mainMenu = nullptr;
 
 	HUDText = 0;
+	fretboardText = 0;
 
 	CEngine::engine().errorCallbackFun = logError;
 }

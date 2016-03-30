@@ -4,9 +4,9 @@
 #include "CFonts.h"
 #include <common/shader.hpp>
 
-unsigned int programID;
-unsigned int MatrixID;
-unsigned int TextureID;
+//unsigned int programID;
+//unsigned int MatrixID;
+//unsigned int TextureID;
 
 void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Player)
 {
@@ -166,11 +166,11 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
-		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.52, TempStruct3D.z1 + size);
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
 		//CEngine::engine().useShader(programID);
 
-		GPPGame::GuitarPP().triggerBASEOBJ.draw(GPPGame::GuitarPP().strumsTexture3D[id]);
+		GPPGame::GuitarPP().triggerBASEOBJ.draw(GPPGame::GuitarPP().sbaseTexture3D[id]);
 		/*if (state != -10.0)
 		{
 			CEngine::engine().renderAt(0.0, state, 0.0);
@@ -237,8 +237,8 @@ void CGamePlay::renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
-		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.54 + state, TempStruct3D.z1 + size);
-		GPPGame::GuitarPP().triggerOBJ.draw(GPPGame::GuitarPP().strumsTexture3D[id]);
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5 + state, TempStruct3D.z1 + size);
+		GPPGame::GuitarPP().triggerOBJ.draw(GPPGame::GuitarPP().striggerTexture3D[id]);
 		CEngine::engine().matrixReset();
 	}
 }
@@ -417,10 +417,63 @@ void CGamePlay::renderIndividualLine(int id, double pos1, double pos2, unsigned 
 	CEngine::engine().Render3DQuadWithAlpha(TempStruct3D);
 }
 
+void CGamePlay::renderTimeOnNote(double pos, double time, CPlayer &player)
+{
+	CEngine::RenderDoubleStruct TempStruct3D;
+	double rtime = getRunningMusicTime(player) - pos;
+
+	if (rtime > -5.0)
+	{
+		double size = 0.2;
+		double position = -0.51;
+
+		double nCalc = rtime * speedMp;
+
+		nCalc += 0.55;
+
+		if (player.plusEnabled)
+		{
+			TempStruct3D.TextureY1 = 0.5;
+			TempStruct3D.TextureY2 = 0.0;
+		}
+		else{
+			TempStruct3D.TextureY1 = 1.0;
+			TempStruct3D.TextureY2 = 0.5;
+		}
+
+
+		TempStruct3D.y1 = -0.5;
+		TempStruct3D.y2 = TempStruct3D.y1;
+		TempStruct3D.y3 = -0.5;
+		TempStruct3D.y4 = TempStruct3D.y3;
+
+		TempStruct3D.z1 = nCalc;
+		TempStruct3D.z2 = TempStruct3D.z1;
+		TempStruct3D.z3 = nCalc + size * 2.0;
+		TempStruct3D.z4 = TempStruct3D.z3;
+
+
+		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
+
+		if (alpha <= 0.0)
+		{
+			return;
+		}
+
+		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
+
+		//CEngine::engine().Render3DQuad(TempStruct3D);
+		std::string timestr = std::to_string(time);
+
+		CFonts::fonts().draw3DTextInScreen(timestr, CFonts::fonts().getCenterPos(timestr.size(), 0.2, 0.0), -0.4992, TempStruct3D.z1, 0.2, 0.0, -0.2);
+	}
+}
+
 void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
 	for (int i = 0; i < 5; i++){
-		if (note.type & (int)pow(2, i)){
+		if (note.type & (int)pow(2, i))
+		{
 			unsigned int texture = fretsText.notesTexture;
 			/*if (note.type & notesFlags::nf_doing_slide){
 				time = ltimet;
@@ -428,21 +481,25 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 
 			if (note.lTime > 0.0 && note.type & notesFlags::nf_doing_slide)
 			{
-				renderIndividualLine(i, ltimet, time - ltimet + note.lTime, GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId(), player);
+				renderIndividualLine(i, ltimet, time - ltimet + note.lTime, GPPGame::GuitarPP().lineText, player);
 			}
 			else if (note.type & notesFlags::nf_slide && !(note.type & notesFlags::nf_slide_picked))
 			{
-				renderIndividualLine(i, time, note.lTime, GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId(), player);
+				renderIndividualLine(i, time, note.lTime, GPPGame::GuitarPP().lineText, player);
 			}
 
 			if ((note.type & notesFlags::nf_not_hopo) ^ notesFlags::nf_not_hopo)
 			{
-				texture = GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId();
+				texture = GPPGame::GuitarPP().HOPOSText;
 			}
 
 			/*if (note.type & notesFlags::plus_mid || note.type & notesFlags::plus_end){
 			texture = CTheme::inst().SPR["PlusNote"];
 			}*/
+
+			// CFonts::fonts().draw3DTextInScreen("TESTE", CFonts::fonts().getCenterPos(sizeof("TESTE") - 1, 0.2, x1 + (x2 - x1) / 2.0), -0.4992, FretBoardStruct.z1, 0.2, 0.0, -0.2);
+
+			//renderTimeOnNote(time, time, player);
 
 			if (!(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, player);
 		}
@@ -815,7 +872,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	double fretboardData[] = { -0.51, 0.51, 0.51, -0.51, -1.0, -1.0, 0.4, 0.4 };
 
 
-	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId());
+	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], GPPGame::GuitarPP().fretboardText);
 
 	if (showBPMLines) drawBPMLines(player);
 
@@ -872,7 +929,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	for (int i = 0; i < 5; i++)
 	{
 		double pressT = CEngine::engine().getTime() - player.Notes.fretsNotePickedTime[i];
-		double calcP = (sin(pressT / 0.05)) / 10.0 - 0.05;
+		double calcP = (sin(pressT / 0.05)) / 15.0 - 0.05;
 
 		if (pressT > 0.15 && player.notesSlide[i] == -1)
 		{
@@ -880,7 +937,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 			if (player.fretsPressed[i])
 			{
-				calcP = -0.05;
+				calcP = -0.025;
 			}
 		}
 
@@ -1095,12 +1152,6 @@ CGamePlay::CGamePlay()
 	gSpeed = 1.0; // music speed
 
 	songlyricsIndex = 0;
-
-	programID = LoadShaders("TransformVertexShader.vertexshader", "TextureFragmentShader.fragmentshader");
-
-	// Get a handle for our "MVP" uniform
-	MatrixID = CEngine::engine().getUniformLocation(programID, "MVP");
-	TextureID = CEngine::engine().getUniformLocation(programID, "myTextureSampler");
 
 	fretsTextures = "default";
 	fretsText = GPPGame::GuitarPP().frets[fretsTextures];

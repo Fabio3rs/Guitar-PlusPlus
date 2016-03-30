@@ -179,8 +179,19 @@ void CEngine::setColor(double r, double g, double b, double a){
 	glColor4d(r, g, b, a);
 }
 
+
+double CEngine::getSoundTime(int handle)
+{
+	return BASS_ChannelBytes2Seconds(handle, BASS_ChannelGetPosition(handle, BASS_POS_BYTE));
+}
+
+void CEngine::setSoundTime(int handle, double time)
+{
+	BASS_ChannelSetPosition(handle, BASS_ChannelSeconds2Bytes(handle, time), BASS_POS_BYTE);
+}
+
 bool CEngine::loadSoundStream(const char *fileName, int &handle){
-	handle = BASS_StreamCreateFile(false, fileName, 0, 0, 0);
+	handle = BASS_StreamCreateFile(false, fileName, 0, 0, BASS_STREAM_PRESCAN | BASS_ASYNCFILE);
 	return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE) && handle != 0;
 }
 
