@@ -419,6 +419,7 @@ public:
 
 	void activateNormals(bool a);
 	void activate3DRender(bool a);
+	void activateLighting(bool a);
 
 	void setVSyncMode(int mode);
 

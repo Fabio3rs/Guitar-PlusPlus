@@ -401,7 +401,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		}
 		else if (Nts[i].type == -1)
 		{
-			Note plusT;
+			plusNote plusT;
 
 			plusT.time = Nts[i].time;
 			plusT.lTime = Nts[i].lTime;
@@ -411,7 +411,38 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		}
 	}
 
+	deducePlusLastNotes();
+
 	return true;
+}
+
+void CPlayer::NotesData::deducePlusLastNotes()
+{
+	size_t plusPosTemp = 0;
+
+	for (int64_t i = 0, size = gNotes.size(); i < size; ++i)
+	{
+		const auto &note = gNotes[i];
+
+		if (plusPosTemp < gPlus.size())
+		{
+			auto &plusNote = gPlus[plusPosTemp];
+
+			if (note.time >= plusNote.time && note.time < (plusNote.time + plusNote.lTime))
+			{
+				plusNote.lastNote = i;
+			}
+
+			if (note.time >= (plusNote.time + plusNote.lTime))
+			{
+				++plusPosTemp;
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
 }
 
 bool CPlayer::NotesData::loadChart(const char *chartFile){
@@ -523,6 +554,8 @@ bool CPlayer::NotesData::loadChart(const char *chartFile){
 			}
 		}
 	}
+
+	deducePlusLastNotes();
 
 	return true;
 }

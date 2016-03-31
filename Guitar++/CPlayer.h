@@ -95,6 +95,8 @@ public:
 	class NotesData{
 		std::string chartFileName;
 
+		void deducePlusLastNotes();
+
 	public:
 		size_t notePos, plusPos;
 		int64_t lastNotePicked;
@@ -127,9 +129,33 @@ public:
 			}
 		};
 
+
+		struct plusNote{
+			double time, lTime/*, unmodifiedTime*/;
+			int type;
+
+			int64_t lastNote;
+
+			inline bool operator <(const Note &b) const{
+				return time < b.time;
+			}
+
+			inline bool operator >(const Note &b) const{
+				return time > b.time;
+			}
+
+			plusNote(){
+				time = 0.0;
+				lTime = 0.0;
+				//unmodifiedTime = 0.0;
+				type = 0;
+				lastNote = 0;
+			}
+		};
+
 		std::deque<Note> gNotes;
 		std::deque<Note> BPM;
-		std::deque<Note> gPlus;
+		std::deque<plusNote> gPlus;
 
 		bool loadChart(const char *chartFile);
 		bool loadFeedbackChart(const char *chartFile);

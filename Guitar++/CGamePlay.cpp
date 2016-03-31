@@ -166,7 +166,7 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
-		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.4997, TempStruct3D.z1 + size);
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
 		//CEngine::engine().useShader(programID);
 
@@ -372,7 +372,7 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 		{
 			auto &p = player.Notes.gPlus[plusPos];
 
-			if (p.time <= pos && pos <= (p.time + p.lTime))
+			if (p.time <= pos && pos < (p.time + p.lTime))
 			{
 				CEngine::engine().Rotate(player.rangle, 0.0, 1.0, 0.0);
 			}
@@ -540,6 +540,18 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	double minendtime = 0.0, minendtimei = notes.notePos;
 	//bool minendtimeslide = false;
 
+	size_t plusSize = player.Notes.gPlus.size();
+
+	if (player.Notes.plusPos < plusSize)
+	{
+		auto &plusp = player.Notes.gPlus[player.Notes.plusPos];
+
+		if ((plusp.time + plusp.lTime) < (musicTime + 0.01))
+		{
+			++player.Notes.plusPos;
+		}
+	}
+
 	bool inslide = false, inslide2 = false;
 
 	for (int ji = 0; ji < 5; ji++)
@@ -552,6 +564,29 @@ void CGamePlay::updatePlayer(CPlayer &player)
 			}
 		}
 	}
+
+
+	auto doPlus = [&](int64_t i)
+	{
+		if (notes.plusPos < notes.gPlus.size())
+		{
+			auto &plPos = notes.gPlus[notes.plusPos];
+
+			if (player.plusPower < player.maxPlusPower)
+			{
+				if (plPos.lastNote == i)
+				{
+					player.plusPower += player.maxPlusPower / 5.0;
+					++notes.plusPos;
+				}
+			}
+
+			if (player.plusPower > player.maxPlusPower)
+			{
+				player.plusPower = player.maxPlusPower;
+			}
+		}
+	};
 
 	for (size_t i = notes.notePos, size = gNotes.size(); i < size; i++)
 	{
@@ -608,10 +643,12 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				{
 					player.doNote(i);
 					note.type |= notesFlags::nf_picked;
+					doPlus(i);
 				}
 				else if (!(note.type & notesFlags::nf_doing_slide))
 				{
 					player.doNote(i);
+					doPlus(i);
 				}
 
 				if (note.lTime > 0.0)
@@ -908,6 +945,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}*/
 
 
+	CEngine::engine().activateLighting(true);
 	CEngine::engine().activateNormals(true);
 
 	for (auto &n : player.buffer)
@@ -981,6 +1019,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		CEngine::engine().setCamera(usingCamera);
 	}
 
+	CEngine::engine().activateLighting(false);
 	//CFonts::fonts().drawTextInScreen(std::to_string(player.buffer.size()), 0.0, 0.5, 0.1);
 
 	///////////******************************************

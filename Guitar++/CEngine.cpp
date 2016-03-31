@@ -1013,12 +1013,12 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 
 	for (auto &t : l.ambientLight)
 	{
-		t = 0.5;
+		t = 0.1;
 	}
 
 	for (auto &t : l.direction)
 	{
-		t = 0.4;
+		t = 2.5;
 	}
 
 	for (auto &t : l.position)
@@ -1028,24 +1028,28 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 
 	for (auto &t : l.specularLight)
 	{
-		t = 0.2;
+		t = 1.0;
 	}
 
 	for (auto &t : l.diffuseLight)
 	{
-		t = 0.2;
+		t = 1.0;
 	}
 
-	l.angle = 90.0;
-	l.direction[2] = -0.5;
+	l.angle = 120.0;
+	l.direction[0] = 0.0;
+	l.direction[1] = -0.5;
+	l.direction[2] = -5.0;
 
-	l.position[3] = -0.4;
-	l.position[2] = -0.5;
+	l.position[3] = 1.0;
+	l.position[1] = 0.0;
+	l.position[2] = 1.5;
+	//l.position[1] = -0.2;
 
 
-	//glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHTING);
 
-	//glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHT0);
 	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, l.ambientLight);
 
 	glLightfv(GL_LIGHT0, GL_AMBIENT, l.ambientLight);
@@ -1080,6 +1084,16 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	cursorText = loadTexture("data/sprites/cursor.tga");
 	glfwSetInputMode((GLFWwindow*)window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 	//setVSyncMode(0);
+
+	CEngine::engine().activateLighting(false);
+}
+
+void CEngine::activateLighting(bool a)
+{
+	if (a)
+		glEnable(GL_LIGHTING);
+	else
+		glDisable(GL_LIGHTING);
 }
 
 void CEngine::activate3DRender(bool a)
