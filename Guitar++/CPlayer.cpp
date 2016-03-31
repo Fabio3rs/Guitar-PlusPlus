@@ -124,10 +124,10 @@ int CPlayer::getLevel(){
 	return log(experience);
 }
 
-// TODO Plus load
 bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 	typedef std::map < std::string, std::map<std::string, std::deque<std::string>> > parsedChart;
 	chartFileName = chartFile;
+	plusPos = 0;
 
 	parsedChart feedBackChartMap;
 
@@ -238,6 +238,15 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 						NTS.push_back(nt);
 					}
+
+					if (std::string(c) == "S"){
+						Note nt;
+						nt.time = std::stod(scopeData.first);
+						nt.lTime = j;
+						nt.type = -1;
+
+						NTS.push_back(nt);
+					}
 				}
 			}
 		}
@@ -251,6 +260,13 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 		int BPM = 0;
 		for (auto &nt : NTS){
+			if (nt.type == -1)
+			{
+				nt.time = getNoteTime(BPMs, BPM, nt.time);
+				nt.lTime = nt.lTime / pureBPMToCalcBPM(BPMs[BPM].BPM);
+				continue;
+			}
+
 			if (BPM < (BPMs.size() - 1)){
 				if (BPMs[BPM + 1].offset < nt.time)
 					++BPM;
@@ -349,7 +365,8 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 			continue;
 		}
 
-		if (Nts[i].type >= 0 && Nts[i].type < 5 && Nts[i].time > 0.0){
+		if (Nts[i].type >= 0 && Nts[i].type < 5 && Nts[i].time > 0.0)
+		{
 			if (gNotes.size() == 0){
 				Note newNote;
 				newNote.time = Nts[i].time;
@@ -381,6 +398,16 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 					gNotes.push_back(newNote);
 				}
 			}
+		}
+		else if (Nts[i].type == -1)
+		{
+			Note plusT;
+
+			plusT.time = Nts[i].time;
+			plusT.lTime = Nts[i].lTime;
+			plusT.type = 0;
+
+			gPlus.push_back(plusT);
 		}
 	}
 
@@ -505,6 +532,7 @@ void CPlayer::NotesData::unloadChart(){
 	lastNotePicked = -1;
 	longNoteComb = 0;
 	chartResolutionProp = 1.0;
+	plusPos = 0;
 
 	for (auto &fretNotePickedTime : fretsNotePickedTime){
 		fretNotePickedTime = 0.0;
@@ -535,6 +563,7 @@ CPlayer::NotesData::NotesData(){
 	lastNotePicked = -1;
 	longNoteComb = 0;
 	chartResolutionProp = 1.0;
+	plusPos = 0;
 
 	instrument = "[ExpertSingle]";
 
@@ -641,6 +670,7 @@ CPlayer::CPlayer(const char *name)
 	startTime = CEngine::engine().getTime();
 	plusEnabled = false;
 	musicRunningTime = 0.0;
+	rangle = 0;
 
 	memset(notesSlide, -1, sizeof(notesSlide));
 

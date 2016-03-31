@@ -96,7 +96,7 @@ public:
 		std::string chartFileName;
 
 	public:
-		size_t notePos;
+		size_t notePos, plusPos;
 		int64_t lastNotePicked;
 		std::string instrument;
 
@@ -129,6 +129,7 @@ public:
 
 		std::deque<Note> gNotes;
 		std::deque<Note> BPM;
+		std::deque<Note> gPlus;
 
 		bool loadChart(const char *chartFile);
 		bool loadFeedbackChart(const char *chartFile);
@@ -185,6 +186,8 @@ public:
 	bool loadSong(const std::string &path);
 	bool loadSongOnlyChart(const std::string &path);
 	bool canDoHOPO;
+
+	double rangle;
 
 	std::string playerSave;
 

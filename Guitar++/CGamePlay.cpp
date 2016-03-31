@@ -365,6 +365,20 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
 		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
+
+		size_t plusPos = player.Notes.plusPos;
+
+		if (plusPos < player.Notes.gPlus.size())
+		{
+			auto &p = player.Notes.gPlus[plusPos];
+
+			if (p.time <= pos && pos <= (p.time + p.lTime))
+			{
+				CEngine::engine().Rotate(player.rangle, 0.0, 1.0, 0.0);
+			}
+		}
+
+
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
 		GPPGame::GuitarPP().noteOBJ.draw(GPPGame::GuitarPP().strumsTexture3D[id]);
 		CEngine::engine().matrixReset();
@@ -511,6 +525,9 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	auto &notes = player.Notes;
 	auto &gNotes = player.Notes.gNotes;
 	auto &engine = CEngine::engine();
+
+
+	player.rangle = (int)(CEngine::engine().getTime() * 500.0) % 360;
 
 	player.update();
 

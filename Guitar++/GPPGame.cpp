@@ -233,6 +233,14 @@ void GPPGame::startModule(const std::string &name)
 
 	bool songTimeFixed = false;
 
+	std::cout << "Plus in chart: " << module.players.back().Notes.gPlus.size() << std::endl;
+
+	if (module.players.back().Notes.gPlus.size())
+	{
+		std::cout << "Plus 0 time: " << module.players.back().Notes.gPlus[0].time << std::endl;
+		std::cout << "Plus 0 duration: " << module.players.back().Notes.gPlus[0].lTime << std::endl;
+	}
+
 	while (CEngine::engine().windowOpened())
 	{
 		GPPGame::GuitarPP().clearScreen();
@@ -310,7 +318,7 @@ void GPPGame::startModule(const std::string &name)
 
 
 			//CFonts::fonts().drawTextInScreen("BASS" + std::to_string(CEngine::engine().getSoundTime(module.players.back().songAudioID)), 0.52, -0.4, 0.1);
-			//CFonts::fonts().drawTextInScreen("SONG" + std::to_string(CEngine::engine().getTime() - startTime), 0.52, -0.52, 0.1);
+			CFonts::fonts().drawTextInScreen("SONG" + std::to_string(CEngine::engine().getTime() - startTime), 0.52, -0.52, 0.1);
 
 			double time = CEngine::engine().getTime();
 
