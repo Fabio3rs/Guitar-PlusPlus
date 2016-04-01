@@ -955,11 +955,6 @@ void CEngine::activateNormals(bool a)
 		glDisableClientState(GL_NORMAL_ARRAY);
 }
 
-struct lightData{
-	float ambientLight[4], diffuseLight[4], specularLight[4], position[4], direction[4], angle;
-
-};
-
 void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	GLFWmonitor *monitor = nullptr;
 	if (fullScreen){
@@ -1013,7 +1008,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 
 	for (auto &t : l.ambientLight)
 	{
-		t = 0.1;
+		t = 0.3;
 	}
 
 	for (auto &t : l.direction)
@@ -1036,14 +1031,14 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 		t = 1.0;
 	}
 
-	l.angle = 120.0;
+	l.angle = 100.0;
 	l.direction[0] = 0.0;
 	l.direction[1] = -0.5;
 	l.direction[2] = -5.0;
 
 	l.position[3] = 1.0;
 	l.position[1] = 0.0;
-	l.position[2] = 1.5;
+	l.position[2] = 2.5;
 	//l.position[1] = -0.2;
 
 
@@ -1086,6 +1081,30 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	//setVSyncMode(0);
 
 	CEngine::engine().activateLighting(false);
+}
+
+void CEngine::setLight(const lightData &l, int id, bool setAmbient)
+{
+	if (setAmbient)
+		glLightModelfv(GL_LIGHT_MODEL_AMBIENT, l.ambientLight);
+
+	glLightfv(GL_LIGHT0 + id, GL_AMBIENT, l.ambientLight);
+	glLightfv(GL_LIGHT0 + id, GL_DIFFUSE, l.diffuseLight);
+	glLightfv(GL_LIGHT0 + id, GL_SPECULAR, l.specularLight);
+	glLightfv(GL_LIGHT0 + id, GL_EMISSION, l.specularLight);
+	glLightfv(GL_LIGHT0 + id, GL_POSITION, l.position);
+
+	glLightf(GL_LIGHT0 + id, GL_SPOT_CUTOFF, l.angle);
+
+	glLightfv(GL_LIGHT0 + id, GL_SPOT_DIRECTION, l.direction);
+}
+
+void CEngine::activateLight(int id, bool a)
+{
+	if (a)
+		glEnable(GL_LIGHT0 + id);
+	else
+		glDisable(GL_LIGHT0 + id);
 }
 
 void CEngine::activateLighting(bool a)

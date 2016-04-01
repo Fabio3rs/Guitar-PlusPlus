@@ -526,6 +526,17 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	auto &gNotes = player.Notes.gNotes;
 	auto &engine = CEngine::engine();
 
+	if (player.plusEnabled)
+	{
+		player.plusPower -= CEngine::engine().getDeltaTime() * 0.01;
+
+		if (player.plusPower <= 0.0)
+		{
+			player.plusEnabled = false;
+			player.plusPower = 0.0;
+		}
+	}
+
 
 	player.rangle = (int)(CEngine::engine().getTime() * 500.0) % 360;
 
@@ -565,6 +576,11 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		}
 	}
 
+	if (!player.plusEnabled && player.plusPower > 0.0 && CEngine::engine().getKey(' '))
+	{
+		player.plusEnabled = true;
+	}
+
 
 	auto doPlus = [&](int64_t i)
 	{
@@ -578,6 +594,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				{
 					player.plusPower += player.maxPlusPower / 5.0;
 					++notes.plusPos;
+					player.plusThunterStrikeStart = engine.getTime();
 				}
 			}
 
@@ -897,7 +914,152 @@ void CGamePlay::setMusicSpeed(double s)
 
 void CGamePlay::renderPlayer(CPlayer &player)
 {
+	lightData l0;
+
+	for (auto &t : l0.ambientLight)
+	{
+		t = 0.3;
+	}
+
+	for (auto &t : l0.direction)
+	{
+		t = 2.5;
+	}
+
+	for (auto &t : l0.position)
+	{
+		t = 0.0;
+	}
+
+	for (auto &t : l0.specularLight)
+	{
+		t = 1.0;
+	}
+
+	for (auto &t : l0.diffuseLight)
+	{
+		t = 1.0;
+	}
+
+	l0.angle = 100.0;
+	l0.direction[0] = 0.0;
+	l0.direction[1] = -0.5;
+	l0.direction[2] = -5.0;
+
+	l0.position[3] = 1.0;
+	l0.position[1] = 0.0;
+	l0.position[2] = 2.5;
+
 	auto &lua = CLuaH::Lua();
+
+	double difftime = CEngine::engine().getTime() - player.plusThunterStrikeStart;
+
+	bool renablel0 = false;
+
+	if (difftime <= 4.0 && difftime > 0.0)
+	{
+		difftime /= 4.0;
+
+		CEngine::engine().activateLighting(true);
+
+		lightData l;
+
+		for (auto &t : l.ambientLight)
+		{
+			t = difftime;
+		}
+
+		for (auto &t : l.direction)
+		{
+			t = 2.5;
+		}
+
+		for (auto &t : l.position)
+		{
+			t = 0.0;
+		}
+
+		for (auto &t : l.specularLight)
+		{
+			t = 0.2;
+		}
+
+		for (auto &t : l.diffuseLight)
+		{
+			t = 0.2;
+		}
+
+		l.specularLight[2] = 1.0;
+		l.specularLight[3] = 1.0 - difftime;
+		l.diffuseLight[2] = 1.0;
+		l.diffuseLight[3] = 1.0 - difftime;
+		l.ambientLight[4] = difftime;
+
+		l.angle = 100.0;
+		l.direction[0] = 0.0;
+		l.direction[1] = -0.5;
+		l.direction[2] = -5.0;
+
+		l.position[3] = 1.0;
+		l.position[1] = 0.0;
+		l.position[2] = 2.5;
+
+		CEngine::engine().activateLight(0, false);
+		CEngine::engine().activateLight(1, true);
+		CEngine::engine().setLight(l, 1);
+		renablel0 = true;
+	}
+
+	if (player.plusEnabled)
+	{
+		CEngine::engine().activateLighting(true);
+
+		lightData l;
+
+		for (auto &t : l.ambientLight)
+		{
+			t = 0.1;
+		}
+
+		for (auto &t : l.direction)
+		{
+			t = 2.5;
+		}
+
+		for (auto &t : l.position)
+		{
+			t = 0.0;
+		}
+
+		for (auto &t : l.specularLight)
+		{
+			t = 0.2;
+		}
+
+		for (auto &t : l.diffuseLight)
+		{
+			t = 0.2;
+		}
+
+		l.specularLight[2] = 1.0;
+		l.specularLight[3] = 1.0;
+		l.diffuseLight[2] = 1.0;
+		l.diffuseLight[3] = 1.0;
+		l.ambientLight[4] = 0.1;
+
+		l.angle = 100.0;
+		l.direction[0] = 0.0;
+		l.direction[1] = -0.5;
+		l.direction[2] = -5.0;
+
+		l.position[3] = 1.0;
+		l.position[1] = 0.0;
+		l.position[2] = 2.5;
+
+		CEngine::engine().activateLight(0, false);
+		CEngine::engine().activateLight(1, true);
+		CEngine::engine().setLight(l, 1);
+	}
 
 	CLuaH::multiCallBackParams_t m;
 
@@ -944,6 +1106,13 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		//renderIndivdualNote(i, getRunningMusicTime(player), 0, player);
 	}*/
 
+	if (player.plusEnabled || renablel0)
+	{
+		CEngine::engine().activateLight(1, false);
+		CEngine::engine().activateLight(0, true);
+
+		CEngine::engine().setLight(l0, 0);
+	}
 
 	CEngine::engine().activateLighting(true);
 	CEngine::engine().activateNormals(true);

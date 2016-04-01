@@ -153,6 +153,11 @@
 
 enum windowsNum{closed, opened, preUpdate, posUpdate};
 
+struct lightData{
+	float ambientLight[4], diffuseLight[4], specularLight[4], position[4], direction[4], angle;
+
+};
+
 typedef void(*customwcallback)(int w, int h, windowsNum state);
 
 class CEngine{
@@ -420,6 +425,9 @@ public:
 	void activateNormals(bool a);
 	void activate3DRender(bool a);
 	void activateLighting(bool a);
+	void activateLight(int id, bool a);
+	void setLight(const lightData &l, int id, bool setAmbient = true);
+
 
 	void setVSyncMode(int mode);
 
