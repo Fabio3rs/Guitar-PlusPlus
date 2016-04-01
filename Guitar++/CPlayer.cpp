@@ -430,6 +430,11 @@ void CPlayer::NotesData::deducePlusLastNotes()
 
 			if (note.time >= plusNote.time && note.time < (plusNote.time + plusNote.lTime))
 			{
+				if (plusNote.firstNote == -1)
+				{
+					plusNote.firstNote = i;
+				}
+
 				plusNote.lastNote = i;
 			}
 
@@ -669,6 +674,8 @@ void CPlayer::doNote(int64_t i)
 	{
 		++combo;
 		++correctNotes;
+
+		Notes.lastNotePicked = i;
 
 		points += comboToMultiplier() * 200.0;
 

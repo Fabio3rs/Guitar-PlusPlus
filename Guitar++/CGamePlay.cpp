@@ -537,7 +537,6 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		}
 	}
 
-
 	player.rangle = (int)(CEngine::engine().getTime() * 500.0) % 360;
 
 	player.update();
@@ -557,10 +556,30 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	{
 		auto &plusp = player.Notes.gPlus[player.Notes.plusPos];
 
+		int64_t tplusnotes = (plusp.lastNote - plusp.firstNote);
+
+		if ((plusp.time + plusp.lTime) >(musicTime + 0.01) && plusp.time <= musicTime && tplusnotes > 0)
+		{
+			player.plusLoadF = ((double)(notes.lastNotePicked - plusp.firstNote) / (double)tplusnotes);
+		}
+		else
+		{
+			player.plusLoadF = 0.0;
+		}
+
 		if ((plusp.time + plusp.lTime) < (musicTime + 0.01))
 		{
 			++player.Notes.plusPos;
 		}
+	}
+	else
+	{
+		player.plusLoadF = player.plusLoadB = 0.0;
+	}
+
+	if (player.plusLoadF != player.plusLoadB)
+	{
+		player.plusLoadB += (player.plusLoadF - player.plusLoadB) * CEngine::engine().getDeltaTime() * 10.0;
 	}
 
 	bool inslide = false, inslide2 = false;
@@ -1223,7 +1242,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	double multi = player.comboToMultiplierWM();
 	double circleMultiPercent = multi >= 4.0 ? 100.0 : (multi - floor(multi)) * 100.0;
 	double circlePublicAprov = (player.publicAprov / player.maxPublicAprov) * 100.0;
-	double circleLoadPercent = (player.plusLoadB / player.maxPlusPower * 5.0) * 100.0;
+	double circleLoadPercent = player.plusLoadB * 100.0;
 	double circlePercent = (player.plusPower / player.maxPlusPower) * 100.0;
 
 	engine.setColor(1.0, 1.0, 1.0, 1.0);
@@ -1284,6 +1303,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}
 
 	engine.setColor(1.0, 1.0, 1.0, 1.0);
+
+	//CFonts::fonts().drawTextInScreen(std::to_string(player.plusLoadB), 0.0, 0.2, 0.1);
 
 	CFonts::fonts().drawTextInScreen(std::to_string(player.getCombo()), -1.025 + neg, 0.04 + negy, 0.1);
 	CFonts::fonts().drawTextInScreen(std::to_string(player.getPoints()), -1.02 + neg, -0.1 + negy, 0.06);

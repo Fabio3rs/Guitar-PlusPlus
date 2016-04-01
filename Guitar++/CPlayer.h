@@ -134,7 +134,7 @@ public:
 			double time, lTime/*, unmodifiedTime*/;
 			int type;
 
-			int64_t lastNote;
+			int64_t firstNote, lastNote;
 
 			inline bool operator <(const Note &b) const{
 				return time < b.time;
@@ -149,6 +149,7 @@ public:
 				lTime = 0.0;
 				//unmodifiedTime = 0.0;
 				type = 0;
+				firstNote = -1;
 				lastNote = 0;
 			}
 		};
