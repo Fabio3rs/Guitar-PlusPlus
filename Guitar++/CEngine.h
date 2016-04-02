@@ -344,6 +344,27 @@ public:
 		}
 	};
 
+	struct staticDrawBuffer
+	{
+		void *pointer;
+		unsigned int vertexL;
+		unsigned int uvL; 
+		unsigned int normalsL;
+		unsigned int texture;
+		unsigned int bufferID;
+		unsigned int sizebytes;
+		int count;
+
+		staticDrawBuffer()
+		{
+			pointer = 0;
+			count = 0;
+			vertexL = uvL = normalsL = texture = 0;
+			bufferID = ~0;
+			sizebytes = 0;
+		}
+	};
+
 	const inline void *getWindow() const{ return window; }
 
 	struct Resolution{
@@ -392,8 +413,9 @@ public:
 	/* Rendering functions */
 	void Render2DQuad(const RenderDoubleStruct &quad2DData);
 	void Render3DQuad(const RenderDoubleStruct &quad3DData);
-	void RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture);
-	void RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture, unsigned int &vbuffer, unsigned int &uvbuffer, unsigned int &nvbuffer);
+	void RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture);
+	void RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture, unsigned int &vbuffer, unsigned int &uvbuffer, unsigned int &nvbuffer);
+	void RenderCustomVerticesFloat(staticDrawBuffer &buffer);
 	void RenderMulti3DQuad(const std::deque<RenderDoubleStruct> &quad3DData, unsigned int &bufferID);
 	void Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData);
 	void Render2DCircle(double x, double y, double percent, double radius, double lineWeight, int polysNum, int maxPolys, unsigned int &bufferID);

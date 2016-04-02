@@ -1072,7 +1072,9 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
 
-	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 0);
+
+	glDisable(GL_LIGHTING);
 
 	//glCullFace(GL_BACK);
 
@@ -1109,10 +1111,13 @@ void CEngine::activateLight(int id, bool a)
 
 void CEngine::activateLighting(bool a)
 {
-	if (a)
-		glEnable(GL_LIGHTING);
-	else
-		glDisable(GL_LIGHTING);
+	if (1)
+	{
+		if (a)
+			glEnable(GL_LIGHTING);
+		else
+			glDisable(GL_LIGHTING);
+	}
 }
 
 void CEngine::activate3DRender(bool a)
@@ -1184,7 +1189,7 @@ void CEngine::Render2DQuad(const RenderDoubleStruct &quad2DData){
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void CEngine::RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture, unsigned int &vbuffer, unsigned int &uvbuffer, unsigned int &nvbuffer)
+void CEngine::RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture, unsigned int &vbuffer, unsigned int &uvbuffer, unsigned int &nvbuffer)
 {
 	if (vbuffer == (~0)){
 		glGenBuffers(1, &vbuffer);
@@ -1300,7 +1305,29 @@ void CEngine::Render2DCircle(double x, double y, double percent, double radius, 
 	//glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
 }
 
-void CEngine::RenderCustomVericesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture)
+void CEngine::RenderCustomVerticesFloat(staticDrawBuffer &buffer)
+{
+	if (buffer.bufferID == (~0)){
+		glGenBuffers(1, &buffer.bufferID);
+
+		glBindBuffer(GL_ARRAY_BUFFER_ARB, buffer.bufferID);
+
+		glBufferDataARB(GL_ARRAY_BUFFER_ARB, buffer.sizebytes, buffer.pointer, GL_STATIC_DRAW_ARB);
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER_ARB, buffer.bufferID);
+	if (buffer.texture) bindTexture(buffer.texture);
+
+	glNormalPointer(GL_FLOAT, 0, (void*)buffer.normalsL);
+
+	glTexCoordPointer(2, GL_FLOAT, 0, (void*)buffer.uvL);
+	glVertexPointer(3, GL_FLOAT, 0, (void*)buffer.vertexL);
+
+	glDrawArrays(GL_TRIANGLES, 0, buffer.count);
+	glBindBuffer(GL_ARRAY_BUFFER_ARB, 0);
+}
+
+void CEngine::RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture)
 {
 	if (texture) bindTexture(texture);
 

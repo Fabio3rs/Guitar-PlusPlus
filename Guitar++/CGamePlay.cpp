@@ -528,7 +528,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	if (player.plusEnabled)
 	{
-		player.plusPower -= CEngine::engine().getDeltaTime() * 0.01;
+		player.plusPower -= CEngine::engine().getDeltaTime() * 0.05;
 
 		if (player.plusPower <= 0.0)
 		{
@@ -1181,6 +1181,9 @@ void CGamePlay::renderPlayer(CPlayer &player)
 			if (player.fretsPressed[i])
 			{
 				calcP = -0.025;
+			}
+			else{
+				calcP = -0.033;
 			}
 		}
 

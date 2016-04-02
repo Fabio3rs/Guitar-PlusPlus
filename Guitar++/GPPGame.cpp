@@ -301,14 +301,14 @@ void GPPGame::startModule(const std::string &name)
 
 			if (!songTimeFixed && (CEngine::engine().getTime() - startTime) > 0.5)
 			{
-				CEngine::engine().setSoundTime(module.players.back().songAudioID, CEngine::engine().getTime() - startTime);
+				CEngine::engine().setSoundTime(module.players.back().songAudioID, module.players.back().musicRunningTime);
 
 				for (auto &p : module.players)
 				{
-					CEngine::engine().setSoundTime(p.instrumentSound, CEngine::engine().getTime() - startTime);
+					CEngine::engine().setSoundTime(p.instrumentSound, p.musicRunningTime);
 				}
 
-				std::cout << "First note position: " << module.players.back().Notes.gNotes[0].time << std::endl;
+				//std::cout << "First note position: " << module.players.back().Notes.gNotes[0].time << std::endl;
 
 				songTimeFixed = true;
 			}

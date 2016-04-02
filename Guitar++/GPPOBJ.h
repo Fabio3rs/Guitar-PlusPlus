@@ -4,13 +4,11 @@
 #include <string>
 #include <vector>
 #include "objloader.hpp"
+#include "CEngine.h"
 
 class GPPOBJ{
-	std::vector<glm::vec3> vertices;
-	std::vector<glm::vec2> uvs;
-	std::vector<glm::vec3> normals;
-
-	unsigned int vb, uvb, nvb;
+	std::vector<int8_t> data;
+	CEngine::staticDrawBuffer vbodata;
 
 public:
 	void draw(unsigned int texture);
