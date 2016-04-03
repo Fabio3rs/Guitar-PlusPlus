@@ -45,7 +45,9 @@ void CPlayer::update()
 	int i = 0;
 	int pklast = palhetaKeyLast;
 
-	palhetaKey = CEngine::engine().getKey(GLFW_KEY_ENTER);
+	const int keyst[] = {'Q', 'W', 'E', 'R', 'U'};
+
+	palhetaKey = CEngine::engine().getKey(GLFW_KEY_KP_9);
 
 	if (pklast == palhetaKey)
 	{
@@ -59,7 +61,7 @@ void CPlayer::update()
 	for (auto &f : fretsPressed)
 	{
 		bool ftemp = f;
-		f = CEngine::engine().getKey(GLFW_KEY_1 + i++);
+		f = CEngine::engine().getKey(keyst[i++]);
 
 		if (ftemp != f)
 		{
