@@ -38,12 +38,33 @@ std::string CPlayer::smartChartSearch(const std::string &path){
 	return "";
 }
 
+#include "CFonts.h"
+
 void CPlayer::update()
 {
 	int i = 0;
+	int pklast = palhetaKeyLast;
+
+	palhetaKey = CEngine::engine().getKey(GLFW_KEY_ENTER);
+
+	if (pklast == palhetaKey)
+	{
+		palhetaKey = false;
+	}
+	else
+	{
+		palhetaKeyLast = palhetaKey;
+	}
+
 	for (auto &f : fretsPressed)
 	{
+		bool ftemp = f;
 		f = CEngine::engine().getKey(GLFW_KEY_1 + i++);
+
+		if (ftemp != f)
+		{
+			palhetaKey = false;
+		}
 	}
 }
 
@@ -638,9 +659,15 @@ void CPlayer::addPointsByDoingLongNote()
 
 }
 
+void CPlayer::processError()
+{
+	breakCombo();
+	if (publicAprov > 0) publicAprov--;
+}
+
 void CPlayer::breakCombo()
 {
-
+	combo = 0;
 }
 
 double CPlayer::comboToMultiplierWM()
@@ -666,6 +693,20 @@ double CPlayer::comboToMultiplier()
 	result = result > 4.0 ? 4.0 : result;
 
 	return result * (plusEnabled + 1.0);
+}
+
+int CPlayer::getFretsPressedFlags()
+{
+	int result = 0;
+	for (int i = 0; i < 5; ++i)
+	{
+		if (fretsPressed[i])
+		{
+			result |= (int)pow(2, i);
+		}
+	}
+
+	return result;
 }
 
 void CPlayer::doNote(int64_t i)
@@ -711,6 +752,7 @@ CPlayer::CPlayer(const char *name)
 	plusEnabled = false;
 	musicRunningTime = 0.0;
 	rangle = 0;
+	palhetaKeyLast = palhetaKey = false;
 
 	memset(notesSlide, -1, sizeof(notesSlide));
 

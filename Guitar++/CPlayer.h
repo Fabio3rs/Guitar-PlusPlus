@@ -188,6 +188,9 @@ public:
 	bool fretsPressed[5];
 	int64_t notesSlide[5];
 
+	bool palhetaKeyLast;
+	bool palhetaKey;
+
 	void addPointsByNoteDoed();
 	void addPointsByDoingLongNote();
 	double comboToMultiplier();
@@ -198,6 +201,7 @@ public:
 	void resetData();
 	void updateControls();
 	void breakCombo();
+	void processError();
 
 	void doNote(int64_t i);
 
@@ -209,6 +213,8 @@ public:
 
 	void instrumentPlay();
 	void instrumentPause();
+
+	int getFretsPressedFlags();
 
 	bool loadSong(const std::string &path);
 	bool loadSongOnlyChart(const std::string &path);

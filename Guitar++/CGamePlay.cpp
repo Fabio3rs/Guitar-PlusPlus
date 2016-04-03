@@ -380,7 +380,7 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 
 
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
-		GPPGame::GuitarPP().noteOBJ.draw(GPPGame::GuitarPP().strumsTexture3D[id]);
+		GPPGame::GuitarPP().noteOBJ.draw(player.plusEnabled ? GPPGame::GuitarPP().strumsTexture3D[5] : GPPGame::GuitarPP().strumsTexture3D[id]);
 		CEngine::engine().matrixReset();
 	}
 }
@@ -493,7 +493,7 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 				time = ltimet;
 			}*/
 
-			if (note.lTime > 0.0 && note.type & notesFlags::nf_doing_slide)
+			if (note.lTime > 0.0 && note.type & notesFlags::nf_doing_slide && !(note.type & notesFlags::losted))
 			{
 				renderIndividualLine(i, ltimet, time - ltimet + note.lTime, GPPGame::GuitarPP().lineText, player);
 			}
@@ -549,6 +549,24 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	double minendtime = 0.0, minendtimei = notes.notePos;
 	//bool minendtimeslide = false;
+
+	auto getHighestFlag = [](int flags)
+	{
+		int result = 0;
+		for (int ji = 4; ji >= 0; ji--)
+		{
+			if (flags & (int)pow(2, ji))
+			{
+				result = (int)pow(2, ji);
+				break;
+			}
+		}
+
+		return result;
+	};
+
+	int fretsPressedFlags = player.getFretsPressedFlags();
+	int highestFlagInPressedKey = getHighestFlag(fretsPressedFlags);
 
 	size_t plusSize = player.Notes.gPlus.size();
 
@@ -624,6 +642,62 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		}
 	};
 
+	auto doNoteFunc = [&](CPlayer::NotesData::Note &note, int64_t i)
+	{
+		if (note.lTime == 0.0)
+		{
+			player.doNote(i);
+			note.type |= notesFlags::nf_picked;
+			doPlus(i);
+
+			{
+				for (int ji = 0; ji < 5; ji++)
+				{
+					if (note.type & (int)pow(2, ji))
+					{
+						notes.fretsNotePickedTime[ji] = engine.getTime();
+						player.notesSlide[ji] = -1;
+					}
+				}
+			}
+		}
+		else if (!(note.type & notesFlags::nf_doing_slide))
+		{
+			player.doNote(i);
+			doPlus(i);
+
+			{
+				for (int ji = 0; ji < 5; ji++)
+				{
+					if (note.type & (int)pow(2, ji))
+					{
+						notes.fretsNotePickedTime[ji] = engine.getTime();
+					}
+				}
+			}
+
+			if (note.lTime > 0.0)
+			{
+				note.type |= notesFlags::nf_doing_slide;
+
+				inslide2 = true;
+
+				{
+					for (int ji = 0; ji < 5; ji++)
+					{
+						if (note.type & (int)pow(2, ji))
+						{
+							player.notesSlide[ji] = i;
+						}
+					}
+				}
+			}
+		}
+	};
+
+	bool firstNoteToDoSetted = false;
+	int64_t firstNoteToDo = 0;
+
 	for (size_t i = notes.notePos, size = gNotes.size(); i < size; i++)
 	{
 		auto &note = gNotes[i];
@@ -662,7 +736,69 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 		if (endNoteTime > -1.5 && noteTime < 5.0)
 		{
-			if (noteTime > -0.1 && noteTime < 0.05 && !(note.type & notesFlags::nf_picked))
+			if (noteTime > -0.12 && noteTime < 0.12 && !(note.type & notesFlags::nf_picked))
+			{
+				int ntsInac = 0;
+				int ntsT = note.type & CPlayer::notesEnum;
+
+				for (int i = 0; i < 5; ++i)
+				{
+					if (note.type & (int)pow(2, i))
+					{
+						ntsInac++;
+					}
+				}
+
+				if (ntsInac > 1) CFonts::fonts().drawTextInScreen(std::to_string(fretsPressedFlags) + "  " + std::to_string(ntsT), 0.0, 0.5, 0.2);
+
+				if (player.palhetaKey){
+					if (ntsInac > 1 && fretsPressedFlags == ntsT)
+					{
+						doNoteFunc(note, i);
+					}
+					else if (ntsInac == 1 && highestFlagInPressedKey == getHighestFlag(note.type & player.notesEnum))
+					{
+						doNoteFunc(note, i);
+					}
+				}
+				else if (!(note.type & notesFlags::nf_not_hopo))
+				{
+					if (highestFlagInPressedKey == getHighestFlag(note.type & player.notesEnum))
+					{
+						doNoteFunc(note, i);
+					}
+				}
+
+
+
+			}
+			else if (noteTime <= -0.12)
+			{
+				if (!(note.type & notesFlags::nf_failed) && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide))
+				{
+					note.type |= notesFlags::nf_failed;
+					player.processError();
+				}
+			}
+			else
+			{
+				if (!firstNoteToDoSetted && !(note.type & notesFlags::nf_failed) && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide))
+				{
+					firstNoteToDo = i;
+					firstNoteToDoSetted = true;
+				}
+			}
+
+
+			if (endNoteTime < -0.12 && note.type & notesFlags::nf_slide)
+			{
+				note.type |= notesFlags::nf_picked;
+				note.type |= notesFlags::nf_slide_picked;
+			}
+
+
+
+			/*if (noteTime > -0.1 && noteTime < 0.05 && !(note.type & notesFlags::nf_picked))
 			{
 				{
 					for (int ji = 0; ji < 5; ji++)
@@ -703,7 +839,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 						}
 					}
 				}
-			}
+			}*/
 		}
 		else if (minendtime < -2.0)
 		{
@@ -716,9 +852,12 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	}
 
 	{
+		bool cancelAllLongNotes = false;
+
 		for (int ji = 0; ji < 5; ji++)
 		{
 			int64_t id = player.notesSlide[ji];
+
 
 			if (id != -1)
 			{
@@ -726,10 +865,33 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				double noteTime = note.time - musicTime;
 				double endNoteTime = noteTime + note.lTime;
 
-				if (endNoteTime < 0.1)
+				int ntsInac = 0;
+				int ntsT = note.type & CPlayer::notesEnum;
+
+				for (int i = 0; i < 5; ++i)
+				{
+					if (note.type & (int)pow(2, i))
+					{
+						ntsInac++;
+					}
+				}
+
+				if (fretsPressedFlags != ntsT)
+				{
+					if (ntsInac > 1){
+						cancelAllLongNotes = true;
+					}
+					else if (highestFlagInPressedKey != getHighestFlag(ntsT))
+					{
+						cancelAllLongNotes = true;
+					}
+				}
+
+				if (endNoteTime < 0.13)
 				{
 					player.notesSlide[ji] = -1;
 					note.type |= notesFlags::nf_picked;
+					note.type |= notesFlags::nf_slide_picked;
 				}
 				else
 				{
@@ -743,6 +905,25 @@ void CGamePlay::updatePlayer(CPlayer &player)
 						player.Notes.fretsNotePickedTime[ji] = engine.getTime() - 0.05;
 					}
 				}
+			}
+		}
+
+		if (cancelAllLongNotes)
+		{
+			for (int ji = 0; ji < 5; ji++)
+			{
+				int64_t id = player.notesSlide[ji];
+
+				if (id != -1)
+				{
+					auto &note = player.Notes.gNotes[id];
+
+					player.notesSlide[ji] = -1;
+					note.type |= notesFlags::losted;
+				}
+
+				player.notesSlide[ji] = -1;
+				inslide2 = false;
 			}
 		}
 	}
@@ -1182,9 +1363,11 @@ void CGamePlay::renderPlayer(CPlayer &player)
 			{
 				calcP = -0.025;
 			}
-			else{
-				calcP = -0.033;
-			}
+		}
+
+		if (calcP < -0.035)
+		{
+			calcP = -0.035;
 		}
 
 		renderIndivdualStrikeButton3D(i, 0.0, 0, 0.0, player);
