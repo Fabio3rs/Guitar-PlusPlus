@@ -47,7 +47,7 @@ void CPlayer::update()
 
 	const int keyst[] = {'Q', 'W', 'E', 'R', 'U'};
 
-	palhetaKey = CEngine::engine().getKey(GLFW_KEY_KP_9);
+	palhetaKey = CEngine::engine().getKey(GLFW_KEY_KP_9) || CEngine::engine().getKey(GLFW_KEY_KP_8);
 
 	if (pklast == palhetaKey)
 	{
@@ -666,6 +666,7 @@ void CPlayer::addPointsByDoingLongNote()
 void CPlayer::processError()
 {
 	breakCombo();
+	aError = true;
 	if (publicAprov > 0) publicAprov--;
 }
 

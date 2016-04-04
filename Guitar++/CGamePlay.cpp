@@ -776,60 +776,68 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 				//if (ntsInac > 1) CFonts::fonts().drawTextInScreen(std::to_string(fretsPressedFlags) + "  " + std::to_string(ntsT), 0.0, 0.5, 0.2);
 
-				if (player.palhetaKey){
-					if (ntsInac > 1 && fretsPressedFlags == ntsT)
-					{
-						doNoteFunc(note, i);
-						player.lastHOPO = 0;
-					}
-					else if (ntsInac == 1 && highestFlagInPressedKey == getHighestFlag(note.type & player.notesEnum))
-					{
-						doNoteFunc(note, i);
-						player.lastHOPO = 0;
-					}
-				}
-				else if (!(note.type & notesFlags::nf_not_hopo))
+				if (!noteDoedThisFrame)
 				{
-					int noteHF = getHighestFlag(note.type & player.notesEnum);
-					if (highestFlagInPressedKey == noteHF)
+					if (player.palhetaKey && (note.type & notesFlags::nf_not_hopo))
 					{
-						bool regiserr = false;
+						int noteHF = getHighestFlag(note.type & player.notesEnum);
 
-						if (firstNoteToDoSetted && firstNoteToDo != i)
+						if (ntsInac > 1 && fretsPressedFlags == ntsT)
 						{
-							regiserr = true;
+							doNoteFunc(note, i);
+							player.lastHOPO = 0;
 						}
+						else if (ntsInac == 1 && highestFlagInPressedKey == noteHF)
+						{
+							doNoteFunc(note, i);
+							player.lastHOPO = noteHF;
+						}
+						else{
+							player.processError();
+						}
+					}
+					else if (!(note.type & notesFlags::nf_not_hopo))
+					{
+						int noteHF = getHighestFlag(note.type & player.notesEnum);
+						if (highestFlagInPressedKey == noteHF)
+						{
+							bool regiserr = false;
 
-						if (!player.aError && !regiserr)
-						{
-							if (highestFlagInPressedKey != lastHighestFlagInPressedKey)
+							if (firstNoteToDoSetted && firstNoteToDo != i)
 							{
-								doNoteFunc(note, i);
-								player.lastHOPO = noteHF;
+								regiserr = true;
 							}
-							else if (getLastNotePickedTimeDiff(i) <= BPS && player.lastHOPO != noteHF)
-							{
-								doNoteFunc(note, i);
-								player.lastHOPO = noteHF;
-							}
-						}
-						else
-						{
-							if (player.palhetaKey)
-							{
-								doNoteFunc(note, i);
-								regiserr = false;
-								player.lastHOPO = 0;
-							}
-						}
 
-						if (regiserr)
-						{
-							player.aError = true;
+							if (!player.aError && !regiserr)
+							{
+								if (highestFlagInPressedKey != lastHighestFlagInPressedKey)
+								{
+									doNoteFunc(note, i);
+									player.lastHOPO = noteHF;
+								}
+								else if (getLastNotePickedTimeDiff(i) <= BPS && player.lastHOPO != noteHF)
+								{
+									doNoteFunc(note, i);
+									player.lastHOPO = noteHF;
+								}
+							}
+							else
+							{
+								if (player.palhetaKey)
+								{
+									doNoteFunc(note, i);
+									regiserr = false;
+									player.lastHOPO = noteHF;
+								}
+							}
+
+							if (regiserr)
+							{
+								player.aError = true;
+							}
 						}
 					}
 				}
-
 
 
 			}
