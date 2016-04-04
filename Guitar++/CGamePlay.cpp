@@ -566,7 +566,11 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	};
 
 	int fretsPressedFlags = player.getFretsPressedFlags();
+	int lastFretsPressedFlags = player.getLastFretsPressedFlags();
 	int highestFlagInPressedKey = getHighestFlag(fretsPressedFlags);
+	int lastHighestFlagInPressedKey = getHighestFlag(lastFretsPressedFlags);
+	
+	bool noteDoedThisFrame = false;
 
 	size_t plusSize = player.Notes.gPlus.size();
 
@@ -642,52 +646,71 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		}
 	};
 
+	auto getLastNotePickedTimeDiff = [&](int64_t i)
+	{
+		double result = 0;
+		if (player.Notes.lastNotePicked == -1)
+		{
+			return player.Notes.gNotes[i].time;
+		}
+
+		return player.Notes.gNotes[i].time - player.Notes.gNotes[player.Notes.lastNotePicked].time;
+	};
+
 	auto doNoteFunc = [&](CPlayer::NotesData::Note &note, int64_t i)
 	{
-		if (note.lTime == 0.0)
-		{
-			player.doNote(i);
-			note.type |= notesFlags::nf_picked;
-			doPlus(i);
-
+		if (!noteDoedThisFrame){
+			if (note.lTime == 0.0)
 			{
-				for (int ji = 0; ji < 5; ji++)
-				{
-					if (note.type & (int)pow(2, ji))
-					{
-						notes.fretsNotePickedTime[ji] = engine.getTime();
-						player.notesSlide[ji] = -1;
-					}
-				}
-			}
-		}
-		else if (!(note.type & notesFlags::nf_doing_slide))
-		{
-			player.doNote(i);
-			doPlus(i);
+				player.doNote(i);
+				note.type |= notesFlags::nf_picked;
+				doPlus(i);
 
-			{
-				for (int ji = 0; ji < 5; ji++)
-				{
-					if (note.type & (int)pow(2, ji))
-					{
-						notes.fretsNotePickedTime[ji] = engine.getTime();
-					}
-				}
-			}
-
-			if (note.lTime > 0.0)
-			{
-				note.type |= notesFlags::nf_doing_slide;
-
-				inslide2 = true;
+				noteDoedThisFrame = true;
+				player.aError = false;
 
 				{
 					for (int ji = 0; ji < 5; ji++)
 					{
 						if (note.type & (int)pow(2, ji))
 						{
-							player.notesSlide[ji] = i;
+							notes.fretsNotePickedTime[ji] = engine.getTime();
+							player.notesSlide[ji] = -1;
+						}
+					}
+				}
+			}
+			else if (!(note.type & notesFlags::nf_doing_slide))
+			{
+				player.doNote(i);
+				doPlus(i);
+
+				noteDoedThisFrame = true;
+				player.aError = false;
+
+				{
+					for (int ji = 0; ji < 5; ji++)
+					{
+						if (note.type & (int)pow(2, ji))
+						{
+							notes.fretsNotePickedTime[ji] = engine.getTime();
+						}
+					}
+				}
+
+				if (note.lTime > 0.0)
+				{
+					note.type |= notesFlags::nf_doing_slide;
+
+					inslide2 = true;
+
+					{
+						for (int ji = 0; ji < 5; ji++)
+						{
+							if (note.type & (int)pow(2, ji))
+							{
+								player.notesSlide[ji] = i;
+							}
 						}
 					}
 				}
@@ -697,6 +720,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	bool firstNoteToDoSetted = false;
 	int64_t firstNoteToDo = 0;
+
+	double BPS = 30.0 / player.Notes.BPM[player.BPMNowBuffer].lTime;
 
 	for (size_t i = notes.notePos, size = gNotes.size(); i < size; i++)
 	{
@@ -749,23 +774,59 @@ void CGamePlay::updatePlayer(CPlayer &player)
 					}
 				}
 
-				if (ntsInac > 1) CFonts::fonts().drawTextInScreen(std::to_string(fretsPressedFlags) + "  " + std::to_string(ntsT), 0.0, 0.5, 0.2);
+				//if (ntsInac > 1) CFonts::fonts().drawTextInScreen(std::to_string(fretsPressedFlags) + "  " + std::to_string(ntsT), 0.0, 0.5, 0.2);
 
 				if (player.palhetaKey){
 					if (ntsInac > 1 && fretsPressedFlags == ntsT)
 					{
 						doNoteFunc(note, i);
+						player.lastHOPO = 0;
 					}
 					else if (ntsInac == 1 && highestFlagInPressedKey == getHighestFlag(note.type & player.notesEnum))
 					{
 						doNoteFunc(note, i);
+						player.lastHOPO = 0;
 					}
 				}
 				else if (!(note.type & notesFlags::nf_not_hopo))
 				{
-					if (highestFlagInPressedKey == getHighestFlag(note.type & player.notesEnum))
+					int noteHF = getHighestFlag(note.type & player.notesEnum);
+					if (highestFlagInPressedKey == noteHF)
 					{
-						doNoteFunc(note, i);
+						bool regiserr = false;
+
+						if (firstNoteToDoSetted && firstNoteToDo != i)
+						{
+							regiserr = true;
+						}
+
+						if (!player.aError && !regiserr)
+						{
+							if (highestFlagInPressedKey != lastHighestFlagInPressedKey)
+							{
+								doNoteFunc(note, i);
+								player.lastHOPO = noteHF;
+							}
+							else if (getLastNotePickedTimeDiff(i) <= BPS && player.lastHOPO != noteHF)
+							{
+								doNoteFunc(note, i);
+								player.lastHOPO = noteHF;
+							}
+						}
+						else
+						{
+							if (player.palhetaKey)
+							{
+								doNoteFunc(note, i);
+								regiserr = false;
+								player.lastHOPO = 0;
+							}
+						}
+
+						if (regiserr)
+						{
+							player.aError = true;
+						}
 					}
 				}
 
@@ -778,14 +839,18 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				{
 					note.type |= notesFlags::nf_failed;
 					player.processError();
+					player.aError = true;
 				}
 			}
 			else
 			{
-				if (!firstNoteToDoSetted && !(note.type & notesFlags::nf_failed) && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide))
+				if (!firstNoteToDoSetted)
 				{
-					firstNoteToDo = i;
-					firstNoteToDoSetted = true;
+					if (!(note.type & notesFlags::nf_failed) && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide))
+					{
+						firstNoteToDo = i;
+						firstNoteToDoSetted = true;
+					}
 				}
 			}
 

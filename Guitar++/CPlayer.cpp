@@ -58,6 +58,8 @@ void CPlayer::update()
 		palhetaKeyLast = palhetaKey;
 	}
 
+	std::copy(fretsPressed, fretsPressed + 5, lastFretsPressed);
+
 	for (auto &f : fretsPressed)
 	{
 		bool ftemp = f;
@@ -697,6 +699,20 @@ double CPlayer::comboToMultiplier()
 	return result * (plusEnabled + 1.0);
 }
 
+int CPlayer::getLastFretsPressedFlags()
+{
+	int result = 0;
+	for (int i = 0; i < 5; ++i)
+	{
+		if (lastFretsPressed[i])
+		{
+			result |= (int)pow(2, i);
+		}
+	}
+
+	return result;
+}
+
 int CPlayer::getFretsPressedFlags()
 {
 	int result = 0;
@@ -723,6 +739,8 @@ void CPlayer::doNote(int64_t i)
 		points += comboToMultiplier() * 200.0;
 
 		publicAprov++;
+
+		aError = false;
 
 		if (publicAprov > maxPublicAprov)
 		{
@@ -755,8 +773,11 @@ CPlayer::CPlayer(const char *name)
 	musicRunningTime = 0.0;
 	rangle = 0;
 	palhetaKeyLast = palhetaKey = false;
+	aError = false;
+	lastHOPO = 0;
 
 	memset(notesSlide, -1, sizeof(notesSlide));
+	memset(lastFretsPressed, 0, sizeof(lastFretsPressed));
 
 	instrumentSound = 0;
 

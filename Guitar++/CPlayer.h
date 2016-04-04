@@ -177,6 +177,10 @@ public:
 	int songAudioID;
 	int instrumentSound;
 
+	bool aError;
+
+	int lastHOPO;
+
 	std::string plname;
 
 	int BPMNowBuffer;
@@ -185,6 +189,7 @@ public:
 
 	double musicRunningTime;
 
+	bool lastFretsPressed[5];
 	bool fretsPressed[5];
 	int64_t notesSlide[5];
 
@@ -215,6 +220,7 @@ public:
 	void instrumentPause();
 
 	int getFretsPressedFlags();
+	int getLastFretsPressedFlags();
 
 	bool loadSong(const std::string &path);
 	bool loadSongOnlyChart(const std::string &path);
