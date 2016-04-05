@@ -241,6 +241,8 @@ void GPPGame::startModule(const std::string &name)
 		std::cout << "Plus 0 duration: " << module.players.back().Notes.gPlus[0].lTime << std::endl;
 	}
 
+	bool firstStartFrame = true;
+
 	while (CEngine::engine().windowOpened())
 	{
 		GPPGame::GuitarPP().clearScreen();
@@ -319,6 +321,12 @@ void GPPGame::startModule(const std::string &name)
 
 			//CFonts::fonts().drawTextInScreen("BASS" + std::to_string(CEngine::engine().getSoundTime(module.players.back().songAudioID)), 0.52, -0.4, 0.1);
 			//CFonts::fonts().drawTextInScreen("SONG" + std::to_string(CEngine::engine().getTime() - startTime), 0.52, -0.52, 0.1);
+
+			if (firstStartFrame)
+			{
+				CEngine::engine().playSoundStream(GuitarPP().startSound);
+				firstStartFrame = false;
+			}
 
 			double time = CEngine::engine().getTime();
 
@@ -866,6 +874,10 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 	CEngine::engine().loadSoundStream("data/sounds/erro-amarelo.wav", errorsSound[2]);
 	CEngine::engine().loadSoundStream("data/sounds/erro-azul.wav", errorsSound[3]);
 	CEngine::engine().loadSoundStream("data/sounds/erro-laranja.wav", errorsSound[4]);
+
+	CEngine::engine().loadSoundStream("data/sounds/fretboard-inicio.wav", startSound);
+	CEngine::engine().loadSoundStream("data/sounds/fretboard-fimdamusica.wav", endSound);
+
 
 	windowCFGs = getWindowDefaults();
 

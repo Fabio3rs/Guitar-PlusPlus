@@ -94,6 +94,9 @@ int main(int argc, char* argv[])
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
 
+
+
+
 			configOP = mainMenu.addOpt(opt);
 		}
 

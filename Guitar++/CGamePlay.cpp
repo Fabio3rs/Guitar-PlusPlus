@@ -756,7 +756,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 			}
 		}
 
-		if (noteTime <= 5.0){
+		if (noteTime <= 5.0)
+		{
 			if ((note.type & notesFlags::nf_picked) == 0)
 			{
 				player.buffer.push_front(note);
@@ -765,7 +766,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 		if (endNoteTime > -1.5 && noteTime < 5.0)
 		{
-			if (noteTime > -0.12 && noteTime < 0.12 && !(note.type & notesFlags::nf_picked))
+			if (noteTime > -0.1 && noteTime < 0.1 && !(note.type & notesFlags::nf_picked))
 			{
 				int ntsInac = 0;
 				int ntsT = note.type & CPlayer::notesEnum;
@@ -777,8 +778,6 @@ void CGamePlay::updatePlayer(CPlayer &player)
 						ntsInac++;
 					}
 				}
-
-				//if (ntsInac > 1) CFonts::fonts().drawTextInScreen(std::to_string(fretsPressedFlags) + "  " + std::to_string(ntsT), 0.0, 0.5, 0.2);
 
 				if (!noteDoedThisFrame)
 				{
@@ -804,7 +803,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 							int fretPid = 0;
 							for (auto &fretP : player.fretsPressed)
 							{
-								if (fretP)
+								if (fretP || fretsPressedFlags == 0)
 									CEngine::engine().playSoundStream(GPPGame::GuitarPP().errorsSound[fretPid]);
 
 								fretPid++;
@@ -853,8 +852,6 @@ void CGamePlay::updatePlayer(CPlayer &player)
 						}
 					}
 				}
-
-
 			}
 			else if (noteTime <= -0.12)
 			{
@@ -946,7 +943,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		int fretPid = 0;
 		for (auto &fretP : player.fretsPressed)
 		{
-			if (fretP)
+			if (fretP || fretsPressedFlags == 0)
 				CEngine::engine().playSoundStream(GPPGame::GuitarPP().errorsSound[fretPid]);
 
 			fretPid++;
@@ -962,7 +959,6 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		for (int ji = 0; ji < 5; ji++)
 		{
 			int64_t id = player.notesSlide[ji];
-
 
 			if (id != -1)
 			{
@@ -1036,8 +1032,11 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 }
 
-void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text){
-	auto positionCalcByT = [this](double p, double prop)
+void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text)
+{
+	double size = 2.1;
+
+	auto positionCalcByT = [this, size](double p, double prop)
 	{
 		double cCalc = -p * 5.0;
 		double propSpeeed = 5.0 / speedMp;
@@ -1045,7 +1044,7 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 		cCalc /= propSpeeed;
 
 		cCalc *= 100000.0;
-		cCalc = (int)cCalc % (int)(150000 * prop);
+		cCalc = (int)cCalc % (int)((size * 100000) * prop);
 		return cCalc / 100000.0;
 	};
 	
@@ -1074,9 +1073,9 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 		FretBoardStruct.Text = Text;
 
-		FretBoardStruct.z1 = (x2 - x1) * -1.5 * i - cCalc;
+		FretBoardStruct.z1 = (x2 - x1) * (-size) * i - cCalc;
 		FretBoardStruct.z2 = FretBoardStruct.z1;
-		FretBoardStruct.z3 = FretBoardStruct.z1 + (x2 - x1) * -1.5;
+		FretBoardStruct.z3 = FretBoardStruct.z1 + (x2 - x1) * (-size);
 		FretBoardStruct.z4 = FretBoardStruct.z3;
 
 		FretBoardStruct.alphaBottom = pos2Alpha(-FretBoardStruct.z3 / 5.5);

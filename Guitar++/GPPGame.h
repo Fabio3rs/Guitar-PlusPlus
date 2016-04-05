@@ -213,7 +213,7 @@ public:
 
 	std::string songToLoad;
 
-	int errorsSound[5];
+	int errorsSound[5], startSound, endSound;
 
 private:
 	struct loadThreadData{
