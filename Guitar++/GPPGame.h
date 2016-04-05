@@ -206,7 +206,14 @@ public:
 	unsigned int sbaseTexture3D[6];
 	unsigned int striggerTexture3D[6];
 
+
+	unsigned int strumKeys[5], fretOneKey, fretTwoKey;
+
 	unsigned int HUDText, fretboardText, lineText, HOPOSText;
+
+	std::string songToLoad;
+
+	int errorsSound[5];
 
 private:
 	struct loadThreadData{

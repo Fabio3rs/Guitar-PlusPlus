@@ -190,6 +190,57 @@ int CLuaFunctions::setConfigs(lua_State *L)
 		cfg.AA = lua_tointeger(L, -1);
 
 
+
+	lua_getglobal(L, "Green");
+
+	if (lua_isnumber(L, -1))
+		GPPGame::GuitarPP().strumKeys[0] = lua_tointeger(L, -1);
+
+
+	lua_getglobal(L, "Red");
+
+	if (lua_isnumber(L, -1))
+		GPPGame::GuitarPP().strumKeys[1] = lua_tointeger(L, -1);
+
+
+	lua_getglobal(L, "Yellow");
+
+	if (lua_isnumber(L, -1))
+		GPPGame::GuitarPP().strumKeys[2] = lua_tointeger(L, -1);
+
+
+	lua_getglobal(L, "Blue");
+
+	if (lua_isnumber(L, -1))
+		GPPGame::GuitarPP().strumKeys[3] = lua_tointeger(L, -1);
+
+
+	lua_getglobal(L, "Orange");
+
+	if (lua_isnumber(L, -1))
+		GPPGame::GuitarPP().strumKeys[4] = lua_tointeger(L, -1);
+
+
+	lua_getglobal(L, "fretOne");
+
+	if (lua_isnumber(L, -1))
+		GPPGame::GuitarPP().fretOneKey = lua_tointeger(L, -1);
+
+
+	lua_getglobal(L, "fretTwo");
+
+	if (lua_isnumber(L, -1))
+		GPPGame::GuitarPP().fretTwoKey = lua_tointeger(L, -1);
+
+
+
+	lua_getglobal(L, "Song");
+
+	if (lua_isstring(L, -1))
+		GPPGame::GuitarPP().songToLoad = lua_tostring(L, -1);
+
+
+
 	GPPGame::GuitarPP().settWindowConfigs(cfg);
 
 	return 0;

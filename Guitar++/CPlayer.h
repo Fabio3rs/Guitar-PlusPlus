@@ -218,6 +218,8 @@ public:
 
 	void instrumentPlay();
 	void instrumentPause();
+	void muteInstrument();
+	void unmuteInstrument();
 
 	int getFretsPressedFlags();
 	int getLastFretsPressedFlags();

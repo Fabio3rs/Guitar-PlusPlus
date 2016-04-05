@@ -11,6 +11,7 @@
 #include <algorithm>
 #include "CText.h"
 #include "CLog.h"
+#include "GPPGame.h"
 
 const int CPlayer::notesEnum = nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
 
@@ -40,14 +41,22 @@ std::string CPlayer::smartChartSearch(const std::string &path){
 
 #include "CFonts.h"
 
+void CPlayer::muteInstrument()
+{
+	CEngine::engine().setSoundVolume(instrumentSound, 0.0f);
+}
+
+void CPlayer::unmuteInstrument()
+{
+	CEngine::engine().setSoundVolume(instrumentSound, 1.0f);
+}
+
 void CPlayer::update()
 {
 	int i = 0;
 	int pklast = palhetaKeyLast;
 
-	const int keyst[] = {'Q', 'W', 'E', 'R', 'U'};
-
-	palhetaKey = CEngine::engine().getKey(GLFW_KEY_KP_9) || CEngine::engine().getKey(GLFW_KEY_KP_8);
+	palhetaKey = CEngine::engine().getKey(GPPGame::GuitarPP().fretOneKey) || CEngine::engine().getKey(GPPGame::GuitarPP().fretTwoKey);
 
 	if (pklast == palhetaKey)
 	{
@@ -63,7 +72,7 @@ void CPlayer::update()
 	for (auto &f : fretsPressed)
 	{
 		bool ftemp = f;
-		f = CEngine::engine().getKey(keyst[i++]);
+		f = CEngine::engine().getKey(GPPGame::GuitarPP().strumKeys[i++]);
 
 		if (ftemp != f)
 		{
@@ -667,6 +676,8 @@ void CPlayer::processError()
 {
 	breakCombo();
 	aError = true;
+	muteInstrument();
+
 	if (publicAprov > 0) publicAprov--;
 }
 
@@ -742,6 +753,8 @@ void CPlayer::doNote(int64_t i)
 		publicAprov++;
 
 		aError = false;
+
+		unmuteInstrument();
 
 		if (publicAprov > maxPublicAprov)
 		{

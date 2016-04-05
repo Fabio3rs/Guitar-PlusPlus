@@ -428,6 +428,7 @@ public:
 	bool unloadSoundStream(int &handle);
 	void setSoundTime(int handle, double time);
 	double getSoundTime(int handle);
+	bool setSoundVolume(int handle, float volume);
 
 	void setScale(double x, double y, double z);
 

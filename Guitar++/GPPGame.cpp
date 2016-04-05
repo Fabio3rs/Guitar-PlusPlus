@@ -113,7 +113,7 @@ void GPPGame::setRunningModule(const std::string m)
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
-	std::string song = "DragonForce - Through the Fire and Flames";
+	std::string song = GuitarPP().songToLoad;
 	//module.players[0].loadSongOnlyChart(song);
 	//module.players[1].loadSong(song);
 	module.players.back().loadSong(song);
@@ -860,6 +860,12 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 {
 	// Load lua scripts from "data" folder
 	CLuaH::Lua().loadFiles("data");
+
+	CEngine::engine().loadSoundStream("data/sounds/erro-verde.wav", errorsSound[0]);
+	CEngine::engine().loadSoundStream("data/sounds/erro-vermelho.wav", errorsSound[1]);
+	CEngine::engine().loadSoundStream("data/sounds/erro-amarelo.wav", errorsSound[2]);
+	CEngine::engine().loadSoundStream("data/sounds/erro-azul.wav", errorsSound[3]);
+	CEngine::engine().loadSoundStream("data/sounds/erro-laranja.wav", errorsSound[4]);
 
 	windowCFGs = getWindowDefaults();
 

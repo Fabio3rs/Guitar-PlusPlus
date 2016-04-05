@@ -378,9 +378,11 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 			}
 		}
 
+		auto texts = (Texture == GPPGame::GuitarPP().HOPOSText) ? GPPGame::GuitarPP().hopoTexture3D : GPPGame::GuitarPP().strumsTexture3D;
+
 
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
-		GPPGame::GuitarPP().noteOBJ.draw(player.plusEnabled ? GPPGame::GuitarPP().strumsTexture3D[5] : GPPGame::GuitarPP().strumsTexture3D[id]);
+		GPPGame::GuitarPP().noteOBJ.draw(player.plusEnabled ? texts[5] : texts[id]);
 		CEngine::engine().matrixReset();
 	}
 }
@@ -721,6 +723,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	bool firstNoteToDoSetted = false;
 	int64_t firstNoteToDo = 0;
 
+	bool errorThisFrame = false;
+
 	double BPS = 30.0 / player.Notes.BPM[player.BPMNowBuffer].lTime;
 
 	for (size_t i = notes.notePos, size = gNotes.size(); i < size; i++)
@@ -794,6 +798,17 @@ void CGamePlay::updatePlayer(CPlayer &player)
 						}
 						else{
 							player.processError();
+
+							errorThisFrame = true;
+
+							int fretPid = 0;
+							for (auto &fretP : player.fretsPressed)
+							{
+								if (fretP)
+									CEngine::engine().playSoundStream(GPPGame::GuitarPP().errorsSound[fretPid]);
+
+								fretPid++;
+							}
 						}
 					}
 					else if (!(note.type & notesFlags::nf_not_hopo))
@@ -924,6 +939,23 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		}
 	}
 
+	bool fretpError = false;
+
+	if (!errorThisFrame && !noteDoedThisFrame && player.palhetaKey)
+	{
+		int fretPid = 0;
+		for (auto &fretP : player.fretsPressed)
+		{
+			if (fretP)
+				CEngine::engine().playSoundStream(GPPGame::GuitarPP().errorsSound[fretPid]);
+
+			fretPid++;
+		}
+
+		fretpError = true;
+		player.processError();
+	}
+
 	{
 		bool cancelAllLongNotes = false;
 
@@ -981,8 +1013,9 @@ void CGamePlay::updatePlayer(CPlayer &player)
 			}
 		}
 
-		if (cancelAllLongNotes)
+		if (cancelAllLongNotes || fretpError)
 		{
+			player.muteInstrument();
 			for (int ji = 0; ji < 5; ji++)
 			{
 				int64_t id = player.notesSlide[ji];

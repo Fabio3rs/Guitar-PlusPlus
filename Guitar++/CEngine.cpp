@@ -42,7 +42,13 @@ bool CEngine::pauseSoundStream(int handle){
 	return BASS_ChannelPause(handle) != 0;
 }
 
-std::deque<CEngine::Resolution> CEngine::getPossibleVideoModes(){
+bool CEngine::setSoundVolume(int handle, float volume)
+{
+	return BASS_ChannelSetAttribute(handle, BASS_ATTRIB_VOL, volume);
+}
+
+std::deque<CEngine::Resolution> CEngine::getPossibleVideoModes()
+{
 	int count = 0;
 	const GLFWvidmode* modes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &count);
 	std::deque<CEngine::Resolution> result;
