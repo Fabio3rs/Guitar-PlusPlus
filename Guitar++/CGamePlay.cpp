@@ -166,7 +166,7 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
-		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.4997, TempStruct3D.z1 + size);
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.4992, TempStruct3D.z1 + size);
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
 		//CEngine::engine().useShader(programID);
 
@@ -853,7 +853,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 					}
 				}
 			}
-			else if (noteTime <= -0.12)
+			else if (noteTime <= -0.1)
 			{
 				if (!(note.type & notesFlags::nf_failed) && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide))
 				{
@@ -875,7 +875,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 			}
 
 
-			if (endNoteTime < -0.12 && note.type & notesFlags::nf_slide)
+			if (endNoteTime < 0.0 && note.type & notesFlags::nf_slide)
 			{
 				note.type |= notesFlags::nf_picked;
 				note.type |= notesFlags::nf_slide_picked;
@@ -1051,10 +1051,10 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 	double musicRunningTime = getRunningMusicTime(player) - 4.0;
 	double cCalc = positionCalcByT(musicRunningTime, (x2 - x1));
 
+	CEngine::RenderDoubleStruct FretBoardStruct;
+
 	for (int i = -2; i < 8; i++)
 	{
-		CEngine::RenderDoubleStruct FretBoardStruct;
-
 		FretBoardStruct.x1 = x1;
 		FretBoardStruct.x2 = x2;
 		FretBoardStruct.x3 = x3;
@@ -1089,6 +1089,41 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 		//CFonts::fonts().draw3DTextInScreen("TESTE", CFonts::fonts().getCenterPos(sizeof("TESTE") - 1, 0.2, x1 + (x2 - x1) / 2.0), -0.4992, FretBoardStruct.z1, 0.2, 0.0, -0.2);
 
 		CEngine::engine().Render3DQuadWithAlpha(FretBoardStruct);
+	}
+
+	renderPylmBar();
+}
+
+void CGamePlay::renderPylmBar()
+{
+	CEngine::RenderDoubleStruct TempStruct3D;
+	double rtime = 0.14;
+
+	if (rtime > -5.0)
+	{
+		double size = 0.2;
+		double position = -0.51;
+		/*
+		TempStruct3D.Text = Texture;
+		TempStruct3D.TextureX1 = double(id) * 0.2;
+		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;*/
+
+		double nCalc = rtime * speedMp;
+
+		nCalc += 0.55;
+
+		TempStruct3D.z1 = nCalc;
+		TempStruct3D.z2 = TempStruct3D.z1;
+		TempStruct3D.z3 = nCalc + size * 2.0;
+		TempStruct3D.z4 = TempStruct3D.z3;
+
+		//CEngine::engine().Render3DQuad(TempStruct3D);
+
+		CEngine::engine().renderAt(0.0, -0.5, TempStruct3D.z1 + size);
+
+		GPPGame::GuitarPP().pylmbarOBJ.draw(GPPGame::GuitarPP().loadTexture("data/sprites", "pylmbar.tga").getTextId());
+
+		CEngine::engine().matrixReset();
 	}
 }
 

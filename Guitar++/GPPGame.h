@@ -198,7 +198,7 @@ public:
 
 	static void helpMenu(const std::string &name);
 	
-	GPPOBJ noteOBJ, triggerBASEOBJ, triggerOBJ;
+	GPPOBJ noteOBJ, triggerBASEOBJ, triggerOBJ, pylmbarOBJ;
 
 	unsigned int strumsTexture3D[6];
 	unsigned int hopoTexture3D[6];

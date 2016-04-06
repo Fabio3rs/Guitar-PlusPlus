@@ -864,7 +864,8 @@ void GPPGame::logError(int code, const std::string &e)
 	CLog::log() << std::to_string(code) + ": " + e;
 }
 
-GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"), triggerOBJ("data/models/Trigger.obj")
+GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"),
+						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj")
 {
 	// Load lua scripts from "data" folder
 	CLuaH::Lua().loadFiles("data");
