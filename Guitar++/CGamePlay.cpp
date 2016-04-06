@@ -723,9 +723,42 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	bool firstNoteToDoSetted = false;
 	int64_t firstNoteToDo = 0;
 
-	bool errorThisFrame = false;
+	bool errorThisFrame = false, hopostrmm = false, strumdelayed = false;
 
 	double BPS = 30.0 / player.Notes.BPM[player.BPMNowBuffer].lTime;
+
+	auto checkCorrect = [&](int ntsInac, int ntsT, int noteHF, const CPlayer::NotesData::Note &note)
+	{
+		//if (/*player.palhetaKey &&*/ (note.type & notesFlags::nf_not_hopo))
+		{
+			if (ntsInac > 1 && fretsPressedFlags == ntsT)
+			{
+				return true;
+			}
+			else if (ntsInac == 1 && highestFlagInPressedKey == noteHF)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	auto processError = [&]()
+	{
+		player.processError();
+
+		errorThisFrame = true;
+
+		int fretPid = 0;
+		for (auto &fretP : player.fretsPressed)
+		{
+			if (fretP || fretsPressedFlags == 0)
+				CEngine::engine().playSoundStream(GPPGame::GuitarPP().errorsSound[fretPid]);
+
+			fretPid++;
+		}
+	};
 
 	for (size_t i = notes.notePos, size = gNotes.size(); i < size; i++)
 	{
@@ -766,26 +799,59 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 		if (endNoteTime > -1.5 && noteTime < 5.0)
 		{
-			if (noteTime > -0.1 && noteTime < 0.1 && !(note.type & notesFlags::nf_picked))
+			if (noteTime >= -0.05 && noteTime < 0.1 && !(note.type & notesFlags::hopontstrmmd) && highestFlagInPressedKey == getHighestFlag(note.type & player.notesEnum) && player.palhetaKey)
 			{
-				int ntsInac = 0;
-				int ntsT = note.type & CPlayer::notesEnum;
+				hopostrmm = true;
+				note.type |= notesFlags::hopontstrmmd;
+			}
 
-				for (int i = 0; i < 5; ++i)
+			int ntsInac = 0;
+			int ntsT = note.type & CPlayer::notesEnum;
+			int noteHF = getHighestFlag(ntsT);
+
+			for (int i = 0; i < 5; ++i)
+			{
+				if (note.type & (int)pow(2, i))
 				{
-					if (note.type & (int)pow(2, i))
+					ntsInac++;
+				}
+			}
+
+			if (!noteDoedThisFrame && noteTime >= 0.1 && noteTime < 0.15 && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::strmstlrc))
+			{
+				if (player.palhetaKey && (note.type & notesFlags::nf_not_hopo))
+				{
+					if (checkCorrect(ntsInac, ntsT, noteHF, note))
 					{
-						ntsInac++;
+						note.type |= notesFlags::strmstlrc;
+						strumdelayed = true;
 					}
 				}
+			}
+
+
+			if (noteTime > -0.05 && noteTime < 0.1 && !(note.type & notesFlags::nf_picked))
+			{
 
 				if (!noteDoedThisFrame)
 				{
 					if (player.palhetaKey && (note.type & notesFlags::nf_not_hopo))
 					{
-						int noteHF = getHighestFlag(note.type & player.notesEnum);
-
-						if (ntsInac > 1 && fretsPressedFlags == ntsT)
+						if (note.type & notesFlags::strmstlrc)
+						{
+							if (checkCorrect(ntsInac, ntsT, noteHF, note))
+							{
+								doNoteFunc(note, i);
+								player.lastHOPO = 0;
+							}
+							else
+							{
+								////////////////////////////////////////////////////////////////
+								processError();
+								////////////////////////////////////////////////////////////////
+							}
+						}
+						else if (ntsInac > 1 && fretsPressedFlags == ntsT)
 						{
 							doNoteFunc(note, i);
 							player.lastHOPO = 0;
@@ -796,23 +862,14 @@ void CGamePlay::updatePlayer(CPlayer &player)
 							player.lastHOPO = noteHF;
 						}
 						else{
-							player.processError();
-
-							errorThisFrame = true;
-
-							int fretPid = 0;
-							for (auto &fretP : player.fretsPressed)
-							{
-								if (fretP || fretsPressedFlags == 0)
-									CEngine::engine().playSoundStream(GPPGame::GuitarPP().errorsSound[fretPid]);
-
-								fretPid++;
-							}
+							////////////////////////////////////////////////////////////////
+							processError();
+							////////////////////////////////////////////////////////////////
 						}
 					}
 					else if (!(note.type & notesFlags::nf_not_hopo))
 					{
-						int noteHF = getHighestFlag(note.type & player.notesEnum);
+						//int noteHF = getHighestFlag(note.type & player.notesEnum);
 						if (highestFlagInPressedKey == noteHF)
 						{
 							bool regiserr = false;
@@ -853,7 +910,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 					}
 				}
 			}
-			else if (noteTime <= -0.1)
+			else if (noteTime <= -0.05)
 			{
 				if (!(note.type & notesFlags::nf_failed) && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide))
 				{
@@ -938,7 +995,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	bool fretpError = false;
 
-	if (!errorThisFrame && !noteDoedThisFrame && player.palhetaKey)
+	if (!errorThisFrame && !noteDoedThisFrame && player.palhetaKey && !hopostrmm && !strumdelayed)
 	{
 		int fretPid = 0;
 		for (auto &fretP : player.fretsPressed)
@@ -1719,7 +1776,7 @@ CGamePlay &CGamePlay::gamePlay()
 
 CGamePlay::CGamePlay()
 {
-	speedMp = 2.5; // equivalent to Guitar Hero's hyperspeed
+	speedMp = 5.0; // equivalent to Guitar Hero's hyperspeed
 
 	gSpeed = 1.0; // music speed
 
