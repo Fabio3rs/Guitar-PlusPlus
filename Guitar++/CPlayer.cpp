@@ -368,6 +368,14 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 				BPMStepCalc = 60.0 / BPM[BPMi].lTime;
 			}
 
+			for (auto &b : BPM)
+			{
+				if (b.time > note.time)
+					break;
+
+				BPMStepCalc = 60.0 / b.lTime;
+			}
+
 			BPMStepCalc /= 2.05;
 
 			if ((note.time - gNotes[i].time) >= BPMStepCalc){
@@ -518,6 +526,14 @@ bool CPlayer::NotesData::loadChart(const char *chartFile){
 
 			if (BPMsize > 0){
 				BPMStepCalc = 60.0 / BPM[BPMi].lTime;
+			}
+
+			for (auto &b : BPM)
+			{
+				if (b.time > note.time)
+					break;
+
+				BPMStepCalc = 60.0 / b.lTime;
 			}
 
 			BPMStepCalc /= 2.05;
