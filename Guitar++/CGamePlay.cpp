@@ -799,10 +799,13 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 		if (endNoteTime > -1.5 && noteTime < 5.0)
 		{
-			if (noteTime >= -0.05 && noteTime < 0.1 && !(note.type & notesFlags::hopontstrmmd) && highestFlagInPressedKey == getHighestFlag(note.type & player.notesEnum) && player.palhetaKey)
+			if (!hopostrmm)
 			{
-				hopostrmm = true;
-				note.type |= notesFlags::hopontstrmmd;
+				if (noteTime >= -0.05 && noteTime < 0.1 && !(note.type & notesFlags::hopontstrmmd) && highestFlagInPressedKey == getHighestFlag(note.type & player.notesEnum) && player.palhetaKey)
+				{
+					hopostrmm = true;
+					note.type |= notesFlags::hopontstrmmd;
+				}
 			}
 
 			int ntsInac = 0;

@@ -12,8 +12,11 @@ class GPPOBJ{
 
 public:
 	void draw(unsigned int texture);
+	void load(const std::string &path);
+
 
 	GPPOBJ(const std::string &path);
+	GPPOBJ();
 };
 
 
