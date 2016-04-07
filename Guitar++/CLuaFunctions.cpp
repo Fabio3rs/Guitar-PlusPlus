@@ -145,6 +145,296 @@ int CLuaFunctions::LuaParams::getNumParams()
 	return num_params;
 }
 
+CLuaFunctions::GameVariables &CLuaFunctions::GameVariables::gv()
+{
+	static GameVariables gvarsmgr;
+	return gvarsmgr;
+}
+
+void CLuaFunctions::GameVariables::pushVar(const std::string &name, int &var)
+{
+	vard v;
+	v.ptr = &var;
+	v.t = integerv;
+
+	vars[name] = v;
+}
+
+void CLuaFunctions::GameVariables::pushVar(const std::string &name, int64_t &var)
+{
+	vard v;
+	v.ptr = &var;
+	v.t = integer64;
+
+	vars[name] = v;
+}
+
+void CLuaFunctions::GameVariables::pushVar(const std::string &name, double &var)
+{
+	vard v;
+	v.ptr = &var;
+	v.t = doublevar;
+
+	vars[name] = v;
+}
+
+void CLuaFunctions::GameVariables::pushVar(const std::string &name, std::string &var)
+{
+	vard v;
+	v.ptr = &var;
+	v.t = stringvar;
+
+	vars[name] = v;
+}
+
+void CLuaFunctions::GameVariables::pushVar(const std::string &name, bool &var)
+{
+	vard v;
+	v.ptr = &var;
+	v.t = booleanvar;
+
+	vars[name] = v;
+}
+
+void CLuaFunctions::GameVariables::setVar(const std::string &name, int64_t value)
+{
+	auto &v = vars[name];
+
+	switch (v.t)
+	{
+	case integerv:
+		*(int*)v.ptr = value;
+		break;
+
+	case integer64:
+		*(int64_t*)v.ptr = value;
+		break;
+
+	case doublevar:
+		*(double*)v.ptr = value;
+		break;
+
+	case booleanvar:
+		*(bool*)v.ptr = value != 0;
+		break;
+
+	case stringvar:
+		*(std::string*)v.ptr = std::to_string(value);
+		break;
+	}
+}
+
+void CLuaFunctions::GameVariables::setVar(const std::string &name, double value)
+{
+	auto &v = vars[name];
+
+	switch (v.t)
+	{
+	case integerv:
+		*(int*)v.ptr = value;
+		break;
+
+	case integer64:
+		*(int64_t*)v.ptr = value;
+		break;
+
+	case doublevar:
+		*(double*)v.ptr = value;
+		break;
+
+	case booleanvar:
+		*(bool*)v.ptr = value != 0;
+		break;
+
+	case stringvar:
+		*(std::string*)v.ptr = std::to_string(value);
+		break;
+	}
+}
+
+void CLuaFunctions::GameVariables::setVar(const std::string &name, std::string value)
+{
+	auto &v = vars[name];
+
+	switch (v.t)
+	{
+	case integerv:
+		*(int*)v.ptr = std::stoi(value);
+		break;
+
+	case integer64:
+		*(int64_t*)v.ptr = std::stoll(value);
+		break;
+
+	case doublevar:
+		*(double*)v.ptr = std::stod(value);
+		break;
+
+	case booleanvar:
+		*(bool*)v.ptr = std::stoi(value) != 0;
+		break;
+
+	case stringvar:
+		*(std::string*)v.ptr = value;
+		break;
+	}
+}
+
+void CLuaFunctions::GameVariables::setVar(const std::string &name, bool value)
+{
+	auto &v = vars[name];
+
+	switch (v.t)
+	{
+	case integerv:
+		*(int*)v.ptr = value;
+		break;
+
+	case integer64:
+		*(int64_t*)v.ptr = value;
+		break;
+
+	case doublevar:
+		*(double*)v.ptr = value;
+		break;
+
+	case booleanvar:
+		*(bool*)v.ptr = value;
+		break;
+
+	case stringvar:
+		*(std::string*)v.ptr = std::to_string(value);
+		break;
+	}
+}
+
+void CLuaFunctions::GameVariables::setVar(const std::string &name, int value)
+{
+	auto &v = vars[name];
+
+	switch (v.t)
+	{
+	case integerv:
+		*(int*)v.ptr = value;
+		break;
+
+	case integer64:
+		*(int64_t*)v.ptr = value;
+		break;
+
+	case doublevar:
+		*(double*)v.ptr = value;
+		break;
+
+	case booleanvar:
+		*(bool*)v.ptr = value;
+		break;
+
+	case stringvar:
+		*(std::string*)v.ptr = std::to_string(value);
+		break;
+	}
+}
+
+void CLuaFunctions::GameVariables::setVar(const std::string &name, lua_State *L, int stackIDX)
+{
+	CLuaH::customParam c;
+
+	c.getFromArgs(L, stackIDX);
+
+	auto &v = vars[name];
+
+	switch (v.t)
+	{
+	case integerv:
+		setVar(name, c.getNumber());
+		break;
+
+	case doublevar:
+		setVar(name, c.getNumber());
+		break;
+
+	case booleanvar:
+		setVar(name, c.getBoolean());
+		break;
+
+	case stringvar:
+		setVar(name, c.getString());
+		break;
+	}
+}
+
+void CLuaFunctions::GameVariables::pushToLuaStack(const std::string &name, lua_State *L)
+{
+	auto &v = vars[name];
+	CLuaH::customParam c;
+
+	switch (v.t)
+	{
+	case integerv:
+		c = CLuaH::customParam(*(int*)v.ptr);
+		c.pushToLuaStack(L);
+		break;
+
+	case integer64:
+		c = CLuaH::customParam(*(int64_t*)v.ptr);
+		c.pushToLuaStack(L);
+		break;
+
+	case doublevar:
+		c = CLuaH::customParam(*(double*)v.ptr);
+		c.pushToLuaStack(L);
+		break;
+
+	case booleanvar:
+		c = CLuaH::customParam(*(bool*)v.ptr);
+		c.pushToLuaStack(L);
+		break;
+
+	case stringvar:
+		c = CLuaH::customParam(*(std::string*)v.ptr);
+		c.pushToLuaStack(L);
+		break;
+	}
+}
+
+CLuaFunctions::GameVariables::GameVariables()
+{
+
+}
+
+int CLuaFunctions::setGameVar(lua_State *L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 2 && lua_isstring(L, 1))
+	{
+		std::string varname;
+
+		p >> varname;
+
+		GameVariables::gv().setVar(varname, L, 2);
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::getGameVar(lua_State *L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 1 && lua_isstring(L, 1))
+	{
+		std::string varname;
+
+		p >> varname;
+
+		GameVariables::gv().pushToLuaStack(varname, L);
+	}
+
+	return p.rtn();
+}
+
 int CLuaFunctions::setConfigs(lua_State *L)
 {
 	auto cfg = GPPGame::GuitarPP().getWindowDefaults();
@@ -238,6 +528,12 @@ int CLuaFunctions::setConfigs(lua_State *L)
 
 	if (lua_isstring(L, -1))
 		GPPGame::GuitarPP().songToLoad = lua_tostring(L, -1);
+
+
+	lua_getglobal(L, "hyperSpeed");
+
+	if (lua_isnumber(L, -1))
+		GPPGame::GuitarPP().hyperSpeed = lua_tonumber(L, -1);
 
 
 
@@ -688,6 +984,8 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "getActualMenu", getActualMenu);
 	lua_register(L, "getGameCallback", getGameCallback);
 	lua_register(L, "assingGameFunctionToMenuOption", assingGameFunctionToMenuOption);
+	lua_register(L, "setGameVar", setGameVar);
+	lua_register(L, "getGameVar", getGameVar);
 }
 
 

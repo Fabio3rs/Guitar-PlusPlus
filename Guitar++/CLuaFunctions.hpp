@@ -53,6 +53,49 @@ public:
 		LuaParams(lua_State *state);
 	};
 
+	class GameVariables{
+		enum vartype{ nonev, integer64, integerv, uintegervar, doublevar, stringvar, booleanvar };
+
+		struct vard
+		{
+			vartype t;
+			void *ptr;
+
+			inline vard()
+			{
+				t = nonev;
+				ptr = nullptr;
+			}
+		};
+
+		std::map <std::string, vard> vars;
+
+	public:
+		void pushVar(const std::string &name, int &var);
+		void pushVar(const std::string &name, int64_t &var);
+		void pushVar(const std::string &name, double &var);
+		void pushVar(const std::string &name, std::string &var);
+		void pushVar(const std::string &name, bool &var);
+
+		void setVar(const std::string &name, int value);
+		void setVar(const std::string &name, int64_t value);
+		void setVar(const std::string &name, double value);
+		void setVar(const std::string &name, std::string value);
+		void setVar(const std::string &name, bool value);
+
+		void pushToLuaStack(const std::string &name, lua_State *L);
+
+		void setVar(const std::string &name, lua_State *L, int stackIDX);
+
+		void removeVar(const std::string &name);
+
+		static GameVariables &gv();
+
+	private:
+		GameVariables(GameVariables&) = delete;
+		GameVariables();
+	};
+
 	// Custom lua functions
 
 	/*
@@ -148,12 +191,15 @@ public:
 	static int newGamePlayModule(lua_State *L);
 
 
+	static int setGameVar(lua_State *L);
+	static int getGameVar(lua_State *L);
+
+
 
 	/*
 	* Register custom functions lua state
 	*/
 	void registerFunctions(lua_State *L);
-
 
 	/*
 	* Register default game globals

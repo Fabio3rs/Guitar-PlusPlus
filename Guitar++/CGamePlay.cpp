@@ -1153,17 +1153,17 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 void CGamePlay::renderPylmBar()
 {
-	CEngine::RenderDoubleStruct TempStruct3D;
+	/*CEngine::RenderDoubleStruct TempStruct3D;
 	double rtime = 0.14;
 
 	if (rtime > -5.0)
 	{
 		double size = 0.2;
 		double position = -0.51;
-		/*
+		
 		TempStruct3D.Text = Texture;
 		TempStruct3D.TextureX1 = double(id) * 0.2;
-		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;*/
+		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;
 
 		double nCalc = rtime * speedMp;
 
@@ -1176,12 +1176,14 @@ void CGamePlay::renderPylmBar()
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
-		CEngine::engine().renderAt(0.0, -0.5, TempStruct3D.z1 + size);
+		std::cout << TempStruct3D.z1 + size << std::endl;
+		*/
+	CEngine::engine().renderAt(0.0, -0.5, 1.1);
 
-		GPPGame::GuitarPP().pylmbarOBJ.draw(GPPGame::GuitarPP().loadTexture("data/sprites", "pylmbar.tga").getTextId());
+	GPPGame::GuitarPP().pylmbarOBJ.draw(GPPGame::GuitarPP().loadTexture("data/sprites", "pylmbar.tga").getTextId());
 
-		CEngine::engine().matrixReset();
-	}
+	CEngine::engine().matrixReset();
+	//}
 }
 
 void CGamePlay::renderLyrics()
@@ -1776,7 +1778,7 @@ CGamePlay &CGamePlay::gamePlay()
 
 CGamePlay::CGamePlay()
 {
-	speedMp = 5.0; // equivalent to Guitar Hero's hyperspeed
+	speedMp = 2.5; // equivalent to Guitar Hero's hyperspeed
 
 	gSpeed = 1.0; // music speed
 

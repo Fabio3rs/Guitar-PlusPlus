@@ -86,7 +86,7 @@ public:
 		}
 
 		const double getNumber() const{
-			return num;
+			return ((type == (LUA_TNUMBER | 0xF0000000))? inumber : num);
 		}
 
 		const bool getBoolean() const{
@@ -247,6 +247,14 @@ public:
 		}
 
 		customParam(int n){
+			boolean = NULL;
+			function = NULL;
+			num = n;
+			type = (LUA_TNUMBER | 0xF0000000);
+			inumber = n;
+		}
+
+		customParam(int64_t n){
 			boolean = NULL;
 			function = NULL;
 			num = n;

@@ -155,6 +155,8 @@ void GPPGame::startModule(const std::string &name)
 		throw gameException("A module is already running: " + name);
 	}
 
+	module.setHyperSpeed(2.5 * game.hyperSpeed);
+
 	game.setVSyncMode(0);
 
 	game.setRunningModule(realname);
@@ -869,6 +871,8 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 {
 	// Load lua scripts from "data" folder
 	CLuaH::Lua().loadFiles("data");
+
+	hyperSpeed = 1.0;
 
 	CEngine::engine().loadSoundStream("data/sounds/erro-verde.wav", errorsSound[0]);
 	CEngine::engine().loadSoundStream("data/sounds/erro-vermelho.wav", errorsSound[1]);

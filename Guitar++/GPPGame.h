@@ -215,6 +215,8 @@ public:
 
 	int errorsSound[5], startSound, endSound;
 
+	double hyperSpeed;
+
 private:
 	struct loadThreadData{
 		std::atomic<bool> processing;
