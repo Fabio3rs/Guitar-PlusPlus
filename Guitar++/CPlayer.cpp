@@ -255,15 +255,39 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 			timeT += (BPMs[i + 1].offset - BPMs[i].offset) / pureBPMToCalcBPM(BPMs[i].BPM);
 		}
 
+		/*if (off < BPMs[pos].offset)
+		{
+			timeT -= (BPMs[i + 1].offset - BPMs[i].offset) / pureBPMToCalcBPM(BPMs[i].BPM);
+			return timeT + (off - BPMs[i].offset) / pureBPMToCalcBPM(BPMs[i].BPM);
+		}*/
+
 		return timeT + (off - BPMs[pos].offset) / pureBPMToCalcBPM(BPMs[pos].BPM);
 	};
 
-	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty){
+	auto getRefBPM = [](const BPMContainer &BPMs, int64_t tick){
+		int result = 0;
+
+		for (auto &b : BPMs)
+		{
+			if (b.offset < tick)
+			{
+				result++;
+			}
+			else{
+				break;
+			}
+		}
+
+		return result;
+	};
+
+	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty){
 		for (auto &scopeData : chartMap[difficulty]){
 			char c[16] = { 0 };
 			int i = 0, j = 0;
 			for (auto &inst : scopeData.second){
-				if (sscanf(inst.c_str(), "%15s %d %d", c, &i, &j) == 3){
+				if (sscanf(inst.c_str(), "%15s %d %d", c, &i, &j) == 3)
+				{
 					if (std::string(c) == "N"){
 						Note nt;
 						nt.time = std::stod(scopeData.first);
@@ -273,7 +297,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 						NTS.push_back(nt);
 					}
 
-					if (std::string(c) == "S"){
+					if (std::string(c) == "S" && i == 2){
 						Note nt;
 						nt.time = std::stod(scopeData.first);
 						nt.lTime = j;
@@ -293,20 +317,20 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 
 		int BPM = 0;
-		for (auto &nt : NTS){
+		for (auto &nt : NTS)
+		{
+			uint64_t loffsettmp = nt.time;
 			if (nt.type == -1)
 			{
-				nt.time = getNoteTime(BPMs, BPM, nt.time);
-				nt.lTime = nt.lTime / pureBPMToCalcBPM(BPMs[BPM].BPM);
+				nt.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
+				nt.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt.time;
 				continue;
 			}
 
 			if (BPM < (BPMs.size() - 1)){
-				if (BPMs[BPM + 1].offset < nt.time)
+				if (BPMs[BPM + 1].offset <= nt.time)
 					++BPM;
 			}
-
-			uint64_t loffsettmp = nt.time;
 
 			if (loffset == nt.time)
 			{
@@ -315,8 +339,8 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 			}
 			else
 			{
-				nt.time = getNoteTime(BPMs, BPM, nt.time);
-				nt.lTime = nt.lTime / pureBPMToCalcBPM(BPMs[BPM].BPM);
+				nt.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
+				nt.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt.time;
 			}
 
 			lnotet = nt.time;
@@ -343,7 +367,15 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 	BPMRead(BPMs, feedBackChartMap);
 	noteRead(Nts, BPMs, feedBackChartMap, instrument); // Default: "[ExpertSingle]"
-	
+
+	/*
+	int bpdqpos = 0;
+	for (auto &bpdq : BPMs)
+	{
+		std::cout << "BPM " << bpdq.BPM / 1000.0 << "  offset " << bpdq.offset << "   " << getNoteTime(BPMs, bpdqpos, bpdq.offset) << std::endl;
+		bpdqpos++;
+	}
+	*/
 	int p = 0;
 	for (auto &BP : BPMs){
 		Note newNote;
@@ -378,17 +410,20 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 			BPMStepCalc /= 2.05;
 
-			if ((note.time - gNotes[i].time) >= BPMStepCalc){
+			if ((note.time - gNotes[i].time) >= BPMStepCalc)
+			{
 				note.type |= nf_not_hopo;
 			}
 
 			int type1 = note.type & notesEnum, type2 = gNotes[i].type & notesEnum;
 
-			if (type1 == type2){
+			if (type1 == type2)
+			{
 				note.type |= nf_not_hopo;
 			}
 		}
-		else{
+		else
+		{
 			note.type |= nf_not_hopo;
 		}
 	};
