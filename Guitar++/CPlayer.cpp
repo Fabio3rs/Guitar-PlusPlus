@@ -251,6 +251,11 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		double timeT = 0.0;
 		int i = 0;
 
+		if (pos > (BPMs.size() - 1))
+		{
+			pos = BPMs.size() - 1;
+		}
+
 		for (; i < pos; i++){
 			timeT += (BPMs[i + 1].offset - BPMs[i].offset) / pureBPMToCalcBPM(BPMs[i].BPM);
 		}
@@ -266,16 +271,18 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 	auto getRefBPM = [](const BPMContainer &BPMs, int64_t tick){
 		int result = 0;
+		int irbp = 0;
 
 		for (auto &b : BPMs)
 		{
 			if (b.offset < tick)
 			{
-				result++;
+				result = irbp;
 			}
 			else{
 				break;
 			}
+			irbp++;
 		}
 
 		return result;
