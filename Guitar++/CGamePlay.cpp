@@ -428,11 +428,11 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 		if (plusPos < player.Notes.gPlus.size())
 		{
 			auto &p = player.Notes.gPlus[plusPos];
-			/*
+			
 			if (p.time <= pos && pos < (p.time + p.lTime))
 			{
 				CEngine::engine().Rotate(player.rangle, 0.0, 1.0, 0.0);
-
+				/*
 
 				plusNoteLight.position[0] = TempStruct3D.x1;
 				plusNoteLight.position[1] = -0.2;
@@ -446,8 +446,8 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 				plusNoteLight.angle = 120.0;
 
 				CEngine::engine().setLight(plusNoteLight, 3);
-				CEngine::engine().activateLight(3, true);
-			}*/
+				CEngine::engine().activateLight(3, true);*/
+			}
 		}
 
 		auto texts = (Texture == GPPGame::GuitarPP().HOPOSText) ? GPPGame::GuitarPP().hopoTexture3D : GPPGame::GuitarPP().strumsTexture3D;
