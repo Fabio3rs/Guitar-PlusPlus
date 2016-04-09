@@ -316,13 +316,13 @@ void CGamePlay::renderHoposLight()
 
 	CEngine::RenderDoubleStruct TempStruct3D;
 
-	TempStruct3D.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolght.tga").getTextId();
+	TempStruct3D.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolight.tga").getTextId();
 	TempStruct3D.TextureX1 = 0.0;
 	TempStruct3D.TextureX2 = 1.0;
 	TempStruct3D.TextureY1 = 1.0;
 	TempStruct3D.TextureY2 = 0.0;
 
-	CFonts::fonts().drawTextInScreen(std::to_string(hopostp.size()), 0.0, 0.5, 0.1);
+	//CFonts::fonts().drawTextInScreen(std::to_string(hopostp.size()), 0.0, 0.5, 0.1);
 
 	for (auto &hp : hopostp)
 	{
