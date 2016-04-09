@@ -309,6 +309,57 @@ double CGamePlay::pos2Alpha(double pos)
 	return result;
 }
 
+void CGamePlay::renderHoposLight()
+{
+	double size = 0.2;
+	double position = -0.51;
+
+	CEngine::RenderDoubleStruct TempStruct3D;
+
+	TempStruct3D.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolght.tga").getTextId();
+	TempStruct3D.TextureX1 = 0.0;
+	TempStruct3D.TextureX2 = 1.0;
+	TempStruct3D.TextureY1 = 1.0;
+	TempStruct3D.TextureY2 = 0.0;
+
+	CFonts::fonts().drawTextInScreen(std::to_string(hopostp.size()), 0.0, 0.5, 0.1);
+
+	for (auto &hp : hopostp)
+	{
+		TempStruct3D.x1 = hp.x;
+		TempStruct3D.x2 = TempStruct3D.x1 + size;
+		TempStruct3D.x3 = TempStruct3D.x1 + size;
+		TempStruct3D.x4 = TempStruct3D.x1;
+
+		TempStruct3D.y1 = hp.y;
+		TempStruct3D.y2 = TempStruct3D.y1;
+		TempStruct3D.y3 = hp.y;
+		TempStruct3D.y4 = TempStruct3D.y3;
+
+		TempStruct3D.z1 = hp.z;
+		TempStruct3D.z2 = TempStruct3D.z1;
+		TempStruct3D.z3 = hp.z + size * 2.0;
+		TempStruct3D.z4 = TempStruct3D.z3;
+
+
+		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
+
+
+		if (alpha <= 0.0)
+		{
+			continue;
+		}
+
+		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
+
+		CEngine::engine().Render3DQuad(TempStruct3D);
+	}
+
+
+	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+	hopostp.clear();
+}
+
 void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
@@ -319,32 +370,27 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 		double size = 0.2;
 		double position = -0.51;
 
-		TempStruct3D.Text = Texture;
-		TempStruct3D.TextureX1 = double(id) * 0.2;
-		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;
+		//TempStruct3D.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolght.tga").getTextId();
+		/*TempStruct3D.TextureX1 = double(id) * 0.2;
+		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;*/
+		TempStruct3D.TextureX1 = 0.0;
+		TempStruct3D.TextureX2 = 1.0;
 
 		double nCalc = rtime * speedMp;
 
 		nCalc += 0.55;
 
-		if (player.plusEnabled)
-		{
-			TempStruct3D.TextureY1 = 0.5;
-			TempStruct3D.TextureY2 = 0.0;
-		}
-		else{
-			TempStruct3D.TextureY1 = 1.0;
-			TempStruct3D.TextureY2 = 0.5;
-		}
+		TempStruct3D.TextureY1 = 1.0;
+		TempStruct3D.TextureY2 = 0.0;
 
 		TempStruct3D.x1 = position + (double(id) * size / 48.0) + (double(id) * size);
 		TempStruct3D.x2 = TempStruct3D.x1 + size;
 		TempStruct3D.x3 = TempStruct3D.x1 + size;
 		TempStruct3D.x4 = TempStruct3D.x1;
 
-		TempStruct3D.y1 = -0.5;
+		TempStruct3D.y1 = -0.46;
 		TempStruct3D.y2 = TempStruct3D.y1;
-		TempStruct3D.y3 = -0.5;
+		TempStruct3D.y3 = -0.46;
 		TempStruct3D.y4 = TempStruct3D.y3;
 
 		TempStruct3D.z1 = nCalc;
@@ -364,6 +410,17 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
+		if (Texture == GPPGame::GuitarPP().HOPOSText)
+		{
+			glm::vec3 vec3data;
+			vec3data.x = TempStruct3D.x1;
+			vec3data.y = -0.462;
+			vec3data.z = TempStruct3D.z1;
+
+
+			hopostp.push_front(vec3data);
+		}
+
 		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
 
 		size_t plusPos = player.Notes.plusPos;
@@ -371,19 +428,56 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 		if (plusPos < player.Notes.gPlus.size())
 		{
 			auto &p = player.Notes.gPlus[plusPos];
-
+			/*
 			if (p.time <= pos && pos < (p.time + p.lTime))
 			{
 				CEngine::engine().Rotate(player.rangle, 0.0, 1.0, 0.0);
-			}
+
+
+				plusNoteLight.position[0] = TempStruct3D.x1;
+				plusNoteLight.position[1] = -0.2;
+				plusNoteLight.position[2] = TempStruct3D.z1;
+				plusNoteLight.position[3] = TempStruct3D.z1 - size * 5.0;
+
+				plusNoteLight.direction[0] = TempStruct3D.x1;
+				plusNoteLight.direction[1] = -0.48;
+				plusNoteLight.direction[2] = TempStruct3D.z1 + size;
+				plusNoteLight.direction[3] = TempStruct3D.z1 + size * 4.0;
+				plusNoteLight.angle = 120.0;
+
+				CEngine::engine().setLight(plusNoteLight, 3);
+				CEngine::engine().activateLight(3, true);
+			}*/
 		}
 
 		auto texts = (Texture == GPPGame::GuitarPP().HOPOSText) ? GPPGame::GuitarPP().hopoTexture3D : GPPGame::GuitarPP().strumsTexture3D;
+
+		/*if (Texture == GPPGame::GuitarPP().HOPOSText)
+		{
+			hoposLight.position[0] = TempStruct3D.x1;
+			hoposLight.position[1] = -0.2;
+			hoposLight.position[2] = TempStruct3D.z1;
+			hoposLight.position[3] = TempStruct3D.z1 - size * 5.0;
+
+			hoposLight.direction[0] = TempStruct3D.x1;
+			hoposLight.direction[1] = -0.48;
+			hoposLight.direction[2] = TempStruct3D.z1 + size;
+			hoposLight.direction[3] = TempStruct3D.z1 + size * 4.0;
+			hoposLight.angle = 120.0;
+
+			CEngine::engine().setLight(hoposLight, 2);
+			CEngine::engine().activateLight(2, true);
+		}*/
 
 
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
 		GPPGame::GuitarPP().noteOBJ.draw(player.plusEnabled ? texts[5] : texts[id]);
 		CEngine::engine().matrixReset();
+
+		/*if (Texture == GPPGame::GuitarPP().HOPOSText)
+		{
+			CEngine::engine().activateLight(2, false);
+		}*/
 	}
 }
 
@@ -1320,7 +1414,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	for (auto &t : l0.ambientLight)
 	{
-		t = 0.3;
+		t = 0.25;
 	}
 
 	for (auto &t : l0.direction)
@@ -1342,6 +1436,9 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	{
 		t = 1.0;
 	}
+
+	l0.specularLight[3] = 0.5;
+	l0.diffuseLight[3] = 0.5;
 
 	l0.angle = 100.0;
 	l0.direction[0] = 0.0;
@@ -1580,6 +1677,10 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 
+	CEngine::engine().activate3DRender(false);
+
+	renderHoposLight();
+
 	{
 		CEngine::cameraSET usingCamera;
 		usingCamera.eyex = 0.0;
@@ -1600,7 +1701,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	///////////******************************************
 
-	CEngine::engine().activate3DRender(false);
 
 	auto &engine = CEngine::engine();
 
@@ -1799,6 +1899,33 @@ CGamePlay::CGamePlay()
 
 	showBPMLines = true;
 
+	for (auto &al : hoposLight.ambientLight)
+	{
+		al = 0.0;
+	}
+
+	for (auto &al : hoposLight.diffuseLight)
+	{
+		al = 1.0;
+	}
+
+	hoposLight.diffuseLight[4] = 0.2;
+
+	for (auto &al : hoposLight.specularLight)
+	{
+		al = 1.0;
+	}
+
+	hoposLight.specularLight[4] = 0.2;
+
+	plusNoteLight = hoposLight;
+
+	plusNoteLight.diffuseLight[0] = 0.2;
+	plusNoteLight.diffuseLight[1] = 0.2;
+	plusNoteLight.specularLight[0] = 0.2;
+	plusNoteLight.specularLight[1] = 0.2;
+
+	hoposLight.angle = 90.0;
 
 	{
 		CMenu::menuOpt opt;

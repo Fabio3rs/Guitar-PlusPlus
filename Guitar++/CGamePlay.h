@@ -16,6 +16,7 @@
 #include <cstring>
 #include "CPlayer.h"
 #include "CMenu.h"
+#include "GPPOBJ.h"
 
 class CGamePlay{
 	void renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text);
@@ -32,6 +33,11 @@ class CGamePlay{
 	void renderNote(CPlayer::NotesData::Note &note, CPlayer &player);
 	void renderIndividualLine(int id, double pos1, double pos2, unsigned int Texture, CPlayer &player);
 	void renderTimeOnNote(double pos, double time, CPlayer &player);
+	void renderHoposLight();
+
+	std::deque <glm::vec3> hopostp;
+
+	lightData hoposLight, plusNoteLight;
 
 	void renderPylmBar();
 
