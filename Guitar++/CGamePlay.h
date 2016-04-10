@@ -17,6 +17,7 @@
 #include "CPlayer.h"
 #include "CMenu.h"
 #include "GPPOBJ.h"
+#include "CParticle.h"
 
 class CGamePlay{
 	void renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text);
@@ -67,8 +68,9 @@ public:
 
 	fretsPosition fretsText;
 	std::string fretsTextures, BPMLineText;
-	unsigned int fireText;
+	unsigned int fireText, pfireText;
 	int BPMTextID;
+	int hopoLightText;
 
 	bool showBPMLines;
 

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstdint>
 #include "CEngine.h"
+#include "CParticle.h"
 
 enum notesFlags{
 	nf_green = 1, nf_red = 2, nf_yellow = 4, nf_blue = 8, nf_orange = 16,
@@ -241,6 +242,9 @@ public:
 	int64_t getPoints();
 
 	CEngine::cameraSET playerCamera;
+
+
+	CParticle playerParticles;
 
 	CPlayer(const char *name);
 };

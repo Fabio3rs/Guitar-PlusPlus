@@ -93,6 +93,7 @@
     <ClCompile Include="CLuaFunctions.cpp" />
     <ClCompile Include="CLuaH.cpp" />
     <ClCompile Include="CMenu.cpp" />
+    <ClCompile Include="CParticle.cpp" />
     <ClCompile Include="CPlayer.cpp" />
     <ClCompile Include="CText.cpp" />
     <ClCompile Include="exception.cpp" />
@@ -147,6 +148,7 @@
     <ClInclude Include="CLuaFunctions.hpp" />
     <ClInclude Include="CLuaH.hpp" />
     <ClInclude Include="CMenu.h" />
+    <ClInclude Include="CParticle.h" />
     <ClInclude Include="CPlayer.h" />
     <ClInclude Include="CText.h" />
     <ClInclude Include="GPPGame.h" />

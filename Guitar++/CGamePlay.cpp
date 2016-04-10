@@ -316,7 +316,7 @@ void CGamePlay::renderHoposLight()
 
 	CEngine::RenderDoubleStruct TempStruct3D;
 
-	TempStruct3D.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolight.tga").getTextId();
+	TempStruct3D.Text = hopoLightText;
 	TempStruct3D.TextureX1 = 0.0;
 	TempStruct3D.TextureX2 = 1.0;
 	TempStruct3D.TextureY1 = 1.0;
@@ -1651,7 +1651,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	for (int i = 0; i < 5; i++)
 	{
-		double pressT = CEngine::engine().getTime() - player.Notes.fretsNotePickedTime[i];
+		double time = CEngine::engine().getTime();
+		double pressT = time - player.Notes.fretsNotePickedTime[i];
 		double calcP = (sin(pressT / 0.05)) / 15.0 - 0.05;
 
 		if (pressT > 0.15 && player.notesSlide[i] == -1)
@@ -1668,12 +1669,49 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		{
 			calcP = -0.035;
 		}
+		else if (calcP > -0.023)
+		{
+			if ((int(time * 1000.0) % 15) % 4)
+			{
+				CParticle::particleData pd;
+
+				pd.duration = 0.030;
+
+				double poscalc = -0.38 + (double(i) * 0.2 / 48.0) + (double(i) * 0.2);
+
+				pd.x = poscalc + (rand() % 20 / 500.0) * -(rand() % 2);
+				pd.y = -0.51;
+				pd.z = 0.755 + (rand() % 20 / 500.0) * -(rand() % 2);
+
+				pd.ax = 100.0 * -(rand() % 2);
+				pd.ay = 100.0;
+				pd.az = 200.0;
+
+				pd.sx = 0.1;
+				pd.sy = 0.1;
+				pd.sz = 0.1;
+
+				pd.sizex = 0.01;
+				pd.sizey = 0.01;
+				pd.sizez = 0.00;
+
+				pd.desac = 0.2;
+
+				pd.texture = pfireText;
+
+				pd.qtd = 1;
+
+				player.playerParticles.addParticle(pd);
+			}
+		}
 
 		renderIndivdualStrikeButton3D(i, 0.0, 0, 0.0, player);
 		renderIndivdualStrikeButton3DStrike(i, 0.0, 0, calcP, player);
 	}
 
 	CEngine::engine().activateNormals(false);
+
+	player.playerParticles.render();
 
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 
@@ -1866,7 +1904,6 @@ void CGamePlay::render()
 	{
 		renderPlayer(p);
 	}
-
 	//*******************************************************************************************************
 
 	CFonts::fonts().drawTextInScreen(std::to_string(CEngine::engine().getFPS()) + " FPS", 0.8, 0.8, 0.1);
@@ -1885,6 +1922,8 @@ CGamePlay::CGamePlay()
 
 	gSpeed = 1.0; // music speed
 
+	hopoLightText = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolight.tga").getTextId();
+
 	songlyricsIndex = 0;
 
 	fretsTextures = "default";
@@ -1892,6 +1931,7 @@ CGamePlay::CGamePlay()
 	fretsText.notesTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "Strums.tga").getTextId();
 	fretsText.strikeLineTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "frets.tga").getTextId();
 	fireText = GPPGame::GuitarPP().loadTexture("data/sprites", "flamea.tga").getTextId();
+	pfireText = GPPGame::GuitarPP().loadTexture("data/sprites", "fire.tga").getTextId();
 
 	BPMLineText = "v.tga";
 
