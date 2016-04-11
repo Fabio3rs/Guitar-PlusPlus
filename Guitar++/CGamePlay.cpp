@@ -1671,21 +1671,21 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		}
 		else if (calcP > -0.023)
 		{
-			if ((int(time * 1000.0) % 15) % 4)
+			if ((int(time * 1000.0) % 20) % 2)
 			{
 				CParticle::particleData pd;
 
-				pd.duration = 0.030;
+				pd.duration = 0.04;
 
-				double poscalc = -0.38 + (double(i) * 0.2 / 48.0) + (double(i) * 0.2);
+				double poscalc = -0.40 + (double(i) * 0.2 / 48.0) + (double(i) * 0.2);
 
 				pd.x = poscalc + (rand() % 20 / 500.0) * -(rand() % 2);
 				pd.y = -0.51;
-				pd.z = 0.755 + (rand() % 20 / 500.0) * -(rand() % 2);
+				pd.z = 0.76 + (rand() % 20 / 500.0) * -(rand() % 2);
 
 				pd.ax = 100.0 * -(rand() % 2);
 				pd.ay = 100.0;
-				pd.az = 200.0;
+				pd.az = 200.0 * -(rand() % 2);
 
 				pd.sx = 0.1;
 				pd.sy = 0.1;
