@@ -168,6 +168,7 @@ public:
 
 	static void teste(const std::string &name);
 	static void startModule(const std::string &name);
+	static void continueCampaing(const std::string &name);
 	static void benchmark(const std::string &name);
 
 	void loadAllThemes();
@@ -189,7 +190,7 @@ public:
 
 	void setVSyncMode(int mode);
 
-	void openMenus(CMenu *startMenu);
+	void openMenus(CMenu *startMenu, std::function<int(void)> preFun = nullptr, std::function<int(void)> midFun = nullptr, std::function<int(void)> posFun = nullptr);
 
 	inline CMenu *getActualMenu()
 	{

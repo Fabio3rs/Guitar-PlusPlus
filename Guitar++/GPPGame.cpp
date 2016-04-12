@@ -362,6 +362,77 @@ void GPPGame::startModule(const std::string &name)
 	if (load.joinable()) load.join();
 }
 
+void GPPGame::continueCampaing(const std::string &name)
+{
+	auto createMMenu = []()
+	{
+		auto &cntCampaing = GPPGame::GuitarPP().newNamedMenu("continueCampaingOptions");
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Patos voadores";
+			opt.y = 0.3;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			cntCampaing.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Voltar";
+			opt.y = 0.0;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+			opt.goback = true;
+
+			cntCampaing.addOpt(opt);
+		}
+
+
+		return &cntCampaing;
+	};
+	static auto &continueMenu = *createMMenu();
+
+
+	auto preFun = []()
+	{
+
+		return 0;
+	};
+
+	auto midFun = []()
+	{
+		CFonts::fonts().drawTextInScreen("Seu status", 0.7, 0.5, 0.1);
+		
+		return 0;
+	};
+
+	auto posFun = []()
+	{
+
+		return 0;
+	};
+
+	if (CEngine::engine().windowOpened())
+	{
+		GPPGame::GuitarPP().clearScreen();
+
+
+		GPPGame::GuitarPP().renderFrame();
+	}
+
+	GPPGame::GuitarPP().openMenus(&continueMenu, preFun, midFun, posFun);
+}
+
 void GPPGame::eraseGameMenusAutoCreateds()
 {
 	for (auto it = gameMenus.begin(); it != gameMenus.end(); /******/)
@@ -562,7 +633,7 @@ std::string GPPGame::getRunningModule()
 	return runningModule;
 }
 
-void GPPGame::openMenus(CMenu *startMenu)
+void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::function<int(void)> midFun, std::function<int(void)> posFun)
 {
 	auto &engine = CEngine::engine();
 	auto &lua = CLuaH::Lua();
@@ -647,6 +718,9 @@ void GPPGame::openMenus(CMenu *startMenu)
 		auto &menu = *menusStack.back();
 		currentMenu = &menu;
 
+		if (preFun)
+			preFun();
+
 		menu.update();
 
 		auto &texture = gTextures[menu.backgroundTexture];
@@ -662,6 +736,10 @@ void GPPGame::openMenus(CMenu *startMenu)
 
 			engine.Render2DQuad(RenderData);
 		}
+
+
+		if (midFun)
+			midFun();
 
 		menu.render();
 
@@ -729,6 +807,10 @@ void GPPGame::openMenus(CMenu *startMenu)
 		}
 
 		eraseGameMenusAutoCreateds();
+
+
+		if (posFun)
+			posFun();
 
 		//engine.bindTextOnSlot(0, 0);
 

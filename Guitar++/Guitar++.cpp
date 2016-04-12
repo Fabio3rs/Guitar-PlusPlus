@@ -61,7 +61,9 @@ int main(int argc, char* argv[])
 		game.loadBasicSprites();
 
 		auto &mainMenu = game.newMenu();
-		int startOP, configOP, extrasOp, ajudaOp, quitOp;
+		auto &gmenu = GPPGame::GuitarPP().newNamedMenu("playOptions");
+		auto &cmpopts = GPPGame::GuitarPP().newNamedMenu("mainCampaingOptions");
+		int startOP, configOP, extrasOp, ajudaOp, quitOp, singlePlayOp;
 
 		double proportion = game.getWindowProportion();
 		//difBtIMGAndProp = 1.7777777777777777777777 - proportion;
@@ -71,14 +73,14 @@ int main(int argc, char* argv[])
 
 			opt.text = "Jogar";
 			opt.y = 0.4;
-			opt.x = -proportion + 0.15;
+			opt.x = -proportion + 0.2;
 			opt.size = 0.075;
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
 
-			std::string testecallback = game.addGameCallbacks("gamePlaySelectedInMenu", GPPGame::startModule);
-			opt.menusXRef.push_back(testecallback);
+			//std::string testecallback = game.addGameCallbacks("gamePlaySelectedInMenu", GPPGame::startModule);
+			opt.menusXRef.push_back(gmenu.getName());
 
 			startOP = mainMenu.addOpt(opt);
 		}
@@ -88,7 +90,7 @@ int main(int argc, char* argv[])
 			//  
 			opt.text = "Op\xC3\xA7\xC3\xB5" "es";
 			opt.y = 0.3;
-			opt.x = -proportion + 0.15;
+			opt.x = -proportion + 0.2;
 			opt.size = 0.075;
 			opt.group = 1;
 			opt.status = 0;
@@ -105,7 +107,7 @@ int main(int argc, char* argv[])
 
 			opt.text = "Extras";
 			opt.y = 0.2;
-			opt.x = -proportion + 0.15;
+			opt.x = -proportion + 0.2;
 			opt.size = 0.075;
 			opt.group = 1;
 			opt.status = 0;
@@ -119,7 +121,7 @@ int main(int argc, char* argv[])
 
 			opt.text = "Ajuda";
 			opt.y = 0.1;
-			opt.x = -proportion + 0.15;
+			opt.x = -proportion + 0.2;
 			opt.size = 0.075;
 			opt.group = 1;
 			opt.status = 0;
@@ -136,7 +138,7 @@ int main(int argc, char* argv[])
 
 			opt.text = "Quit";
 			opt.y = 0.0;
-			opt.x = -proportion + 0.15;
+			opt.x = -proportion + 0.2;
 			opt.size = 0.075;
 			opt.group = 1;
 			opt.status = 0;
@@ -147,7 +149,106 @@ int main(int argc, char* argv[])
 		}
 
 		game.setMainMenu(mainMenu);
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Quick play";
+			opt.y = 0.4;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			std::string testecallback = game.addGameCallbacks("gamePlaySelectedInMenu", GPPGame::startModule);
+			opt.menusXRef.push_back(testecallback);
+
+			singlePlayOp = gmenu.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Campaing";
+			opt.y = 0.3;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			opt.menusXRef.push_back(cmpopts.getName());
+			gmenu.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Voltar";
+			opt.y = 0.0;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+			opt.goback = true;
+
+			gmenu.addOpt(opt);
+		}
+
+
+		//////////////////***********************************************************
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Nova campanha";
+			opt.y = 0.4;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, -0.5);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			cmpopts.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Continuar campanha";
+			opt.y = 0.3;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, -0.5);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			opt.menusXRef.push_back(game.addGameCallbacks("continueCampaingFunctionMGR", GPPGame::continueCampaing));
+
+			cmpopts.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Voltar";
+			opt.y = -0.2;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, -0.5);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+			opt.goback = true;
+
+			cmpopts.addOpt(opt);
+		}
+
+
 		lua.runEvent("mainMenuSetted");
+
+
 
 		GPPGame::GuitarPP().setVSyncMode(1);
 
