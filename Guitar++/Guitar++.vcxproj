@@ -95,6 +95,7 @@
     <ClCompile Include="CMenu.cpp" />
     <ClCompile Include="CParticle.cpp" />
     <ClCompile Include="CPlayer.cpp" />
+    <ClCompile Include="CSaveSystem.cpp" />
     <ClCompile Include="CText.cpp" />
     <ClCompile Include="exception.cpp" />
     <ClCompile Include="GPPGame.cpp" />
@@ -150,6 +151,7 @@
     <ClInclude Include="CMenu.h" />
     <ClInclude Include="CParticle.h" />
     <ClInclude Include="CPlayer.h" />
+    <ClInclude Include="CSaveSystem.h" />
     <ClInclude Include="CText.h" />
     <ClInclude Include="GPPGame.h" />
     <ClInclude Include="GPPOBJ.h" />

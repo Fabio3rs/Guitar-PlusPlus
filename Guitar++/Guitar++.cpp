@@ -63,6 +63,7 @@ int main(int argc, char* argv[])
 		auto &mainMenu = game.newMenu();
 		auto &gmenu = GPPGame::GuitarPP().newNamedMenu("playOptions");
 		auto &cmpopts = GPPGame::GuitarPP().newNamedMenu("mainCampaingOptions");
+		auto &optionsmenu = GPPGame::GuitarPP().newNamedMenu("optionsmenu");
 		int startOP, configOP, extrasOp, ajudaOp, quitOp, singlePlayOp;
 
 		double proportion = game.getWindowProportion();
@@ -95,8 +96,8 @@ int main(int argc, char* argv[])
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
-
-
+			
+			opt.menusXRef.push_back(optionsmenu.getName());
 
 
 			configOP = mainMenu.addOpt(opt);
@@ -243,6 +244,66 @@ int main(int argc, char* argv[])
 			opt.goback = true;
 
 			cmpopts.addOpt(opt);
+		}
+
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Graficos";
+			opt.y = 0.4;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			optionsmenu.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Audio";
+			opt.y = 0.3;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			optionsmenu.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Gameplay";
+			opt.y = 0.2;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			optionsmenu.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Voltar";
+			opt.y = -0.4;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+			opt.goback = true;
+
+			optionsmenu.addOpt(opt);
 		}
 
 

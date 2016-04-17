@@ -1414,7 +1414,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	for (auto &t : l0.ambientLight)
 	{
-		t = 0.25;
+		t = 0.22;
 	}
 
 	for (auto &t : l0.direction)
@@ -1429,7 +1429,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	for (auto &t : l0.specularLight)
 	{
-		t = 1.0;
+		t = 0.7;
 	}
 
 	for (auto &t : l0.diffuseLight)
@@ -1437,10 +1437,10 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		t = 1.0;
 	}
 
-	l0.specularLight[3] = 0.5;
-	l0.diffuseLight[3] = 0.5;
+	l0.specularLight[3] = 0.2;
+	l0.diffuseLight[3] = 0.2;
 
-	l0.angle = 100.0;
+	l0.angle = 120.0;
 	l0.direction[0] = 0.0;
 	l0.direction[1] = -0.5;
 	l0.direction[2] = -5.0;
