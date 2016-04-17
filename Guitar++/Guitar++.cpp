@@ -16,6 +16,7 @@
 #include <Psapi.h>
 #include "CFonts.h"
 #include "CPlayer.h"
+#include "CSaveSystem.h"
 
 int main(int argc, char* argv[])
 {
@@ -29,7 +30,11 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 
+		CSaveSystem::CSave svtest("data/save/mainsv");
+		svtest.load();
+
 		auto &game = GPPGame::GuitarPP();
+
 
 		game.parseParameters(argc, argv);
 
