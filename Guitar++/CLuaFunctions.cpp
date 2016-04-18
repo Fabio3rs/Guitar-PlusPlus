@@ -437,7 +437,7 @@ int CLuaFunctions::getGameVar(lua_State *L)
 
 int CLuaFunctions::setConfigs(lua_State *L)
 {
-	auto cfg = GPPGame::GuitarPP().getWindowDefaults();
+	auto cfg = GPPGame::GuitarPP().getWindowConfig();
 
 
 	lua_getglobal(L, "WindowWidth");

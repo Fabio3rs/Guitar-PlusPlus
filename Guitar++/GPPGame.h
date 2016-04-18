@@ -14,6 +14,7 @@
 #include <atomic>
 #include <thread>
 #include "GPPOBJ.h"
+#include "CSaveSystem.h"
 
 class gameException : public std::exception{
 	std::string str;
@@ -47,6 +48,8 @@ class GPPGame{
 	bool devMode;
 
 public:
+
+	CSaveSystem::CSave mainSave;
 
 	typedef void(*func_t)(const std::string &name);
 
@@ -234,6 +237,7 @@ private:
 	gameWindow		windowCFGs; // Actual config
 
 	GPPGame();
+	~GPPGame();
 
 	void setRunningModule(const std::string m);
 

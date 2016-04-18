@@ -1,4 +1,5 @@
 #include "CSaveSystem.h"
+#include "CLog.h"
 
 CSaveSystem &CSaveSystem::saveSystem()
 {
@@ -8,55 +9,84 @@ CSaveSystem &CSaveSystem::saveSystem()
 
 bool CSaveSystem::CSave::loads()
 {
-	std::fstream svfstream(fpath, std::ios::in);
+	try{
+		std::fstream svfstream(fpath, std::ios::in);
 
-	if (!svfstream.is_open())
+		if (!svfstream.is_open())
+		{
+			return false;
+		}
+
+		cereal::BinaryInputArchive iarchive(svfstream); // Create an output archive
+
+		iarchive(*this);
+
+		loaded = true;
+	}
+	catch (const std::exception &e)
 	{
+		CLog::log() << e.what();
+		loaded = false;
 		return false;
 	}
-
-	cereal::BinaryInputArchive iarchive(svfstream); // Create an output archive
-
-	iarchive(*this);
-
-	loaded = true;
+	catch (...)
+	{
+		CLog::log() << "Fail to load save " + fpath;
+		return false;
+	}
 
 	return true;
 }
 
 bool CSaveSystem::CSave::saves()
 {
-	std::fstream svfstream(fpath, std::ios::out | std::ios::trunc);
+	try{
+		std::fstream svfstream(fpath, std::ios::out | std::ios::trunc);
 
-	if (!svfstream.is_open())
+		if (!svfstream.is_open())
+		{
+			return false;
+		}
+
+		for (auto &vardata : values)
+		{
+			auto &v = vardata.second;
+
+			if (v.dynamic && v.ptr)
+			{
+				for (size_t i = 0; i < v.size; i++)
+				{
+					v.svcontent[i] = ((uint8_t*)(v.ptr))[i];
+				}
+			}
+		}
+
+		cereal::BinaryOutputArchive oarchive(svfstream); // Create an output archive
+
+		oarchive(*this);
+	}
+	catch (const std::exception &e)
+	{
+		CLog::log() << e.what();
+		loaded = false;
+		return false;
+	}
+	catch (...)
 	{
 		return false;
 	}
-
-	for (auto &vardata : values)
-	{
-		auto &v = vardata.second;
-
-		if (v.dynamic && v.ptr)
-		{
-			for (size_t i = 0; i < v.size; i++)
-			{
-				v.svcontent[i] = ((uint8_t*)(v.ptr))[i];
-			}
-		}
-	}
-
-	cereal::BinaryOutputArchive oarchive(svfstream); // Create an output archive
-
-	oarchive(*this);
-
 	return true;
+}
+
+bool CSaveSystem::CSave::loadn(const std::string &savepath)
+{
+	fpath = savepath;
+	return loads();
 }
 
 CSaveSystem::CSave::CSave(const std::string &savepath)
 {
 	fpath = savepath;
-	loaded = true;
 
 }
 

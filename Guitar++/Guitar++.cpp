@@ -30,21 +30,18 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 
-		int variaveldopato = 0;
+		//int variaveldopato = 0;
 
-		CSaveSystem::CSave svtest("data/saves/mains");
-		svtest.loads();
+		//std::cout << "@_@: " << svtest.getVarContent<int>("variaveldopato") << std::endl;
 
 		auto &game = GPPGame::GuitarPP();
 
-		svtest.addVariableAttData("variaveldopato", variaveldopato, true);
-
-		variaveldopato = 10;
-
-		svtest.saves();
-
 		game.parseParameters(argc, argv);
 
+		//svtest.addVariableAttData("variaveldopato", variaveldopato, true);
+		//variaveldopato = 10;
+
+		//svtest.saves();
 
 		auto &lua = CLuaH::Lua();
 

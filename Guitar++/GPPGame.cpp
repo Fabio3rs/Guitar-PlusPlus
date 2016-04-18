@@ -951,6 +951,8 @@ void GPPGame::logError(int code, const std::string &e)
 GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"),
 						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj")
 {
+	mainSave.loadn("data/saves/mains");
+
 	// Load lua scripts from "data" folder
 	CLuaH::Lua().loadFiles("data");
 
@@ -968,6 +970,8 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 
 	windowCFGs = getWindowDefaults();
 
+	mainSave.addVariableAttData("windowCFGs", windowCFGs, true);
+
 	srand((unsigned int)time(0));
 
 	devMode = false;
@@ -979,3 +983,10 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 
 	CEngine::engine().errorCallbackFun = logError;
 }
+
+
+GPPGame::~GPPGame()
+{
+	mainSave.saves();
+}
+

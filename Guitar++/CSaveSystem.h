@@ -76,6 +76,7 @@ public:
 	public:
 
 		bool loads();
+		bool loadn(const std::string &savepath);
 		bool saves();
 
 		template <class T>
@@ -151,6 +152,7 @@ public:
 		}
 
 		CSave(const std::string &savepath);
+		CSave() = default;
 	};
 
 
