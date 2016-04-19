@@ -287,6 +287,9 @@ public:
 	*/
 	void						runScripts();
 
+
+	void						runScriptsFromPath(const std::string &path);
+
 	/*
 	* New script and DO NOT add it to quere
 	*/
@@ -336,7 +339,7 @@ public:
 	*/
 	inline luaScript &getLastScript(){ return *lastScript.back(); }
 
-	
+	static std::string getStringGlobalVar(luaScript &l, const std::string &varname);
 
 	void unloadAll();
 

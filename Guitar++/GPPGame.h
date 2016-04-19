@@ -47,7 +47,9 @@ class GPPGame{
 
 	bool devMode;
 
+
 public:
+	std::string glanguage;
 
 	CSaveSystem::CSave mainSave;
 

@@ -343,6 +343,14 @@ void CLuaH::runEventWithParams(const std::string &name, const multiCallBackParam
 	}
 }
 
+void CLuaH::runScriptsFromPath(const std::string &path)
+{
+	for (auto &pathScripts : Lua().files[path])
+	{
+		runScript(pathScripts.second);
+	}
+}
+
 void CLuaH::runScripts(){
 	static const std::string barra("/");
 	for (auto &pathScripts : Lua().files)
@@ -422,6 +430,13 @@ CLuaH::luaScript::luaScript(luaScript &L){
 	cheatsAdded = L.cheatsAdded;
 	callbacksAdded = L.callbacksAdded;
 	hooksAdded = L.hooksAdded;
+}
+
+std::string CLuaH::getStringGlobalVar(luaScript &l, const std::string &varname)
+{
+	lua_getglobal(l.luaState, varname.c_str());
+
+	return lua_tostring(l.luaState, -1);
 }
 
 CLuaH::luaScript::~luaScript(){

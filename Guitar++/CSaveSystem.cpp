@@ -68,7 +68,6 @@ bool CSaveSystem::CSave::saves()
 	catch (const std::exception &e)
 	{
 		CLog::log() << e.what();
-		loaded = false;
 		return false;
 	}
 	catch (...)

@@ -46,7 +46,12 @@ CLog::~CLog(){
 
 std::string CLog::GetDateAndTime(){
 	std::time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	return std::string(ctime(&tt));
+	std::string str = std::string(ctime(&tt));
+	if (str[str.size() - 1] == '\n')
+	{
+		str.resize(str.size() - 1);
+	}
+	return str;
 }
 
 void CLog::AddToLog(const std::string &Text){

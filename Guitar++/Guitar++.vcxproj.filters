@@ -186,6 +186,9 @@
     <ClCompile Include="CSaveSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CLanguageManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPPGame.h">
@@ -246,6 +249,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CSaveSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CLanguageManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

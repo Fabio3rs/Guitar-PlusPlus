@@ -36,26 +36,28 @@ public:
 			std::string name;
 			size_t size;
 			bool dynamic;
+			int type;
 			void *ptr;
 			std::vector < uint8_t > svcontent;
 
 			template<class Archive>
 			void load(Archive & archive)
 			{
-				archive(name, size, dynamic, svcontent);
+				archive(name, size, dynamic, type, svcontent);
 			}
 
 			template<class Archive>
 			void save(Archive & archive) const
 			{
-				archive(name, size, dynamic, svcontent);
+				archive(name, size, dynamic, type, svcontent);
 			}
 
 			inline variable()
 			{
+				type = 0;
 				size = 0;
 				dynamic = false;
-				ptr = 0;
+				ptr = nullptr;
 			}
 		};
 
@@ -131,7 +133,43 @@ public:
 				}
 			}
 
+			v.type = 0;
+
 			values[name] = v;
+			return true;
+		}
+
+		inline bool addVariableAttData(const std::string &name, std::string &var, bool dynamic)
+		{
+			if (!loaded)
+				return false;
+
+			variable v = values[name];
+			v.name = name;
+			v.size = var.size();
+			v.dynamic = dynamic;
+			v.ptr = (void*)&var;
+
+			if (v.svcontent.size() != 0)
+			{
+				var = "";
+				for (size_t i = 0; i < v.svcontent.size(); i++)
+				{
+					var.push_back((char)v.svcontent[i]);
+				}
+				v.size = v.svcontent.size();
+			}
+			else{
+				for (int i = 0; i < v.size; ++i)
+				{
+					v.svcontent.push_back((int8_t)var[i]);
+				}
+			}
+
+			v.type = 1;
+
+			values[name] = v;
+			return true;
 		}
 
 		template<class T>
@@ -148,7 +186,10 @@ public:
 				v.svcontent.push_back(((uint8_t*)(&var))[i]);
 			}
 
+			v.type = 0;
+
 			values[name] = v;
+			return true;
 		}
 
 		CSave(const std::string &savepath);

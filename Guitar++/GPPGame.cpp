@@ -953,6 +953,8 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 {
 	mainSave.loadn("data/saves/mains");
 
+	glanguage = "PT-BR";
+
 	// Load lua scripts from "data" folder
 	CLuaH::Lua().loadFiles("data");
 
@@ -971,6 +973,9 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 	windowCFGs = getWindowDefaults();
 
 	mainSave.addVariableAttData("windowCFGs", windowCFGs, true);
+	mainSave.addVariableAttData("glanguage", glanguage, true);
+
+	std::cout << glanguage << std::endl;
 
 	srand((unsigned int)time(0));
 

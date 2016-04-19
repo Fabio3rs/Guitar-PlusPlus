@@ -17,6 +17,7 @@
 #include "CFonts.h"
 #include "CPlayer.h"
 #include "CSaveSystem.h"
+#include "CLanguageManager.h"
 
 int main(int argc, char* argv[])
 {
@@ -30,6 +31,8 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 
+
+		auto &lngmgr = CLanguageManager::langMGR();
 		//int variaveldopato = 0;
 
 		//std::cout << "@_@: " << svtest.getVarContent<int>("variaveldopato") << std::endl;
@@ -81,7 +84,7 @@ int main(int argc, char* argv[])
 		{
 			CMenu::menuOpt opt;
 
-			opt.text = "Jogar";
+			opt.text = lngmgr.getText(game.glanguage, "menuPlayTitle");
 			opt.y = 0.4;
 			opt.x = -proportion + 0.2;
 			opt.size = 0.075;
@@ -146,7 +149,7 @@ int main(int argc, char* argv[])
 		{
 			CMenu::menuOpt opt;
 
-			opt.text = "Quit";
+			opt.text = "Sair";
 			opt.y = 0.0;
 			opt.x = -proportion + 0.2;
 			opt.size = 0.075;
