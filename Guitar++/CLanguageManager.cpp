@@ -3,8 +3,9 @@
 
 CLanguageManager::CLanguage::CLanguage(CLuaH::luaScript &ls)
 {
-	name = CLuaH::getStringGlobalVar(ls, "langName");
-	entries["menuPlayTitle"] = CLuaH::getStringGlobalVar(ls, "menuPlayTitle");
+	name = CLuaH::getGlobalVarAsString(ls, "langName");
+	entries["menuPlayTitle"] = CLuaH::getGlobalVarAsString(ls, "menuPlayTitle");
+	entries["menuOptionsTitle"] = CLuaH::getGlobalVarAsString(ls, "menuOptionsTitle");
 }
 
 CLanguageManager::CLanguage::CLanguage()

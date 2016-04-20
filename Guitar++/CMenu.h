@@ -36,7 +36,7 @@ public:
 		int pressingShortcutKey;
 		int shortcutKey;
 
-		std::string text, preText;
+		std::string text, preText, langEntryKey;
 		int status;
 		double optValue, deslizantBarSize;
 		int listID;

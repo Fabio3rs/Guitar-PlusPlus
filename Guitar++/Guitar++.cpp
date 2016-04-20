@@ -85,6 +85,7 @@ int main(int argc, char* argv[])
 			CMenu::menuOpt opt;
 
 			opt.text = lngmgr.getText(game.glanguage, "menuPlayTitle");
+			opt.langEntryKey = "menuPlayTitle";
 			opt.y = 0.4;
 			opt.x = -proportion + 0.2;
 			opt.size = 0.075;
@@ -101,7 +102,9 @@ int main(int argc, char* argv[])
 		{
 			CMenu::menuOpt opt;
 			//  
-			opt.text = "Op\xC3\xA7\xC3\xB5" "es";
+			//opt.text = "Op\xC3\xA7\xC3\xB5" "es";
+			opt.text = lngmgr.getText(game.glanguage, "menuOptionsTitle");
+			opt.langEntryKey = "menuOptionsTitle";
 			opt.y = 0.3;
 			opt.x = -proportion + 0.2;
 			opt.size = 0.075;

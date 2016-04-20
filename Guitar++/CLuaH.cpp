@@ -432,7 +432,7 @@ CLuaH::luaScript::luaScript(luaScript &L){
 	hooksAdded = L.hooksAdded;
 }
 
-std::string CLuaH::getStringGlobalVar(luaScript &l, const std::string &varname)
+std::string CLuaH::getGlobalVarAsString(luaScript &l, const std::string &varname)
 {
 	lua_getglobal(l.luaState, varname.c_str());
 

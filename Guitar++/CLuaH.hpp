@@ -339,7 +339,7 @@ public:
 	*/
 	inline luaScript &getLastScript(){ return *lastScript.back(); }
 
-	static std::string getStringGlobalVar(luaScript &l, const std::string &varname);
+	static std::string getGlobalVarAsString(luaScript &l, const std::string &varname);
 
 	void unloadAll();
 
