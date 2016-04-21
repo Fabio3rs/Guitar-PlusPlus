@@ -235,6 +235,8 @@ void GPPGame::startModule(const std::string &name)
 
 	bool songTimeFixed = false;
 
+	module.players.back().enableBot = true;
+
 	std::cout << "Plus in chart: " << module.players.back().Notes.gPlus.size() << std::endl;
 
 	if (module.players.back().Notes.gPlus.size())

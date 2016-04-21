@@ -816,6 +816,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	bool firstNoteToDoSetted = false;
 	int64_t firstNoteToDo = 0;
+	bool strklinbotsetted = false;
 
 	bool errorThisFrame = false, hopostrmm = false, strumdelayed = false;
 
@@ -927,9 +928,15 @@ void CGamePlay::updatePlayer(CPlayer &player)
 			}
 
 
+			if (!noteDoedThisFrame && noteTime > -0.05 && noteTime < 0.15 && !strklinbotsetted)
+			{
+				player.strklinent = i;
+				player.strklinenttime = noteTime;
+				strklinbotsetted = true;
+			}
+
 			if (noteTime > -0.05 && noteTime < 0.1 && !(note.type & notesFlags::nf_picked))
 			{
-
 				if (!noteDoedThisFrame)
 				{
 					if (player.palhetaKey && (note.type & notesFlags::nf_not_hopo))

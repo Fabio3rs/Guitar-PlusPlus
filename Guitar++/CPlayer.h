@@ -178,6 +178,8 @@ public:
 	int songAudioID;
 	int instrumentSound;
 
+	bool enableBot;
+
 	bool aError;
 
 	int lastHOPO;
@@ -193,6 +195,9 @@ public:
 	bool lastFretsPressed[5];
 	bool fretsPressed[5];
 	int64_t notesSlide[5];
+
+	int64_t strklinent;
+	double strklinenttime;
 
 	bool palhetaKeyLast;
 	bool palhetaKey;

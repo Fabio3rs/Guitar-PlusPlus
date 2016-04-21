@@ -56,27 +56,114 @@ void CPlayer::update()
 	int i = 0;
 	int pklast = palhetaKeyLast;
 
-	palhetaKey = CEngine::engine().getKey(GPPGame::GuitarPP().fretOneKey) || CEngine::engine().getKey(GPPGame::GuitarPP().fretTwoKey);
+	bool clearFretsP = true;
 
-	if (pklast == palhetaKey)
+	if (enableBot)
 	{
-		palhetaKey = false;
-	}
-	else
-	{
-		palhetaKeyLast = palhetaKey;
-	}
+		std::copy(fretsPressed, fretsPressed + 5, lastFretsPressed);
 
-	std::copy(fretsPressed, fretsPressed + 5, lastFretsPressed);
+		CFonts::fonts().drawTextInScreen("BOT PLAYING", -1.65, -0.9, 0.05);
 
-	for (auto &f : fretsPressed)
-	{
-		bool ftemp = f;
-		f = CEngine::engine().getKey(GPPGame::GuitarPP().strumKeys[i++]);
+		for (int i = 0; i < 5; ++i)
+		{
+			fretsPressed[i] = false;
+		}
 
-		if (ftemp != f)
+		bool dngslide = false;
+
+		if (Notes.lastNotePicked != -1 && strklinent != -1)
+		{
+			auto &note = Notes.gNotes[Notes.lastNotePicked];
+
+			double rtime = (note.time - musicRunningTime);
+
+			if (rtime < 0.1 && rtime > -0.1)
+			{
+				for (int i = 0; i < 5; ++i)
+				{
+					if (note.type & (int)pow(2, i))
+					{
+						fretsPressed[i] = true;
+						clearFretsP = false;
+					}
+				}
+			}
+			else
+			{
+				for (int i = 0; i < 5; ++i)
+				{
+					fretsPressed[i] = false;
+				}
+			}
+		}
+
+		for (int i = 0; i < 5; ++i)
+		{
+			if (notesSlide[i] != -1)
+			{
+				fretsPressed[i] = true;
+				clearFretsP = false;
+				dngslide = true;
+			}
+		}
+
+		if (strklinent != -1 && !dngslide)
+		{
+			auto &note = Notes.gNotes[strklinent];
+
+
+			if (strklinenttime >= -0.05 && ((strklinenttime < 0.14 && (note.type & notesFlags::nf_not_hopo)) || (strklinenttime < 0.04)))
+			{
+				for (int i = 0; i < 5; ++i)
+				{
+					if (note.type & (int)pow(2, i))
+					{
+						fretsPressed[i] = true;
+					}
+					else{
+						fretsPressed[i] = false;
+					}
+				}
+
+				if (strklinenttime < 0.04 && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_failed) && !(note.type & notesFlags::nf_doing_slide) && !(note.type & notesFlags::nf_slide_picked))
+				{
+					palhetaKey = true;
+				}
+				else{
+					palhetaKey = false;
+					palhetaKeyLast = palhetaKey;
+				}
+			}
+		}
+		else
 		{
 			palhetaKey = false;
+			palhetaKeyLast = palhetaKey;
+		}
+	}
+	else{
+		palhetaKey = CEngine::engine().getKey(GPPGame::GuitarPP().fretOneKey) || CEngine::engine().getKey(GPPGame::GuitarPP().fretTwoKey);
+
+		if (pklast == palhetaKey)
+		{
+			palhetaKey = false;
+		}
+		else
+		{
+			palhetaKeyLast = palhetaKey;
+		}
+
+		std::copy(fretsPressed, fretsPressed + 5, lastFretsPressed);
+
+		for (auto &f : fretsPressed)
+		{
+			bool ftemp = f;
+			f = CEngine::engine().getKey(GPPGame::GuitarPP().strumKeys[i++]);
+
+			if (ftemp != f)
+			{
+				palhetaKey = false;
+			}
 		}
 	}
 }
@@ -847,11 +934,13 @@ CPlayer::CPlayer(const char *name)
 	palhetaKeyLast = palhetaKey = false;
 	aError = false;
 	lastHOPO = 0;
+	enableBot = false;
 
 	memset(notesSlide, -1, sizeof(notesSlide));
 	memset(lastFretsPressed, 0, sizeof(lastFretsPressed));
 
 	instrumentSound = 0;
+	strklinenttime = -5.0;
 
 	BPMNowBuffer = 0;
 
@@ -863,6 +952,7 @@ CPlayer::CPlayer(const char *name)
 	maxPublicAprov = 120.0;
 	publicAprov = maxPublicAprov / 2.0;
 
+	strklinent = -1;
 
 	playerCamera.eyex = 0.0;
 	playerCamera.eyey = 0.2;
