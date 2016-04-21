@@ -111,6 +111,7 @@ void CPlayer::update()
 		{
 			auto &note = Notes.gNotes[strklinent];
 
+			strklinenttime = (note.time - musicRunningTime);
 
 			if (strklinenttime >= -0.05 && ((strklinenttime < 0.14 && (note.type & notesFlags::nf_not_hopo)) || (strklinenttime < 0.04)))
 			{
