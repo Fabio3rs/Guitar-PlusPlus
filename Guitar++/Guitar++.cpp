@@ -67,8 +67,47 @@ int main(int argc, char* argv[])
 		game.loadAllThemes();
 		game.gThemes["gppdefaulttheme"].apply();
 
+		auto &logotext = game.loadTexture("data/sprites", "logo.tga");
 
+		double ltime = CEngine::engine().getTime();
 
+		CEngine::engine().activate3DRender(false);
+
+		CEngine::RenderDoubleStruct lgrdata;
+
+		lgrdata.x1 = -0.5;
+		lgrdata.x2 = -0.5 + 1.0;
+		lgrdata.x3 = -0.5 + 1.0;
+		lgrdata.x4 = -0.5;
+
+		lgrdata.y1 = -0.5 + 1.0;
+		lgrdata.y2 = -0.5 + 1.0;
+		lgrdata.y3 = -0.5;
+		lgrdata.y4 = -0.5;
+
+		lgrdata.TextureX1 = 0.0;
+		lgrdata.TextureX2 = 1.0;
+
+		lgrdata.TextureY1 = 1.0;
+		lgrdata.TextureY2 = 0.0;
+
+		lgrdata.Text = logotext.getTextId();
+
+		while (CEngine::engine().windowOpened() && (CEngine::engine().getTime() - ltime) < 3.0)
+		{
+			GPPGame::GuitarPP().clearScreen();
+			double t = (CEngine::engine().getTime() - ltime) * 3.14 / 3.0, t2;
+
+			CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t));
+			CEngine::engine().Render2DQuad(lgrdata);
+
+			CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t + 0.1));
+			CFonts::fonts().drawTextInScreen("2Nibble Studios presents...", CFonts::fonts().getCenterPos(strlen("2Nibble Studios presents..."), 0.1, 0.0), -0.6, 0.1);
+			
+
+			CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+			GPPGame::GuitarPP().renderFrame();
+		}
 
 		game.loadBasicSprites();
 

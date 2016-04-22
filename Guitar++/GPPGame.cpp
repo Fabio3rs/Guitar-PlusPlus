@@ -977,6 +977,8 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 	mainSave.addVariableAttData("windowCFGs", windowCFGs, true);
 	mainSave.addVariableAttData("glanguage", glanguage, true);
 
+	windowCFGs.name = std::string("");
+
 	srand((unsigned int)time(0));
 
 	devMode = false;
