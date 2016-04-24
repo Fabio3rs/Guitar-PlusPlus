@@ -419,7 +419,13 @@ public:
 	void RenderMulti3DQuad(const std::deque<RenderDoubleStruct> &quad3DData, unsigned int &bufferID);
 	void Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData);
 	void Render2DCircle(double x, double y, double percent, double radius, double lineWeight, int polysNum, int maxPolys, unsigned int &bufferID);
+	void draw2DLine(double *linedata, int points);
 	void setColor(double r, double g, double b, double a);
+
+	struct chdata
+	{
+		float data[4];
+	};
 
 	/**/
 	bool loadSoundStream(const char *fileName, int &handle);
@@ -429,6 +435,7 @@ public:
 	void setSoundTime(int handle, double time);
 	double getSoundTime(int handle);
 	bool setSoundVolume(int handle, float volume);
+	chdata getChannelData(int handle);
 
 	void setScale(double x, double y, double z);
 

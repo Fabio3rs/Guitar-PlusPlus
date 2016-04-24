@@ -47,6 +47,24 @@ bool CEngine::setSoundVolume(int handle, float volume)
 	return BASS_ChannelSetAttribute(handle, BASS_ATTRIB_VOL, volume);
 }
 
+CEngine::chdata CEngine::getChannelData(int handle)
+{
+	chdata result;
+	int BANDS = 120;
+	int b0 = 0;
+	float peak = -10;
+
+	int r = BASS_ChannelGetData(handle, result.data, BASS_DATA_FFT_INDIVIDUAL);
+
+	/*for (int i = 0; i < 4; i++)
+	{
+		std::cout << r << "   " << result.data[i] << std::endl;
+	}*/
+
+	//std::cout << r << "   " << peak << std::endl;
+	return result;
+}
+
 std::deque<CEngine::Resolution> CEngine::getPossibleVideoModes()
 {
 	int count = 0;
@@ -1166,6 +1184,26 @@ void CEngine::bindTexture(unsigned int text){
 void CEngine::clearScreen(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
+}
+
+void CEngine::draw2DLine(double *linedata, int points)
+{
+	bindTexture(0);
+	glLineWidth(4);
+
+	glBegin(GL_LINES);
+
+	for (int i = 0; i < points; i++)
+	{
+		glVertex2d(linedata[i * 2 + 0], linedata[i * 2 + 1]);
+		if (i > 0 && i < (points - 1))
+		{
+			glVertex2d(linedata[i * 2 + 0], linedata[i * 2 + 1]);
+		}
+	}
+
+	glEnd();
+
 }
 
 void CEngine::Render2DQuad(const RenderDoubleStruct &quad2DData){

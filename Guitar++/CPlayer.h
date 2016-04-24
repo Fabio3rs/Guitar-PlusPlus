@@ -9,6 +9,8 @@
 #include <iostream>
 #include <algorithm>
 #include <cstdint>
+#include <functional>
+#include <memory>
 #include "CEngine.h"
 #include "CParticle.h"
 
@@ -189,6 +191,8 @@ public:
 	int BPMNowBuffer;
 
 	std::deque<NotesData::Note> buffer;
+
+	double spectrumLines[8];
 
 	double musicRunningTime;
 

@@ -1419,6 +1419,37 @@ void CGamePlay::renderPlayer(CPlayer &player)
 {
 	lightData l0;
 
+
+
+/*	static double ffatime = CEngine::engine().getTime();
+	double p = pow(10, 30);
+
+	if (CEngine::engine().getTime() - ffatime > 0.02)
+	{
+		auto ch = CEngine::engine().getChannelData(player.instrumentSound);
+		ffatime = CEngine::engine().getTime();
+
+		for (int i = 0; i < 4; i++)
+		{
+			player.spectrumLines[i * 2 + 0] = -0.6 + (double)i * 0.3;
+
+			std::string test = std::to_string(ch.data[i]);
+			if (ch.data[i] > 0)
+				test.resize(10, '0');
+			else
+				test.resize(11, '0');
+
+			double valueresult = std::stod(test) / 1000000000.0;
+			valueresult /= 64.0;
+
+			player.spectrumLines[i * 2 + 1] = valueresult + 0.5;
+
+			std::cout << valueresult << std::endl;
+		}
+	}
+
+	CEngine::engine().draw2DLine(player.spectrumLines, 4);*/
+
 	for (auto &t : l0.ambientLight)
 	{
 		t = 0.22;
@@ -1844,6 +1875,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	CFonts::fonts().drawTextInScreen(std::to_string((int)player.comboToMultiplier()), -0.9 + neg, -0.37 + negy, 0.1);
 
 	/////////////***************************************
+
 
 	lua.runEventWithParams("posRenderPlayer", m);
 }
