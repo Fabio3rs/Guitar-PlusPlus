@@ -8,6 +8,8 @@
 //unsigned int MatrixID;
 //unsigned int TextureID;
 
+const int CGamePlay::notesFlagsConst[5] = { pow(2, 0), pow(2, 1), pow(2, 2), pow(2, 3), pow(2, 4) };
+
 void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
@@ -582,7 +584,7 @@ void CGamePlay::renderTimeOnNote(double pos, double time, CPlayer &player)
 void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
 	for (int i = 0; i < 5; i++){
-		if (note.type & (int)pow(2, i))
+		if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
 		{
 			unsigned int texture = fretsText.notesTexture;
 			/*if (note.type & notesFlags::nf_doing_slide){
@@ -651,9 +653,9 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		int result = 0;
 		for (int ji = 4; ji >= 0; ji--)
 		{
-			if (flags & (int)pow(2, ji))
+			if (flags & /*(int)pow(2, ji)*/notesFlagsConst[ji])
 			{
-				result = (int)pow(2, ji);
+				result = /*(int)pow(2, ji)*/notesFlagsConst[ji];
 				break;
 			}
 		}
@@ -704,7 +706,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	for (int ji = 0; ji < 5; ji++)
 	{
-		if (gNotes[notes.notePos].type & (int)pow(2, ji))
+		if (gNotes[notes.notePos].type & /*(int)pow(2, ji)*/notesFlagsConst[ji])
 		{
 			if (player.notesSlide[ji] != -1)
 			{
@@ -768,7 +770,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				{
 					for (int ji = 0; ji < 5; ji++)
 					{
-						if (note.type & (int)pow(2, ji))
+						if (note.type & /*(int)pow(2, ji)*/notesFlagsConst[ji])
 						{
 							notes.fretsNotePickedTime[ji] = engine.getTime();
 							player.notesSlide[ji] = -1;
@@ -787,7 +789,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				{
 					for (int ji = 0; ji < 5; ji++)
 					{
-						if (note.type & (int)pow(2, ji))
+						if (note.type & /*(int)pow(2, ji)*/notesFlagsConst[ji])
 						{
 							notes.fretsNotePickedTime[ji] = engine.getTime();
 						}
@@ -803,7 +805,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 					{
 						for (int ji = 0; ji < 5; ji++)
 						{
-							if (note.type & (int)pow(2, ji))
+							if (note.type & /*(int)pow(2, ji)*/notesFlagsConst[ji])
 							{
 								player.notesSlide[ji] = i;
 							}
@@ -909,7 +911,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 			for (int i = 0; i < 5; ++i)
 			{
-				if (note.type & (int)pow(2, i))
+				if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
 				{
 					ntsInac++;
 				}
@@ -1132,7 +1134,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 				for (int i = 0; i < 5; ++i)
 				{
-					if (note.type & (int)pow(2, i))
+					if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
 					{
 						ntsInac++;
 					}
@@ -1421,7 +1423,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 
 
-/*	static double ffatime = CEngine::engine().getTime();
+	static double ffatime = CEngine::engine().getTime();
 	double p = pow(10, 30);
 
 	if (CEngine::engine().getTime() - ffatime > 0.02)
@@ -1448,7 +1450,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		}
 	}
 
-	CEngine::engine().draw2DLine(player.spectrumLines, 4);*/
+	CEngine::engine().draw2DLine(player.spectrumLines, 4);
 
 	for (auto &t : l0.ambientLight)
 	{

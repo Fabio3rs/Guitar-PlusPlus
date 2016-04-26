@@ -56,6 +56,8 @@ CEngine::chdata CEngine::getChannelData(int handle)
 
 	int r = BASS_ChannelGetData(handle, result.data, BASS_DATA_FFT_INDIVIDUAL);
 
+
+	std::cout << r << "   " << BASS_ChannelGetLevel(handle) << std::endl;
 	/*for (int i = 0; i < 4; i++)
 	{
 		std::cout << r << "   " << result.data[i] << std::endl;

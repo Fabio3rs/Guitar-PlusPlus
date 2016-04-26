@@ -49,6 +49,8 @@ class CGamePlay{
 
 
 public:
+	static const int notesFlagsConst[5];
+
 	struct lyricLine
 	{
 		double tstart, tend;
