@@ -26,8 +26,9 @@
 #include <assimp/postprocess.h>     // Post processing flags
 */
 
-CEngine &CEngine::engine(){
-	static CEngine eng;
+CEngine &CEngine::engine(std::function <void(int, const std::string &e)> errfun)
+{
+	static CEngine eng(errfun);
 	return eng;
 }
 
@@ -924,6 +925,8 @@ void CEngine::GLFWerrorfun(int error, const char *description)
 {
 	if (engine().errorCallbackFun)
 		engine().errorCallbackFun(error, description);
+	else
+		MessageBoxA(0, description, std::to_string(error).c_str(), 0);
 }
 
 bool CEngine::windowOpened(){
@@ -1457,7 +1460,8 @@ void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData){
 	glDisableClientState(GL_COLOR_ARRAY);
 }
 
-CEngine::CEngine(){
+CEngine::CEngine()
+{
 	AASamples = 0;
 
 	window = nullptr;
@@ -1466,6 +1470,47 @@ CEngine::CEngine(){
 	glMajor = 1;
 	glMinor = 1;
 	lastUsedTexture = 0;
+
+	glfwSetErrorCallback(GLFWerrorfun);
+
+	if (!glfwInit()){
+		throw std::logic_error("Fail to initialize GLFW");
+	}
+
+	lastFrameTime = glfwGetTime();
+	lastFPSSwapTime = glfwGetTime();
+	DeltaTime = 0.0;
+	FPS = 0;
+	tmpFPS = 0;
+
+	BASS_Init(-1, 44100, 0, 0, NULL);
+	lastUpdatedNoise = 0.0;
+	updateNoiseInterval = 0.2;
+
+	setCamera(0.0, 0.0, 2.3, /* look from camera XYZ */
+		0, 0, 0, /* look at the origin */
+		0, 1, 0);
+
+	wcallfunc = nullptr;
+	/*
+	if(!bitArray){
+	bitArray = new unsigned int[10000];
+	memset(bitArray, 0, sizeof(unsigned int) * 10000);
+	}*/
+}
+
+CEngine::CEngine(std::function <void(int, const std::string &e)> errfun)
+{
+	AASamples = 0;
+
+	window = nullptr;
+
+	mouseX = mouseY = 0.0;
+	glMajor = 1;
+	glMinor = 1;
+	lastUsedTexture = 0;
+
+	errorCallbackFun = errfun;
 
 	glfwSetErrorCallback(GLFWerrorfun);
 

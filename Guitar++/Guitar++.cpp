@@ -22,6 +22,8 @@
 int main(int argc, char* argv[])
 {
 	try{
+		CEngine::engine(GPPGame::logError);
+
 		try{
 			CLog::log(); // Start logging before everything, to avoid non-logged crashes
 		}
@@ -93,8 +95,15 @@ int main(int argc, char* argv[])
 
 		lgrdata.Text = logotext.getTextId();
 
+		std::string str2nibblePresents = "2Nibble Studios presents...";
+
 		while (CEngine::engine().windowOpened() && (CEngine::engine().getTime() - ltime) < 3.0)
 		{
+			if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
+			{
+				break;
+			}
+
 			GPPGame::GuitarPP().clearScreen();
 			double t = (CEngine::engine().getTime() - ltime) * 3.14 / 3.0, t2;
 
@@ -102,11 +111,16 @@ int main(int argc, char* argv[])
 			CEngine::engine().Render2DQuad(lgrdata);
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t + 0.1));
-			CFonts::fonts().drawTextInScreen("2Nibble Studios presents...", CFonts::fonts().getCenterPos(strlen("2Nibble Studios presents..."), 0.1, 0.0), -0.6, 0.1);
+			CFonts::fonts().drawTextInScreen(str2nibblePresents, CFonts::fonts().getCenterPos(str2nibblePresents.size(), 0.1, 0.0), -0.6, 0.1);
 			
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 			GPPGame::GuitarPP().renderFrame();
+		}
+
+		if (!CEngine::engine().windowOpened())
+		{
+			return 0;
 		}
 
 		game.loadBasicSprites();

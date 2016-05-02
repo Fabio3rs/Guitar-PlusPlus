@@ -463,12 +463,13 @@ public:
 
 	~CEngine();
 
-	static CEngine &engine();
+	static CEngine &engine(std::function <void(int, const std::string &e)> errfun = nullptr);
 
 	CEngine(const CEngine&) = delete;
 
 private:
 	CEngine();
+	CEngine(std::function <void(int, const std::string &e)> errfun);
 };
 
 #endif
