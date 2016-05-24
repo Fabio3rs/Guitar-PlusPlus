@@ -280,6 +280,22 @@ private:
 			return false;
 		}
 
+		bool isChangedMX(double x, double y, double radius, double lineWeight, int polysNum){
+			if (x != this->x || y != this->y || radius != this->radius || lineWeight != this->lineWeight || polysNum != this->polysNum){
+				this->x = x;
+				this->y = y;
+				this->radius = radius;
+				this->lineWeight = lineWeight;
+
+				if (polysNum > this->polysNum){
+					verticesBuffer = std::unique_ptr< double[] >(new double[polysNum * 12]);
+					this->polysNum = polysNum;
+				}
+				return true;
+			}
+			return false;
+		}
+
 		void allocAll(int polysNum)
 		{
 			verticesBuffer = std::unique_ptr< double[] >(new double[polysNum * 12]);
@@ -295,6 +311,9 @@ private:
 
 	std::unordered_map<int, CCircleStream> circlesBuffer;
 	//*****************************************
+
+
+	double lrC, lgC, lbC, laC;
 
 public:
 	double eyex,
@@ -419,6 +438,7 @@ public:
 	void RenderMulti3DQuad(const std::deque<RenderDoubleStruct> &quad3DData, unsigned int &bufferID);
 	void Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData);
 	void Render2DCircle(double x, double y, double percent, double radius, double lineWeight, int polysNum, int maxPolys, unsigned int &bufferID);
+	void Render2DCircleBufferMax(double x, double y, double perone, double radius, double lineWeight, int maxPolys, unsigned int &bufferID);
 	void draw2DLine(double *linedata, int points);
 	void setColor(double r, double g, double b, double a);
 
@@ -436,6 +456,7 @@ public:
 	double getSoundTime(int handle);
 	bool setSoundVolume(int handle, float volume);
 	chdata getChannelData(int handle);
+	chdata getChannelData(int handle, int b);
 
 	void setScale(double x, double y, double z);
 

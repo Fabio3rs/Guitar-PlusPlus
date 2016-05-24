@@ -114,6 +114,11 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 	}
 }
 
+void CFonts::Font::chartbl::setTextID(const fontTexture &texture)
+{
+	textID = GPPGame::GuitarPP().gTextures[texture.getName()].getTextId();
+}
+
 void CFonts::draw3DTextInScreen(const std::string &str, const double posX1, const double posY1, const double posZ1, const double sizeX, const double sizeY, const double sizeZ, const std::string &fontName)
 {
 	auto &fontToUse = fontsReg[fontName];
@@ -123,6 +128,8 @@ void CFonts::draw3DTextInScreen(const std::string &str, const double posX1, cons
 	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
 
 	CEngine::RenderDoubleStruct RenderData;
+
+	auto &engine = CEngine::engine();
 
 	RenderData.y1 = posY1 + sizeY;
 	RenderData.y2 = posY1 + sizeY;
@@ -145,14 +152,14 @@ void CFonts::draw3DTextInScreen(const std::string &str, const double posX1, cons
 		auto &chData = fontToUse.chars[ch];
 
 		if (chData.getText()){
-			auto &text = GPPGame::GuitarPP().gTextures[chData.getText()->getName()];
+			auto text = chData.getTextID();
 			auto &fontsTextData = *chData.getText();
 
 			const double positionFromCharInTexture = chData.getPos();
 			const double sizeFromChar = 1.0 / (double)fontsTextData.getcolumns();
 			const double sizeOfLine = 1.0 / (double)fontsTextData.getlines();
 
-			RenderData.Text = text.getTextId();
+			RenderData.Text = text;
 
 			CharPos = posX1PlusSizeDiv2_0 + (((double)i) * sizeDiv1_5);
 
@@ -167,7 +174,7 @@ void CFonts::draw3DTextInScreen(const std::string &str, const double posX1, cons
 			RenderData.TextureX1 = (positionFromCharInTexture * sizeFromChar);
 			RenderData.TextureX2 = (positionFromCharInTexture * sizeFromChar) + sizeFromChar;
 
-			CEngine::engine().Render3DQuad(RenderData);
+			engine.Render3DQuad(RenderData);
 		}
 
 		++i;
@@ -182,6 +189,7 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 	const double sizeDiv1_5 = size / 1.5, sizeDiv2_0 = size / 2.0;
 	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
 
+	auto &engine =  CEngine::engine();
 	CEngine::RenderDoubleStruct RenderData;
 
 	RenderData.y1 = posY1 + size;
@@ -200,14 +208,12 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 		auto &chData = fontToUse.chars[ch];
 
 		if (chData.getText()){
-			auto &text = GPPGame::GuitarPP().gTextures[chData.getText()->getName()];
+			RenderData.Text = chData.getTextID();
 			auto &fontsTextData = *chData.getText();
 
 			const double positionFromCharInTexture = chData.getPos();
 			const double sizeFromChar = 1.0 / (double)fontsTextData.getcolumns();
 			const double sizeOfLine = 1.0 / (double)fontsTextData.getlines();
-
-			RenderData.Text = text.getTextId();
 
 			CharPos = posX1PlusSizeDiv2_0 + (((double)i) * sizeDiv1_5);
 
@@ -222,7 +228,7 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 			RenderData.TextureX1 = (positionFromCharInTexture * sizeFromChar);
 			RenderData.TextureX2 = (positionFromCharInTexture * sizeFromChar) + sizeFromChar;
 
-			CEngine::engine().Render2DQuad(RenderData);
+			engine.Render2DQuad(RenderData);
 		}
 
 		++i;

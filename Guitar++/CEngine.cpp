@@ -68,6 +68,26 @@ CEngine::chdata CEngine::getChannelData(int handle)
 	return result;
 }
 
+CEngine::chdata CEngine::getChannelData(int handle, int b)
+{
+	chdata result;
+	int BANDS = 120;
+	int b0 = 0;
+	float peak = -10;
+	float fft[1024];
+	BASS_CHANNELINFO ci;
+	BASS_ChannelGetInfo(handle, &ci);
+
+	int r = BASS_ChannelGetData(handle, fft, BASS_DATA_FFT1024);
+
+	for (int i = b; i < b + 4; i++)
+	{
+		result.data[i] = fft[b] * ci.chans;
+	}
+
+	return result;
+}
+
 std::deque<CEngine::Resolution> CEngine::getPossibleVideoModes()
 {
 	int count = 0;
@@ -202,8 +222,16 @@ int CEngine::getKey(int key){
 	return glfwGetKey((GLFWwindow*)window, key);
 }
 
-void CEngine::setColor(double r, double g, double b, double a){
-	glColor4d(r, g, b, a);
+void CEngine::setColor(double r, double g, double b, double a)
+{
+	if (lrC != r || lgC != g || lbC != b || laC != a)
+	{
+		lrC = r;
+		lgC = g;
+		lbC = b;
+		laC = a;
+		glColor4d(r, g, b, a);
+	}
 }
 
 
@@ -1259,6 +1287,114 @@ void CEngine::RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr, void *norm
 
 }
 
+void CEngine::Render2DCircleBufferMax(double x, double y, double perone, double radius, double lineWeight, int maxPolys, unsigned int &bufferID)
+{
+	if (perone > 1.0)
+	{
+		perone = 1.0;
+	}
+
+	double peroneA = perone;
+
+	if (bufferID == (~0)){
+		bufferID = circlesBuffer.size();
+
+		auto &stream = circlesBuffer[bufferID];
+		glGenBuffers(1, &stream.GlBuffer);
+		stream.allocAll(maxPolys);
+
+		perone = 1.0;
+	}
+
+	int polysNum = maxPolys * perone;
+
+	auto &stream = circlesBuffer[bufferID];
+	bool res = stream.isChangedMX(x, y, radius, lineWeight, maxPolys);
+
+	auto &result = stream.verticesBuffer;
+
+	glBindBuffer(GL_ARRAY_BUFFER_ARB, stream.GlBuffer);
+
+	if (res){
+		const long double PiValue = 3.1415926535897932384626433832795;
+
+		RenderDoubleStruct quad2DData;
+
+		double degrees = 360.0 * (perone);
+		degrees = degrees / (360.0 / (PiValue * 2.0));
+		double degreesStep = degrees / (double)polysNum;
+
+		double planificatedSize = radius * 2 * PiValue;
+		double planificatedSizeToRender = planificatedSize * (perone / 57.50);
+		double planificatedSizeToRenderStep = planificatedSizeToRender / (double)polysNum;
+
+		for (int i = 0; i < polysNum; i++){
+			double degreesNow = degreesStep * (double)i;
+			double planificatedSizeToRenderNow = planificatedSize;
+			double sinValue = sin(degreesNow);
+			double cosValue = cos(degreesNow);
+			double lineWC = cosValue * radius * lineWeight;
+			double lineWS = sinValue * radius * lineWeight;
+
+			quad2DData.x1 = sinValue * (radius); // x1
+			quad2DData.y1 = cosValue * (radius); // y1
+			quad2DData.x2 = sinValue * (radius + lineWeight); // x2
+			quad2DData.y2 = cosValue * (radius); // y2
+
+			double degreesNowTwo = degreesStep * (i + 1.0);
+			double sinValueTwo = sin(degreesNowTwo);
+			double cosValueTwo = cos(degreesNowTwo);
+			double planificatedSizeToRenderNowTwo = planificatedSize;
+			double lineWCT = cosValueTwo * lineWeight;
+			double lineWST = sinValueTwo * lineWeight;
+
+			quad2DData.x3 = sinValueTwo * (radius); // x3
+			quad2DData.y3 = cosValueTwo * (radius + lineWeight); // y3
+			quad2DData.x4 = sinValueTwo * (radius + lineWeight); // x4
+			quad2DData.y4 = cosValueTwo * (radius + lineWeight); // y4
+
+			// Triangle 0
+			result[i * 12] = quad2DData.x1 + x;
+			result[i * 12 + 1] = quad2DData.y1 + y;
+			result[i * 12 + 2] = quad2DData.x2 + x;
+			result[i * 12 + 3] = quad2DData.y2 + y;
+			result[i * 12 + 4] = quad2DData.x3 + x;
+			result[i * 12 + 5] = quad2DData.y3 + y;
+
+			// Triangle 1
+			result[i * 12 + 6] = quad2DData.x3 + x;
+			result[i * 12 + 7] = quad2DData.y3 + y;
+			result[i * 12 + 8] = quad2DData.x4 + x;
+			result[i * 12 + 9] = quad2DData.y4 + y;
+			result[i * 12 + 10] = quad2DData.x1 + x;
+			result[i * 12 + 11] = quad2DData.y1 + y;
+
+			/*
+			quad2DData.x1, quad2DData.y1,
+			quad2DData.x2, quad2DData.y2,
+			quad2DData.x3, quad2DData.y3,
+			quad2DData.x3, quad2DData.y3,
+			quad2DData.x4, quad2DData.y4,
+			quad2DData.x1, quad2DData.y1*/
+		}
+	}
+
+	polysNum = maxPolys * peroneA;
+
+	bindTexture(0);
+	glBufferDataARB(GL_ARRAY_BUFFER_ARB, polysNum * 12 * sizeof(GLdouble), result.get(), GL_DYNAMIC_DRAW_ARB);
+
+	//glBindBufferARB(GL_ARRAY_BUFFER_ARB, bufferID);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	//glTexCoordPointer(2, GL_DOUBLE, 0, result.get());
+	glVertexPointer(2, GL_DOUBLE, 0, 0);
+
+	glDrawArrays(GL_TRIANGLES, 0, polysNum * 6);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+	glBindBuffer(GL_ARRAY_BUFFER_ARB, 0);
+}
+
 void CEngine::Render2DCircle(double x, double y, double percent, double radius, double lineWeight, int polysNum, int maxPolys, unsigned int &bufferID){
 	if (bufferID == (~0)){
 		bufferID = circlesBuffer.size();
@@ -1465,6 +1601,8 @@ CEngine::CEngine()
 	AASamples = 0;
 
 	window = nullptr;
+
+	lrC = lgC = lbC = laC = 1.0;
 
 	mouseX = mouseY = 0.0;
 	glMajor = 1;

@@ -1428,14 +1428,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	if (CEngine::engine().getTime() - ffatime > 0.02)
 	{
-		auto ch = CEngine::engine().getChannelData(player.instrumentSound);
+		auto ch = CEngine::engine().getChannelData(player.instrumentSound, 1);
 		ffatime = CEngine::engine().getTime();
 
 		for (int i = 0; i < 4; i++)
 		{
 			player.spectrumLines[i * 2 + 0] = -0.6 + (double)i * 0.3;
-
-			std::string test = std::to_string(ch.data[i]);
+			/*
+			std::string test = std::to_string(ch);
 			if (ch.data[i] > 0)
 				test.resize(10, '0');
 			else
@@ -1443,10 +1443,10 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 			double valueresult = std::stod(test) / 1000000000.0;
 			valueresult /= 64.0;
+			*/
+			player.spectrumLines[i * 2 + 1] = ch.data[i] + 0.5;
 
-			player.spectrumLines[i * 2 + 1] = valueresult + 0.5;
-
-			std::cout << valueresult << std::endl;
+			//std::cout << valueresult << std::endl;
 		}
 	}
 
@@ -1806,65 +1806,65 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	engine.Render2DQuad(HUDBackground);
 
 	double multi = player.comboToMultiplierWM();
-	double circleMultiPercent = multi >= 4.0 ? 100.0 : (multi - floor(multi)) * 100.0;
-	double circlePublicAprov = (player.publicAprov / player.maxPublicAprov) * 100.0;
-	double circleLoadPercent = player.plusLoadB * 100.0;
-	double circlePercent = (player.plusPower / player.maxPlusPower) * 100.0;
+	double circleMultiPercent = multi >= 4.0 ? 1.0 : (multi - floor(multi));
+	double circlePublicAprov = (player.publicAprov / player.maxPublicAprov);
+	double circleLoadPercent = player.plusLoadB;
+	double circlePercent = (player.plusPower / player.maxPlusPower);
 
 	engine.setColor(1.0, 1.0, 1.0, 1.0);
 
 	if (circleMultiPercent > 0.0){
-		double zeroToOne = circleMultiPercent / 100.0;
+		double zeroToOne = circleMultiPercent;
 
 		engine.setColor(0.0, 0.4, 1.0, 1.0);
-		engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circleMultiPercent, 0.01, 0.041, 200.0 * zeroToOne, 200, player.multiplierBuffer);
+		engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleMultiPercent, 0.01, 0.041, 200, player.multiplierBuffer);
 	}
 
 	if (player.Notes.gNotes.size() > 0){
-		double musicTotalCorrect = (player.correctNotes / player.Notes.gNotes.size()) * 100.0;
+		double musicTotalCorrect = (player.correctNotes / player.Notes.gNotes.size());
 
 		if (musicTotalCorrect > 0.0)
 		{
 			engine.setColor(0.4, 1.0, 0.4, 1.0);
-			engine.Render2DCircle(-0.8 + neg, -0.31 + negy, musicTotalCorrect, 0.05, 0.041, 400.0 * musicTotalCorrect / 100.0, 400, player.correctNotesBuffer);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, musicTotalCorrect, 0.05, 0.041, 400, player.correctNotesBuffer);
 		}
 	}
 
 	if (circlePublicAprov > 0.0){
-		double zeroToOne = circlePublicAprov / 100.0;
+		double zeroToOne = circlePublicAprov;
 
 		engine.setColor(1.0 - 1.0 * zeroToOne, 1.0 * zeroToOne, 0.0, 1.0);
-		engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circlePublicAprov, 0.09, 0.041, 600.0 * zeroToOne, 600, player.publicApprovBuffer);
+		engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePublicAprov, 0.09, 0.041, 600, player.publicApprovBuffer);
 	}
 
 	if (circleLoadPercent > circlePercent){
 		if (circleLoadPercent > 0.0){
-			double zeroToOne = circleLoadPercent / 100.0;
+			double zeroToOne = circleLoadPercent;
 
 			engine.setColor(0.4, 1.0, 0.4, 1.0);
-			engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusLoadBuffer);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, player.plusLoadBuffer);
 		}
 
 		if (circlePercent > 0.0){
-			double zeroToOne = circlePercent / 100.0;
+			double zeroToOne = circlePercent;
 
 			engine.setColor(0.0, 1.0, 1.0, 1.0);
-			engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusCircleBuffer);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, player.plusCircleBuffer);
 		}
 	}
 	else{
 		if (circlePercent > 0.0){
-			double zeroToOne = circlePercent / 100.0;
+			double zeroToOne = circlePercent;
 
 			engine.setColor(0.0, 1.0, 1.0, 1.0);
-			engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusCircleBuffer);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, player.plusCircleBuffer);
 		}
 
 		if (circleLoadPercent > 0.0){
-			double zeroToOne = circleLoadPercent / 100.0;
+			double zeroToOne = circleLoadPercent;
 
 			engine.setColor(0.4, 1.0, 0.4, 1.0);
-			engine.Render2DCircle(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000.0 * zeroToOne, 1000, player.plusLoadBuffer);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, player.plusLoadBuffer);
 		}
 	}
 

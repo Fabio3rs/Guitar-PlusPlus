@@ -56,6 +56,9 @@ public:
 			int pos;
 			int line;
 			fontTexture *textureLst;
+			unsigned int textID;
+
+			void setTextID(const fontTexture &texture);
 
 		public:
 
@@ -77,10 +80,15 @@ public:
 
 			inline void setText(const fontTexture &texture){
 				textureLst = const_cast<fontTexture*>(&texture);
+				setTextID(texture);
 			}
 
 			inline fontTexture *getText() const{
 				return textureLst;
+			}
+
+			inline unsigned int getTextID() const{
+				return textID;
 			}
 
 			chartbl(){
