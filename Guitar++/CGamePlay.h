@@ -20,6 +20,13 @@
 #include "CParticle.h"
 
 class CGamePlay{
+	struct lineData
+	{
+		int type;
+		double top;
+		double bottom;
+	};
+
 	void renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text);
 	void renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player);
 	void renderIndivdualStrikeButton3D(int id, double pos, unsigned int Texture, double state, CPlayer &player);
@@ -35,8 +42,11 @@ class CGamePlay{
 	void renderIndividualLine(int id, double pos1, double pos2, unsigned int Texture, CPlayer &player);
 	void renderTimeOnNote(double pos, double time, CPlayer &player);
 	void renderHoposLight();
+	void addTailToBuffer(CPlayer::NotesData::Note &note, double pos1, double pos2, double runningTime, CPlayer &player);
+	void renderTailsBuffer();
 
 	std::deque <glm::vec3> hopostp;
+	std::deque <lineData> tailsData;
 
 	lightData hoposLight, plusNoteLight;
 
@@ -46,6 +56,8 @@ class CGamePlay{
 	void drawBPMLine(double position, unsigned int Texture, CPlayer &Player);
 
 	double speedMp, gSpeed;
+
+	CEngine &engine;
 
 
 public:

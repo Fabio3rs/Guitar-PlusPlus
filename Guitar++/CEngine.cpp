@@ -1382,7 +1382,7 @@ void CEngine::Render2DCircleBufferMax(double x, double y, double perone, double 
 	polysNum = maxPolys * peroneA;
 
 	bindTexture(0);
-	glBufferDataARB(GL_ARRAY_BUFFER_ARB, polysNum * 12 * sizeof(GLdouble), result.get(), GL_DYNAMIC_DRAW_ARB);
+	glBufferDataARB(GL_ARRAY_BUFFER_ARB, polysNum * 12 * sizeof(GLdouble), result.get(), GL_STATIC_DRAW_ARB);
 
 	//glBindBufferARB(GL_ARRAY_BUFFER_ARB, bufferID);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -1490,7 +1490,15 @@ void CEngine::Render2DCircle(double x, double y, double percent, double radius, 
 	//glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
 }
 
-void CEngine::RenderCustomVerticesFloat(staticDrawBuffer &buffer)
+void CEngine::bindVBOBuffer(unsigned int buffer)
+{
+	if (lastUsedVBOBuffer == buffer) return;
+
+	lastUsedVBOBuffer = buffer;
+	glBindBuffer(GL_ARRAY_BUFFER_ARB, buffer);
+}
+
+void CEngine::RenderCustomVerticesFloat(staticDrawBuffer &buffer, bool autoBindZero)
 {
 	if (buffer.bufferID == (~0)){
 		glGenBuffers(1, &buffer.bufferID);
@@ -1500,7 +1508,7 @@ void CEngine::RenderCustomVerticesFloat(staticDrawBuffer &buffer)
 		glBufferDataARB(GL_ARRAY_BUFFER_ARB, buffer.sizebytes, buffer.pointer, GL_STATIC_DRAW_ARB);
 	}
 
-	glBindBuffer(GL_ARRAY_BUFFER_ARB, buffer.bufferID);
+	bindVBOBuffer(buffer.bufferID);
 	if (buffer.texture) bindTexture(buffer.texture);
 
 	glNormalPointer(GL_FLOAT, 0, (void*)buffer.normalsL);
@@ -1509,7 +1517,7 @@ void CEngine::RenderCustomVerticesFloat(staticDrawBuffer &buffer)
 	glVertexPointer(3, GL_FLOAT, 0, (void*)buffer.vertexL);
 
 	glDrawArrays(GL_TRIANGLES, 0, buffer.count);
-	glBindBuffer(GL_ARRAY_BUFFER_ARB, 0);
+	if (autoBindZero) bindVBOBuffer(0);
 }
 
 void CEngine::RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture)

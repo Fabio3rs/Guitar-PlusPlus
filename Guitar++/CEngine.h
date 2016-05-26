@@ -228,7 +228,7 @@ private:
 
 	double lastFrameTime, lastFPSSwapTime, DeltaTime;
 	int FPS, tmpFPS;
-	unsigned int lastUsedTexture;
+	unsigned int lastUsedTexture, lastUsedVBOBuffer;
 
 	unsigned int cursorText;
 
@@ -434,7 +434,7 @@ public:
 	void Render3DQuad(const RenderDoubleStruct &quad3DData);
 	void RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture);
 	void RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture, unsigned int &vbuffer, unsigned int &uvbuffer, unsigned int &nvbuffer);
-	void RenderCustomVerticesFloat(staticDrawBuffer &buffer);
+	void RenderCustomVerticesFloat(staticDrawBuffer &buffer, bool autoBindZero = true);
 	void RenderMulti3DQuad(const std::deque<RenderDoubleStruct> &quad3DData, unsigned int &bufferID);
 	void Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData);
 	void Render2DCircle(double x, double y, double percent, double radius, double lineWeight, int polysNum, int maxPolys, unsigned int &bufferID);
@@ -472,6 +472,7 @@ public:
 	void bindTextOnSlot(int text, int slot);
 	unsigned int getUniformLocation(unsigned int programID, const char *str);
 	void useShader(unsigned int programID);
+	void bindVBOBuffer(unsigned int buffer);
 
 	void activateNormals(bool a);
 	void activate3DRender(bool a);

@@ -11,7 +11,7 @@ class GPPOBJ{
 	CEngine::staticDrawBuffer vbodata;
 
 public:
-	void draw(unsigned int texture);
+	void draw(unsigned int texture, bool autoBindZeroVBO = true);
 	void load(const std::string &path);
 
 

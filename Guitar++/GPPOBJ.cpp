@@ -2,10 +2,10 @@
 #include "CEngine.h"
 #include <iostream>
 
-void GPPOBJ::draw(unsigned int texture)
+void GPPOBJ::draw(unsigned int texture, bool autoBindZeroVBO)
 {
 	vbodata.texture = texture;
-	CEngine::engine().RenderCustomVerticesFloat(vbodata);
+	CEngine::engine().RenderCustomVerticesFloat(vbodata, autoBindZeroVBO);
 }
 
 void GPPOBJ::load(const std::string &path)
