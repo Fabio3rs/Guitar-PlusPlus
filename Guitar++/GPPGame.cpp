@@ -235,7 +235,9 @@ void GPPGame::startModule(const std::string &name)
 
 	bool songTimeFixed = false;
 
-	module.players.back().enableBot = false;
+
+	module.players.back().enableBot = GPPGame::GuitarPP().botEnabled;
+	//CLog::log() << std::to_string(module.players.back().enableBot) + "bot que voa";
 
 	std::cout << "Plus in chart: " << module.players.back().Notes.gPlus.size() << std::endl;
 
@@ -961,6 +963,9 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 	CLuaH::Lua().loadFiles("data");
 
 	hyperSpeed = 1.0;
+
+	botEnabled = false;
+	CLuaFunctions::GameVariables::gv().pushVar("botEnabled", botEnabled);
 
 	CEngine::engine().loadSoundStream("data/sounds/erro-verde.wav", errorsSound[0]);
 	CEngine::engine().loadSoundStream("data/sounds/erro-vermelho.wav", errorsSound[1]);

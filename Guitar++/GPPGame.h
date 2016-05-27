@@ -223,6 +223,8 @@ public:
 
 	double hyperSpeed;
 
+	bool botEnabled;
+
 private:
 	struct loadThreadData{
 		std::atomic<bool> processing;
