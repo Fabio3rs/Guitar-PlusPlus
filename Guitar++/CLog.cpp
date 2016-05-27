@@ -26,10 +26,13 @@ CLog::CLog(const std::string &NameOfFile){
 	LogFile.open(NameOfFile, std::ios::in | std::ios::out | std::ios::trunc);
 	
 	if(!LogFile.good()) throw CLogException("Impossivel criar ou abrir o arquivo de log");
-	
-	LogContents = "*********************************************** \nLog started at: ";
+
+	LogContents += "*****************************************************************************\n";
+	LogContents += std::string("* Guitar++ compilation date/time: ") + __DATE__ + " " + __TIME__;
+	LogContents += "\n*****************************************************************************\n";
+	LogContents += "*****************************************************************************\n* Log started at: ";
 	LogContents += GetDateAndTime();
-	LogContents += "\n*********************************************** \n\n";
+	LogContents += "\n*****************************************************************************\n\n";
 
 	InstallExceptionCatcher([](const char *buffer)
 	{
@@ -74,9 +77,9 @@ void CLog::multiRegister(const char *format, ...){
 
 void CLog::FinishLog(){
 	if(Finished) return;
-	LogContents += "\n*********************************************** \nLog Finished at: ";
+	LogContents += "\n*****************************************************************************\n* Log Finished at: ";
 	LogContents += GetDateAndTime();
-	LogContents += "\n*********************************************** \n";
+	LogContents += "\n*****************************************************************************\n";
 	LogFile.clear();
 	LogFile.write(LogContents.c_str(), LogContents.size());
 	Finished = true;
@@ -85,9 +88,9 @@ void CLog::FinishLog(){
 void CLog::SaveBuffer(){
 	if(Finished) return;
 	std::string LogContentBackup = LogContents;
-	LogContents += "\n*********************************************** \nLog Finished at: ";
+	LogContents += "\n*****************************************************************************\n* Log Finished at: ";
 	LogContents += GetDateAndTime();
-	LogContents += "\n*********************************************** \n";
+	LogContents += "\n*****************************************************************************\n";
 	//LogFile.clear();
 	LogFile.write(LogContents.c_str(), LogContents.size());
 	LogContents = LogContentBackup;

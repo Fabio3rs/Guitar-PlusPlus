@@ -590,6 +590,14 @@ void CGamePlay::renderTailsBuffer()
 	const double size = 0.2;
 	const double position = -0.51;
 
+	auto form = [&](int i)
+	{
+		return position + (double(i) * size / 48.0) + (double(i) * size);
+	};
+
+	static const double posx[] = { form(0), form(1), form(2), form(3), form(4) };
+	static const double posxpsize[] = { posx[0] + size, posx[1] + size, posx[2] + size, posx[3] + size, posx[4] + size };
+
 	TempStruct3D.Text = text;
 	TempStruct3D.TextureX1 = 0.0;
 	TempStruct3D.TextureX2 = 1.0;
@@ -607,9 +615,9 @@ void CGamePlay::renderTailsBuffer()
 		{
 			if (t.type & notesFlagsConst[i])
 			{
-				TempStruct3D.x1 = position + (double(i) * size / 48.0) + (double(i) * size);
-				TempStruct3D.x2 = TempStruct3D.x1 + size;
-				TempStruct3D.x3 = TempStruct3D.x1 + size;
+				TempStruct3D.x1 = posx[i];
+				TempStruct3D.x2 = posxpsize[i];
+				TempStruct3D.x3 = TempStruct3D.x2;
 				TempStruct3D.x4 = TempStruct3D.x1;
 
 				TempStruct3D.z1 = t.top;

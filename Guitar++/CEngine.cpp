@@ -1033,12 +1033,15 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 
+	//glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+
 	if (AASamples)
 		glfwWindowHint(GLFW_SAMPLES, AASamples);
 
 	window = glfwCreateWindow(w, h, name, monitor, NULL);
 
-	if (!window){
+	if (!window)
+	{
 		GLFWerrorfun(-1, "Can't open GLFW window - verify your video's driver");
 		throw std::logic_error("Can't open GLFW window - verify your video's driver");
 	}
@@ -1049,12 +1052,26 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	windowCallBack((GLFWwindow*)window, w, h);
 
 	GLenum err = glewInit();
-	if (GLEW_OK != err){
+	if (GLEW_OK != err)
+	{
 		/* Problem: glewInit failed, something is seriously wrong. */
 		GLFWerrorfun(err, (char*)glewGetErrorString(err));
 		MessageBoxA(0, (char*)glewGetErrorString(err), "Error: %s\n", 0);
 	}
-	glUseProgram(0);
+
+	if (glUseProgram)
+	{
+		glUseProgram(0);
+	}
+	else
+	{
+		GLFWerrorfun(err, "Something wrong happened");
+		GLFWerrorfun(0, "glUseProgram GLEW_GET_FUN(__glewUseProgram) is 0");
+	}
+
+
+	glfwMakeContextCurrent((GLFWwindow*)window);
+
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -1324,7 +1341,7 @@ void CEngine::Render2DCircleBufferMax(double x, double y, double perone, double 
 		degrees = degrees / (360.0 / (PiValue * 2.0));
 		double degreesStep = degrees / (double)polysNum;
 
-		double planificatedSize = radius * 2 * PiValue;
+		double planificatedSize = radius * 2.0 * PiValue;
 		double planificatedSizeToRender = planificatedSize * (perone / 57.50);
 		double planificatedSizeToRenderStep = planificatedSizeToRender / (double)polysNum;
 
@@ -1336,11 +1353,6 @@ void CEngine::Render2DCircleBufferMax(double x, double y, double perone, double 
 			double lineWC = cosValue * radius * lineWeight;
 			double lineWS = sinValue * radius * lineWeight;
 
-			quad2DData.x1 = sinValue * (radius); // x1
-			quad2DData.y1 = cosValue * (radius); // y1
-			quad2DData.x2 = sinValue * (radius + lineWeight); // x2
-			quad2DData.y2 = cosValue * (radius); // y2
-
 			double degreesNowTwo = degreesStep * (i + 1.0);
 			double sinValueTwo = sin(degreesNowTwo);
 			double cosValueTwo = cos(degreesNowTwo);
@@ -1348,10 +1360,15 @@ void CEngine::Render2DCircleBufferMax(double x, double y, double perone, double 
 			double lineWCT = cosValueTwo * lineWeight;
 			double lineWST = sinValueTwo * lineWeight;
 
+			quad2DData.x1 = sinValue * (radius + lineWeight); // x1
+			quad2DData.y1 = cosValue * (radius + lineWeight); // y1
+			quad2DData.x2 = sinValueTwo * (radius + lineWeight); // x2
+			quad2DData.y2 = cosValueTwo * (radius + lineWeight); // y2
+
 			quad2DData.x3 = sinValueTwo * (radius); // x3
-			quad2DData.y3 = cosValueTwo * (radius + lineWeight); // y3
-			quad2DData.x4 = sinValueTwo * (radius + lineWeight); // x4
-			quad2DData.y4 = cosValueTwo * (radius + lineWeight); // y4
+			quad2DData.y3 = cosValueTwo * (radius); // y3
+			quad2DData.x4 = sinValue * (radius); // x4
+			quad2DData.y4 = cosValue * (radius); // y4
 
 			// Triangle 0
 			result[i * 12] = quad2DData.x1 + x;
@@ -1432,11 +1449,6 @@ void CEngine::Render2DCircle(double x, double y, double percent, double radius, 
 			double lineWC = cosValue * radius * lineWeight;
 			double lineWS = sinValue * radius * lineWeight;
 
-			quad2DData.x1 = sinValue * (radius); // x1
-			quad2DData.y1 = cosValue * (radius); // y1
-			quad2DData.x2 = sinValue * (radius + lineWeight); // x2
-			quad2DData.y2 = cosValue * (radius); // y2
-
 			double degreesNowTwo = degreesStep * (i + 1.0);
 			double sinValueTwo = sin(degreesNowTwo);
 			double cosValueTwo = cos(degreesNowTwo);
@@ -1444,10 +1456,15 @@ void CEngine::Render2DCircle(double x, double y, double percent, double radius, 
 			double lineWCT = cosValueTwo * lineWeight;
 			double lineWST = sinValueTwo * lineWeight;
 
+			quad2DData.x1 = sinValue * (radius + lineWeight); // x1
+			quad2DData.y1 = cosValue * (radius + lineWeight); // y1
+			quad2DData.x2 = sinValueTwo * (radius + lineWeight); // x2
+			quad2DData.y2 = cosValueTwo * (radius + lineWeight); // y2
+
 			quad2DData.x3 = sinValueTwo * (radius); // x3
-			quad2DData.y3 = cosValueTwo * (radius + lineWeight); // y3
-			quad2DData.x4 = sinValueTwo * (radius + lineWeight); // x4
-			quad2DData.y4 = cosValueTwo * (radius + lineWeight); // y4
+			quad2DData.y3 = cosValueTwo * (radius); // y3
+			quad2DData.x4 = sinValue * (radius); // x4
+			quad2DData.y4 = cosValue * (radius); // y4
 
 			// Triangle 0
 			result[i * 12] = quad2DData.x1 + x;
