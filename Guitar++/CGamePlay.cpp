@@ -172,7 +172,7 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
 		//CEngine::engine().useShader(programID);
 
-		GPPGame::GuitarPP().triggerBASEOBJ.draw(GPPGame::GuitarPP().sbaseTexture3D[id]);
+		GPPGame::GuitarPP().triggerBASEOBJ.draw(GPPGame::GuitarPP().sbaseTexture3D[id], false);
 		/*if (state != -10.0)
 		{
 			CEngine::engine().renderAt(0.0, state, 0.0);
@@ -240,7 +240,7 @@ void CGamePlay::renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
 		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5 + state, TempStruct3D.z1 + size);
-		GPPGame::GuitarPP().triggerOBJ.draw(GPPGame::GuitarPP().striggerTexture3D[id]);
+		GPPGame::GuitarPP().triggerOBJ.draw(GPPGame::GuitarPP().striggerTexture3D[id], false);
 		CEngine::engine().matrixReset();
 	}
 }
@@ -1781,6 +1781,10 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		if (flamepos > 0) renderIndivdualFlame(i, -0.25, fireText, flamepos - 1, 0.7, player);*/
 	}
 
+	for (int i = 0; i < 5; i++)
+		renderIndivdualStrikeButton3D(i, 0.0, 0, 0.0, player);
+
+	engine.bindVBOBuffer(0);
 
 	for (int i = 0; i < 5; i++)
 	{
@@ -1838,9 +1842,10 @@ void CGamePlay::renderPlayer(CPlayer &player)
 			}
 		}
 
-		renderIndivdualStrikeButton3D(i, 0.0, 0, 0.0, player);
 		renderIndivdualStrikeButton3DStrike(i, 0.0, 0, calcP, player);
 	}
+
+	engine.bindVBOBuffer(0);
 
 	engine.activateNormals(false);
 

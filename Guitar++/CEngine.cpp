@@ -1517,7 +1517,8 @@ void CEngine::bindVBOBuffer(unsigned int buffer)
 
 void CEngine::RenderCustomVerticesFloat(staticDrawBuffer &buffer, bool autoBindZero)
 {
-	if (buffer.bufferID == (~0)){
+	if (buffer.bufferID == (~0))
+	{
 		glGenBuffers(1, &buffer.bufferID);
 
 		glBindBuffer(GL_ARRAY_BUFFER_ARB, buffer.bufferID);

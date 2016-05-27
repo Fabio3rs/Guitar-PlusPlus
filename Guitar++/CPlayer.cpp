@@ -772,8 +772,9 @@ void CPlayer::NotesData::unloadChart(){
 	BPM.clear();
 }
 
-void CPlayer::resetData(){
-
+void CPlayer::resetData()
+{
+	correctNotes = 0;
 }
 
 CPlayer::NotesData::NotesData(){
@@ -948,6 +949,7 @@ CPlayer::CPlayer(const char *name)
 	plusThunterStrikeStart = plusPower = plusParticleEffectPosition = maxPlusPower = plusLoadF = plusLoadB = plusLoadInterval = 0.0;
 	plusCircleBuffer = plusLoadBuffer = publicApprovBuffer = correctNotesBuffer = multiplierBuffer = -1uL;
 
+	correctNotes = 0;
 
 	maxPlusPower = 1.0;
 	maxPublicAprov = 120.0;
