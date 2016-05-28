@@ -18,9 +18,11 @@
 #include "CPlayer.h"
 #include "CSaveSystem.h"
 #include "CLanguageManager.h"
+#include "gambiwindows.h"
 
 int main(int argc, char* argv[])
 {
+	///startGambiarras();
 	try{
 		CEngine::engine(GPPGame::logError);
 

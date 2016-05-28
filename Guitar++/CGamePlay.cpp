@@ -1716,11 +1716,17 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	engine.activate3DRender(true);
 
 	double fretboardData[] = { -0.51, 0.51, 0.51, -0.51, -1.0, -1.0, 0.4, 0.4 };
-
-
+	//engine.clearAccmumaltionBuffer();
+	//engine.clearAccmumaltionBuffer();
+	//player.playerParticles.render();
+	//	engine.addToAccumulationBuffer(0.25);
+	//engine.retAccumulationBuffer(1.0);
 	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], GPPGame::GuitarPP().fretboardText);
+	//engine.addToAccumulationBuffer(0.5);
 
 	if (showBPMLines) drawBPMLines(player);
+	//engine.addToAccumulationBuffer(0.5);
+	//engine.retAccumulationBuffer(1.0);
 
 	for (int i = 0; i < 5; i++)
 	{
@@ -1747,10 +1753,13 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	engine.activateLighting(true);
 	engine.activateNormals(true);
 
+	//engine.clearAccmumaltionBuffer();
 	for (auto &n : player.buffer)
 	{
 		renderNote(n, player);
 	}
+	//engine.addToAccumulationBuffer(0.5);
+	//engine.retAccumulationBuffer(1.0);
 
 	engine.bindVBOBuffer(0);
 
@@ -1808,7 +1817,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		}
 		else if (calcP > -0.023)
 		{
-			if ((int(time * 1000.0) % 20) % 2)
+			if ((int(time * 1000.0) % 50) % 2)
 			{
 				CParticle::particleData pd;
 
@@ -1849,7 +1858,12 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	engine.activateNormals(false);
 
-	player.playerParticles.render();
+	if (player.playerParticles.part.size()){
+		//engine.clearAccmumaltionBuffer();
+			player.playerParticles.render();
+		//	engine.addToAccumulationBuffer(0.25);
+		//engine.retAccumulationBuffer(1.0);
+	}
 
 	engine.setColor(1.0, 1.0, 1.0, 1.0);
 

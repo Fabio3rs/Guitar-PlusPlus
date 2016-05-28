@@ -26,6 +26,22 @@
 #include <assimp/postprocess.h>     // Post processing flags
 */
 
+
+void CEngine::clearAccmumaltionBuffer()
+{
+	glClear(GL_ACCUM_BUFFER_BIT);
+}
+
+void CEngine::addToAccumulationBuffer(double d)
+{
+	glAccum(GL_ACCUM, d);
+}
+
+void CEngine::retAccumulationBuffer(double d)
+{
+	glAccum(GL_RETURN, d);
+}
+
 CEngine &CEngine::engine(std::function <void(int, const std::string &e)> errfun)
 {
 	static CEngine eng(errfun);

@@ -442,6 +442,10 @@ public:
 	void draw2DLine(double *linedata, int points);
 	void setColor(double r, double g, double b, double a);
 
+	void addToAccumulationBuffer(double d);
+	void retAccumulationBuffer(double d);
+	void clearAccmumaltionBuffer();
+
 	struct chdata
 	{
 		float data[4];
