@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <utility>
 #include <functional>
+#include <array>
 
 #ifndef GLFW_KEY_MENU
 /* The unknown key */
@@ -383,6 +384,34 @@ public:
 			sizebytes = 0;
 		}
 	};
+
+	struct dTriangleWithAlpha
+	{
+		template<class T>
+		struct vType
+		{
+			T t;
+
+			vType(T &tdata)
+			{
+				memcpy(t, tdata, sizeof(tdata));
+			}
+		};
+
+		std::vector<vType<double[18]>> vArray;
+		std::vector<vType<double[12]>> tArray;
+		std::vector<vType<double[24]>> aArray;
+
+		inline void clear()
+		{
+			vArray.clear();
+			tArray.clear();
+			aArray.clear();
+		}
+	};
+
+	static void pushQuad(dTriangleWithAlpha &arr, const RenderDoubleStruct &quad3DData);
+	void drawTrianglesWithAlpha(dTriangleWithAlpha &tris, unsigned int texture);
 
 	const inline void *getWindow() const{ return window; }
 

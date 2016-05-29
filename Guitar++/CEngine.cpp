@@ -1601,6 +1601,55 @@ void CEngine::Render3DQuad(const RenderDoubleStruct &quad3DData){
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+void CEngine::pushQuad(dTriangleWithAlpha &arr, const RenderDoubleStruct &quad3DData)
+{
+	dTriangleWithAlpha nt;
+
+	GLdouble vertexArray[] = {
+		quad3DData.x1, quad3DData.y1, quad3DData.z1,
+		quad3DData.x2, quad3DData.y2, quad3DData.z2,
+		quad3DData.x3, quad3DData.y3, quad3DData.z3,
+		quad3DData.x3, quad3DData.y3, quad3DData.z3,
+		quad3DData.x4, quad3DData.y4, quad3DData.z4,
+		quad3DData.x1, quad3DData.y1, quad3DData.z1 };
+
+	GLdouble textArray[] = {
+		quad3DData.TextureX1, quad3DData.TextureY1,
+		quad3DData.TextureX2, quad3DData.TextureY1,
+		quad3DData.TextureX2, quad3DData.TextureY2,
+		quad3DData.TextureX2, quad3DData.TextureY2,
+		quad3DData.TextureX1, quad3DData.TextureY2,
+		quad3DData.TextureX1, quad3DData.TextureY1 };
+
+	GLdouble alphaArray[] = {
+		1.0, 1.0, 1.0, quad3DData.alphaTop,
+		1.0, 1.0, 1.0, quad3DData.alphaTop,
+		1.0, 1.0, 1.0, quad3DData.alphaBottom,
+		1.0, 1.0, 1.0, quad3DData.alphaBottom,
+		1.0, 1.0, 1.0, quad3DData.alphaBottom,
+		1.0, 1.0, 1.0, quad3DData.alphaTop };
+
+	arr.vArray.push_back(vertexArray);
+	arr.tArray.push_back(textArray);
+	arr.aArray.push_back(alphaArray);
+}
+
+void CEngine::drawTrianglesWithAlpha(dTriangleWithAlpha &tris, unsigned int texture)
+{
+	bindTexture(texture);
+
+	glEnableClientState(GL_COLOR_ARRAY);
+	
+	//std::cout << "   " << tris.vArray.size() << std::endl;
+
+	glColorPointer(4, GL_DOUBLE, 0, &(tris.aArray[0]));
+	glTexCoordPointer(2, GL_DOUBLE, 0, &(tris.tArray[0]));
+	glVertexPointer(3, GL_DOUBLE, 0, &(tris.vArray[0]));
+
+	glDrawArrays(GL_TRIANGLES, 0, 6 * tris.vArray.size());
+	glDisableClientState(GL_COLOR_ARRAY);
+}
+
 void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData){
 	GLdouble vertexArray[] = {
 		quad3DData.x1, quad3DData.y1, quad3DData.z1,

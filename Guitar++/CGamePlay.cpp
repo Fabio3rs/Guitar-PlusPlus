@@ -58,7 +58,56 @@ void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Play
 
 void CGamePlay::drawBPMLines(CPlayer &Player)
 {
-	double time = getRunningMusicTime(Player) - 0.5;
+	BPMl.clear();
+	double mscRunnTime = getRunningMusicTime(Player);
+	double time = mscRunnTime - 0.5;
+
+	auto calcQuad = [&](double position, double runTime, CPlayer &Player)
+	{
+		CEngine::RenderDoubleStruct TempStruct3D;
+		double rtime = runTime - position;
+
+		double nCalc = rtime * speedMp;
+
+		nCalc += 0.55;
+
+		double alpha = pos2Alpha(-nCalc / 6.5);
+
+		if (alpha <= 0.0)
+		{
+			return;
+		}
+
+		const double pos = -0.492;
+
+		const double size = 0.25;
+
+		TempStruct3D.x1 = pos;
+		TempStruct3D.x2 = pos * -1.0;
+		TempStruct3D.x3 = TempStruct3D.x2;
+		TempStruct3D.x4 = TempStruct3D.x1;
+
+		TempStruct3D.y1 = -0.4999;
+		TempStruct3D.y2 = TempStruct3D.y1;
+		TempStruct3D.y3 = -0.4999;
+		TempStruct3D.y4 = TempStruct3D.y3;
+
+		TempStruct3D.z1 = nCalc;
+		TempStruct3D.z2 = TempStruct3D.z1;
+		TempStruct3D.z3 = nCalc + size;
+		TempStruct3D.z4 = TempStruct3D.z3;
+
+		TempStruct3D.TextureX1 = 0.0f;
+		TempStruct3D.TextureX2 = 1.0f;
+		TempStruct3D.TextureY1 = 1.0f;
+		TempStruct3D.TextureY2 = 0.0f;
+
+		TempStruct3D.alphaBottom = alpha;
+		TempStruct3D.alphaTop = alpha;
+
+		CEngine::pushQuad(BPMl, TempStruct3D);
+	};
+
 
 	if (Player.Notes.BPM.size() > 0){
 		double BPS = 30.0 / Player.Notes.BPM[Player.BPMNowBuffer].lTime;
@@ -67,14 +116,17 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		double tCalc = 0.0;
 
 		for (int i = 0; tCalc < 5.0; i++){
-			drawBPMLine((Multi * BPS) + tCalc, BPMTextID, Player);
+			//drawBPMLine((Multi * BPS) + tCalc, BPMTextID, Player);
+			calcQuad((Multi * BPS) + tCalc, mscRunnTime, Player);
 
 			tCalc = BPS * i;
 		}
 	}
 
+	CEngine::engine().drawTrianglesWithAlpha(BPMl, BPMTextID);
 
-	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+
+	//CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 }
 
 void CGamePlay::renderIndivdualFlame(int id, double pos, unsigned int Texture, int state, double sizeproportion, CPlayer &player)
