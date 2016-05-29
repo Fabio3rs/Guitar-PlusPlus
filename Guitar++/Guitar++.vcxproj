@@ -101,7 +101,6 @@
     <ClCompile Include="CSaveSystem.cpp" />
     <ClCompile Include="CText.cpp" />
     <ClCompile Include="exception.cpp" />
-    <ClCompile Include="gambiwindows.cpp" />
     <ClCompile Include="GPPGame.cpp" />
     <ClCompile Include="GPPOBJ.cpp" />
     <ClCompile Include="Guitar++.cpp" />
@@ -158,7 +157,6 @@
     <ClInclude Include="CPlayer.h" />
     <ClInclude Include="CSaveSystem.h" />
     <ClInclude Include="CText.h" />
-    <ClInclude Include="gambiwindows.h" />
     <ClInclude Include="GPPGame.h" />
     <ClInclude Include="GPPOBJ.h" />
     <ClInclude Include="internal.h" />

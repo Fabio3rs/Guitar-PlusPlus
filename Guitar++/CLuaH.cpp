@@ -3,13 +3,12 @@
 
 #include "CLuaH.hpp"
 #include "CLuaFunctions.hpp"
-#include <Windows.h>
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
 #include "CLog.h"
-#include <filesystem>
+#include <dirent.h>
 
 CLuaH &CLuaH::Lua()
 {
@@ -22,26 +21,24 @@ bool CLuaH::loadFiles(const std::string &path)
 	auto extension_from_filename = [](const std::string &fname)
 	{
 		size_t s;
-		return std::string((s = fname.find_last_of('.') != fname.npos)? &fname.c_str()[++s] : "");
+		return std::string(((s = fname.find_first_of('.')) != fname.npos) ? (&fname.c_str()[++s]) : (""));
 	};
 
-	// TODO: change to STD FileSystem
+	DIR *direntd = opendir((std::string("./") + path).c_str());
+	dirent *rrd = nullptr;
 
-	HANDLE hFind;
-	WIN32_FIND_DATAA data;
-
-	hFind = FindFirstFileA((std::string("./") + path + "/*.lua").c_str(), &data);
-	if (hFind != INVALID_HANDLE_VALUE)
+	if (direntd)
 	{
-		do
+		rrd = readdir(direntd);
+		while ((rrd = readdir(direntd)) != nullptr)
 		{
-			if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+			if ((rrd->d_type & DT_DIR) == 0 && extension_from_filename(rrd->d_name) == "lua")
 			{
-				CLog::log() << ("Loading " + path + "/" + data.cFileName);
-				files[path][data.cFileName] = newScript(path, data.cFileName);
+				CLog::log() << ("Loading " + path + "/" + rrd->d_name);
+				files[path][rrd->d_name] = newScript(path, rrd->d_name);
 			}
-		} while (FindNextFileA(hFind, &data));
-		FindClose(hFind);
+		}
+		closedir(direntd);
 	}
 	
 	return true;

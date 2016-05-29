@@ -6,7 +6,6 @@
 #include "CLog.h"
 #include <stdio.h>
 #include <time.h>
-#include <Windows.h>
 #include "CLuaH.hpp"
 
 int InstallExceptionCatcher(void(*cb)(const char* buffer));
@@ -34,6 +33,7 @@ CLog::CLog(const std::string &NameOfFile){
 	LogContents += GetDateAndTime();
 	LogContents += "\n*****************************************************************************\n\n";
 
+#ifdef _WIN32
 	InstallExceptionCatcher([](const char *buffer)
 	{
 		CLuaH::Lua().runEvent("emergencyLogSave");
@@ -41,6 +41,7 @@ CLog::CLog(const std::string &NameOfFile){
 		log().SaveBuffer();
 		CLuaH::Lua().runEvent("emergencyExit");
 	});
+#endif
 }
 
 CLog::~CLog(){

@@ -1514,7 +1514,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	auto &engine = CEngine::engine();
 
-	static double ffatime = engine.getTime();
+	/*static double ffatime = engine.getTime();
 	double p = pow(10, 30);
 
 	if (engine.getTime() - ffatime > 0.02)
@@ -1525,7 +1525,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		for (int i = 0; i < 4; i++)
 		{
 			player.spectrumLines[i * 2 + 0] = -0.6 + (double)i * 0.3;
-			/*
+			//////*
 			std::string test = std::to_string(ch);
 			if (ch.data[i] > 0)
 				test.resize(10, '0');
@@ -1534,7 +1534,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 			double valueresult = std::stod(test) / 1000000000.0;
 			valueresult /= 64.0;
-			*/
+			///////////
 			player.spectrumLines[i * 2 + 1] = ch.data[i] + 0.5;
 
 			//std::cout << valueresult << std::endl;
@@ -1542,7 +1542,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}
 
 	engine.draw2DLine(player.spectrumLines, 4);
-
+	*/
 	for (auto &t : l0.ambientLight)
 	{
 		t = 0.22;

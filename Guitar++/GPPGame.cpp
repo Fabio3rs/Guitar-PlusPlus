@@ -4,8 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include "CLog.h"
-#include <filesystem>
-#include <Windows.h>
+#include <dirent.h>
 #include "CControls.h"
 #include <functional>
 #include "CFonts.h"
@@ -573,7 +572,7 @@ void GPPGame::loadAllThemes()
 	auto extension_from_filename = [](const std::string &fname)
 	{
 		size_t s;
-		return std::string((s = fname.find_last_of('.') != fname.npos) ? &fname.c_str()[++s] : "");
+		return std::string(((s = fname.find_first_of('.')) != fname.npos) ? (&fname.c_str()[++s]) : (""));
 	};
 
 	auto file_exists = [](const std::string &fileName)
@@ -581,28 +580,38 @@ void GPPGame::loadAllThemes()
 		return std::fstream(fileName).is_open();
 	};
 
-	// TODO: change to STD FileSystem
+	DIR *direntd = opendir((std::string("./") + path).c_str());
+	dirent *rrd = nullptr;
 
-	HANDLE hFind;
-	WIN32_FIND_DATA data;
-
-	hFind = FindFirstFile((path + "/*").c_str(), &data);
-
-	if (hFind != INVALID_HANDLE_VALUE)
+	if (direntd)
 	{
-		do
+		rrd = readdir(direntd);
+		while ((rrd = readdir(direntd)) != nullptr)
 		{
-			const std::string name = data.cFileName;
+			const std::string name = rrd->d_name;
 
-			if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && name != ".." && name != "."
+			if ((rrd->d_type & DT_DIR) && name != ".." && name != "."
 				&& file_exists((path + std::string("/") + name + "/Theme.lua")))
 			{
 				loadThemes(name);
 			}
+		}
+		closedir(direntd);
+	}
+	/*
+	if (hFind != INVALID_HANDLE_VALUE)
+	{
+		do
+		{
+
+			if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+			{
+				
+			}
 		} while (FindNextFile(hFind, &data));
 		FindClose(hFind);
 	}
-
+	*/
 }
 
 const std::string GPPGame::addGameCallbacks(const std::string &n, func_t function)

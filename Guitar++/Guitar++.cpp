@@ -12,13 +12,15 @@
 #include "CEngine.h"
 #include "CLog.h"
 #include "CMenu.h"
-#include <Windows.h>
-#include <Psapi.h>
+#ifdef _WIN32
+//#include <Windows.h>
+//#include <Psapi.h>
+#endif
 #include "CFonts.h"
 #include "CPlayer.h"
 #include "CSaveSystem.h"
 #include "CLanguageManager.h"
-#include "gambiwindows.h"
+//#include "gambiwindows.h"
 
 int main(int argc, char* argv[])
 {
@@ -31,7 +33,9 @@ int main(int argc, char* argv[])
 		}
 		catch (const std::exception &e)
 		{
-			MessageBoxA(0, e.what(), "Error", 0);
+#ifdef _WIN32
+			//MessageBoxA(0, e.what(), "Error", 0);
+#endif
 			return 1;
 		}
 
