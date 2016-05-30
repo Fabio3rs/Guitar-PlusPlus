@@ -211,15 +211,15 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 		TempStruct3D.z2 = TempStruct3D.z1;
 		TempStruct3D.z3 = nCalc + size * 2.0;
 		TempStruct3D.z4 = TempStruct3D.z3;
-
+		/*
 		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
 
 		if (alpha <= 0.0)
 		{
 			return;
 		}
-
-		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
+*/
+		//CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
@@ -282,15 +282,15 @@ void CGamePlay::renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned
 		TempStruct3D.z3 = nCalc + size * 2.0;
 		TempStruct3D.z4 = TempStruct3D.z3;
 
-
+		/*
 		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
 
 		if (alpha <= 0.0)
 		{
 			return;
 		}
-
-		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
+		*/
+		//CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 
@@ -721,7 +721,7 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 	for (int i = 0; i < 5; i++){
 		if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
 		{
-			unsigned int texture = fretsText.notesTexture;
+			unsigned int texture = /*fretsText.notesTexture*/1;
 			/*if (note.type & notesFlags::nf_doing_slide){
 				time = ltimet;
 			}*/
@@ -745,7 +745,7 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 
 			if ((note.type & notesFlags::nf_not_hopo) ^ notesFlags::nf_not_hopo)
 			{
-				texture = GPPGame::GuitarPP().HOPOSText;
+				texture = /*GPPGame::GuitarPP().HOPOSText*/-1;
 			}
 
 			/*if (note.type & notesFlags::plus_mid || note.type & notesFlags::plus_end){
@@ -1605,7 +1605,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	*/
 	for (auto &t : l0.ambientLight)
 	{
-		t = 0.22;
+		t = 0.2;
 	}
 
 	for (auto &t : l0.direction)
@@ -1628,8 +1628,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		t = 1.0;
 	}
 
-	l0.specularLight[3] = 0.2;
-	l0.diffuseLight[3] = 0.2;
+	l0.specularLight[3] = 0.6;
+	l0.diffuseLight[3] = 0.4;
 
 	l0.angle = 120.0;
 	l0.direction[0] = 0.0;
@@ -1698,6 +1698,11 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		engine.activateLight(1, true);
 		engine.setLight(l, 1);
 		renablel0 = true;
+	}
+	else
+	{
+		engine.setLight(l0, 0);
+		engine.activateLight(0, true);
 	}
 
 	if (player.plusEnabled)
@@ -1833,6 +1838,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	double BPMT = player.Notes.BPM[player.BPMNowBuffer].lTime / 120.0;
 	int flamepos = (int)(engine.getTime() * 12.0 / BPMT) % 4;
 
+	engine.setColor(1.0, 1.0, 1.0, 1.0);
 
 	// ********************************************** STRIKE LINE BTN -
 	for (int i = 0; i < 5; i++)
@@ -2160,10 +2166,10 @@ CGamePlay::CGamePlay() : engine(CEngine::engine())
 
 	songlyricsIndex = 0;
 
-	fretsTextures = "default";
-	fretsText = GPPGame::GuitarPP().frets[fretsTextures];
-	fretsText.notesTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "Strums.tga").getTextId();
-	fretsText.strikeLineTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "frets.tga").getTextId();
+	//fretsTextures = "default";
+	//fretsText = GPPGame::GuitarPP().frets[fretsTextures];
+	//fretsText.notesTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "Strums.tga").getTextId();
+	//fretsText.strikeLineTexture = GPPGame::GuitarPP().loadTexture("data/sprites", "frets.tga").getTextId();
 	fireText = GPPGame::GuitarPP().loadTexture("data/sprites", "flamea.tga").getTextId();
 	pfireText = GPPGame::GuitarPP().loadTexture("data/sprites", "fire.tga").getTextId();
 

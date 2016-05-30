@@ -10,6 +10,9 @@ void CParticle::addParticle(const particleData &pdata)
 
 void CParticle::render()
 {
+	partDrawData.clear();
+	partDrawData.autoEnDisaColors = true;
+	partDrawData.useColors = true;
 	double deltaTime = CEngine::engine().getDeltaTime(), time = CEngine::engine().getTime();
 
 	CEngine::RenderDoubleStruct pstruct;
@@ -26,6 +29,7 @@ void CParticle::render()
 		{
 			continue;
 		}
+		partDrawData.texture = p.texture;
 
 		p.ax -= p.desac * deltaTime;
 		p.ay -= p.desac * deltaTime;
@@ -54,11 +58,15 @@ void CParticle::render()
 		pstruct.z3 = p.z;
 		pstruct.z4 = p.z;
 
-		pstruct.Text = p.texture;
+		double alpha = (time - p.addedAt) / p.duration;
 
-		CEngine::engine().setColor(1.0, 1.0, 1.0, (time - p.addedAt) / p.duration);
-		CEngine::engine().Render3DQuad(pstruct);
+		pstruct.alphaTop = alpha;
+		pstruct.alphaBottom = alpha;
+
+		CEngine::pushQuad(partDrawData, pstruct);
 	}
+
+	CEngine::engine().drawTrianglesWithAlpha(partDrawData);
 
 	for (auto it = part.begin(); it != part.end(); /******/)
 	{

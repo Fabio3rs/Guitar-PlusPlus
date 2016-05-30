@@ -7,6 +7,7 @@
 #include <cmath>
 #include <algorithm>
 #include <utility>
+#include "CEngine.h"
 
 class CParticle{
 
@@ -18,6 +19,7 @@ public:
 		unsigned int texture;
 	};
 	std::deque <particleData> part;
+	CEngine::dTriangleWithAlpha partDrawData;
 	
 	void addParticle(const particleData &pdata);
 	void render();
