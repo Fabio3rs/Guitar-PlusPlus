@@ -365,6 +365,11 @@ void GPPGame::startModule(const std::string &name)
 	if (load.joinable()) load.join();
 }
 
+void GPPGame::callbackRenderFrame()
+{
+	CFonts::fonts().drawAllBuffers();
+}
+
 void GPPGame::continueCampaing(const std::string &name)
 {
 	auto createMMenu = []()
@@ -985,6 +990,7 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 	CEngine::engine().loadSoundStream("data/sounds/fretboard-inicio.wav", startSound);
 	CEngine::engine().loadSoundStream("data/sounds/fretboard-fimdamusica.wav", endSound);
 
+	CEngine::engine().renderFrameCallback = callbackRenderFrame;
 
 	windowCFGs = getWindowDefaults();
 

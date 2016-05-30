@@ -387,6 +387,9 @@ public:
 
 	struct dTriangleWithAlpha
 	{
+		bool useColors;
+		bool autoEnDisaColors;
+		unsigned int texture;
 		template<class T>
 		struct vType
 		{
@@ -408,10 +411,18 @@ public:
 			tArray.clear();
 			aArray.clear();
 		}
+
+		inline dTriangleWithAlpha()
+		{
+			autoEnDisaColors = true;
+		}
 	};
 
+	std::function < void(void) > renderFrameCallback;
+
 	static void pushQuad(dTriangleWithAlpha &arr, const RenderDoubleStruct &quad3DData);
-	void drawTrianglesWithAlpha(dTriangleWithAlpha &tris, unsigned int texture);
+	void drawTrianglesWithAlpha(dTriangleWithAlpha &tris);
+	static void enableColorsPointer(bool state);
 
 	const inline void *getWindow() const{ return window; }
 

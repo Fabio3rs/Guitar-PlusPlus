@@ -893,7 +893,11 @@ double calcDist(double x1, double y1, double x2, double y2){
 	return sqrt(xr * xr + yr * yr);
 }
 
-void CEngine::renderFrame(){
+void CEngine::renderFrame()
+{
+	if (renderFrameCallback)
+		renderFrameCallback();
+
 	RenderDoubleStruct cursorPointer;
 
 	cursorPointer.x1 = mouseX;
@@ -1621,33 +1625,49 @@ void CEngine::pushQuad(dTriangleWithAlpha &arr, const RenderDoubleStruct &quad3D
 		quad3DData.TextureX1, quad3DData.TextureY2,
 		quad3DData.TextureX1, quad3DData.TextureY1 };
 
-	GLdouble alphaArray[] = {
-		1.0, 1.0, 1.0, quad3DData.alphaTop,
-		1.0, 1.0, 1.0, quad3DData.alphaTop,
-		1.0, 1.0, 1.0, quad3DData.alphaBottom,
-		1.0, 1.0, 1.0, quad3DData.alphaBottom,
-		1.0, 1.0, 1.0, quad3DData.alphaBottom,
-		1.0, 1.0, 1.0, quad3DData.alphaTop };
-
 	arr.vArray.push_back(vertexArray);
 	arr.tArray.push_back(textArray);
-	arr.aArray.push_back(alphaArray);
+
+	if (arr.useColors)
+	{
+		GLdouble alphaArray[] = {
+			1.0, 1.0, 1.0, quad3DData.alphaTop,
+			1.0, 1.0, 1.0, quad3DData.alphaTop,
+			1.0, 1.0, 1.0, quad3DData.alphaBottom,
+			1.0, 1.0, 1.0, quad3DData.alphaBottom,
+			1.0, 1.0, 1.0, quad3DData.alphaBottom,
+			1.0, 1.0, 1.0, quad3DData.alphaTop };
+
+		arr.aArray.push_back(alphaArray);
+	}
 }
 
-void CEngine::drawTrianglesWithAlpha(dTriangleWithAlpha &tris, unsigned int texture)
+void CEngine::enableColorsPointer(bool state)
 {
-	bindTexture(texture);
+	if (state)
+	{
+		glEnableClientState(GL_COLOR_ARRAY);
+	}
+	else
+	{
+		glDisableClientState(GL_COLOR_ARRAY);
+	}
+}
 
-	glEnableClientState(GL_COLOR_ARRAY);
+void CEngine::drawTrianglesWithAlpha(dTriangleWithAlpha &tris)
+{
+	bindTexture(tris.texture);
+
+	if (tris.useColors && tris.autoEnDisaColors) glEnableClientState(GL_COLOR_ARRAY);
 	
 	//std::cout << "   " << tris.vArray.size() << std::endl;
 
-	glColorPointer(4, GL_DOUBLE, 0, &(tris.aArray[0]));
+	if (tris.useColors) glColorPointer(4, GL_DOUBLE, 0, &(tris.aArray[0]));
 	glTexCoordPointer(2, GL_DOUBLE, 0, &(tris.tArray[0]));
 	glVertexPointer(3, GL_DOUBLE, 0, &(tris.vArray[0]));
 
 	glDrawArrays(GL_TRIANGLES, 0, 6 * tris.vArray.size());
-	glDisableClientState(GL_COLOR_ARRAY);
+	if (tris.useColors && tris.autoEnDisaColors) glDisableClientState(GL_COLOR_ARRAY);
 }
 
 void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData){

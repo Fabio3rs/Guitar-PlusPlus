@@ -18,7 +18,7 @@
 #include <map>
 
 class CFonts{
-
+	std::map < unsigned int, CEngine::dTriangleWithAlpha > textPerTextureBuffer;
 
 public:
 	class Font{
@@ -113,10 +113,12 @@ public:
 	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::wstring &textChars);
 	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars);
 	double								getCenterPos(int charsnum, double size, double posX1);
-
+	
+	void								drawTextInScreenWithBuffer(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName = "default");
 	void								drawTextInScreen(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName = "default");
 	void								draw3DTextInScreen(const std::string &str, const double posX1, const double posY1, const double posZ1, const double sizeX, const double sizeY, const double sizeZ, const std::string &fontName = "default");
 
+	void								drawAllBuffers();
 
 	static CFonts &fonts();
 

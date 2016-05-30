@@ -59,6 +59,8 @@ void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Play
 void CGamePlay::drawBPMLines(CPlayer &Player)
 {
 	BPMl.clear();
+	BPMl.useColors = true;
+	BPMl.texture = BPMTextID;
 	double mscRunnTime = getRunningMusicTime(Player);
 	double time = mscRunnTime - 0.5;
 
@@ -123,7 +125,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		}
 	}
 
-	CEngine::engine().drawTrianglesWithAlpha(BPMl, BPMTextID);
+	CEngine::engine().drawTrianglesWithAlpha(BPMl);
 
 
 	//CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
@@ -1450,7 +1452,7 @@ void CGamePlay::renderLyrics()
 		if (time > songlyrics[songlyricsIndex].tstart)
 		{
 			std::string &s = songlyrics[songlyricsIndex].lyric;
-			CFonts::fonts().drawTextInScreen(s, CFonts::fonts().getCenterPos(s.size(), 0.1, 0.0), 0.6, 0.1);
+			CFonts::fonts().drawTextInScreenWithBuffer(s, CFonts::fonts().getCenterPos(s.size(), 0.1, 0.0), 0.6, 0.1);
 		}
 	}
 }
@@ -2050,9 +2052,9 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	//CFonts::fonts().drawTextInScreen(std::to_string(player.plusLoadB), 0.0, 0.2, 0.1);
 
-	CFonts::fonts().drawTextInScreen(std::to_string(player.getCombo()), -1.025 + neg, 0.04 + negy, 0.1);
-	CFonts::fonts().drawTextInScreen(std::to_string(player.getPoints()), -1.02 + neg, -0.1 + negy, 0.06);
-	CFonts::fonts().drawTextInScreen(std::to_string((int)player.comboToMultiplier()), -0.9 + neg, -0.37 + negy, 0.1);
+	CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(player.getCombo()), -1.025 + neg, 0.04 + negy, 0.1);
+	CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(player.getPoints()), -1.02 + neg, -0.1 + negy, 0.06);
+	CFonts::fonts().drawTextInScreenWithBuffer(std::to_string((int)player.comboToMultiplier()), -0.9 + neg, -0.37 + negy, 0.1);
 
 	/////////////***************************************
 
@@ -2125,7 +2127,7 @@ void CGamePlay::render()
 	}
 	//*******************************************************************************************************
 
-	CFonts::fonts().drawTextInScreen(std::to_string(CEngine::engine().getFPS()) + " FPS", 0.8, 0.8, 0.1);
+	CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(CEngine::engine().getFPS()) + " FPS", 0.8, 0.8, 0.1);
 }
 
 /*

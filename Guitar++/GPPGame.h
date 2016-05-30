@@ -226,6 +226,8 @@ public:
 	bool botEnabled;
 
 private:
+	static void callbackRenderFrame();
+
 	struct loadThreadData{
 		std::atomic<bool> processing;
 	};
