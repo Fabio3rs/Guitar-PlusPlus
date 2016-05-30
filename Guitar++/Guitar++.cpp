@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
 			CEngine::engine().Render2DQuad(lgrdata);
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t + 0.1));
-			CFonts::fonts().drawTextInScreen(str2nibblePresents, CFonts::fonts().getCenterPos(str2nibblePresents.size(), 0.1, 0.0), -0.6, 0.1);
+			CFonts::fonts().drawTextInScreenWithBuffer(str2nibblePresents, CFonts::fonts().getCenterPos(str2nibblePresents.size(), 0.1, 0.0), -0.6, 0.1);
 			
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);

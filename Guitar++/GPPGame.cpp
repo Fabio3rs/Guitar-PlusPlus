@@ -209,7 +209,7 @@ void GPPGame::startModule(const std::string &name)
 	{
 		GPPGame::GuitarPP().clearScreen();
 
-		CFonts::fonts().drawTextInScreen("loading", -0.4, 0.0, 0.1);
+		CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0, 0.1);
 
 		GPPGame::GuitarPP().renderFrame();
 	}
@@ -339,7 +339,7 @@ void GPPGame::startModule(const std::string &name)
 
 			if ((startTime - time) > 0.0)
 			{
-				CFonts::fonts().drawTextInScreen(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
+				CFonts::fonts().drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
 				musicstartedg = 0;
 			}
 
@@ -419,7 +419,7 @@ void GPPGame::continueCampaing(const std::string &name)
 
 	auto midFun = []()
 	{
-		CFonts::fonts().drawTextInScreen("Seu status", 0.7, 0.5, 0.1);
+		CFonts::fonts().drawTextInScreenWithBuffer("Seu status", 0.7, 0.5, 0.1);
 		
 		return 0;
 	};
