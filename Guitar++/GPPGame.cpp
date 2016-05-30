@@ -224,6 +224,7 @@ void GPPGame::startModule(const std::string &name)
 	GPPGame::GuitarPP().fretboardText = GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId();
 	GPPGame::GuitarPP().lineText = GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId();
 	GPPGame::GuitarPP().HOPOSText = GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId();
+	GPPGame::GuitarPP().pylmBarText = GPPGame::GuitarPP().loadTexture("data/sprites", "pylmbar.tga").getTextId();
 
 	double startTime = module.players.back().startTime = CEngine::engine().getTime() + 3.0;
 	double openMenuTime = 0.0;

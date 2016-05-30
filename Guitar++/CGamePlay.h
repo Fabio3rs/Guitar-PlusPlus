@@ -47,7 +47,7 @@ class CGamePlay{
 
 	std::deque <glm::vec3> hopostp;
 	std::deque <lineData> tailsData;
-	CEngine::dTriangleWithAlpha BPMl;
+	CEngine::dTriangleWithAlpha BPMl, fretboardLData;
 
 	lightData hoposLight, plusNoteLight;
 

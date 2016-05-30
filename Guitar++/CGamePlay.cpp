@@ -60,6 +60,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 {
 	BPMl.clear();
 	BPMl.useColors = true;
+	BPMl.autoEnDisaColors = false;
 	BPMl.texture = BPMTextID;
 	double mscRunnTime = getRunningMusicTime(Player);
 	double time = mscRunnTime - 0.5;
@@ -1342,6 +1343,10 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text)
 {
+	fretboardLData.clear();
+	fretboardLData.useColors = true;
+	fretboardLData.autoEnDisaColors = false;
+
 	double size = 2.1;
 
 	auto positionCalcByT = [this, size](double p, double prop)
@@ -1361,26 +1366,26 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 	CEngine::RenderDoubleStruct FretBoardStruct;
 
+	FretBoardStruct.x1 = x1;
+	FretBoardStruct.x2 = x2;
+	FretBoardStruct.x3 = x3;
+	FretBoardStruct.x4 = x4;
+
+	FretBoardStruct.TextureX1 = 0.0;
+	FretBoardStruct.TextureX2 = 1.0;
+
+	FretBoardStruct.TextureY1 = 0.0;
+	FretBoardStruct.TextureY2 = 1.0;
+
+	FretBoardStruct.y1 = -0.5;
+	FretBoardStruct.y2 = FretBoardStruct.y1;
+	FretBoardStruct.y3 = FretBoardStruct.y1;
+	FretBoardStruct.y4 = FretBoardStruct.y1;
+
+	fretboardLData.texture = FretBoardStruct.Text = Text;
+
 	for (int i = -2; i < 8; i++)
 	{
-		FretBoardStruct.x1 = x1;
-		FretBoardStruct.x2 = x2;
-		FretBoardStruct.x3 = x3;
-		FretBoardStruct.x4 = x4;
-
-		FretBoardStruct.y1 = -0.5;
-		FretBoardStruct.y2 = FretBoardStruct.y1;
-		FretBoardStruct.y3 = FretBoardStruct.y1;
-		FretBoardStruct.y4 = FretBoardStruct.y1;
-
-		FretBoardStruct.TextureX1 = 0.0;
-		FretBoardStruct.TextureX2 = 1.0;
-
-		FretBoardStruct.TextureY1 = 0.0;
-		FretBoardStruct.TextureY2 = 1.0;
-
-		FretBoardStruct.Text = Text;
-
 		FretBoardStruct.z1 = (x2 - x1) * (-size) * i - cCalc;
 		FretBoardStruct.z2 = FretBoardStruct.z1;
 		FretBoardStruct.z3 = FretBoardStruct.z1 + (x2 - x1) * (-size);
@@ -1396,10 +1401,11 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 		//CFonts::fonts().draw3DTextInScreen("TESTE", CFonts::fonts().getCenterPos(sizeof("TESTE") - 1, 0.2, x1 + (x2 - x1) / 2.0), -0.4992, FretBoardStruct.z1, 0.2, 0.0, -0.2);
 
-		CEngine::engine().Render3DQuadWithAlpha(FretBoardStruct);
+		CEngine::pushQuad(fretboardLData, FretBoardStruct);
 	}
 
-	renderPylmBar();
+	CEngine::engine().drawTrianglesWithAlpha(fretboardLData);
+
 }
 
 void CGamePlay::renderPylmBar()
@@ -1431,7 +1437,7 @@ void CGamePlay::renderPylmBar()
 		*/
 	CEngine::engine().renderAt(0.0, -0.5, 1.1);
 
-	GPPGame::GuitarPP().pylmbarOBJ.draw(GPPGame::GuitarPP().loadTexture("data/sprites", "pylmbar.tga").getTextId());
+	GPPGame::GuitarPP().pylmbarOBJ.draw(GPPGame::GuitarPP().pylmBarText);
 
 	CEngine::engine().matrixReset();
 	//}
@@ -1775,10 +1781,16 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	//player.playerParticles.render();
 	//	engine.addToAccumulationBuffer(0.25);
 	//engine.retAccumulationBuffer(1.0);
+	CEngine::enableColorsPointer(true);
 	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], GPPGame::GuitarPP().fretboardText);
 	//engine.addToAccumulationBuffer(0.5);
 
 	if (showBPMLines) drawBPMLines(player);
+
+	CEngine::enableColorsPointer(false);
+
+	engine.activateNormals(true);
+
 	//engine.addToAccumulationBuffer(0.5);
 	//engine.retAccumulationBuffer(1.0);
 
@@ -1796,6 +1808,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		//renderIndivdualNote(i, getRunningMusicTime(player), 0, player);
 	}*/
 
+	engine.activateLighting(true);
 	if (player.plusEnabled || renablel0)
 	{
 		engine.activateLight(1, false);
@@ -1804,8 +1817,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		engine.setLight(l0, 0);
 	}
 
-	engine.activateLighting(true);
-	engine.activateNormals(true);
+	renderPylmBar();
+
 
 	//engine.clearAccmumaltionBuffer();
 	for (auto &n : player.buffer)

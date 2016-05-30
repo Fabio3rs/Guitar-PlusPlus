@@ -215,7 +215,7 @@ public:
 
 	unsigned int strumKeys[5], fretOneKey, fretTwoKey;
 
-	unsigned int HUDText, fretboardText, lineText, HOPOSText;
+	unsigned int HUDText, fretboardText, lineText, HOPOSText, pylmBarText;
 
 	std::string songToLoad;
 
