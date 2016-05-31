@@ -66,7 +66,7 @@ void CParticle::render()
 		CEngine::pushQuad(partDrawData, pstruct);
 	}
 
-	CEngine::engine().drawTrianglesWithAlpha(partDrawData);
+	if (partDrawData.vArray.size() > 0) CEngine::engine().drawTrianglesWithAlpha(partDrawData);
 
 	for (auto it = part.begin(); it != part.end(); /******/)
 	{

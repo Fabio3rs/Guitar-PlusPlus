@@ -1699,11 +1699,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		engine.setLight(l, 1);
 		renablel0 = true;
 	}
-	else
-	{
-		engine.setLight(l0, 0);
-		engine.activateLight(0, true);
-	}
 
 	if (player.plusEnabled)
 	{
@@ -1799,10 +1794,10 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	//engine.addToAccumulationBuffer(0.5);
 	//engine.retAccumulationBuffer(1.0);
 
-	for (int i = 0; i < 5; i++)
-	{
+	//for (int i = 0; i < 5; i++)
+	//{
 		//renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 4, player);
-	}
+	//}
 
 	/*for (int i = 0; i < 5; i++)
 	{
@@ -1814,13 +1809,15 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}*/
 
 	engine.activateLighting(true);
-	if (player.plusEnabled || renablel0)
+	//if (player.plusEnabled || renablel0)
 	{
 		engine.activateLight(1, false);
 		engine.activateLight(0, true);
 
 		engine.setLight(l0, 0);
 	}
+
+	engine.setColor(1.0, 1.0, 1.0, 1.0);
 
 	renderPylmBar();
 
@@ -1841,19 +1838,19 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	engine.setColor(1.0, 1.0, 1.0, 1.0);
 
 	// ********************************************** STRIKE LINE BTN -
-	for (int i = 0; i < 5; i++)
+	//for (int i = 0; i < 5; i++)
 	{
-		double pressT = engine.getTime() - player.Notes.fretsNotePickedTime[i];
+		//double pressT = engine.getTime() - player.Notes.fretsNotePickedTime[i];
 
-		pressT /= 0.15;
+	//	pressT /= 0.15;
+//
+	//	if (pressT > 1.0 && player.notesSlide[i] == -1)
+		//{
+			//continue;
+		//}
 
-		if (pressT > 1.0 && player.notesSlide[i] == -1)
-		{
-			continue;
-		}
-
-		pressT *= 3;
-		int p = (int)floor(pressT + 1) % 3;
+//		pressT *= 3;
+	//	int p = (int)floor(pressT + 1) % 3;
 
 		//renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, p, player);
 
