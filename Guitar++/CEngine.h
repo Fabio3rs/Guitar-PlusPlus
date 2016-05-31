@@ -316,6 +316,8 @@ private:
 
 	double lrC, lgC, lbC, laC;
 
+	double lastRenderAt[3];
+
 public:
 	double eyex,
 		eyey,

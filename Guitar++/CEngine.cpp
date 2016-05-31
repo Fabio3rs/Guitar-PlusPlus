@@ -181,7 +181,11 @@ void sub_50E0C1F8(double *a1)
 }*/
 
 void CEngine::matrixReset(){
-	glLoadIdentity();
+	//glLoadIdentity();
+
+	lastRenderAt[0] = 0.0;
+	lastRenderAt[1] = 0.0;
+	lastRenderAt[2] = 0.0;
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -1575,7 +1579,11 @@ void CEngine::RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr, void *norm
 
 void CEngine::renderAt(double x, double y, double z)
 {
-	glTranslated(x, y, z);
+	glTranslated(x - lastRenderAt[0], y - lastRenderAt[1], z - lastRenderAt[2]);
+
+	lastRenderAt[0] = x;
+	lastRenderAt[1] = y;
+	lastRenderAt[2] = z;
 }
 
 void CEngine::Render3DQuad(const RenderDoubleStruct &quad3DData){
@@ -1710,6 +1718,9 @@ void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData){
 CEngine::CEngine()
 {
 	AASamples = 0;
+	lastRenderAt[0] = 0.0;
+	lastRenderAt[1] = 0.0;
+	lastRenderAt[2] = 0.0;
 
 	window = nullptr;
 
@@ -1750,6 +1761,9 @@ CEngine::CEngine()
 
 CEngine::CEngine(std::function <void(int, const std::string &e)> errfun)
 {
+	lastRenderAt[0] = 0.0;
+	lastRenderAt[1] = 0.0;
+	lastRenderAt[2] = 0.0;
 	AASamples = 0;
 
 	window = nullptr;

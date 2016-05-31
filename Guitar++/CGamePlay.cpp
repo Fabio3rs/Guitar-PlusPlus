@@ -173,6 +173,7 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
 	double rtime = 0.0;
+	static double lp[3] = {0.0, 0.0, 0.0};
 
 	if (rtime > -5.0)
 	{
@@ -222,8 +223,20 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 		//CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
-
-		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.4992, TempStruct3D.z1 + size);
+		//if (id == 0)
+		{
+			lp[0] = TempStruct3D.x1 + 0.1;
+			lp[1] = -0.4992;
+			lp[2] = TempStruct3D.z1 + size;
+			CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.4992, TempStruct3D.z1 + size);
+		}
+		/*else
+		{
+			CEngine::engine().renderAt(((TempStruct3D.x1 + 0.1) - lp[0]), (-0.4992) - lp[1], (TempStruct3D.z1 + size) - lp[2]);
+			lp[0] = TempStruct3D.x1 + 0.1;
+			lp[1] = -0.4992;
+			lp[2] = TempStruct3D.z1 + size;
+		}*/
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
 		//CEngine::engine().useShader(programID);
 
@@ -233,7 +246,9 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 			CEngine::engine().renderAt(0.0, state, 0.0);
 			GPPGame::GuitarPP().triggerOBJ.draw(GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId());
 		}*/
-		CEngine::engine().matrixReset();
+
+		//if (id == 4)
+			//CEngine::engine().matrixReset();
 		//CEngine::engine().useShader(0);
 	}
 }
@@ -296,7 +311,7 @@ void CGamePlay::renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned
 
 		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5 + state, TempStruct3D.z1 + size);
 		GPPGame::GuitarPP().triggerOBJ.draw(GPPGame::GuitarPP().striggerTexture3D[id], false);
-		CEngine::engine().matrixReset();
+		//CEngine::engine().matrixReset();
 	}
 }
 
@@ -422,6 +437,8 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 	CEngine::RenderDoubleStruct TempStruct3D;
 	double rtime = getRunningMusicTime(player) - pos;
 
+	bool rotated = false;
+
 	if (rtime > -5.0)
 	{
 		double size = 0.2;
@@ -489,6 +506,7 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 			if (p.time <= pos && pos < (p.time + p.lTime))
 			{
 				CEngine::engine().Rotate(player.rangle, 0.0, 1.0, 0.0);
+				rotated = true;
 				/*
 
 				plusNoteLight.position[0] = TempStruct3D.x1;
@@ -529,13 +547,16 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
 		GPPGame::GuitarPP().noteOBJ.draw(player.plusEnabled ? texts[5] : texts[id], false);
-		CEngine::engine().matrixReset();
+		//CEngine::engine().matrixReset();
 
 		/*if (Texture == GPPGame::GuitarPP().HOPOSText)
 		{
 			CEngine::engine().activateLight(2, false);
 		}*/
 	}
+
+	if (rotated)
+		CEngine::engine().matrixReset();
 }
 
 void CGamePlay::renderIndividualLine(int id, double pos1, double pos2, unsigned int Texture, CPlayer &player)
@@ -1437,9 +1458,9 @@ void CGamePlay::renderPylmBar()
 		*/
 	CEngine::engine().renderAt(0.0, -0.5, 1.1);
 
-	GPPGame::GuitarPP().pylmbarOBJ.draw(GPPGame::GuitarPP().pylmBarText);
+	GPPGame::GuitarPP().pylmbarOBJ.draw(GPPGame::GuitarPP().pylmBarText, false);
 
-	CEngine::engine().matrixReset();
+	//CEngine::engine().matrixReset();
 	//}
 }
 
@@ -1830,10 +1851,10 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	//engine.addToAccumulationBuffer(0.5);
 	//engine.retAccumulationBuffer(1.0);
 
-	engine.bindVBOBuffer(0);
+	//engine.bindVBOBuffer(0);
 
-	double BPMT = player.Notes.BPM[player.BPMNowBuffer].lTime / 120.0;
-	int flamepos = (int)(engine.getTime() * 12.0 / BPMT) % 4;
+	//double BPMT = player.Notes.BPM[player.BPMNowBuffer].lTime / 120.0;
+	//int flamepos = (int)(engine.getTime() * 12.0 / BPMT) % 4;
 
 	engine.setColor(1.0, 1.0, 1.0, 1.0);
 
@@ -1863,7 +1884,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	for (int i = 0; i < 5; i++)
 		renderIndivdualStrikeButton3D(i, 0.0, 0, 0.0, player);
 
-	engine.bindVBOBuffer(0);
+	//engine.bindVBOBuffer(0);
 
 	for (int i = 0; i < 5; i++)
 	{
@@ -1927,6 +1948,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	engine.bindVBOBuffer(0);
 
 	engine.activateNormals(false);
+	CEngine::engine().matrixReset();
 
 	if (player.playerParticles.part.size()){
 		//engine.clearAccmumaltionBuffer();
