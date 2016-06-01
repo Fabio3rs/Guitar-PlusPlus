@@ -449,6 +449,9 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		auto &Song = chartMap["[Song]"];
 		
 		chartResolutionProp = std::stod(Song["Resolution"][0]) / 192.0;
+		songName = Song["Name"][0];
+		songArtist = Song["Artist"][0];
+		songCharter = Song["Charter"][0];
 
 		std::cout << chartResolutionProp << std::endl;
 	};
@@ -816,7 +819,7 @@ void CPlayer::addPointsByNoteDoed()
 
 void CPlayer::addPointsByDoingLongNote()
 {
-
+	points += comboToMultiplier() * 200.0 * CEngine::engine().getDeltaTime();
 }
 
 void CPlayer::processError()

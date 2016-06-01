@@ -1283,6 +1283,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		player.processError();
 	}
 
+	bool cklngNote = false;
+
 	{
 		bool cancelAllLongNotes = false;
 
@@ -1292,6 +1294,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 			if (id != -1)
 			{
+				cklngNote = true;
 				auto &note = player.Notes.gNotes[id];
 				double noteTime = note.time - musicTime;
 				double endNoteTime = noteTime + note.lTime;
@@ -1341,6 +1344,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 		if (cancelAllLongNotes || fretpError)
 		{
+			cklngNote = false;
 			player.muteInstrument();
 			for (int ji = 0; ji < 5; ji++)
 			{
@@ -1358,6 +1362,13 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				inslide2 = false;
 			}
 		}
+	}
+
+
+
+	if (cklngNote)
+	{
+		player.addPointsByDoingLongNote();
 	}
 
 }

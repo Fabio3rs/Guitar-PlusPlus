@@ -249,6 +249,11 @@ void GPPGame::startModule(const std::string &name)
 
 	bool firstStartFrame = true;
 
+	auto &playerb = module.players.back();
+	std::string songName = playerb.Notes.songName, songArtist = playerb.Notes.songArtist, songCharter = playerb.Notes.songCharter;
+
+	double fadeoutdsc = CEngine::engine().getTime();
+
 	while (CEngine::engine().windowOpened())
 	{
 		GPPGame::GuitarPP().clearScreen();
@@ -340,8 +345,23 @@ void GPPGame::startModule(const std::string &name)
 
 			if ((startTime - time) > 0.0)
 			{
+
+				fadeoutdsc = CEngine::engine().getTime();
 				CFonts::fonts().drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
 				musicstartedg = 0;
+			}
+
+			double fadeoutdscAlphaCalc = 1.0 - ((CEngine::engine().getTime() - fadeoutdsc) / 3.0);
+
+			if (fadeoutdscAlphaCalc >= 0.0)
+			{
+				if (fadeoutdscAlphaCalc < 1.0) CEngine::engine().setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc);
+
+				CFonts::fonts().drawTextInScreen(songName, -0.9, 0.7, 0.1);
+				CFonts::fonts().drawTextInScreen(songArtist, -0.88, 0.62, 0.08);
+				CFonts::fonts().drawTextInScreen(songCharter, -0.88, 0.54, 0.08);
+
+				if (fadeoutdscAlphaCalc < 1.0) CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 			}
 
 			if (musicstartedg == 1)

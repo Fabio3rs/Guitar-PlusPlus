@@ -105,6 +105,8 @@ public:
 		int64_t lastNotePicked;
 		std::string instrument;
 
+		std::string songName, songArtist, songCharter;
+
 		double chartResolutionProp;
 
 		double fretsNotePickedTime[5];
@@ -174,7 +176,8 @@ public:
 private:
 	/**/
 
-	int64_t points, combo;
+	double points;
+	int64_t combo;
 
 public:
 	int songAudioID;
