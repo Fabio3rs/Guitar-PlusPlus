@@ -393,11 +393,11 @@ int main(int argc, char* argv[])
 
 
 		//***********************************************
-		CEngine::RenderDoubleStruct RenderData;
+		//CEngine::RenderDoubleStruct RenderData;
 
-		double prop = (double)menu.getImgWidth() / (double)menu.getImgHeight();
+		//double prop = (double)menu.getImgWidth() / (double)menu.getImgHeight();
 
-		RenderData.x1 = -prop;
+		/*RenderData.x1 = -prop;
 		RenderData.x2 = prop;
 		RenderData.x3 = prop;
 		RenderData.x4 = -prop;
@@ -417,7 +417,7 @@ int main(int argc, char* argv[])
 		RenderData.TextureY1 = 1.0;
 		RenderData.TextureY2 = 0.0;
 
-		RenderData.Text = menu.getTextId();
+		RenderData.Text = menu.getTextId();*/
 		//////////////////////////////////////////////
 
 

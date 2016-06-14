@@ -240,7 +240,9 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
 		//CEngine::engine().useShader(programID);
 
-		GPPGame::GuitarPP().triggerBASEOBJ.draw(GPPGame::GuitarPP().sbaseTexture3D[id], false);
+		auto texts = GPPGame::GuitarPP().sbaseTexture3D;
+
+		GPPGame::GuitarPP().triggerBASEOBJ.draw(player.plusEnabled ? texts[5] : texts[id], false);
 		/*if (state != -10.0)
 		{
 			CEngine::engine().renderAt(0.0, state, 0.0);
@@ -308,9 +310,10 @@ void CGamePlay::renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned
 		//CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
 
 		//CEngine::engine().Render3DQuad(TempStruct3D);
+		auto texts = GPPGame::GuitarPP().striggerTexture3D;
 
 		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5 + state, TempStruct3D.z1 + size);
-		GPPGame::GuitarPP().triggerOBJ.draw(GPPGame::GuitarPP().striggerTexture3D[id], false);
+		GPPGame::GuitarPP().triggerOBJ.draw(player.plusEnabled ? texts[5] : texts[id], false);
 		//CEngine::engine().matrixReset();
 	}
 }
