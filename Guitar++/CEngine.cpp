@@ -2,6 +2,7 @@
 #define  _CRT_SECURE_NO_WARNINGS
 #endif
 #include <bass.h>
+#include <bass_fx.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "CEngine.h"
@@ -26,6 +27,34 @@
 #include <assimp/postprocess.h>     // Post processing flags
 */
 
+void CALLBACK GetBPM_ProgressCallback(DWORD chan, float percent, void *user)
+{
+	//std::cout << percent << "  " << chan << std::endl;
+
+
+}
+
+float CEngine::getSoundBPM(unsigned int sound)
+{
+	float result = 0.0;
+	static float r = 0.0;
+	static bool b = false;
+
+	if (!b)
+	{
+		r = BASS_FX_BPM_DecodeGet(sound, 0, 100.0, 0, BASS_FX_BPM_BKGRND | BASS_FX_BPM_MULT2 | BASS_FX_FREESOURCE, (BPMPROGRESSPROC*)GetBPM_ProgressCallback, 0);
+		b = true;
+
+		std::cout << "err" << BASS_ErrorGetCode() << std::endl;
+	}
+
+	result = r * BASS_FX_TempoGetRateRatio(sound);
+
+	//std::cout << "res " << result << std::endl;
+	//BASS_FX_BPM_DecodeGet();
+
+	return result;
+}
 
 void CEngine::clearAccmumaltionBuffer()
 {
@@ -265,9 +294,27 @@ void CEngine::setSoundTime(int handle, double time)
 	BASS_ChannelSetPosition(handle, BASS_ChannelSeconds2Bytes(handle, time), BASS_POS_BYTE);
 }
 
-bool CEngine::loadSoundStream(const char *fileName, int &handle){
-	handle = BASS_StreamCreateFile(false, fileName, 0, 0, BASS_STREAM_PRESCAN | BASS_ASYNCFILE);
+bool CEngine::loadMusicStream(const char *fileName, int &handle)
+{
+	handle = BASS_MusicLoad(false, fileName, (QWORD)MAKELONG(0, 0), 0, BASS_STREAM_PRESCAN | BASS_ASYNCFILE, 0);
+
+
+	std::cout << BASS_ErrorGetCode() << std::endl;
+
 	return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE) && handle != 0;
+}
+
+bool CEngine::loadSoundStream(const char *fileName, int &handle, bool decode)
+{
+	int flags = BASS_STREAM_PRESCAN | BASS_ASYNCFILE;
+
+	if (decode)
+	{
+		flags |= BASS_STREAM_DECODE;
+	}
+
+	handle = BASS_StreamCreateFile(false, fileName, 0, 0, flags);
+	return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE) && (handle != 0);
 }
 
 bool CEngine::unloadSoundStream(int &handle)

@@ -14,6 +14,8 @@
 #include "CEngine.h"
 #include "CParticle.h"
 
+class CCharter;
+
 enum notesFlags{
 	nf_green = 1, nf_red = 2, nf_yellow = 4, nf_blue = 8, nf_orange = 16,
 	nf_not_hopo = 32, nf_doing_slide = 64, nf_failed = 128, nf_picked = 256,
@@ -87,6 +89,7 @@ struct fretsPosition{
 
 
 class CPlayer{
+	friend CCharter;
 	std::string playerName;
 
 public:
@@ -96,6 +99,7 @@ public:
 	std::string smartSongSearch(const std::string &path);
 
 	class NotesData{
+		friend CCharter;
 		std::string chartFileName;
 
 		void deducePlusLastNotes();
@@ -106,6 +110,7 @@ public:
 		std::string instrument;
 
 		std::string songName, songArtist, songCharter;
+		std::string songFullPath;
 
 		double chartResolutionProp;
 
@@ -133,7 +138,6 @@ public:
 				type = 0;
 			}
 		};
-
 
 		struct plusNote{
 			double time, lTime/*, unmodifiedTime*/;
@@ -255,6 +259,7 @@ public:
 
 	CEngine::cameraSET playerCamera;
 
+	bool bRenderP, bUpdateP;
 
 	CParticle playerParticles;
 

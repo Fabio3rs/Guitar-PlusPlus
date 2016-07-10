@@ -225,6 +225,8 @@ public:
 
 	bool botEnabled;
 
+	static void charterModule(const std::string &name);
+
 private:
 	static void callbackRenderFrame();
 

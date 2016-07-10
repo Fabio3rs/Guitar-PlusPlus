@@ -488,13 +488,16 @@ public:
 	void retAccumulationBuffer(double d);
 	void clearAccmumaltionBuffer();
 
+	float getSoundBPM(unsigned int sound);
+
 	struct chdata
 	{
 		float data[4];
 	};
 
 	/**/
-	bool loadSoundStream(const char *fileName, int &handle);
+	bool loadSoundStream(const char *fileName, int &handle, bool decode = false);
+	bool loadMusicStream(const char *fileName, int &handle);
 	bool playSoundStream(int handle);
 	bool pauseSoundStream(int handle);
 	bool unloadSoundStream(int &handle);

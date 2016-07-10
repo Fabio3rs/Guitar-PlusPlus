@@ -225,7 +225,9 @@ bool CPlayer::loadSong(const std::string &path){
 
 	if (isChartOpen){
 		CLog::log() << smartSongSearch(path);
-		CLog::log() << "loadSoundStream result: " + std::to_string(CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/") + smartSongSearch(path)).c_str(), songAudioID));
+		Notes.songFullPath = (std::string("data/songs/") + path + std::string("/") + smartSongSearch(path));
+
+		CLog::log() << "loadSoundStream result: " + std::to_string(CEngine::engine().loadSoundStream(Notes.songFullPath.c_str(), songAudioID));
 
 		if (Notes.instrument == "[ExpertSingle]")
 		{
@@ -778,6 +780,7 @@ void CPlayer::NotesData::unloadChart(){
 void CPlayer::resetData()
 {
 	correctNotes = 0;
+	bRenderP = bUpdateP = true;
 }
 
 CPlayer::NotesData::NotesData(){
@@ -929,6 +932,7 @@ void CPlayer::instrumentPause()
 
 CPlayer::CPlayer(const char *name)
 {
+	bRenderP = bUpdateP = true;
 	plname = name;
 	songAudioID = -1;
 	points = combo = 0;
@@ -943,7 +947,8 @@ CPlayer::CPlayer(const char *name)
 
 	memset(notesSlide, -1, sizeof(notesSlide));
 	memset(lastFretsPressed, 0, sizeof(lastFretsPressed));
-
+	memset(fretsPressed, 0, sizeof(fretsPressed));
+	
 	instrumentSound = 0;
 	strklinenttime = -5.0;
 

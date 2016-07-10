@@ -9,6 +9,7 @@
 #include <functional>
 #include "CFonts.h"
 #include "objloader.hpp"
+#include "CCharter.h"
 
 /*
 Provide default settings for the window
@@ -49,6 +50,119 @@ void GPPGame::helpMenu(const std::string &name)
 
 
 
+}
+
+void GPPGame::charterModule(const std::string &name)
+{
+	CCharter cht;
+
+	GPPGame::GuitarPP().HUDText = GPPGame::GuitarPP().loadTexture("data/sprites", "HUD.tga").getTextId();
+	GPPGame::GuitarPP().fretboardText = GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId();
+	GPPGame::GuitarPP().lineText = GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId();
+	GPPGame::GuitarPP().HOPOSText = -1/*GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId()*/;
+	GPPGame::GuitarPP().pylmBarText = GPPGame::GuitarPP().loadTexture("data/sprites", "pylmbar.tga").getTextId();
+
+	auto &game = GPPGame::GuitarPP();
+	auto realname = game.getCallBackRealName(name);
+	auto &module = game.gameModules[realname];
+
+	if (game.getRunningModule().size() > 0)
+	{
+		throw gameException("A module is already running: " + name);
+	}
+
+	game.setVSyncMode(0);
+
+	game.setRunningModule(realname + "benchmark");
+
+	double sTime = CEngine::engine().getTime();
+
+	std::deque<double> data;
+
+	bool bGDemo = false, escape = true;
+
+	while (CEngine::engine().windowOpened())
+	{
+		GPPGame::GuitarPP().clearScreen();
+
+		if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
+		{
+			if (escape) break;
+		}
+		else
+		{
+			escape = true;
+		}
+
+		if (CEngine::engine().getKey(' '))
+		{
+			bGDemo = true;
+		}
+
+		if(!bGDemo) cht.renderAll();
+
+		if (bGDemo)
+		{
+			CGamePlay gp;
+			cht.prepareDemoGamePlay(gp);
+
+			bool playSound = true;
+
+			while (CEngine::engine().windowOpened())
+			{
+				GPPGame::GuitarPP().clearScreen();
+
+
+				if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
+				{
+					bGDemo = false;
+					escape = false;
+					break;
+				}
+
+				gp.update();
+
+				if (playSound)
+				{
+					CEngine::engine().setSoundTime(gp.players.back().songAudioID, gp.players.back().musicRunningTime);
+
+					for (auto &p : gp.players)
+					{
+						CEngine::engine().setSoundTime(p.instrumentSound, p.musicRunningTime);
+					}
+
+					CEngine::engine().playSoundStream(gp.players.back().songAudioID);
+
+					for (auto &p : gp.players)
+					{
+						CEngine::engine().playSoundStream(p.instrumentSound);
+					}
+
+					CEngine::engine().setSoundVolume(gp.players.back().songAudioID, 0.8);
+
+					playSound = false;
+				}
+
+
+				gp.render();
+
+
+				GPPGame::GuitarPP().renderFrame();
+			}
+
+
+			CEngine::engine().pauseSoundStream(gp.players.back().songAudioID);
+
+			for (auto &p : gp.players)
+			{
+				CEngine::engine().pauseSoundStream(p.instrumentSound);
+			}
+		}
+
+		GPPGame::GuitarPP().renderFrame();
+	}
+
+	game.setRunningModule("");
 }
 
 void GPPGame::benchmark(const std::string &name)

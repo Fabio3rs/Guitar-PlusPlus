@@ -19,13 +19,20 @@
 #include "GPPOBJ.h"
 #include "CParticle.h"
 
+class CCharter;
+
 class CGamePlay{
+	friend CCharter;
+	bool bIsACharterGP;
+
 	struct lineData
 	{
 		int type;
 		double top;
 		double bottom;
 	};
+
+	bool showBPMVlaues;
 
 	void renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text);
 	void renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player);
@@ -44,6 +51,7 @@ class CGamePlay{
 	void renderHoposLight();
 	void addTailToBuffer(CPlayer::NotesData::Note &note, double pos1, double pos2, double runningTime, CPlayer &player);
 	void renderTailsBuffer();
+	double getBPMAt(CPlayer &player, double time);
 
 	std::deque <glm::vec3> hopostp;
 	std::deque <lineData> tailsData;
@@ -101,6 +109,7 @@ public:
 	void update();
 	void render();
 
+	bool bRenderHUD;
 
 	void resetModule();
 

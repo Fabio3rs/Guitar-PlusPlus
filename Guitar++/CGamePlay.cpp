@@ -56,9 +56,30 @@ void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Play
 	CEngine::engine().Render3DQuad(TempStruct3D);
 }
 
+double CGamePlay::getBPMAt(CPlayer &player, double time)
+{
+	double result = 120.0;
+
+	for (auto &BPMn : player.Notes.BPM)
+	{
+		if (BPMn.time <= time)
+		{
+			result = BPMn.lTime;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	return result;
+}
+
 void CGamePlay::drawBPMLines(CPlayer &Player)
 {
+	static std::vector <CPlayer::NotesData::Note> BPMValuesdata;
 	BPMl.clear();
+	BPMValuesdata.clear();
 	BPMl.useColors = true;
 	BPMl.autoEnDisaColors = false;
 	BPMl.texture = BPMTextID;
@@ -83,7 +104,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 		const double pos = -0.492;
 
-		const double size = 0.25;
+		const double size = 0.3;
 
 		TempStruct3D.x1 = pos;
 		TempStruct3D.x2 = pos * -1.0;
@@ -111,6 +132,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		CEngine::pushQuad(BPMl, TempStruct3D);
 	};
 
+	double BBPM = 0.0;
 
 	if (Player.Notes.BPM.size() > 0){
 		double BPS = 30.0 / Player.Notes.BPM[Player.BPMNowBuffer].lTime;
@@ -123,10 +145,35 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			calcQuad((Multi * BPS) + tCalc, mscRunnTime, Player);
 
 			tCalc = BPS * i;
+
+			if (showBPMVlaues)
+			{
+				if (BBPM != Player.Notes.BPM[Player.BPMNowBuffer].lTime)
+				{
+					CPlayer::NotesData::Note NBPM;
+					NBPM.time = Player.Notes.BPM[Player.BPMNowBuffer].time;
+					NBPM.lTime = Player.Notes.BPM[Player.BPMNowBuffer].lTime;
+					BPMValuesdata.push_back(NBPM);
+
+					BBPM = Player.Notes.BPM[Player.BPMNowBuffer].lTime;
+				}
+			}
+
 		}
 	}
 
 	CEngine::engine().drawTrianglesWithAlpha(BPMl);
+
+	double runt = getRunningMusicTime(Player);
+
+	for (auto &BPMv : BPMValuesdata)
+	{
+		double nCalc = (runt - BPMv.time) * speedMp;
+
+		nCalc += 0.55;
+
+		CFonts::fonts().draw3DTextInScreen(std::to_string(BPMv.lTime), 0.492, -0.5, nCalc, 0.1, 0.1, 0.0);
+	}
 
 
 	//CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
@@ -809,7 +856,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	player.update();
 
-	player.musicRunningTime += engine.getDeltaTime() * gSpeed;
+	if (!bIsACharterGP) player.musicRunningTime += engine.getDeltaTime() * gSpeed;
 
 	player.buffer.clear();
 
@@ -927,7 +974,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	auto doNoteFunc = [&](CPlayer::NotesData::Note &note, int64_t i)
 	{
-		if (!noteDoedThisFrame){
+		if (!noteDoedThisFrame && !bIsACharterGP)
+		{
 			if (note.lTime == 0.0)
 			{
 				player.doNote(i);
@@ -997,7 +1045,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	auto checkCorrect = [&](int ntsInac, int ntsT, int noteHF, const CPlayer::NotesData::Note &note)
 	{
 		//if (/*player.palhetaKey &&*/ (note.type & notesFlags::nf_not_hopo))
-		{
+		if(!bIsACharterGP) {
 			if (ntsInac > 1 && fretsPressedFlags == ntsT)
 			{
 				return true;
@@ -1013,17 +1061,19 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	auto processError = [&]()
 	{
-		player.processError();
+		if (!bIsACharterGP){
+			player.processError();
 
-		errorThisFrame = true;
+			errorThisFrame = true;
 
-		int fretPid = 0;
-		for (auto &fretP : player.fretsPressed)
-		{
-			if (fretP || fretsPressedFlags == 0)
-				CEngine::engine().playSoundStream(GPPGame::GuitarPP().errorsSound[fretPid]);
+			int fretPid = 0;
+			for (auto &fretP : player.fretsPressed)
+			{
+				if (fretP || fretsPressedFlags == 0)
+					CEngine::engine().playSoundStream(GPPGame::GuitarPP().errorsSound[fretPid]);
 
-			fretPid++;
+				fretPid++;
+			}
 		}
 	};
 
@@ -1186,7 +1236,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 					}
 				}
 			}
-			else if (noteTime <= -0.05)
+			else if (noteTime <= -0.05 && !bIsACharterGP)
 			{
 				if (!(note.type & notesFlags::nf_failed) && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide))
 				{
@@ -1197,7 +1247,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 			}
 			else
 			{
-				if (!firstNoteToDoSetted)
+				if (!firstNoteToDoSetted && !bIsACharterGP)
 				{
 					if (!(note.type & notesFlags::nf_failed) && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide))
 					{
@@ -1206,9 +1256,9 @@ void CGamePlay::updatePlayer(CPlayer &player)
 					}
 				}
 			}
+			
 
-
-			if (endNoteTime < 0.0 && note.type & notesFlags::nf_slide)
+			if (endNoteTime < 0.0 && note.type & notesFlags::nf_slide && !bIsACharterGP)
 			{
 				note.type |= notesFlags::nf_picked;
 				note.type |= notesFlags::nf_slide_picked;
@@ -1271,107 +1321,110 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	bool fretpError = false;
 
-	if (!errorThisFrame && !noteDoedThisFrame && player.palhetaKey && !hopostrmm && !strumdelayed)
+	if (!bIsACharterGP)
 	{
-		int fretPid = 0;
-		for (auto &fretP : player.fretsPressed)
+		if (!errorThisFrame && !noteDoedThisFrame && player.palhetaKey && !hopostrmm && !strumdelayed)
 		{
-			if (fretP || fretsPressedFlags == 0)
-				CEngine::engine().playSoundStream(GPPGame::GuitarPP().errorsSound[fretPid]);
-
-			fretPid++;
-		}
-
-		fretpError = true;
-		player.processError();
-	}
-
-	bool cklngNote = false;
-
-	{
-		bool cancelAllLongNotes = false;
-
-		for (int ji = 0; ji < 5; ji++)
-		{
-			int64_t id = player.notesSlide[ji];
-
-			if (id != -1)
+			int fretPid = 0;
+			for (auto &fretP : player.fretsPressed)
 			{
-				cklngNote = true;
-				auto &note = player.Notes.gNotes[id];
-				double noteTime = note.time - musicTime;
-				double endNoteTime = noteTime + note.lTime;
+				if (fretP || fretsPressedFlags == 0)
+					CEngine::engine().playSoundStream(GPPGame::GuitarPP().errorsSound[fretPid]);
 
-				int ntsInac = 0;
-				int ntsT = note.type & CPlayer::notesEnum;
-
-				for (int i = 0; i < 5; ++i)
-				{
-					if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
-					{
-						ntsInac++;
-					}
-				}
-
-				if (fretsPressedFlags != ntsT)
-				{
-					if (ntsInac > 1){
-						cancelAllLongNotes = true;
-					}
-					else if (highestFlagInPressedKey != getHighestFlag(ntsT))
-					{
-						cancelAllLongNotes = true;
-					}
-				}
-
-				if (endNoteTime < 0.13)
-				{
-					player.notesSlide[ji] = -1;
-					note.type |= notesFlags::nf_picked;
-					note.type |= notesFlags::nf_slide_picked;
-				}
-				else
-				{
-					/*if (id > 0)
-					{
-						notes.notePos = id - 1;
-					}*/
-
-					if (engine.getTime() - player.Notes.fretsNotePickedTime[ji] > 0.05)
-					{
-						player.Notes.fretsNotePickedTime[ji] = engine.getTime() - 0.05;
-					}
-				}
+				fretPid++;
 			}
+
+			fretpError = true;
+			player.processError();
 		}
 
-		if (cancelAllLongNotes || fretpError)
+		bool cklngNote = false;
+
 		{
-			cklngNote = false;
-			player.muteInstrument();
+			bool cancelAllLongNotes = false;
+
 			for (int ji = 0; ji < 5; ji++)
 			{
 				int64_t id = player.notesSlide[ji];
 
 				if (id != -1)
 				{
+					cklngNote = true;
 					auto &note = player.Notes.gNotes[id];
+					double noteTime = note.time - musicTime;
+					double endNoteTime = noteTime + note.lTime;
+
+					int ntsInac = 0;
+					int ntsT = note.type & CPlayer::notesEnum;
+
+					for (int i = 0; i < 5; ++i)
+					{
+						if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
+						{
+							ntsInac++;
+						}
+					}
+
+					if (fretsPressedFlags != ntsT)
+					{
+						if (ntsInac > 1){
+							cancelAllLongNotes = true;
+						}
+						else if (highestFlagInPressedKey != getHighestFlag(ntsT))
+						{
+							cancelAllLongNotes = true;
+						}
+					}
+
+					if (endNoteTime < 0.13)
+					{
+						player.notesSlide[ji] = -1;
+						note.type |= notesFlags::nf_picked;
+						note.type |= notesFlags::nf_slide_picked;
+					}
+					else
+					{
+						/*if (id > 0)
+						{
+						notes.notePos = id - 1;
+						}*/
+
+						if (engine.getTime() - player.Notes.fretsNotePickedTime[ji] > 0.05)
+						{
+							player.Notes.fretsNotePickedTime[ji] = engine.getTime() - 0.05;
+						}
+					}
+				}
+			}
+
+			if (cancelAllLongNotes || fretpError)
+			{
+				cklngNote = false;
+				player.muteInstrument();
+				for (int ji = 0; ji < 5; ji++)
+				{
+					int64_t id = player.notesSlide[ji];
+
+					if (id != -1)
+					{
+						auto &note = player.Notes.gNotes[id];
+
+						player.notesSlide[ji] = -1;
+						note.type |= notesFlags::losted;
+					}
 
 					player.notesSlide[ji] = -1;
-					note.type |= notesFlags::losted;
+					inslide2 = false;
 				}
-
-				player.notesSlide[ji] = -1;
-				inslide2 = false;
 			}
 		}
-	}
 
 
 
-	if (cklngNote)
-	{
-		player.addPointsByDoingLongNote();
+		if (cklngNote)
+		{
+			player.addPointsByDoingLongNote();
+		}
 	}
 
 }
@@ -2014,100 +2067,102 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	//auto &engine = CEngine::engine();
 
-	CEngine::RenderDoubleStruct HUDBackground;
+	if (bRenderHUD){
 
-	HUDBackground.Text = GPPGame::GuitarPP().HUDText;
+		CEngine::RenderDoubleStruct HUDBackground;
 
-	double neg = 0.1, negy = 0.05;
+		HUDBackground.Text = GPPGame::GuitarPP().HUDText;
 
-	HUDBackground.x1 = -1.0 + neg;
-	HUDBackground.x2 = -0.6 + neg;
-	HUDBackground.x3 = -0.6 + neg;
-	HUDBackground.x4 = -1.0 + neg;
+		double neg = 0.1, negy = 0.05;
 
-	HUDBackground.y1 = 0.1875 + negy;
-	HUDBackground.y2 = 0.1875 + negy;
-	HUDBackground.y3 = -0.5 + negy;
-	HUDBackground.y4 = -0.5 + negy;
+		HUDBackground.x1 = -1.0 + neg;
+		HUDBackground.x2 = -0.6 + neg;
+		HUDBackground.x3 = -0.6 + neg;
+		HUDBackground.x4 = -1.0 + neg;
 
-	HUDBackground.TextureX1 = 0.0;
-	HUDBackground.TextureX2 = 1.0;
-	HUDBackground.TextureY1 = 1.0;
-	HUDBackground.TextureY2 = 0.0;
+		HUDBackground.y1 = 0.1875 + negy;
+		HUDBackground.y2 = 0.1875 + negy;
+		HUDBackground.y3 = -0.5 + negy;
+		HUDBackground.y4 = -0.5 + negy;
 
-	engine.Render2DQuad(HUDBackground);
+		HUDBackground.TextureX1 = 0.0;
+		HUDBackground.TextureX2 = 1.0;
+		HUDBackground.TextureY1 = 1.0;
+		HUDBackground.TextureY2 = 0.0;
 
-	double multi = player.comboToMultiplierWM();
-	double circleMultiPercent = multi >= 4.0 ? 1.0 : (multi - floor(multi));
-	double circlePublicAprov = (player.publicAprov / player.maxPublicAprov);
-	double circleLoadPercent = player.plusLoadB;
-	double circlePercent = (player.plusPower / player.maxPlusPower);
+		engine.Render2DQuad(HUDBackground);
 
-	engine.setColor(1.0, 1.0, 1.0, 1.0);
+		double multi = player.comboToMultiplierWM();
+		double circleMultiPercent = multi >= 4.0 ? 1.0 : (multi - floor(multi));
+		double circlePublicAprov = (player.publicAprov / player.maxPublicAprov);
+		double circleLoadPercent = player.plusLoadB;
+		double circlePercent = (player.plusPower / player.maxPlusPower);
 
-	if (circleMultiPercent > 0.0){
-		double zeroToOne = circleMultiPercent;
+		engine.setColor(1.0, 1.0, 1.0, 1.0);
 
-		engine.setColor(0.0, 0.4, 1.0, 1.0);
-		engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleMultiPercent, 0.01, 0.041, 200, player.multiplierBuffer);
-	}
+		if (circleMultiPercent > 0.0){
+			double zeroToOne = circleMultiPercent;
 
-	if (player.Notes.gNotes.size() > 0){
-		double musicTotalCorrect = (player.correctNotes / player.Notes.gNotes.size());
-
-		if (musicTotalCorrect > 0.0)
-		{
-			engine.setColor(0.4, 1.0, 0.4, 1.0);
-			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, musicTotalCorrect, 0.05, 0.041, 400, player.correctNotesBuffer);
-		}
-	}
-
-	if (circlePublicAprov > 0.0){
-		double zeroToOne = circlePublicAprov;
-
-		engine.setColor(1.0 - 1.0 * zeroToOne, 1.0 * zeroToOne, 0.0, 1.0);
-		engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePublicAprov, 0.09, 0.041, 600, player.publicApprovBuffer);
-	}
-
-	if (circleLoadPercent > circlePercent){
-		if (circleLoadPercent > 0.0){
-			double zeroToOne = circleLoadPercent;
-
-			engine.setColor(0.4, 1.0, 0.4, 1.0);
-			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, player.plusLoadBuffer);
+			engine.setColor(0.0, 0.4, 1.0, 1.0);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleMultiPercent, 0.01, 0.041, 200, player.multiplierBuffer);
 		}
 
-		if (circlePercent > 0.0){
-			double zeroToOne = circlePercent;
+		if (player.Notes.gNotes.size() > 0){
+			double musicTotalCorrect = (player.correctNotes / player.Notes.gNotes.size());
 
-			engine.setColor(0.0, 1.0, 1.0, 1.0);
-			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, player.plusCircleBuffer);
+			if (musicTotalCorrect > 0.0)
+			{
+				engine.setColor(0.4, 1.0, 0.4, 1.0);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, musicTotalCorrect, 0.05, 0.041, 400, player.correctNotesBuffer);
+			}
 		}
+
+		if (circlePublicAprov > 0.0){
+			double zeroToOne = circlePublicAprov;
+
+			engine.setColor(1.0 - 1.0 * zeroToOne, 1.0 * zeroToOne, 0.0, 1.0);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePublicAprov, 0.09, 0.041, 600, player.publicApprovBuffer);
+		}
+
+		if (circleLoadPercent > circlePercent){
+			if (circleLoadPercent > 0.0){
+				double zeroToOne = circleLoadPercent;
+
+				engine.setColor(0.4, 1.0, 0.4, 1.0);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, player.plusLoadBuffer);
+			}
+
+			if (circlePercent > 0.0){
+				double zeroToOne = circlePercent;
+
+				engine.setColor(0.0, 1.0, 1.0, 1.0);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, player.plusCircleBuffer);
+			}
+		}
+		else{
+			if (circlePercent > 0.0){
+				double zeroToOne = circlePercent;
+
+				engine.setColor(0.0, 1.0, 1.0, 1.0);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, player.plusCircleBuffer);
+			}
+
+			if (circleLoadPercent > 0.0){
+				double zeroToOne = circleLoadPercent;
+
+				engine.setColor(0.4, 1.0, 0.4, 1.0);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, player.plusLoadBuffer);
+			}
+		}
+
+		engine.setColor(1.0, 1.0, 1.0, 1.0);
+
+		//CFonts::fonts().drawTextInScreen(std::to_string(player.plusLoadB), 0.0, 0.2, 0.1);
+
+		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(player.getCombo()), -1.025 + neg, 0.04 + negy, 0.1);
+		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(player.getPoints()), -1.02 + neg, -0.1 + negy, 0.06);
+		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string((int)player.comboToMultiplier()), -0.9 + neg, -0.37 + negy, 0.1);
 	}
-	else{
-		if (circlePercent > 0.0){
-			double zeroToOne = circlePercent;
-
-			engine.setColor(0.0, 1.0, 1.0, 1.0);
-			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, player.plusCircleBuffer);
-		}
-
-		if (circleLoadPercent > 0.0){
-			double zeroToOne = circleLoadPercent;
-
-			engine.setColor(0.4, 1.0, 0.4, 1.0);
-			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, player.plusLoadBuffer);
-		}
-	}
-
-	engine.setColor(1.0, 1.0, 1.0, 1.0);
-
-	//CFonts::fonts().drawTextInScreen(std::to_string(player.plusLoadB), 0.0, 0.2, 0.1);
-
-	CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(player.getCombo()), -1.025 + neg, 0.04 + negy, 0.1);
-	CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(player.getPoints()), -1.02 + neg, -0.1 + negy, 0.06);
-	CFonts::fonts().drawTextInScreenWithBuffer(std::to_string((int)player.comboToMultiplier()), -0.9 + neg, -0.37 + negy, 0.1);
-
 	/////////////***************************************
 
 
@@ -2118,7 +2173,7 @@ void CGamePlay::update()
 {
 	for (auto &p : players)
 	{
-		updatePlayer(p);
+		if (p.bUpdateP) updatePlayer(p);
 	}
 }
 
@@ -2175,7 +2230,7 @@ void CGamePlay::render()
 
 	for (auto &p : players)
 	{
-		renderPlayer(p);
+		if (p.bRenderP) renderPlayer(p);
 	}
 	//*******************************************************************************************************
 
@@ -2191,6 +2246,9 @@ CGamePlay &CGamePlay::gamePlay()
 
 CGamePlay::CGamePlay() : engine(CEngine::engine())
 {
+	bRenderHUD = true;
+	bIsACharterGP = false;
+	showBPMVlaues = false;
 	speedMp = 2.5; // equivalent to Guitar Hero's hyperspeed
 
 	gSpeed = 1.0; // music speed

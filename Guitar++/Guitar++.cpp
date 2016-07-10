@@ -189,6 +189,9 @@ int main(int argc, char* argv[])
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
 
+			std::string testecallback = game.addGameCallbacks("gameCharter", GPPGame::charterModule);
+			opt.menusXRef.push_back(testecallback);
+
 			extrasOp = mainMenu.addOpt(opt);
 		}
 
