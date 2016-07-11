@@ -488,7 +488,8 @@ public:
 	void retAccumulationBuffer(double d);
 	void clearAccmumaltionBuffer();
 
-	float getSoundBPM(unsigned int sound);
+	float getSoundBPM(unsigned int sound, double at, double interval);
+	double getChannelLength(unsigned int ch);
 
 	struct chdata
 	{

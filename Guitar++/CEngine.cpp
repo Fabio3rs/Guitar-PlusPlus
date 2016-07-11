@@ -29,26 +29,27 @@
 
 void CALLBACK GetBPM_ProgressCallback(DWORD chan, float percent, void *user)
 {
-	//std::cout << percent << "  " << chan << std::endl;
+	std::cout << percent << "  " << chan << std::endl;
 
 
 }
 
-float CEngine::getSoundBPM(unsigned int sound)
+double CEngine::getChannelLength(unsigned int ch)
+{
+	return BASS_ChannelBytes2Seconds(ch, BASS_ChannelGetLength(ch, BASS_POS_BYTE));
+}
+
+float CEngine::getSoundBPM(unsigned int sound, double at, double interval)
 {
 	float result = 0.0;
-	static float r = 0.0;
-	static bool b = false;
+	//static float r = 0.0;
+//	static bool b = false;
 
-	if (!b)
+	//if (!b)
 	{
-		r = BASS_FX_BPM_DecodeGet(sound, 0, 100.0, 0, BASS_FX_BPM_BKGRND | BASS_FX_BPM_MULT2 | BASS_FX_FREESOURCE, (BPMPROGRESSPROC*)GetBPM_ProgressCallback, 0);
-		b = true;
-
-		std::cout << "err" << BASS_ErrorGetCode() << std::endl;
+		result = BASS_FX_BPM_DecodeGet(sound, at, at + interval, 0, BASS_FX_BPM_BKGRND | BASS_FX_BPM_MULT2 | BASS_FX_FREESOURCE, (BPMPROGRESSPROC*)0, 0);
+		//b = true;
 	}
-
-	result = r * BASS_FX_TempoGetRateRatio(sound);
 
 	//std::cout << "res " << result << std::endl;
 	//BASS_FX_BPM_DecodeGet();

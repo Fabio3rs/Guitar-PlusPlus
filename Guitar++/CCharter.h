@@ -6,6 +6,10 @@
 #include "CEngine.h"
 #include "CGamePlay.h"
 #include "GPPGame.h"
+#include <atomic>
+#include <thread>
+#include <chrono>
+#include <mutex>
 
 class CCharter
 {
@@ -16,11 +20,24 @@ class CCharter
 	int keypts;
 	void eraseNulls(CPlayer &player);
 	bool processNewNote;
+	std::atomic<bool> loading, continueLoading, loadThreadEnd;
+	std::atomic<double> readBPMPercent, readBPMAtSeconds;
+	std::mutex loadBPMMutex;
+	bool backToZero;
 
 	int songAudioID;
 
 	CPlayer::NotesData::Note *workingNote;
 	std::deque<CPlayer::NotesData::Note>::iterator workingNoteIt;
+	std::deque<CPlayer::NotesData::Note> songBPM;
+
+	void readSongBPM(unsigned int song);
+	double getBPMAt(double time);
+
+	static void loadThreadFun(CCharter &ch);
+	void internalLoad();
+
+	std::thread loadThread;
 
 public:
 	void prepareDemoGamePlay(CGamePlay &gp);
@@ -31,6 +48,7 @@ public:
 	void renderAll();
 
 	CCharter();
+	~CCharter();
 };
 
 

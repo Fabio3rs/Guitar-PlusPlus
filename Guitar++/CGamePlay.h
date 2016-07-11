@@ -52,6 +52,8 @@ class CGamePlay{
 	void addTailToBuffer(CPlayer::NotesData::Note &note, double pos1, double pos2, double runningTime, CPlayer &player);
 	void renderTailsBuffer();
 	double getBPMAt(CPlayer &player, double time);
+	CPlayer::NotesData::Note getBPMAtStruct(CPlayer &player, double time);
+	std::deque<CPlayer::NotesData::Note>::iterator getBPMAtIt(CPlayer &player, double time);
 
 	std::deque <glm::vec3> hopostp;
 	std::deque <lineData> tailsData;

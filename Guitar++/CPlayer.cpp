@@ -448,12 +448,22 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 	auto fillChartInfo = [&](parsedChart &chartMap)
 	{
+		auto chk = [](std::deque<std::string> &s, int i)
+		{
+			std::string result;
+
+			if (i < s.size())
+				result = s[i];
+
+			return result;
+		};
+
 		auto &Song = chartMap["[Song]"];
 		
 		chartResolutionProp = std::stod(Song["Resolution"][0]) / 192.0;
-		songName = Song["Name"][0];
-		songArtist = Song["Artist"][0];
-		songCharter = Song["Charter"][0];
+		songName = chk(Song["Name"], 0);
+		songArtist = chk(Song["Artist"], 0);
+		songCharter = chk(Song["Charter"], 0);
 
 		std::cout << chartResolutionProp << std::endl;
 	};

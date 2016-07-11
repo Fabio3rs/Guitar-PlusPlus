@@ -75,6 +75,44 @@ double CGamePlay::getBPMAt(CPlayer &player, double time)
 	return result;
 }
 
+CPlayer::NotesData::Note CGamePlay::getBPMAtStruct(CPlayer &player, double time)
+{
+	CPlayer::NotesData::Note result;
+
+	for (auto &BPMn : player.Notes.BPM)
+	{
+		if (BPMn.time <= time)
+		{
+			result = BPMn;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	return result;
+}
+
+std::deque<CPlayer::NotesData::Note>::iterator CGamePlay::getBPMAtIt(CPlayer &player, double time)
+{
+	std::deque<CPlayer::NotesData::Note>::iterator result;
+
+	for (auto it = player.Notes.BPM.begin(); it != player.Notes.BPM.end(); it++)
+	{
+		if ((*it).time <= time)
+		{
+			result = it;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	return result;
+}
+
 void CGamePlay::drawBPMLines(CPlayer &Player)
 {
 	static std::vector <CPlayer::NotesData::Note> BPMValuesdata;
@@ -133,46 +171,73 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 	};
 
 	double BBPM = 0.0;
+	double minTime = 0;
 
-	if (Player.Notes.BPM.size() > 0){
+	if (Player.Notes.BPM.size() > 0)
+	{
 		double BPS = 30.0 / Player.Notes.BPM[Player.BPMNowBuffer].lTime;
 
 		int Multi = time / BPS;
 		double tCalc = 0.0;
+
+		minTime = (Multi * BPS) - 1.0;
 
 		for (int i = 0; tCalc < 5.0; i++){
 			//drawBPMLine((Multi * BPS) + tCalc, BPMTextID, Player);
 			calcQuad((Multi * BPS) + tCalc, mscRunnTime, Player);
 
 			tCalc = BPS * i;
-
-			if (showBPMVlaues)
-			{
-				if (BBPM != Player.Notes.BPM[Player.BPMNowBuffer].lTime)
-				{
-					CPlayer::NotesData::Note NBPM;
-					NBPM.time = Player.Notes.BPM[Player.BPMNowBuffer].time;
-					NBPM.lTime = Player.Notes.BPM[Player.BPMNowBuffer].lTime;
-					BPMValuesdata.push_back(NBPM);
-
-					BBPM = Player.Notes.BPM[Player.BPMNowBuffer].lTime;
-				}
-			}
-
 		}
 	}
 
+	std::deque<CPlayer::NotesData::Note>::iterator nullit;
+
+
 	CEngine::engine().drawTrianglesWithAlpha(BPMl);
 
-	double runt = getRunningMusicTime(Player);
-
-	for (auto &BPMv : BPMValuesdata)
+	if (showBPMVlaues)
 	{
-		double nCalc = (runt - BPMv.time) * speedMp;
+		if (minTime < 0.0)
+			minTime = 0.0;
 
-		nCalc += 0.55;
+		auto it = getBPMAtIt(Player, minTime);
 
-		CFonts::fonts().draw3DTextInScreen(std::to_string(BPMv.lTime), 0.492, -0.5, nCalc, 0.1, 0.1, 0.0);
+		if (it == nullit)
+		{
+			it = Player.Notes.BPM.begin();
+		}
+
+		if (it != Player.Notes.BPM.end())
+		{
+			for (; it != Player.Notes.BPM.end(); it++)
+			{
+				if ((*it).time < (mscRunnTime + 5.0))
+				{
+					BPMValuesdata.push_back(*it);
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+		double runt = getRunningMusicTime(Player);
+
+		if (BPMValuesdata.size() > 0)
+			CEngine::engine().activate3DRender(false);
+
+		for (auto &BPMv : BPMValuesdata)
+		{
+			double nCalc = (runt - BPMv.time) * speedMp;
+
+			nCalc += 0.55;
+
+			CFonts::fonts().draw3DTextInScreen(std::to_string(BPMv.lTime), 0.492, -0.5, nCalc, 0.1, 0.1, 0.0);
+		}
+
+		if (BPMValuesdata.size() > 0)
+			CEngine::engine().activate3DRender(true);
 	}
 
 
@@ -1370,10 +1435,11 @@ void CGamePlay::updatePlayer(CPlayer &player)
 						if (ntsInac > 1){
 							cancelAllLongNotes = true;
 						}
-						else if (highestFlagInPressedKey != getHighestFlag(ntsT))
-						{
-							cancelAllLongNotes = true;
-						}
+						/////// TODO extra checks
+						//else if (highestFlagInPressedKey != getHighestFlag(ntsT))
+					//	{
+						//	cancelAllLongNotes = true;
+						//}
 					}
 
 					if (endNoteTime < 0.13)
