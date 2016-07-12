@@ -67,6 +67,7 @@ void CCharter::preRender()
 
 		atMusicTime = time;
 		gpModule.players.back().musicRunningTime = atMusicTime;
+		gpModule.players.back().Notes.plusPos = 0;
 		backToZero = true;
 	}
 	else if (backToZero)
@@ -79,11 +80,13 @@ void CCharter::preRender()
 			{
 				atMusicTime = 0.0;
 				backToZero = false;
+				gpModule.players.back().Notes.plusPos = 0;
 			}
 		}
 		else
 		{
 			backToZero = false;
+			gpModule.players.back().Notes.plusPos = 0;
 		}
 	}
 
@@ -413,8 +416,6 @@ void CCharter::readSongBPM(unsigned int song)
 			songBPM.push_back(newBPM);
 		}
 	}
-
-	std::cout << songBPM.size() << std::endl;
 }
 
 void CCharter::render()
@@ -457,7 +458,7 @@ void CCharter::renderInfo()
 	}
 	else
 	{
-		CFonts::fonts().drawTextInScreen("Loading... " + std::to_string(readBPMPercent) + "%", -1.4, 0.3, 0.1);
+		CFonts::fonts().drawTextInScreen("Loading... " + std::to_string(readBPMPercent) + "%", -1.4, 0.3, 0.05);
 	}
 }
 
