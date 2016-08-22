@@ -260,5 +260,8 @@
     <ClInclude Include="CCharter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CMultiplayer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -389,7 +389,9 @@ void CCharter::readSongBPM(unsigned int song)
 	double len = CEngine::engine().getChannelLength(song);
 	double lenl = len - 0.5;
 
-	double lastBPM = 0.0;
+	double lastBPM = 120.0;
+
+	unsigned int addedBPM = 0;
 
 	for (double l = 0.0; l < lenl; l += 0.5)
 	{
@@ -403,7 +405,12 @@ void CCharter::readSongBPM(unsigned int song)
 
 		double ceilBPM = ceil(BPM);
 
-		if (lastBPM != ceilBPM && ceilBPM > 0.0)
+		if (ceilBPM <= 0.0)
+		{
+			ceilBPM = lastBPM;
+		}
+
+		if (lastBPM != ceilBPM || addedBPM == 0)
 		{
 			lastBPM = ceilBPM;
 
@@ -414,6 +421,7 @@ void CCharter::readSongBPM(unsigned int song)
 			
 			std::lock_guard<std::mutex> lk(loadBPMMutex);
 			songBPM.push_back(newBPM);
+			++addedBPM;
 		}
 	}
 }

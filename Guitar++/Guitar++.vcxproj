@@ -156,6 +156,7 @@
     <ClInclude Include="CLuaFunctions.hpp" />
     <ClInclude Include="CLuaH.hpp" />
     <ClInclude Include="CMenu.h" />
+    <ClInclude Include="CMultiplayer.h" />
     <ClInclude Include="CParticle.h" />
     <ClInclude Include="CPlayer.h" />
     <ClInclude Include="CSaveSystem.h" />
