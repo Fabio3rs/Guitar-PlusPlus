@@ -261,7 +261,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			minPosition = 0.0;
 		}
 
-		double calcMaxTime = minPosition;
+		double calcMaxTime = (mscRunnTime - minPosition);
 
 		if (calcMaxTime < 0.0)
 		{
@@ -278,7 +278,9 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 			bool contloop = true;
 
-			calcQuad(blinetime, mscRunnTime, Player);
+
+			if ((blinetime - mscRunnTime) > -3.0)
+				calcQuad(blinetime, mscRunnTime, Player);
 
 			while (contloop)
 			{
