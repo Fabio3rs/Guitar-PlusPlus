@@ -98,6 +98,7 @@
     <ClCompile Include="CLuaFunctions.cpp" />
     <ClCompile Include="CLuaH.cpp" />
     <ClCompile Include="CMenu.cpp" />
+    <ClCompile Include="CMultiplayer.cpp" />
     <ClCompile Include="CParticle.cpp" />
     <ClCompile Include="CPlayer.cpp" />
     <ClCompile Include="CSaveSystem.cpp" />

@@ -192,6 +192,9 @@
     <ClCompile Include="CCharter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CMultiplayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPPGame.h">
