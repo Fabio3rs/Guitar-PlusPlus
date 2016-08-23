@@ -177,6 +177,20 @@ public:
 
 	int playerType;
 
+
+	struct MPInfo
+	{
+		void *i;
+		bool ready;
+
+		inline MPInfo()
+		{
+			i = 0;
+			ready = false;
+		}
+
+	} multiPlayerInfo;
+
 private:
 	/**/
 

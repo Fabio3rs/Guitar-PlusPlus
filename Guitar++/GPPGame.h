@@ -173,6 +173,7 @@ public:
 
 	static void teste(const std::string &name);
 	static void startModule(const std::string &name);
+	static void serverModule(const std::string &name);
 	static void continueCampaing(const std::string &name);
 	static void benchmark(const std::string &name);
 
@@ -226,6 +227,8 @@ public:
 	bool botEnabled;
 
 	static void charterModule(const std::string &name);
+
+	static std::string ip, port;
 
 private:
 	static void callbackRenderFrame();
