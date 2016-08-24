@@ -890,7 +890,7 @@ void CGamePlay::renderTimeOnNote(double pos, double time, CPlayer &player)
 	}
 }
 
-void CGamePlay::renderTailsBuffer()
+void CGamePlay::renderTailsBuffer(CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
 
@@ -918,7 +918,7 @@ void CGamePlay::renderTailsBuffer()
 	TempStruct3D.y3 = -0.4995;
 	TempStruct3D.y4 = TempStruct3D.y3;
 
-	for (auto &t : tailsData)
+	for (auto &t : player.tailsData)
 	{
 		for (int i = 0; i < 5; i++)
 		{
@@ -965,7 +965,7 @@ void CGamePlay::addTailToBuffer(CPlayer::NotesData::Note &note, double pos1, dou
 	lndata.top = nCalc;
 	lndata.bottom = nCalc2;
 
-	tailsData.push_back(lndata);
+	player.tailsData.push_back(lndata);
 }
 
 void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
@@ -1019,7 +1019,7 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 
 void CGamePlay::updatePlayer(CPlayer &player)
 {
-	tailsData.clear();
+	player.tailsData.clear();
 	auto &notes = player.Notes;
 	auto &gNotes = player.Notes.gNotes;
 	auto &engine = CEngine::engine();
@@ -2211,7 +2211,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	engine.setColor(1.0, 1.0, 1.0, 1.0);
 
 	engine.activateLighting(false);
-	renderTailsBuffer();
+	renderTailsBuffer(player);
 	engine.activate3DRender(false);
 
 	renderHoposLight();
@@ -2257,7 +2257,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		HUDBackground.Text = GPPGame::GuitarPP().HUDText;
 
-		double neg = 0.1, negy = 0.05;
+		double neg = 0.1 + player.playerHudOffsetX, negy = 0.05 + player.playerHudOffsetY;
 
 		HUDBackground.x1 = -1.0 + neg;
 		HUDBackground.x2 = -0.6 + neg;
@@ -2355,6 +2355,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 void CGamePlay::update()
 {
+	std::lock_guard<std::mutex> l(GPPGame::playersMutex);
 	for (auto &p : players)
 	{
 		if (p.bUpdateP) updatePlayer(p);

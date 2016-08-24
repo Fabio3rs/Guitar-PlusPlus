@@ -14,21 +14,55 @@
 
 class CMultiplayer
 {
+	friend class GPPGame;
+	friend class CPlayer;
+
 	struct playersData
 	{
 		char name[64];
 		int32_t svthrid;
 		int32_t keys;
+		int32_t lkeys;
 		int32_t strum;
+		int32_t lstrum;
 		int32_t state;
 		int32_t inst;
 		int32_t ready;
 	};
 
-	std::atomic<std::vector < playersData >> pData;
+	struct pair
+	{
+		int32_t f, s;
+
+		pair()
+		{
+			f = s = 0;
+		}
+	};
+
+	pair clidentpair;
+
+	static void callbackFun(CServerSock::ServerThreads *th, char *data, size_t size);
+
+	std::vector < playersData > pData;
 
 	std::map <uintptr_t, std::mutex> mutexplayers;
 	std::deque < CPlayer > *players;
+	std::map < void*, std::pair<int, int> > xrefplayer;
+
+	struct serverInfo
+	{
+		double musicRunningTime;
+		bool startSong;
+
+		inline serverInfo()
+		{
+			musicRunningTime = 0.0;
+			startSong = false;
+		}
+	};
+
+	serverInfo svi;
 
 	void updatePlayers();
 
@@ -56,19 +90,26 @@ class CMultiplayer
 	callbackGPPInfo<int(void *ptr, char *data, size_t size)> cb;
 
 public:
-	inline std::atomic<std::vector < playersData >> &getPlData()
+	inline std::vector < playersData > &getPlData()
 	{
 		return pData;
 	}
+
+	static std::vector < playersData > &sgetPlData();
 
 	inline void setPlayersData(std::deque < CPlayer > &pl)
 	{
 		players = &pl;
 	}
 
-	static void sendUpdateToPlayer(uintptr_t target, const std::vector < playersData > pData);
+	void connectToServer(CPlayer &p);
+
+	static void sendUpdateToPlayer(uintptr_t target, const std::vector < playersData > &pData);
 
 	inline bool fail(){ return !bInitSucess; };
+
+	void startMPThread();
+	bool playerReady();
 
 	template<class T>
 	inline void setGameCallback(T f)

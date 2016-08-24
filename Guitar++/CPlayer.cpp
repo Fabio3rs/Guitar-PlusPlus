@@ -12,6 +12,7 @@
 #include "CText.h"
 #include "CLog.h"
 #include "GPPGame.h"
+#include "CMultiplayer.h"
 
 const int CPlayer::notesEnum = nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
 
@@ -142,7 +143,7 @@ void CPlayer::update()
 			palhetaKeyLast = palhetaKey;
 		}
 	}
-	else{
+	else if (!remoteControls) {
 		palhetaKey = CEngine::engine().getKey(GPPGame::GuitarPP().fretOneKey) || CEngine::engine().getKey(GPPGame::GuitarPP().fretTwoKey);
 
 		if (pklast == palhetaKey)
@@ -160,6 +161,58 @@ void CPlayer::update()
 		{
 			bool ftemp = f;
 			f = CEngine::engine().getKey(GPPGame::GuitarPP().strumKeys[i++]);
+
+			if (ftemp != f)
+			{
+				palhetaKey = false;
+			}
+		}
+	}
+	else
+	{
+		auto &pData = CMultiplayer::sgetPlData();
+
+		CMultiplayer::playersData pdata;
+
+		for (int i = 0, size = pData.size(); i < size; i++)
+		{
+			if (plname == pData[i].name)
+			{
+				//std::cout << pData[i].keys << std::endl;
+				pdata = pData[i];
+				break;
+			}
+		}
+
+		palhetaKey = pdata.strum;
+
+		if (pklast == palhetaKey)
+		{
+			palhetaKey = false;
+		}
+		else
+		{
+			palhetaKeyLast = palhetaKey;
+		}
+
+		std::copy(fretsPressed, fretsPressed + 5, lastFretsPressed);
+
+		int keys[5];
+
+		for (int j = 0; j < 5; j++)
+		{
+			keys[j] = 0;
+
+			if (pdata.keys & (int)pow(2, j))
+			{
+				keys[j] = 1;
+			}
+		}
+
+		for (auto &f : fretsPressed)
+		{
+			bool ftemp = f;
+			f = keys[i++];
 
 			if (ftemp != f)
 			{
@@ -942,6 +995,8 @@ void CPlayer::instrumentPause()
 
 CPlayer::CPlayer(const char *name)
 {
+	playerHudOffsetX = playerHudOffsetY = 0.0;
+	remoteControls = false;
 	bRenderP = bUpdateP = true;
 	plname = name;
 	songAudioID = -1;

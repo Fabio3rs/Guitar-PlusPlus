@@ -24,6 +24,12 @@ enum notesFlags{
 
 enum playerTypes{local_main, local, lan, lan_main};
 
+struct lineData
+{
+	int type;
+	double top;
+	double bottom;
+};
 
 struct fretsPosition{
 	double lineFretSize, columnSize;
@@ -94,6 +100,8 @@ class CPlayer{
 
 public:
 	static const int notesEnum;
+
+	bool remoteControls;
 
 	std::string smartChartSearch(const std::string &path);
 	std::string smartSongSearch(const std::string &path);
@@ -241,6 +249,8 @@ public:
 
 	void doNote(int64_t i);
 
+	std::deque <lineData> tailsData;
+
 	bool plusEnabled;
 
 	NotesData Notes;
@@ -260,6 +270,8 @@ public:
 	bool canDoHOPO;
 
 	double rangle;
+
+	double playerHudOffsetX, playerHudOffsetY;
 
 	std::string playerSave;
 

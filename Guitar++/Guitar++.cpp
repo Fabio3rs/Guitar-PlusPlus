@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
 		{
 			CMenu::menuOpt opt;
 
-			opt.text = "MP";
+			opt.text = "Server MP";
 			opt.y = 0.2;
 			opt.size = 0.075;
 			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
@@ -273,6 +273,23 @@ int main(int argc, char* argv[])
 			opt.type = CMenu::menusOPT::textbtn;
 
 			std::string testecallback = game.addGameCallbacks("gamePlayMPSelectedInMenu", GPPGame::serverModule);
+			opt.menusXRef.push_back(testecallback);
+
+			gmenu.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Client MP";
+			opt.y = 0.1;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			std::string testecallback = game.addGameCallbacks("patosVoadores", GPPGame::testClient);
 			opt.menusXRef.push_back(testecallback);
 
 			gmenu.addOpt(opt);

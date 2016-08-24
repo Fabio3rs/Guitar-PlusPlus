@@ -13,6 +13,7 @@
 #include <exception>
 #include <atomic>
 #include <thread>
+#include <mutex>
 #include "GPPOBJ.h"
 #include "CSaveSystem.h"
 
@@ -229,6 +230,10 @@ public:
 	static void charterModule(const std::string &name);
 
 	static std::string ip, port;
+
+	static void testClient(const std::string &name);
+
+	static std::mutex playersMutex;
 
 private:
 	static void callbackRenderFrame();

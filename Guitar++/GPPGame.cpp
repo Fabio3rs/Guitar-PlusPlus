@@ -12,6 +12,8 @@
 #include "CCharter.h"
 #include "CMultiplayer.h"
 
+std::mutex GPPGame::playersMutex;
+
 /*
 Provide default settings for the window
 */
@@ -227,10 +229,14 @@ void GPPGame::setRunningModule(const std::string m)
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 {
+	std::lock_guard<std::mutex> m(GPPGame::playersMutex);
 	std::string song = GuitarPP().songToLoad;
 	//module.players[0].loadSongOnlyChart(song);
 	//module.players[1].loadSong(song);
-	module.players.back().loadSong(song);
+
+	for (auto &p : module.players){
+		p.loadSong(song);
+	}
 
 	module.loadSongLyrics(song);
 
@@ -258,6 +264,287 @@ void GPPGame::setDevMode(bool mode)
 	devMode = mode;
 }
 
+void GPPGame::testClient(const std::string &name)
+{
+	CPlayer p("pato voador");
+	/*
+	while (CEngine::engine().windowOpened())
+	{
+		GPPGame::GuitarPP().clearScreen();
+
+		CFonts::fonts().drawTextInScreenWithBuffer("patos voadores", -0.4, 0.0, 0.1);
+
+		GPPGame::GuitarPP().renderFrame();
+	}
+	*/
+
+
+
+	auto &game = GPPGame::GuitarPP();
+	auto realname = game.getCallBackRealName(name);
+	auto &module = game.gameModules[realname];
+
+	if (game.getRunningModule().size() > 0)
+	{
+		throw gameException("A module is already running: " + name);
+	}
+
+	module.setHyperSpeed(2.5 * game.hyperSpeed);
+
+	game.setVSyncMode(0);
+
+	game.setRunningModule(realname);
+	/*
+	{
+	module.players.push_back(CPlayer("xi 3"));
+	auto &playerCamera = module.players.back().playerCamera;
+
+	//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
+
+	playerCamera.eyex = 0.65;
+	playerCamera.eyey = 0.2;
+	playerCamera.eyez = 2.3;
+	playerCamera.centerx = 1.3;
+	playerCamera.centery = -0.2;
+	playerCamera.centerz = 0;
+	playerCamera.upx = 0;
+	playerCamera.upy = 1;
+	playerCamera.upz = 0;
+	}
+
+	{
+	module.players.push_back(CPlayer("xi 2"));
+
+	//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
+
+	auto &playerCamera = module.players.back().playerCamera;
+
+	playerCamera.eyex = -0.65;
+	playerCamera.eyey = 0.2;
+	playerCamera.eyez = 2.3;
+	playerCamera.centerx = -1.3;
+	playerCamera.centery = -0.2;
+	playerCamera.centerz = 0;
+	playerCamera.upx = 0;
+	playerCamera.upy = 1;
+	playerCamera.upz = 0;
+	}
+	*/
+
+
+	module.players.push_back(p);
+	//module.players.back().enableBot = GPPGame::GuitarPP().botEnabled;
+
+	module.players.back().Notes.instrument = "[ExpertDoubleBass]";
+	CMultiplayer mp(false);
+	mp.initConnections(ip, port);
+	mp.setPlayersData(module.players);
+	mp.connectToServer(p);
+
+
+	loadThreadData l;
+
+	l.processing = true;
+
+	std::thread load(loadThread, std::ref(module), std::ref(l));
+
+	while (CEngine::engine().windowOpened() && l.processing)
+	{
+		GPPGame::GuitarPP().clearScreen();
+
+		CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0, 0.1);
+
+		GPPGame::GuitarPP().renderFrame();
+	}
+
+	for (auto &p : module.players)
+	{
+		p.startTime = CEngine::engine().getTime() + 3.0;
+		p.musicRunningTime = -3.0;
+	}
+
+	GPPGame::GuitarPP().HUDText = GPPGame::GuitarPP().loadTexture("data/sprites", "HUD.tga").getTextId();
+	GPPGame::GuitarPP().fretboardText = GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId();
+	GPPGame::GuitarPP().lineText = GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId();
+	GPPGame::GuitarPP().HOPOSText = -1/*GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId()*/;
+	GPPGame::GuitarPP().pylmBarText = GPPGame::GuitarPP().loadTexture("data/sprites", "pylmbar.tga").getTextId();
+
+	double startTime = module.players.back().startTime = CEngine::engine().getTime() + 3.0;
+	double openMenuTime = 0.0;
+	module.players.back().musicRunningTime = -3.0;
+
+	bool enterInMenu = false, esc = false;
+	int musicstartedg = 0;
+
+	bool songTimeFixed = false;
+
+
+	//CLog::log() << std::to_string(module.players.back().enableBot) + "bot que voa";
+
+	std::cout << "Plus in chart: " << module.players.back().Notes.gPlus.size() << std::endl;
+
+	if (module.players.back().Notes.gPlus.size())
+	{
+		std::cout << "Plus 0 time: " << module.players.back().Notes.gPlus[0].time << std::endl;
+		std::cout << "Plus 0 duration: " << module.players.back().Notes.gPlus[0].lTime << std::endl;
+	}
+
+	bool firstStartFrame = true;
+
+	auto &playerb = module.players.back();
+	std::string songName = playerb.Notes.songName, songArtist = playerb.Notes.songArtist, songCharter = playerb.Notes.songCharter;
+
+	double fadeoutdsc = CEngine::engine().getTime();
+
+	mp.startMPThread();
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+	do
+	{
+		GPPGame::GuitarPP().clearScreen();
+
+		CFonts::fonts().drawTextInScreenWithBuffer("Getting data", -0.4, 0.0, 0.1);
+
+		GPPGame::GuitarPP().renderFrame();
+	} while (CEngine::engine().windowOpened() && !mp.playerReady());
+
+	while (CEngine::engine().windowOpened())
+	{
+		GPPGame::GuitarPP().clearScreen();
+
+		if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
+		{
+			esc = true;
+		}
+		else if (esc)
+		{
+			enterInMenu = true;
+		}
+		else
+		{
+			enterInMenu = false;
+		}
+
+
+
+		if (enterInMenu)
+		{
+			if (musicstartedg == 2)
+			{
+				for (auto &p : module.players)
+				{
+					p.instrumentPause();
+				}
+
+				CEngine::engine().pauseSoundStream(module.players.back().songAudioID);
+				musicstartedg = 0;
+			}
+
+			songTimeFixed = false;
+
+			openMenuTime = CEngine::engine().getTime();
+
+			game.openMenus(&module.moduleMenu);
+
+			if (module.moduleMenu.options[module.exitModuleOpt].status & 1)
+			{
+				module.resetModule();
+				break;
+			}
+
+			double time = CEngine::engine().getTime();
+
+			for (auto &p : module.players)
+			{
+				p.startTime += time - openMenuTime;
+			}
+
+			enterInMenu = false;
+			esc = false;
+		}
+		else
+		{
+			module.update();
+
+			if (!songTimeFixed && module.players.back().musicRunningTime > 0.5)
+			{
+				CEngine::engine().setSoundTime(module.players.back().songAudioID, module.players.back().musicRunningTime);
+
+				for (auto &p : module.players)
+				{
+					CEngine::engine().setSoundTime(p.instrumentSound, p.musicRunningTime);
+				}
+
+				//std::cout << "First note position: " << module.players.back().Notes.gNotes[0].time << std::endl;
+
+				songTimeFixed = true;
+			}
+
+			module.render();
+			module.renderLyrics();
+
+
+			//CFonts::fonts().drawTextInScreen("BASS" + std::to_string(CEngine::engine().getSoundTime(module.players.back().songAudioID)), 0.52, -0.4, 0.1);
+			//CFonts::fonts().drawTextInScreen("SONG" + std::to_string(CEngine::engine().getTime() - startTime), 0.52, -0.52, 0.1);
+
+			if (firstStartFrame)
+			{
+				CEngine::engine().playSoundStream(GuitarPP().startSound);
+				firstStartFrame = false;
+			}
+
+			double time = CEngine::engine().getTime();
+
+			if (musicstartedg == 0) musicstartedg = 1;
+
+			if ((startTime - time) > 0.0)
+			{
+
+				fadeoutdsc = CEngine::engine().getTime();
+				CFonts::fonts().drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
+				musicstartedg = 0;
+			}
+
+			double fadeoutdscAlphaCalc = 1.0 - ((CEngine::engine().getTime() - fadeoutdsc) / 3.0);
+
+			if (fadeoutdscAlphaCalc >= 0.0)
+			{
+				if (fadeoutdscAlphaCalc < 1.0) CEngine::engine().setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc);
+
+				CFonts::fonts().drawTextInScreen(songName, -0.9, 0.7, 0.1);
+				CFonts::fonts().drawTextInScreen(songArtist, -0.88, 0.62, 0.08);
+				CFonts::fonts().drawTextInScreen(songCharter, -0.88, 0.54, 0.08);
+
+				if (fadeoutdscAlphaCalc < 1.0) CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+			}
+
+			if (musicstartedg == 1 && module.players.back().musicRunningTime >= 0.0)
+			{
+				CEngine::engine().playSoundStream(module.players.back().songAudioID);
+
+				for (auto &p : module.players)
+				{
+					p.instrumentPlay();
+				}
+
+				musicstartedg = 2;
+			}
+		}
+
+
+
+
+		GPPGame::GuitarPP().renderFrame();
+	}
+
+	if (load.joinable()) load.join();
+
+
+
+
+}
+
 void GPPGame::serverModule(const std::string &name)
 {
 	auto &game = GPPGame::GuitarPP();
@@ -270,7 +557,9 @@ void GPPGame::serverModule(const std::string &name)
 		throw gameException("A module is already running: " + name);
 	}
 
-	CMultiplayer mp;
+	CMultiplayer mp(true);
+	mp.initConnections(ip, port);
+	mp.setPlayersData(module.players);
 
 	module.setHyperSpeed(2.5 * game.hyperSpeed);
 
@@ -279,10 +568,17 @@ void GPPGame::serverModule(const std::string &name)
 	game.setRunningModule(realname);
 
 	module.players.push_back(CPlayer("you"));
+	module.players.back().playerCamera.centerx = -0.6;
+	module.players.back().playerCamera.eyex = -0.4;
+	module.players.back().playerHudOffsetX = 0.4;
+	module.players.back().playerHudOffsetY = 0.1;
+	module.players.back().playerCamera.eyez = 2.55;
+
 	module.players.back().multiPlayerInfo.i = 0;
 	module.players.back().multiPlayerInfo.ready = true;
 
-	std::mutex playersMutex;
+	module.players.back().enableBot = GPPGame::GuitarPP().botEnabled;
+
 
 	std::atomic<int> state = 0;
 
@@ -303,17 +599,17 @@ void GPPGame::serverModule(const std::string &name)
 	{
 		int p = searchPlayerByMPInfo(ptr);
 
-		if (p == -1 && state == 0)
+		/*if (p == -1 && state == 0)
 		{
 			std::lock_guard<std::mutex> l(playersMutex);
 			module.players.push_back(CPlayer("newPlayer"));
 			module.players.back().multiPlayerInfo.i = ptr;
 			module.players.back().bRenderP = false;
-		}
+		}*/
 
 		if (state == 1)
 		{
-			if (strcmp(data, "ready") == 0)
+			/*if (strcmp(data, "ready") == 0)
 			{
 				std::lock_guard<std::mutex> l(playersMutex);
 
@@ -324,14 +620,13 @@ void GPPGame::serverModule(const std::string &name)
 					module.players[p].multiPlayerInfo.ready = true;
 				}
 			}
-
+			*/
 		}
 
 		return 0;
 	};
 
 	mp.setGameCallback(mpcallback);
-	mp.initConnections(ip, port);
 
 	while (CEngine::engine().windowOpened())
 	{
@@ -390,12 +685,21 @@ void GPPGame::serverModule(const std::string &name)
 	}
 	*/
 
+	module.players.back().Notes.instrument = "[ExpertDoubleBass]";
+
 	loadThreadData l;
 
 	l.processing = true;
 	bool allPlayersReady = false;
 
 	std::thread load(loadThread, std::ref(module), std::ref(l));
+
+	module.players.back().playerCamera.centerx = 0.6;
+	module.players.back().playerCamera.eyex = 0.4;
+	module.players.back().playerCamera.eyez = 2.55;
+	module.players.back().playerHudOffsetX = -0.42;
+	module.players.back().playerHudOffsetY = 0.1;
+	module.players.back().remoteControls = true;
 
 	int r = 0;
 
@@ -432,6 +736,7 @@ void GPPGame::serverModule(const std::string &name)
 	{
 		p.startTime = CEngine::engine().getTime() + 3.0;
 		p.musicRunningTime = -3.0;
+		mp.svi.musicRunningTime = p.musicRunningTime;
 	}
 
 	GPPGame::GuitarPP().HUDText = GPPGame::GuitarPP().loadTexture("data/sprites", "HUD.tga").getTextId();
@@ -449,8 +754,6 @@ void GPPGame::serverModule(const std::string &name)
 
 	bool songTimeFixed = false;
 
-
-	module.players.back().enableBot = GPPGame::GuitarPP().botEnabled;
 	//CLog::log() << std::to_string(module.players.back().enableBot) + "bot que voa";
 
 	std::cout << "Plus in chart: " << module.players.back().Notes.gPlus.size() << std::endl;
@@ -468,9 +771,12 @@ void GPPGame::serverModule(const std::string &name)
 
 	double fadeoutdsc = CEngine::engine().getTime();
 
+	mp.svi.startSong = true;
+
 	while (CEngine::engine().windowOpened())
 	{
 		GPPGame::GuitarPP().clearScreen();
+		mp.svi.musicRunningTime = module.players.back().musicRunningTime;
 
 		if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
 		{
