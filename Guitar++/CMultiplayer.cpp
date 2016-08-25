@@ -126,7 +126,7 @@ void CMultiplayer::mpThread()
 
 	int i = 0;
 
-	while (true)
+	while (mpmgr->continueClThread)
 	{
 		strcpy(test, "getupdate");
 
@@ -148,7 +148,7 @@ void CMultiplayer::mpThread()
 
 		pData[mpmgr->clidentpair.f].keys = (*mpmgr->players)[0].getFretsPressedFlags();
 		pData[mpmgr->clidentpair.f].lkeys = (*mpmgr->players)[0].getLastFretsPressedFlags();
-		pData[mpmgr->clidentpair.f].strum = CEngine::engine().getKey(GPPGame::GuitarPP().fretOneKey) || CEngine::engine().getKey(GPPGame::GuitarPP().fretTwoKey);
+		pData[mpmgr->clidentpair.f].strum = palhetaNpKey;
 		pData[mpmgr->clidentpair.f].lstrum = (*mpmgr->players)[0].palhetaKeyLast;
 
 		if (i < 100 && mpmgr->svi.startSong)
@@ -195,6 +195,7 @@ void CMultiplayer::initConnections(const std::string &IP, const std::string &por
 CMultiplayer::CMultiplayer(bool bIsServer)
 {
 	this->bIsServer = bIsServer;
+	continueClThread = true;
 	bInitSucess = true;
 	state = 0;
 	mpmgr = this;
@@ -205,6 +206,8 @@ CMultiplayer::~CMultiplayer()
 {
 	if (bIsServer)
 		sv.stop();
+
+	continueClThread = false;
 
 	if (instThread.joinable())
 		instThread.join();

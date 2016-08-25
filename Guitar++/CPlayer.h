@@ -13,6 +13,7 @@
 #include <memory>
 #include "CEngine.h"
 #include "CParticle.h"
+#include <atomic>
 
 class CCharter;
 
@@ -92,6 +93,8 @@ struct fretsPosition{
 		notesTexture = strikeLineTexture = 0;
 	}
 };
+
+extern std::atomic<int> palhetaNpKey;
 
 
 class CPlayer{
@@ -208,6 +211,8 @@ private:
 public:
 	int songAudioID;
 	int instrumentSound;
+
+	double npPsetted;
 
 	bool enableBot;
 

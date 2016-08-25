@@ -378,6 +378,8 @@ void GPPGame::testClient(const std::string &name)
 
 	bool songTimeFixed = false;
 
+	bool botK = false;
+
 
 	//CLog::log() << std::to_string(module.players.back().enableBot) + "bot que voa";
 
@@ -465,6 +467,16 @@ void GPPGame::testClient(const std::string &name)
 		}
 		else
 		{
+			if (!botK && CEngine::engine().getKey('B'))
+			{
+				botK = true;
+				module.players.back().enableBot ^= 1;
+			}
+			else if (botK)
+			{
+				botK = false;
+			}
+
 			module.update();
 
 			if (!songTimeFixed && module.players.back().musicRunningTime > 0.5)
@@ -570,7 +582,7 @@ void GPPGame::serverModule(const std::string &name)
 	module.players.push_back(CPlayer("you"));
 	module.players.back().playerCamera.centerx = -0.6;
 	module.players.back().playerCamera.eyex = -0.4;
-	module.players.back().playerHudOffsetX = 0.4;
+	module.players.back().playerHudOffsetX = 1.0;
 	module.players.back().playerHudOffsetY = 0.1;
 	module.players.back().playerCamera.eyez = 2.55;
 

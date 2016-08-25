@@ -17,6 +17,8 @@ class CMultiplayer
 	friend class GPPGame;
 	friend class CPlayer;
 
+	std::atomic<bool> continueClThread;
+
 	struct playersData
 	{
 		char name[64];

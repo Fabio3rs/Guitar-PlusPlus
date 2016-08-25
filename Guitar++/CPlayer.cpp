@@ -52,10 +52,17 @@ void CPlayer::unmuteInstrument()
 	CEngine::engine().setSoundVolume(instrumentSound, 1.0f);
 }
 
+std::atomic<int> palhetaNpKey;
+
 void CPlayer::update()
 {
 	int i = 0;
 	int pklast = palhetaKeyLast;
+
+	if ((CEngine::engine().getTime() - npPsetted) > 0.01)
+	{
+		palhetaNpKey = false;
+	}
 
 	bool clearFretsP = true;
 
@@ -130,6 +137,8 @@ void CPlayer::update()
 				if (strklinenttime < 0.04 && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_failed) && !(note.type & notesFlags::nf_doing_slide) && !(note.type & notesFlags::nf_slide_picked))
 				{
 					palhetaKey = true;
+					palhetaNpKey = palhetaKey;
+					npPsetted = CEngine::engine().getTime();
 				}
 				else{
 					palhetaKey = false;
@@ -144,7 +153,7 @@ void CPlayer::update()
 		}
 	}
 	else if (!remoteControls) {
-		palhetaKey = CEngine::engine().getKey(GPPGame::GuitarPP().fretOneKey) || CEngine::engine().getKey(GPPGame::GuitarPP().fretTwoKey);
+		palhetaNpKey = palhetaKey = CEngine::engine().getKey(GPPGame::GuitarPP().fretOneKey) || CEngine::engine().getKey(GPPGame::GuitarPP().fretTwoKey);
 
 		if (pklast == palhetaKey)
 		{
@@ -184,7 +193,7 @@ void CPlayer::update()
 			}
 		}
 
-		palhetaKey = pdata.strum;
+		palhetaNpKey = palhetaKey = pdata.strum;
 
 		if (pklast == palhetaKey)
 		{
@@ -995,6 +1004,7 @@ void CPlayer::instrumentPause()
 
 CPlayer::CPlayer(const char *name)
 {
+	npPsetted = 0;
 	playerHudOffsetX = playerHudOffsetY = 0.0;
 	remoteControls = false;
 	bRenderP = bUpdateP = true;
