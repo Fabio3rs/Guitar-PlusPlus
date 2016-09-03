@@ -28,6 +28,7 @@ class CGamePlay{
 	bool showBPMVlaues;
 
 	void renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text);
+	void renderFretBoardShadow(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text);
 	void renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player);
 	void renderIndivdualStrikeButton3D(int id, double pos, unsigned int Texture, double state, CPlayer &player);
 	void renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned int Texture, double state, CPlayer &player);
@@ -36,9 +37,11 @@ class CGamePlay{
 	void updatePlayer(CPlayer &player);
 	void renderPlayer(CPlayer &player);
 	void renderIndivdualNote(int id, double pos, unsigned int Texture, CPlayer &player);
+	void renderIndivdualNoteShadow(int id, double pos, unsigned int Texture, CPlayer &player);
 	double getRunningMusicTime(CPlayer &player);
 	double time2Position(double Time, CPlayer &player);
 	void renderNote(CPlayer::NotesData::Note &note, CPlayer &player);
+	void renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player);
 	void renderIndividualLine(int id, double pos1, double pos2, unsigned int Texture, CPlayer &player);
 	void renderTimeOnNote(double pos, double time, CPlayer &player);
 	void renderHoposLight();

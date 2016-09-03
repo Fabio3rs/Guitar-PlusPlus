@@ -59,7 +59,7 @@ void CPlayer::update()
 	int i = 0;
 	int pklast = palhetaKeyLast;
 
-	if ((CEngine::engine().getTime() - npPsetted) > 0.01)
+	if ((CEngine::engine().getTime() - npPsetted) > 0.01 && enableBot)
 	{
 		palhetaNpKey = false;
 	}

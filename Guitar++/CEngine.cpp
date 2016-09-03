@@ -210,6 +210,22 @@ void sub_50E0C1F8(double *a1)
 	}
 }*/
 
+
+void CEngine::pushMatrix()
+{
+	glPushMatrix();
+}
+
+void CEngine::popMatrix()
+{
+	glPopMatrix();
+}
+
+void CEngine::multiplyMatrix(float *matrix)
+{
+	glMultMatrixf(matrix);
+}
+
 void CEngine::matrixReset(){
 	//glLoadIdentity();
 
@@ -308,6 +324,8 @@ bool CEngine::loadMusicStream(const char *fileName, int &handle)
 bool CEngine::loadSoundStream(const char *fileName, int &handle, bool decode)
 {
 	int flags = BASS_STREAM_PRESCAN | BASS_ASYNCFILE;
+
+	//std::cout << "flags  " << flags << std::endl;
 
 	if (decode)
 	{
@@ -1209,25 +1227,36 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 	//glEnable(GL_CULL_FACE);
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+	glEnable(GL_RESCALE_NORMAL);
 
 	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 0);
 
 	glDisable(GL_LIGHTING);
+
+	//Use the color as the ambient and diffuse material
+	glEnable(GL_COLOR_MATERIAL);
+
+	//White specular material color, shininess 16
+	/*
+	float white[] = {1.0, 1.0, 1.0, 1.0};
+	glMaterialfv(GL_FRONT, GL_SPECULAR, white);
+	glMaterialf(GL_FRONT, GL_SHININESS, 16.0f);*/
 
 	//glCullFace(GL_BACK);
 
 	cursorText = loadTexture("data/sprites/cursor.tga");
 	glfwSetInputMode((GLFWwindow*)window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 	//setVSyncMode(0);
-
+	
 	CEngine::engine().activateLighting(false);
 }
 
@@ -1243,6 +1272,8 @@ void CEngine::setLight(const lightData &l, int id, bool setAmbient)
 	glLightfv(GL_LIGHT0 + id, GL_POSITION, l.position);
 
 	glLightf(GL_LIGHT0 + id, GL_SPOT_CUTOFF, l.angle);
+
+	//glLightf(GL_LIGHT0 + id, GL_LINEAR_ATTENUATION, 0.5);
 
 	glLightfv(GL_LIGHT0 + id, GL_SPOT_DIRECTION, l.direction);
 }
@@ -1272,6 +1303,101 @@ void CEngine::activate3DRender(bool a)
 		glEnable(GL_DEPTH_TEST);
 	else
 		glDisable(GL_DEPTH_TEST);
+}
+
+void CEngine::activateStencilTest(bool a)
+{
+	if (a)
+		glEnable(GL_STENCIL_TEST);
+	else
+		glDisable(GL_STENCIL_TEST);
+}
+
+void CEngine::startShadowCapture()
+{
+	glEnable(GL_CULL_FACE);
+	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+	glDepthMask(GL_FALSE);
+	glDepthFunc(GL_LESS);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_INCR_WRAP);
+	glStencilFunc(GL_ALWAYS, 1, -1);
+	glCullFace(GL_BACK);
+}
+
+void CEngine::endShadowCapture()
+{
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glDepthMask(GL_TRUE);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+	glStencilFunc(GL_EQUAL, 0, -1);
+	glCullFace(GL_FRONT);
+	glDisable(GL_CULL_FACE);
+}
+
+void CEngine::findPlane(float plane[4], float v0[3], float v1[3], float v2[3])
+{
+	enum {
+		X, Y, Z, W
+	};
+	enum {
+		A, B, C, D
+	};
+
+	GLfloat vec0[3], vec1[3];
+
+	/* Need 2 vectors to find cross product. */
+	vec0[X] = v1[X] - v0[X];
+	vec0[Y] = v1[Y] - v0[Y];
+	vec0[Z] = v1[Z] - v0[Z];
+
+	vec1[X] = v2[X] - v0[X];
+	vec1[Y] = v2[Y] - v0[Y];
+	vec1[Z] = v2[Z] - v0[Z];
+
+	/* find cross product to get A, B, and C of plane equation */
+	plane[A] = vec0[Y] * vec1[Z] - vec0[Z] * vec1[Y];
+	plane[B] = -(vec0[X] * vec1[Z] - vec0[Z] * vec1[X]);
+	plane[C] = vec0[X] * vec1[Y] - vec0[Y] * vec1[X];
+
+	plane[D] = -(plane[A] * v0[X] + plane[B] * v0[Y] + plane[C] * v0[Z]);
+}
+
+void CEngine::shadowMatrix(float shadowMat[4][4], float groundplane[4], float lightpos[4])
+{
+	enum {
+		X, Y, Z, W
+	};
+	enum {
+		A, B, C, D
+	};
+
+	GLfloat dot;
+
+	dot = groundplane[X] * lightpos[X] +
+		groundplane[Y] * lightpos[Y] +
+		groundplane[Z] * lightpos[Z] +
+		groundplane[W] * lightpos[W];
+
+	shadowMat[0][0] = dot - lightpos[X] * groundplane[X];
+	shadowMat[1][0] = 0.f - lightpos[X] * groundplane[Y];
+	shadowMat[2][0] = 0.f - lightpos[X] * groundplane[Z];
+	shadowMat[3][0] = 0.f - lightpos[X] * groundplane[W];
+
+	shadowMat[X][1] = 0.f - lightpos[Y] * groundplane[X];
+	shadowMat[1][1] = dot - lightpos[Y] * groundplane[Y];
+	shadowMat[2][1] = 0.f - lightpos[Y] * groundplane[Z];
+	shadowMat[3][1] = 0.f - lightpos[Y] * groundplane[W];
+
+	shadowMat[X][2] = 0.f - lightpos[Z] * groundplane[X];
+	shadowMat[1][2] = 0.f - lightpos[Z] * groundplane[Y];
+	shadowMat[2][2] = dot - lightpos[Z] * groundplane[Z];
+	shadowMat[3][2] = 0.f - lightpos[Z] * groundplane[W];
+
+	shadowMat[X][3] = 0.f - lightpos[W] * groundplane[X];
+	shadowMat[1][3] = 0.f - lightpos[W] * groundplane[Y];
+	shadowMat[2][3] = 0.f - lightpos[W] * groundplane[Z];
+	shadowMat[3][3] = dot - lightpos[W] * groundplane[W];
+
 }
 
 void CEngine::useShader(unsigned int programID)
@@ -1304,7 +1430,7 @@ void CEngine::bindTexture(unsigned int text){
 }
 
 void CEngine::clearScreen(){
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	glLoadIdentity();
 }
 
@@ -1712,7 +1838,7 @@ void CEngine::enableColorsPointer(bool state)
 
 void CEngine::drawTrianglesWithAlpha(dTriangleWithAlpha &tris)
 {
-	bindTexture(tris.texture);
+	if (tris.texture) bindTexture(tris.texture);
 
 	if (tris.useColors && tris.autoEnDisaColors) glEnableClientState(GL_COLOR_ARRAY);
 	

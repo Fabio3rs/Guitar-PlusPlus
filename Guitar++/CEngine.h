@@ -203,6 +203,9 @@ public:
 	int getKey(int key);
 	void Rotate(double a, double x, double y, double z);
 	void matrixReset();
+	static void pushMatrix();
+	static void popMatrix();
+	static void multiplyMatrix(float *matrix);
 
 	int AASamples;
 
@@ -526,10 +529,15 @@ public:
 
 	void activateNormals(bool a);
 	void activate3DRender(bool a);
+	void activateStencilTest(bool a);
 	void activateLighting(bool a);
 	void activateLight(int id, bool a);
 	void setLight(const lightData &l, int id, bool setAmbient = true);
 
+	void startShadowCapture();
+	void endShadowCapture();
+	static void shadowMatrix(float shadowMat[4][4], float groundplane[4], float lightpos[4]);
+	static void findPlane(float plane[4], float v0[3], float v1[3], float v2[3]);
 
 	void setVSyncMode(int mode);
 

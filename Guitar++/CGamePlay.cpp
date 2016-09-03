@@ -665,6 +665,86 @@ void CGamePlay::renderHoposLight()
 	hopostp.clear();
 }
 
+void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Texture, CPlayer &player)
+{
+	CEngine::RenderDoubleStruct TempStruct3D;
+	double rtime = getRunningMusicTime(player) - pos;
+
+	bool rotated = false;
+
+	if (rtime > -5.0)
+	{
+		double size = 0.2;
+		double position = -0.51;
+
+		TempStruct3D.TextureX1 = 0.0;
+		TempStruct3D.TextureX2 = 1.0;
+
+		double nCalc = rtime * speedMp;
+
+		nCalc += 0.55;
+
+		TempStruct3D.TextureY1 = 1.0;
+		TempStruct3D.TextureY2 = 0.0;
+
+		TempStruct3D.x1 = position + (double(id) * size / 48.0) + (double(id) * size);
+		TempStruct3D.x2 = TempStruct3D.x1 + size;
+		TempStruct3D.x3 = TempStruct3D.x1 + size;
+		TempStruct3D.x4 = TempStruct3D.x1;
+
+		TempStruct3D.y1 = -0.46;
+		TempStruct3D.y2 = TempStruct3D.y1;
+		TempStruct3D.y3 = -0.46;
+		TempStruct3D.y4 = TempStruct3D.y3;
+
+		TempStruct3D.z1 = nCalc;
+		TempStruct3D.z2 = TempStruct3D.z1;
+		TempStruct3D.z3 = nCalc + size * 2.0;
+		TempStruct3D.z4 = TempStruct3D.z3;
+
+
+		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
+
+		if (alpha <= 0.0)
+		{
+			return;
+		}
+
+		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
+
+		if (Texture == GPPGame::GuitarPP().HOPOSText)
+		{
+			glm::vec3 vec3data;
+			vec3data.x = TempStruct3D.x1;
+			vec3data.y = -0.462;
+			vec3data.z = TempStruct3D.z1;
+
+
+			hopostp.push_front(vec3data);
+		}
+
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
+
+		size_t plusPos = player.Notes.plusPos;
+
+		if (plusPos < player.Notes.gPlus.size())
+		{
+			auto &p = player.Notes.gPlus[plusPos];
+
+			if (p.time <= pos && pos < (p.time + p.lTime))
+			{
+				CEngine::engine().Rotate(player.rangle, 0.0, 1.0, 0.0);
+				rotated = true;
+			}
+		}
+
+		GPPGame::GuitarPP().noteOBJ.draw(0, false);
+	}
+
+	if (rotated)
+		CEngine::engine().matrixReset();
+}
+
 void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
@@ -968,6 +1048,46 @@ void CGamePlay::addTailToBuffer(CPlayer::NotesData::Note &note, double pos1, dou
 	player.tailsData.push_back(lndata);
 }
 
+void CGamePlay::renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player)
+{
+	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
+	bool bAddTailToBuffer = false;
+	double lt = 0.0, tlng = 0.0;
+	for (int i = 0; i < 5; i++){
+		if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
+		{
+			unsigned int texture = /*fretsText.notesTexture*/1;
+			/*if (note.type & notesFlags::nf_doing_slide){
+			time = ltimet;
+			}*/
+
+			if (note.lTime > 0.0 && note.type & notesFlags::nf_doing_slide && !(note.type & notesFlags::losted))
+			{
+				bAddTailToBuffer = true;
+				lt = ltimet;
+				tlng = time - ltimet + note.lTime;
+				//engine.bindVBOBuffer(0);
+				//renderIndividualLine(i, ltimet, time - ltimet + note.lTime, GPPGame::GuitarPP().lineText, player);
+			}
+			else if (note.type & notesFlags::nf_slide && !(note.type & notesFlags::nf_slide_picked))
+			{
+				//engine.bindVBOBuffer(0);
+				bAddTailToBuffer = true;
+				lt = time;
+				tlng = note.lTime;
+				//renderIndividualLine(i, time, note.lTime, GPPGame::GuitarPP().lineText, player);
+			}
+
+			if ((note.type & notesFlags::nf_not_hopo) ^ notesFlags::nf_not_hopo)
+			{
+				texture = /*GPPGame::GuitarPP().HOPOSText*/-1;
+			}
+
+			if (!(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNoteShadow(i, time, 0, player);
+		}
+	}
+}
+
 void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
 	bool bAddTailToBuffer = false;
@@ -1035,7 +1155,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		}
 	}
 
-	player.rangle = (int)(CEngine::engine().getTime() * 500.0) % 360;
+	player.rangle = ((int)(CEngine::engine().getTime() * 400.0) % 360);
 
 	player.update();
 
@@ -1613,6 +1733,72 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 }
 
+void CGamePlay::renderFretBoardShadow(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text)
+{
+	fretboardLData.clear();
+	fretboardLData.useColors = true;
+	fretboardLData.autoEnDisaColors = true;
+
+	double size = 2.1;
+
+	auto positionCalcByT = [this, size](double p, double prop)
+	{
+		double cCalc = -p * 5.0;
+		double propSpeeed = 5.0 / speedMp;
+
+		cCalc /= propSpeeed;
+
+		cCalc *= 100000.0;
+		cCalc = (int)cCalc % (int)((size * 100000) * prop);
+		return cCalc / 100000.0;
+	};
+
+	double musicRunningTime = getRunningMusicTime(player) - 4.0;
+	double cCalc = positionCalcByT(musicRunningTime, (x2 - x1));
+
+	CEngine::RenderDoubleStruct FretBoardStruct;
+
+	FretBoardStruct.x1 = x1;
+	FretBoardStruct.x2 = x2;
+	FretBoardStruct.x3 = x3;
+	FretBoardStruct.x4 = x4;
+
+	FretBoardStruct.TextureX1 = 0.0;
+	FretBoardStruct.TextureX2 = 1.0;
+
+	FretBoardStruct.TextureY1 = 0.0;
+	FretBoardStruct.TextureY2 = 1.0;
+
+	FretBoardStruct.y1 = -0.5;
+	FretBoardStruct.y2 = FretBoardStruct.y1;
+	FretBoardStruct.y3 = FretBoardStruct.y1;
+	FretBoardStruct.y4 = FretBoardStruct.y1;
+
+	fretboardLData.texture = FretBoardStruct.Text = 0;
+
+	for (int i = -2; i < 8; i++)
+	{
+		FretBoardStruct.z1 = (x2 - x1) * (-size) * i - cCalc;
+		FretBoardStruct.z2 = FretBoardStruct.z1;
+		FretBoardStruct.z3 = FretBoardStruct.z1 + (x2 - x1) * (-size);
+		FretBoardStruct.z4 = FretBoardStruct.z3;
+
+		FretBoardStruct.alphaBottom = pos2Alpha(-FretBoardStruct.z3 / 5.5);
+		FretBoardStruct.alphaTop = pos2Alpha(-FretBoardStruct.z2 / 5.5);
+
+		if (FretBoardStruct.alphaBottom <= 0.0 && FretBoardStruct.alphaTop <= 0.0)
+		{
+			continue;
+		}
+
+		//CFonts::fonts().draw3DTextInScreen("TESTE", CFonts::fonts().getCenterPos(sizeof("TESTE") - 1, 0.2, x1 + (x2 - x1) / 2.0), -0.4992, FretBoardStruct.z1, 0.2, 0.0, -0.2);
+
+		CEngine::pushQuad(fretboardLData, FretBoardStruct);
+	}
+
+	CEngine::engine().drawTrianglesWithAlpha(fretboardLData);
+}
+
 void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text)
 {
 	fretboardLData.clear();
@@ -2063,6 +2249,16 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	engine.activateNormals(true);
 
+	static float floorVertices[4][3] = {
+		{ -20.0, -0.5, 20.0 },
+		{ 20.0, -0.5, 20.0 },
+		{ 20.0, -0.5, -20.0 },
+		{ -20.0, -0.5, -20.0 },
+	};
+
+	static float floorPlane[4];
+	static float floorShadow[4][4];
+
 	//engine.addToAccumulationBuffer(0.5);
 	//engine.retAccumulationBuffer(1.0);
 
@@ -2080,7 +2276,21 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		//renderIndivdualNote(i, getRunningMusicTime(player), 0, player);
 	}*/
 
+	auto renderScene = [&]()
+	{
+		renderPylmBar();
+
+		//engine.clearAccmumaltionBuffer();
+		for (auto &n : player.buffer)
+		{
+			renderNote(n, player);
+		}
+	};
+
 	engine.activateLighting(true);
+
+
+	engine.setColor(1.0, 1.0, 1.0, 1.0);
 	//if (player.plusEnabled || renablel0)
 	{
 		engine.activateLight(1, false);
@@ -2089,16 +2299,80 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		engine.setLight(l0, 0);
 	}
 
-	engine.setColor(1.0, 1.0, 1.0, 1.0);
+	//engine.setColor(1.0, 1.0, 1.0, 1.0);
+
+	{
+		//engine.activateLight(1, false);
+		//engine.activateLight(0, true);
+
+		auto l0n = (const lightData)l0;
+
+		l0n.ambientLight[0] = 0.1;
+		l0n.ambientLight[1] = 0.1;
+		l0n.ambientLight[2] = 0.1;
+		l0n.ambientLight[3] = 1.0;
+
+		l0n.diffuseLight[0] = 0.0;
+		l0n.diffuseLight[1] = 0.0;
+		l0n.diffuseLight[2] = 0.0;
+		l0n.diffuseLight[3] = 0.0;
+
+		l0n.specularLight[0] = 0.0;
+		l0n.specularLight[1] = 0.0;
+		l0n.specularLight[2] = 0.0;
+		l0n.specularLight[3] = 0.0;
+
+		//engine.setLight(l0n, 0);
+	}
+
+	renderScene();
+	/*
+	CEngine::shadowMatrix(floorShadow, floorPlane, l0.position);
+
+
+	engine.activateLight(0, false);
+	engine.activateStencilTest(true);
+	engine.activateLighting(false);
+
+	engine.startShadowCapture();
 
 	renderPylmBar();
-
 
 	//engine.clearAccmumaltionBuffer();
 	for (auto &n : player.buffer)
 	{
-		renderNote(n, player);
+		renderNoteShadow(n, player);
 	}
+
+	engine.endShadowCapture();
+
+	CEngine::pushMatrix();
+	engine.glEnable(0x8037);
+	engine.setColor(0.0, 0.0, 0.0, 0.5);
+	engine.matrixReset();
+	{
+		engine.setCamera(player.playerCamera);
+	}
+	
+	CEngine::multiplyMatrix((float*)floorShadow);
+
+	renderPylmBar();
+
+	//engine.clearAccmumaltionBuffer();
+	for (auto &n : player.buffer)
+	{
+		renderNoteShadow(n, player);
+	}
+
+	engine.glDisable(0x8037);
+	CEngine::popMatrix();
+	engine.matrixReset();
+	engine.setCamera(player.playerCamera);
+
+	renderScene();
+
+	engine.activateStencilTest(false);*/
+
 	//engine.addToAccumulationBuffer(0.5);
 	//engine.retAccumulationBuffer(1.0);
 
@@ -2106,8 +2380,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	//double BPMT = player.Notes.BPM[player.BPMNowBuffer].lTime / 120.0;
 	//int flamepos = (int)(engine.getTime() * 12.0 / BPMT) % 4;
-
-	engine.setColor(1.0, 1.0, 1.0, 1.0);
 
 	// ********************************************** STRIKE LINE BTN -
 	//for (int i = 0; i < 5; i++)
@@ -2132,6 +2404,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		if (flamepos > 0) renderIndivdualFlame(i, -0.25, fireText, flamepos - 1, 0.7, player);*/
 	}
 
+	engine.setColor(1.0, 1.0, 1.0, 1.0);
+
 	for (int i = 0; i < 5; i++)
 		renderIndivdualStrikeButton3D(i, 0.0, 0, 0.0, player);
 
@@ -2140,7 +2414,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	for (int i = 0; i < 5; i++)
 	{
 		double time = engine.getTime();
-		double pressT = time - player.Notes.fretsNotePickedTime[i];
+		double pressT = (time - player.Notes.fretsNotePickedTime[i]) /*/ 1.25*/;
 		double calcP = (sin(pressT / 0.05)) / 15.0 - 0.05;
 
 		if (pressT > 0.15 && player.notesSlide[i] == -1)

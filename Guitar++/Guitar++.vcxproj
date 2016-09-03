@@ -144,6 +144,7 @@
     <ClCompile Include="Lua\lzio.c" />
     <ClCompile Include="objloader.cpp" />
     <ClCompile Include="shader.cpp" />
+    <ClCompile Include="TestShadowMapping.h" />
     <ClCompile Include="tga.cpp" />
   </ItemGroup>
   <ItemGroup>

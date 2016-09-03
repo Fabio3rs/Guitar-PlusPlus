@@ -335,7 +335,7 @@ void GPPGame::testClient(const std::string &name)
 	module.players.push_back(p);
 	//module.players.back().enableBot = GPPGame::GuitarPP().botEnabled;
 
-	module.players.back().Notes.instrument = "[ExpertDoubleBass]";
+	//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
 	CMultiplayer mp(false);
 	mp.initConnections(ip, port);
 	mp.setPlayersData(module.players);
@@ -582,7 +582,7 @@ void GPPGame::serverModule(const std::string &name)
 	module.players.push_back(CPlayer("you"));
 	module.players.back().playerCamera.centerx = -0.6;
 	module.players.back().playerCamera.eyex = -0.4;
-	module.players.back().playerHudOffsetX = 1.0;
+	module.players.back().playerHudOffsetX = 1.82;
 	module.players.back().playerHudOffsetY = 0.1;
 	module.players.back().playerCamera.eyez = 2.55;
 
@@ -697,7 +697,7 @@ void GPPGame::serverModule(const std::string &name)
 	}
 	*/
 
-	module.players.back().Notes.instrument = "[ExpertDoubleBass]";
+	//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
 
 	loadThreadData l;
 
