@@ -30,6 +30,24 @@ public:
 		nullinit(const nullinit<T>&l) : i(l){};
 	};
 
+	struct stringHash
+	{
+		std::string str;
+		int64_t crc64;
+		double gppCalc;
+
+		inline bool operator==(const stringHash &hs) const
+		{
+			return crc64 == hs.crc64 && gppCalc == hs.gppCalc && str.size() == hs.str.size();
+		}
+
+		inline stringHash()
+		{
+			crc64 = 0;
+			gppCalc = 0;
+		}
+	};
+
 	/*
 	* luaScript can't be duplicated
 	* 'cause dctor calls lua_close(luaState)

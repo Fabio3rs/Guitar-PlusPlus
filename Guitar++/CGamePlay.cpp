@@ -692,9 +692,9 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 		TempStruct3D.x3 = TempStruct3D.x1 + size;
 		TempStruct3D.x4 = TempStruct3D.x1;
 
-		TempStruct3D.y1 = -0.46;
+		TempStruct3D.y1 = -0.48;
 		TempStruct3D.y2 = TempStruct3D.y1;
-		TempStruct3D.y3 = -0.46;
+		TempStruct3D.y3 = -0.48;
 		TempStruct3D.y4 = TempStruct3D.y3;
 
 		TempStruct3D.z1 = nCalc;
@@ -723,8 +723,9 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 			hopostp.push_front(vec3data);
 		}
 
-		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size / 1.5);
 
+		engine.setScale(1.0, 0.05, 2.0);
 		size_t plusPos = player.Notes.plusPos;
 
 		if (plusPos < player.Notes.gPlus.size())
@@ -738,7 +739,10 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 			}
 		}
 
+		CEngine::engine().setColor(0.0, 0.0, 0.0, 0.5);
 		GPPGame::GuitarPP().noteOBJ.draw(0, false);
+		CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+		CEngine::engine().matrixReset();
 	}
 
 	if (rotated)
@@ -993,9 +997,9 @@ void CGamePlay::renderTailsBuffer(CPlayer &player)
 	TempStruct3D.TextureY1 = 1.0;
 	TempStruct3D.TextureY2 = 0.0;
 
-	TempStruct3D.y1 = -0.4995;
+	TempStruct3D.y1 = -0.49;
 	TempStruct3D.y2 = TempStruct3D.y1;
-	TempStruct3D.y3 = -0.4995;
+	TempStruct3D.y3 = -0.49;
 	TempStruct3D.y4 = TempStruct3D.y3;
 
 	for (auto &t : player.tailsData)
@@ -1090,6 +1094,7 @@ void CGamePlay::renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player
 
 void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
+	double dif = time - ltimet;
 	bool bAddTailToBuffer = false;
 	double lt = 0.0, tlng = 0.0;
 	for (int i = 0; i < 5; i++){
@@ -1130,7 +1135,7 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 
 			//renderTimeOnNote(time, time, player);
 
-			if (!(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, player);
+			if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, player);
 		}
 	}
 
@@ -1411,7 +1416,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 		if (noteTime <= 5.0)
 		{
-			if ((note.type & notesFlags::nf_picked) == 0)
+			if ((note.type & notesFlags::nf_picked) == 0 || noteTime >= -0.0025)
 			{
 				player.buffer.push_front(note);
 			}
@@ -2230,6 +2235,22 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		engine.setCamera(player.playerCamera);
 	}
 
+	/*{
+
+		CEngine::cameraSET usingCamera;
+		usingCamera.eyex = l0.position[0];
+		usingCamera.eyey = l0.position[1];
+		usingCamera.eyez = l0.position[2];
+		usingCamera.centerx = l0.direction[0];
+		usingCamera.centery = l0.direction[1];
+		usingCamera.centerz = l0.direction[2];
+		usingCamera.upx = 0;
+		usingCamera.upy = 1;
+		usingCamera.upz = 0;
+
+		engine.setCamera(usingCamera);
+	}*/
+
 
 	engine.activate3DRender(true);
 
@@ -2284,6 +2305,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		for (auto &n : player.buffer)
 		{
 			renderNote(n, player);
+			renderNoteShadow(n, player);
 		}
 	};
 
@@ -2322,10 +2344,27 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		l0n.specularLight[2] = 0.0;
 		l0n.specularLight[3] = 0.0;
 
-		//engine.setLight(l0n, 0);
+		//engine.setLight(l0n, 0);{
 	}
 
 	renderScene();
+	//engine.matrixReset();
+	/*{
+
+		CEngine::cameraSET usingCamera;
+		usingCamera.eyex = l0.position[0];
+		usingCamera.eyey = l0.position[1];
+		usingCamera.eyez = l0.position[2];
+		usingCamera.centerx = l0.direction[0];
+		usingCamera.centery = l0.direction[1];
+		usingCamera.centerz = l0.direction[2];
+		usingCamera.upx = 0;
+		usingCamera.upy = 1;
+		usingCamera.upz = 0;
+
+		engine.setCamera(usingCamera);
+	}
+	*/
 	/*
 	CEngine::shadowMatrix(floorShadow, floorPlane, l0.position);
 
@@ -2475,16 +2514,17 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	engine.activateNormals(false);
 	CEngine::engine().matrixReset();
 
+	engine.activateLighting(false);
+
 	if (player.playerParticles.part.size()){
 		//engine.clearAccmumaltionBuffer();
-			player.playerParticles.render();
+		player.playerParticles.render();
 		//	engine.addToAccumulationBuffer(0.25);
 		//engine.retAccumulationBuffer(1.0);
 	}
 
 	engine.setColor(1.0, 1.0, 1.0, 1.0);
 
-	engine.activateLighting(false);
 	renderTailsBuffer(player);
 	engine.activate3DRender(false);
 
