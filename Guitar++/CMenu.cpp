@@ -2,20 +2,46 @@
 #include "CEngine.h"
 #include "CFonts.h"
 #include "GPPGame.h"
+#include "CLanguageManager.h"
 #include <iostream>
+#include "CLog.h"
 
 std::unordered_map <std::string, CMenu*> CMenu::Menus = std::unordered_map <std::string, CMenu*>();
 int CMenu::menusCreated = 0;
 
+void CMenu::menuOpt::update()
+{
+	if (langEntryKey.size() > 0)
+	{
+		auto &lngmgr = CLanguageManager::langMGR();
+		auto &game = GPPGame::GuitarPP();
+		std::string txt = lngmgr.getText(game.glanguage, langEntryKey);
+
+		if (txt.size() > 0)
+			text = txt;
+		else
+		{
+			CLog::log() << "On CMenu::menuOpt::update(): \n	<<" + text + ">>	 language entry key <<" + langEntryKey + ">> is null or not exists.";
+
+			if (text.size() == 0)
+			{
+				text = langEntryKey + "n/f/";
+			}
+		}
+	}
+}
+
 int CMenu::addOpt(const menuOpt &opt){
 	options.push_back(opt);
+	options.back().update();
 
-	groupInfo[opt.group] = group();
+	auto &gp = groupInfo[opt.group];
 
 	return options.size() - 1;
 }
 
-void CMenu::resetData(){
+void CMenu::resetData()
+{
 	for (auto &opt : options){
 		opt.status = 0;
 	}

@@ -51,6 +51,8 @@ public:
 
 		double color[4];
 
+		void update();
+
 		inline menuOpt(){
 			type = button_ok;
 			group = -1;

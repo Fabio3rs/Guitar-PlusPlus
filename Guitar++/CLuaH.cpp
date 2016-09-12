@@ -172,8 +172,10 @@ int CLuaH::runScriptWithArgs(luaScript &lua, int args){
 	return false;
 }
 
-void CLuaH::runEvent(std::string name){
+void CLuaH::runEvent(std::string name)
+{
 	static const std::string barra("/");
+
 	for (auto &pathScripts : Lua().files)
 	{
 		for (auto &scripts : pathScripts.second)
@@ -248,9 +250,9 @@ void CLuaH::runCheatEvent(std::string name){
 							}
 							else
 							{
-								char *buffer = (char*)0x969110;
+								/*char *buffer = (char*)0x969110;
 
-								*buffer = 0;
+								*buffer = 0;*/
 							}
 						}
 					}

@@ -2299,13 +2299,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	auto renderScene = [&]()
 	{
+		engine.setColor(1.0, 1.0, 1.0, 1.0);
 		renderPylmBar();
 
 		//engine.clearAccmumaltionBuffer();
 		for (auto &n : player.buffer)
 		{
 			renderNote(n, player);
-			renderNoteShadow(n, player);
+			//renderNoteShadow(n, player);
 		}
 	};
 

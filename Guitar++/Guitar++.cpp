@@ -182,6 +182,7 @@ int main(int argc, char* argv[])
 			CMenu::menuOpt opt;
 
 			opt.text = "Extras";
+			opt.langEntryKey = "menuExtrasTitle";
 			opt.y = 0.2;
 			opt.x = -proportion + 0.2;
 			opt.size = 0.075;
@@ -226,8 +227,6 @@ int main(int argc, char* argv[])
 
 			quitOp = mainMenu.addOpt(opt);
 		}
-
-		game.setMainMenu(mainMenu);
 
 		{
 			CMenu::menuOpt opt;
@@ -420,8 +419,8 @@ int main(int argc, char* argv[])
 		}
 
 
+		game.setMainMenu(mainMenu);
 		lua.runEvent("mainMenuSetted");
-
 
 
 		GPPGame::GuitarPP().setVSyncMode(1);

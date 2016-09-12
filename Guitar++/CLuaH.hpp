@@ -9,6 +9,7 @@
 #include <deque>
 #include <unordered_map>
 #include <cstdint>
+#include <iostream>
 
 class CLuaH
 {
@@ -33,17 +34,91 @@ public:
 	struct stringHash
 	{
 		std::string str;
-		int64_t crc64;
+		uint64_t hash64;
 		double gppCalc;
 
 		inline bool operator==(const stringHash &hs) const
 		{
-			return crc64 == hs.crc64 && gppCalc == hs.gppCalc && str.size() == hs.str.size();
+			return hash64 == hs.hash64 && gppCalc == hs.gppCalc && str.size() == hs.str.size();
+		}
+
+		inline stringHash &operator=(const std::string &s)
+		{
+			set(s);
+			return *this;
+		}
+
+		inline bool operator>(const stringHash &hs) const
+		{
+			return hash64 > hs.hash64 && str.size() > hs.str.size();
+		}
+
+		inline bool operator<(const stringHash &hs) const
+		{
+			return hash64 < hs.hash64 && str.size() < hs.str.size();
+		}
+
+		void set(const std::string &s)
+		{
+			str = s;
+			hash64 = ~(0uL);
+			static double sqrt12 = sqrt(12);
+
+			static uint64_t keys[255] = {0};
+			static bool bkeyssetted = false;
+
+			if (!bkeyssetted)
+			{
+				uint64_t i = 1;
+				for (auto &k : keys)
+				{
+					k = sqrt12 * 1.0 / (i * 2.0 + 3.0) * pow(3.0, i) * pow(s.size() + 1, rand() % 255);
+
+					k ^= rand();
+					k <<= 16;
+					k ^= rand();
+					k <<= 16;
+					k ^= rand();
+					k <<= 16;
+					k ^= rand();
+					k <<= 16;
+
+					k ^= ~(rand() % (s.size() + 1));
+
+					k <<= 8;
+
+					k ^= ~(rand() % (s.size() + 1));
+
+					i *= 3;
+				}
+
+				bkeyssetted = true;
+			}
+
+			for (int i = 0, size = str.size(); i < size; ++i)
+			{
+				uint64_t pVal = keys[str[i]];
+				std::cout << str[i] << "   " << pVal << std::endl;
+
+				uint64_t sv = (i + 1) * s[i] + i;
+				
+				hash64 ^= pVal * sv;
+				
+				hash64 <<= 1;
+
+				gppCalc += str[i];
+			}
+		}
+
+		inline stringHash(const std::string &s)
+		{
+			set(s);
+			gppCalc = 0;
 		}
 
 		inline stringHash()
 		{
-			crc64 = 0;
+			hash64 = 0;
 			gppCalc = 0;
 		}
 	};
