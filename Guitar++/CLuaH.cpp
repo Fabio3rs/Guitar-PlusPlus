@@ -34,7 +34,7 @@ bool CLuaH::loadFiles(const std::string &path)
 		{
 			if ((rrd->d_type & DT_DIR) == 0 && extension_from_filename(rrd->d_name) == "lua")
 			{
-				CLog::log() << ("Loading " + path + "/" + rrd->d_name);
+				CLog::log() << ("Loading <<" + path + "/" + rrd->d_name + ">>");
 				files[path][rrd->d_name] = newScript(path, rrd->d_name);
 			}
 		}

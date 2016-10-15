@@ -21,7 +21,7 @@ void CMenu::menuOpt::update()
 			text = txt;
 		else
 		{
-			CLog::log() << "On CMenu::menuOpt::update(): \n	<<" + text + ">>	 language entry key <<" + langEntryKey + ">> is null or not exists.";
+			CLog::log() << "On CMenu::menuOpt::update():\n				<<" + text + ">>	 language entry key <<" + langEntryKey + ">> is null or not exists.";
 
 			if (text.size() == 0)
 			{

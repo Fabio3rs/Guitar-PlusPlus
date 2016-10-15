@@ -1451,7 +1451,8 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 {
 	auto &engine = CEngine::engine();
 	auto &lua = CLuaH::Lua();
-
+	double waitForTime = 0.0;
+	
 	std::deque < CMenu* > menusStack;
 
 	menusStack.push_back(startMenu);
@@ -1522,10 +1523,12 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 	RenderData.TextureY2 = 0.0;
 
 	bool back = false;
+	bool updateRender = true;
 
 	while (menusStack.size() != 0 && engine.windowOpened())
 	{
 		clearScreen();
+		updateRender = (engine.getTime() - waitForTime) >= 0.0;
 
 		engine.activate3DRender(false);
 
@@ -1535,7 +1538,8 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 		if (preFun)
 			preFun();
 
-		menu.update();
+		if (updateRender)
+			menu.update();
 
 		auto &texture = gTextures[menu.backgroundTexture];
 
@@ -1564,12 +1568,25 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 				if (opt.goback)
 				{
 					// Clean a temporary menu
+
 					if (menu.temp)
 					{
+						//std::cout << "size bef erase" << menusStack.size() << std::endl;
 						gameMenus.erase(menu.getName());
+						//std::cout << "size aft erase" << menusStack.size() << std::endl;
 					}
 
 					menusStack.pop_back();
+
+					if (menusStack.size())
+					{
+						CMenu *mback = menusStack.back();
+
+						if (mback)
+							mback->resetData();
+					}
+
+					waitForTime = engine.getTime() + 0.5;
 
 					lua.runEvent("menusGoBack");
 					break;

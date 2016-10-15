@@ -11,6 +11,7 @@ class CLanguageManager
 	class CLanguage
 	{
 		friend CLanguageManager;
+		CLuaH::luaScript *luaf;
 
 		bool loaded;
 		std::string name, file;
@@ -29,7 +30,9 @@ class CLanguageManager
 
 public:
 
+	std::string getLanguageName(const std::string &lang);
 	std::string getText(const std::string &lang, const std::string &entry);
+	std::string getTextDirectFromFile(const std::string &lang, const std::string &entry);
 
 	static CLanguageManager &langMGR();
 };
