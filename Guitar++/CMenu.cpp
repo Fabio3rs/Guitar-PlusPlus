@@ -310,6 +310,122 @@ void CMenu::update(){
 	CLuaH::Lua().runEventWithParams(std::string("pos") + menuName + std::string("update"), menucallback);
 }
 
+void CMenu::updateDev()
+{
+	auto textSizeInScreen = [](double charnums, double size){
+		return (charnums * size / 1.5) + (size / 2.0);
+	};
+
+	auto isMouseOver2DQuad = [](double x, double y, double w, double h){
+		double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
+		return mx >= x && mx <= x + w && my >= y - h && my <= y;
+	};
+
+	auto desselectAllFromGroup = [this](int group){
+		if (group < 0) return;
+		for (auto &opt : options){
+			if (opt.group == group){
+				opt.status &= ~1;
+			}
+		}
+	};
+
+	int leftKey = CEngine::engine().getKey(GLFW_KEY_LEFT), rightKey = CEngine::engine().getKey(GLFW_KEY_RIGHT);
+
+	int plusK = CEngine::engine().getKey(GLFW_KEY_KP_ADD), minusK = CEngine::engine().getKey(GLFW_KEY_KP_SUBTRACT);
+
+	bool enterOpt = false, mBTNClick = false;
+
+	static bool btnClickStat = false;
+	static double mouseAX = CEngine::engine().mouseX;
+	static double mouseAY = CEngine::engine().mouseY;
+
+	double mxd = CEngine::engine().mouseX - mouseAX;
+	double myd = CEngine::engine().mouseY - mouseAY;
+
+	mouseAX = CEngine::engine().mouseX;
+	mouseAY = CEngine::engine().mouseY;
+
+	if (CEngine::engine().getMouseButton(0))
+	{
+		mBTNClick = true;
+	}
+	else
+	{
+		btnClickStat = false;
+	}
+
+	double textSize = 0.0;
+	double barPosX1 = 0.0;
+	double barPosX2 = 0.0;
+
+	int i = 0;
+	for (auto &opt : options)
+	{
+		switch (opt.type){
+		case button_ok:
+
+			break;
+
+		case textbtn:
+			textSize = textSizeInScreen(opt.text.size(), opt.size);
+
+			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05))
+			{
+				if (mBTNClick && !btnClickStat)
+				{
+					opt.devStatus |= 1;
+					btnClickStat = true;
+				}
+			}
+
+			if (!btnClickStat)
+			{
+				if ((opt.devStatus & 1) != 0)
+				{
+					opt.devStatus &= ~1;
+				}
+			}else
+			{
+				if ((opt.devStatus & 1) != 0)
+				{
+					opt.x += mxd;
+					opt.y += myd;
+
+					if (plusK)
+					{
+						opt.size += CEngine::engine().getDeltaTime() * 0.1;
+					}
+					else
+					{
+						if (minusK)
+						{
+							opt.size -= CEngine::engine().getDeltaTime() * 0.1;
+						}
+					}
+				}
+			}
+			break;
+
+		case deslizant_Select_list:
+			textSize = textSizeInScreen(opt.text.size(), opt.size);
+			barPosX1 = opt.x + textSize + opt.size;
+			barPosX2 = barPosX1 + opt.deslizantBarSize;
+
+			if (isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize, opt.size))
+			{
+				if (mBTNClick)
+				{
+
+				}
+			}
+			break;
+		}
+
+		++i;
+	}
+}
+
 CMenu::CMenu(){
 	status = 0;
 

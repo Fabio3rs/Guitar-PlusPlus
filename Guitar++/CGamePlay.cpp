@@ -665,7 +665,7 @@ void CGamePlay::renderHoposLight()
 	hopostp.clear();
 }
 
-void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Texture, CPlayer &player)
+void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Texture, bool tail, CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
 	double rtime = getRunningMusicTime(player) - pos;
@@ -723,7 +723,9 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 			hopostp.push_front(vec3data);
 		}
 
-		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size / 1.5);
+		double atz = tail ? TempStruct3D.z1 + size / 1.25 : TempStruct3D.z1 + size / 1.5;
+
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, atz);
 
 		engine.setScale(1.0, 0.05, 2.0);
 		size_t plusPos = player.Notes.plusPos;
@@ -739,8 +741,8 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 			}
 		}
 
-		CEngine::engine().setColor(0.0, 0.0, 0.0, 0.5);
-		GPPGame::GuitarPP().noteOBJ.draw(0, false);
+		CEngine::engine().setColor(0.0, 0.0, 0.0, tail? 0.25 : 0.7);
+		GPPGame::GuitarPP().noteOBJ.draw(0/*GPPGame::GuitarPP().loadTexture("data/sprites", "shadow.tga").getTextId()*/, false);
 		CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 		CEngine::engine().matrixReset();
 	}
@@ -1087,7 +1089,7 @@ void CGamePlay::renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player
 				texture = /*GPPGame::GuitarPP().HOPOSText*/-1;
 			}
 
-			if (!(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNoteShadow(i, time, 0, player);
+			if (!(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNoteShadow(i, time, 0, bAddTailToBuffer, player);
 		}
 	}
 }
@@ -2306,7 +2308,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		for (auto &n : player.buffer)
 		{
 			renderNote(n, player);
-			//renderNoteShadow(n, player);
+			renderNoteShadow(n, player);
 		}
 	};
 

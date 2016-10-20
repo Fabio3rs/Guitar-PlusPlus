@@ -1,10 +1,12 @@
 #include "GPPOBJ.h"
 #include "CEngine.h"
 #include <iostream>
+#include "CShader.h"
 
 void GPPOBJ::draw(unsigned int texture, bool autoBindZeroVBO)
 {
 	vbodata.texture = texture;
+	CShader::inst().processEvent(0);
 	CEngine::engine().RenderCustomVerticesFloat(vbodata, autoBindZeroVBO);
 }
 

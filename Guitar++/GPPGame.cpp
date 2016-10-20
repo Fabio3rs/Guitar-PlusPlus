@@ -1539,7 +1539,10 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 			preFun();
 
 		if (updateRender)
+		{
 			menu.update();
+			//menu.updateDev();
+		}
 
 		auto &texture = gTextures[menu.backgroundTexture];
 
@@ -1724,6 +1727,22 @@ int GPPGame::createWindow()
 		setVSyncMode(getWindowConfig().VSyncMode);
 	}
 
+	try
+	{
+		CShader::inst();
+		CShader::inst().addEvent("test");
+		int l0 = CShader::inst().newShader("vert.vert", 0, "test");
+		int l = CShader::inst().newShader("frag.frag", 1, "test");
+		CShader::inst().addShaderToEvent("test", l0);
+		CShader::inst().addShaderToEvent("test", l);
+		CShader::inst().linkAllShaders();
+	}
+	catch (std::exception &e)
+	{
+		CLog::log() << e.what();
+	}
+
+
 	CLuaH::Lua().runEvent("posCreateWindow");
 
 	int itext = 0;
@@ -1756,7 +1775,9 @@ int GPPGame::createWindow()
 		std::cout << st << std::endl;
 	}
 
-	return CEngine::engine().windowOpened(); // Is the window really open?
+
+
+	return CEngine::engine().windowOpened();
 }
 
 void GPPGame::setVSyncMode(int mode)

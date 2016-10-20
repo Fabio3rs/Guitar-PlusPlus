@@ -16,6 +16,7 @@
 #include <mutex>
 #include "GPPOBJ.h"
 #include "CSaveSystem.h"
+#include "CShader.h"
 
 class gameException : public std::exception{
 	std::string str;
@@ -113,7 +114,7 @@ public:
 
 	struct gameWindow{
 		int h, w, AA, colorBits, VSyncMode;
-		bool fullscreen;
+		int fullscreen;
 		std::string name; // "Guitar ++ - name"/"Guitar++"
 	};
 

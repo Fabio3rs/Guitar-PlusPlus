@@ -38,6 +38,7 @@ public:
 
 		std::string text, preText, langEntryKey;
 		int status;
+		int devStatus;
 		double optValue, deslizantBarSize;
 		int listID;
 
@@ -63,6 +64,7 @@ public:
 			deslizantBarSize = 0.0;
 			listID = 0;
 			optValue = 0;
+			devStatus = 0;
 
 			attachedLua = nullptr;
 
@@ -101,6 +103,7 @@ public:
 	std::deque<menuOpt> options;
 
 	void update();
+	void updateDev();
 
 	void render();
 	int addOpt(const menuOpt &opt);

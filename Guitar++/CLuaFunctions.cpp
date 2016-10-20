@@ -456,9 +456,14 @@ int CLuaFunctions::setConfigs(lua_State *L)
 
 	lua_getglobal(L, "FullScreen");
 
-	if (lua_isboolean(L, -1))
+	if (lua_isboolean(L, -1)){
 		cfg.fullscreen = lua_toboolean(L, -1) != 0;
+	}
 
+	lua_getglobal(L, "Borderless");
+
+	if (lua_isboolean(L, -1))
+		cfg.fullscreen |= (lua_toboolean(L, -1) != 0) ? 2 : 0;
 
 	lua_getglobal(L, "customTitle");
 

@@ -1104,8 +1104,9 @@ void CEngine::activateNormals(bool a)
 
 void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	GLFWmonitor *monitor = nullptr;
-	if (fullScreen){
-		int monitorCount;
+	if ((fullScreen & 1) != 0)
+	{
+		int monitorCount = 0;
 		GLFWmonitor **monitors = glfwGetMonitors(&monitorCount);
 
 		if (monitorCount > 0){
@@ -1120,10 +1121,11 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 		h = mode->height;
 	}
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-	//glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+	if (fullScreen & 2)
+		glfwWindowHint(GLFW_DECORATED, GL_FALSE);
 
 	if (AASamples)
 		glfwWindowHint(GLFW_SAMPLES, AASamples);
