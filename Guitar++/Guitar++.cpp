@@ -441,7 +441,7 @@ int main(int argc, char* argv[])
 
 		// menu background texture
 		auto &menu = game.loadTexture("data/sprites", "menu.tga");
-		GPPGame::GuitarPP().uiRenameMenu.qbgd.Text = game.loadTexture("data/sprites", "menu.tga").getTextId();
+		GPPGame::GuitarPP().uiRenameMenu.qbgd.Text = game.loadTexture("data/sprites", "interfacebg.tga").getTextId();
 
 		//***********************************************
 		//CEngine::RenderDoubleStruct RenderData;

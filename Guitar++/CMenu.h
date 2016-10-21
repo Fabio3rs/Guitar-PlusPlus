@@ -33,9 +33,11 @@ public:
 		return nullptr;
 	}
 
+	double x, y;
+
 	bool devMenuNOUpdateOthers;
 
-	enum menusOPT{button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui};
+	enum menusOPT{button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui, drag_bar};
 	std::string mTitle;
 
 	CLuaH::luaScript *lScript;
@@ -48,6 +50,9 @@ public:
 	int devEditingOpt;
 
 	bool temp, gameMenu;
+
+	double mouseAX;
+	double mouseAY;
 
 	struct menuOpt{
 		menusOPT type;
@@ -67,6 +72,8 @@ public:
 		int devStatus;
 		double optValue, deslizantBarSize;
 		int listID;
+
+		bool btnClickStat;
 
 		CLuaH::luaScript *attachedLua;
 
@@ -98,6 +105,7 @@ public:
 			externalPreTextRef = nullptr;
 
 			goback = false;
+			btnClickStat = false;
 
 			pressingShortcutKey = shortcutKey = 0;
 

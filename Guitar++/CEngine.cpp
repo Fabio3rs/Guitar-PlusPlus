@@ -1879,7 +1879,7 @@ void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData){
 		1.0, 1.0, 1.0, quad3DData.alphaBottom,
 		1.0, 1.0, 1.0, quad3DData.alphaTop };
 
-	bindTexture(quad3DData.Text);
+	bindTexture((quad3DData.Text == (~0))? 0 : quad3DData.Text);
 
 	glEnableClientState(GL_COLOR_ARRAY);
 

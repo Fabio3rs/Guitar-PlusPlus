@@ -1900,8 +1900,8 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 
 	{
 		uiRenameMenu.qbgd.x1 = -0.1;
-		uiRenameMenu.qbgd.x2 = -0.1 + 0.7;
-		uiRenameMenu.qbgd.x3 = -0.1 + 0.7;
+		uiRenameMenu.qbgd.x2 = -0.1 + 1.0;
+		uiRenameMenu.qbgd.x3 = -0.1 + 1.0;
 		uiRenameMenu.qbgd.x4 = -0.1;
 
 		uiRenameMenu.qbgd.y1 = -0.6 + 0.5;
@@ -1915,7 +1915,22 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 		uiRenameMenu.qbgd.TextureY1 = 1.0;
 		uiRenameMenu.qbgd.TextureY2 = 0.0;
 
-		uiRenameMenu.qbgd.Text = 1;
+		uiRenameMenu.qbgd.Text = 0;
+	}
+
+	{
+		CMenu::menuOpt opt;
+
+		opt.text = "";
+		opt.y = -0.1;
+		opt.x = -0.1;
+		opt.deslizantBarSize = 1.0;
+		opt.size = 0.1;
+		opt.group = 2;
+		opt.status = 0;
+		opt.type = CMenu::menusOPT::drag_bar;
+
+		uiRenameMenu.addOpt(opt);
 	}
 
 	{
@@ -1924,7 +1939,7 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 		opt.text = "aaaa";
 		opt.y = -0.3;
 		opt.x = 0.0;
-		opt.size = 0.075;
+		opt.size = 0.05;
 		opt.group = 1;
 		opt.status = 0;
 		opt.type = CMenu::menusOPT::text_input;

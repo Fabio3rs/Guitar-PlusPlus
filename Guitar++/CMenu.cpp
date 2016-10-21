@@ -67,7 +67,24 @@ void CMenu::render(){
 
 	if (qbgd.Text != 0)
 	{
-		CEngine::engine().Render3DQuadWithAlpha(qbgd);
+		if (x != 0.0 || y != 0.0)
+		{
+			CEngine::RenderDoubleStruct RenderData = qbgd;
+			RenderData.x1 += x;
+			RenderData.x2 += x;
+			RenderData.x3 += x;
+			RenderData.x4 += x;
+
+			RenderData.y1 += y;
+			RenderData.y2 += y;
+			RenderData.y3 += y;
+			RenderData.y4 += y;
+			CEngine::engine().Render3DQuadWithAlpha(RenderData);
+		}
+		else
+		{
+			CEngine::engine().Render3DQuadWithAlpha(qbgd);
+		}
 	}
 
 	for (auto &grp : groupInfo){
@@ -77,15 +94,15 @@ void CMenu::render(){
 
 			RenderData.Text = 0;
 
-			RenderData.x1 = grp.second.x;
-			RenderData.x2 = RenderData.x1 + grp.second.w;
-			RenderData.x3 = RenderData.x1 + grp.second.w;
-			RenderData.x4 = grp.second.x;
+			RenderData.x1 = grp.second.x + x;
+			RenderData.x2 = RenderData.x1 + grp.second.w + x;
+			RenderData.x3 = RenderData.x1 + grp.second.w + x;
+			RenderData.x4 = grp.second.x + x;
 
-			RenderData.y1 = grp.second.y + grp.second.h;
-			RenderData.y2 = RenderData.y1 + grp.second.h;
-			RenderData.y3 = RenderData.y1;
-			RenderData.y4 = grp.second.y;
+			RenderData.y1 = grp.second.y + grp.second.h + y;
+			RenderData.y2 = RenderData.y1 + grp.second.h + y;
+			RenderData.y3 = RenderData.y1 + y;
+			RenderData.y4 = grp.second.y + y;
 
 			RenderData.TextureX1 = 0.0;
 			RenderData.TextureX2 = 1.0;
@@ -110,15 +127,15 @@ void CMenu::render(){
 				{
 					CEngine::RenderDoubleStruct RenderData;
 
-					RenderData.x1 = opt.x;
-					RenderData.x2 = opt.x + textSize;
-					RenderData.x3 = opt.x + textSize;
-					RenderData.x4 = opt.x;
+					RenderData.x1 = opt.x + x;
+					RenderData.x2 = opt.x + textSize + x;
+					RenderData.x3 = opt.x + textSize + x;
+					RenderData.x4 = opt.x + x;
 
-					RenderData.y1 = opt.y + opt.size;
-					RenderData.y2 = opt.y + opt.size;
-					RenderData.y3 = opt.y;
-					RenderData.y4 = opt.y;
+					RenderData.y1 = opt.y + opt.size + y;
+					RenderData.y2 = opt.y + opt.size + y;
+					RenderData.y3 = opt.y + y;
+					RenderData.y4 = opt.y + y;
 
 					RenderData.z1 = 0.0;
 					RenderData.z2 = 0.0;
@@ -137,15 +154,15 @@ void CMenu::render(){
 
 				if (opt.status & 4){
 					CEngine::RenderDoubleStruct RenderData;
-					RenderData.x1 = opt.x - opt.size / 2.0;
-					RenderData.x2 = opt.x - opt.size / 2.0 + opt.size;
-					RenderData.x3 = opt.x - opt.size / 2.0 + opt.size;
-					RenderData.x4 = opt.x - opt.size / 2.0;
+					RenderData.x1 = opt.x - opt.size / 2.0 + x;
+					RenderData.x2 = opt.x - opt.size / 2.0 + opt.size + x;
+					RenderData.x3 = opt.x - opt.size / 2.0 + opt.size + x;
+					RenderData.x4 = opt.x - opt.size / 2.0 + x;
 
-					RenderData.y1 = opt.y + opt.size;
-					RenderData.y2 = opt.y + opt.size;
-					RenderData.y3 = opt.y;
-					RenderData.y4 = opt.y;
+					RenderData.y1 = opt.y + opt.size + y;
+					RenderData.y2 = opt.y + opt.size + y;
+					RenderData.y3 = opt.y + y;
+					RenderData.y4 = opt.y + y;
 
 					RenderData.Text = GPPGame::GuitarPP().SPR["palheta"];
 
@@ -157,7 +174,7 @@ void CMenu::render(){
 					CEngine::engine().Render2DQuad(RenderData);
 				}
 
-				CFonts::fonts().drawTextInScreen(opt.preText, opt.x, opt.y, opt.size);
+				CFonts::fonts().drawTextInScreen(opt.preText, opt.x + x, opt.y + y, opt.size);
 			}
 			break;
 
@@ -165,15 +182,15 @@ void CMenu::render(){
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
 			if (opt.status & 1){
 				CEngine::RenderDoubleStruct RenderData;
-				RenderData.x1 = opt.x - opt.size / 2.0;
-				RenderData.x2 = opt.x - opt.size / 2.0 + opt.size;
-				RenderData.x3 = opt.x - opt.size / 2.0 + opt.size;
-				RenderData.x4 = opt.x - opt.size / 2.0;
+				RenderData.x1 = opt.x - opt.size / 2.0 + x;
+				RenderData.x2 = opt.x - opt.size / 2.0 + opt.size + x;
+				RenderData.x3 = opt.x - opt.size / 2.0 + opt.size + x;
+				RenderData.x4 = opt.x - opt.size / 2.0 + x;
 
-				RenderData.y1 = opt.y + opt.size;
-				RenderData.y2 = opt.y + opt.size;
-				RenderData.y3 = opt.y;
-				RenderData.y4 = opt.y;
+				RenderData.y1 = opt.y + opt.size + y;
+				RenderData.y2 = opt.y + opt.size + y;
+				RenderData.y3 = opt.y + y;
+				RenderData.y4 = opt.y + y;
 
 				RenderData.Text = GPPGame::GuitarPP().SPR["palheta"];
 
@@ -184,31 +201,93 @@ void CMenu::render(){
 
 				CEngine::engine().Render2DQuad(RenderData);
 			}
-			CFonts::fonts().drawTextInScreen(opt.text, opt.x, opt.y, opt.size);
+			CFonts::fonts().drawTextInScreen(opt.text, opt.x + x, opt.y + y, opt.size);
 			break;
 
 		case deslizant_Select_list:
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
 
-			double textSize = textSizeInScreen(opt.text.size(), opt.size);
-			double barPosX1 = opt.x + textSize + opt.size, barPosX2;
-			barPosX2 = barPosX1 + opt.deslizantBarSize;
-			double barPosXStep = opt.deslizantBarSize / opt.optList.size();
-			barPosXStep *= opt.listID;
+			{
+				double textSize = textSizeInScreen(opt.text.size(), opt.size);
+				double barPosX1 = opt.x + textSize + opt.size, barPosX2;
+				barPosX1 += x;
+				barPosX2 = barPosX1 + opt.deslizantBarSize;
+				double barPosXStep = opt.deslizantBarSize / opt.optList.size();
+				barPosXStep *= opt.listID;
 
+
+				{
+					CEngine::RenderDoubleStruct RenderData;
+
+					RenderData.x1 = barPosX1;
+					RenderData.x2 = barPosX1 + opt.deslizantBarSize;
+					RenderData.x3 = barPosX1 + opt.deslizantBarSize;
+					RenderData.x4 = barPosX1;
+
+					RenderData.y1 = opt.y + opt.size + y;
+					RenderData.y2 = opt.y + opt.size + y;
+					RenderData.y3 = opt.y + y;
+					RenderData.y4 = opt.y + y;
+
+					RenderData.z1 = 0.0;
+					RenderData.z2 = 0.0;
+					RenderData.z3 = 0.0;
+					RenderData.z4 = 0.0;
+
+					RenderData.TextureX1 = 0.0;
+					RenderData.TextureX2 = 1.0;
+					RenderData.TextureY1 = 1.0;
+					RenderData.TextureY2 = 0.0;
+
+					RenderData.Text = 0;
+
+					CEngine::engine().Render2DQuad(RenderData);
+				}
+
+				double absolutePos = barPosX1 + barPosXStep;
+
+				CEngine::RenderDoubleStruct RenderData;
+				RenderData.x1 = absolutePos;
+				RenderData.x2 = absolutePos + opt.size;
+				RenderData.x3 = absolutePos + opt.size;
+				RenderData.x4 = absolutePos;
+
+				RenderData.y1 = opt.y + opt.size + y;
+				RenderData.y2 = opt.y + opt.size + y;
+				RenderData.y3 = opt.y + y;
+				RenderData.y4 = opt.y + y;
+
+				RenderData.Text = GPPGame::GuitarPP().SPR["palheta"];
+
+				RenderData.TextureX1 = 0.0;
+				RenderData.TextureX2 = 1.0;
+				RenderData.TextureY1 = 1.0;
+				RenderData.TextureY2 = 0.0;
+
+				CEngine::engine().Render2DQuad(RenderData);
+
+				barPosX1 += opt.deslizantBarSize + opt.size;
+
+				CFonts::fonts().drawTextInScreen(opt.text, opt.x + x, opt.y + y, opt.size);
+				CFonts::fonts().drawTextInScreen(opt.optList[opt.listID], barPosX1, opt.y + y, opt.size);
+			}
+			break;
+
+		case drag_bar:
+			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
 
 			{
 				CEngine::RenderDoubleStruct RenderData;
 
-				RenderData.x1 = barPosX1;
-				RenderData.x2 = barPosX1 + opt.deslizantBarSize;
-				RenderData.x3 = barPosX1 + opt.deslizantBarSize;
-				RenderData.x4 = barPosX1;
+				RenderData.x1 = opt.x + x;
+				RenderData.x2 = opt.x + opt.deslizantBarSize + x;
+				RenderData.x3 = opt.x + opt.deslizantBarSize + x;
+				RenderData.x4 = opt.x + x;
 
-				RenderData.y1 = opt.y + opt.size;
-				RenderData.y2 = opt.y + opt.size;
-				RenderData.y3 = opt.y;
-				RenderData.y4 = opt.y;
+				RenderData.y1 = opt.y + opt.size + y;
+				RenderData.y2 = opt.y + opt.size + y;
+				RenderData.y3 = opt.y + y;
+				RenderData.y4 = opt.y + y;
 
 				RenderData.z1 = 0.0;
 				RenderData.z2 = 0.0;
@@ -224,33 +303,6 @@ void CMenu::render(){
 
 				CEngine::engine().Render2DQuad(RenderData);
 			}
-
-			double absolutePos = barPosX1 + barPosXStep;
-
-			CEngine::RenderDoubleStruct RenderData;
-			RenderData.x1 = absolutePos;
-			RenderData.x2 = absolutePos + opt.size;
-			RenderData.x3 = absolutePos + opt.size;
-			RenderData.x4 = absolutePos;
-
-			RenderData.y1 = opt.y + opt.size;
-			RenderData.y2 = opt.y + opt.size;
-			RenderData.y3 = opt.y;
-			RenderData.y4 = opt.y;
-
-			RenderData.Text = GPPGame::GuitarPP().SPR["palheta"];
-
-			RenderData.TextureX1 = 0.0;
-			RenderData.TextureX2 = 1.0;
-			RenderData.TextureY1 = 1.0;
-			RenderData.TextureY2 = 0.0;
-
-			CEngine::engine().Render2DQuad(RenderData);
-
-			barPosX1 += opt.deslizantBarSize + opt.size;
-
-			CFonts::fonts().drawTextInScreen(opt.text, opt.x, opt.y, opt.size);
-			CFonts::fonts().drawTextInScreen(opt.optList[opt.listID], barPosX1, opt.y, opt.size);
 			break;
 		}
 	}
@@ -273,8 +325,11 @@ void CMenu::update(){
 		return (charnums * size / 1.5) + (size / 2.0);
 	};
 
-	auto isMouseOver2DQuad = [](double x, double y, double w, double h){
+	auto isMouseOver2DQuad = [this](double x, double y, double w, double h){
 		double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
+		x += this->x;
+		y += this->y;
+
 		return mx >= x && mx <= x + w && my >= y - h && my <= y;
 	};
 
@@ -301,6 +356,20 @@ void CMenu::update(){
 
 	bool enterOpt = false, mBTNClick = false;
 
+	double mxd = CEngine::engine().mouseX - mouseAX;
+	double myd = CEngine::engine().mouseY - mouseAY;
+
+	mouseAX = CEngine::engine().mouseX;
+	mouseAY = CEngine::engine().mouseY;
+
+	auto desselectAllClick = [this]()
+	{
+		for (auto &opt : options)
+		{
+			opt.devStatus &= ~2;
+		}
+	};
+	
 	if (CEngine::engine().getMouseButton(0)){
 		mBTNClick = true;
 	}
@@ -373,7 +442,7 @@ void CMenu::update(){
 		case text_input:
 			textSize = textSizeInScreen(opt.preText.size(), opt.size) + 0.1;
 
-			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05) && enterOpt)
+			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y - opt.size, textSize, opt.size * 1.05) && enterOpt)
 			{
 				desselectAllTextClick(opt);
 
@@ -507,6 +576,42 @@ void CMenu::update(){
 				}
 			}
 			break;
+
+		case drag_bar:
+			if (!mBTNClick)
+			{
+				opt.btnClickStat = false;
+			}
+
+			if (isMouseOver2DQuad(opt.x, opt.y, opt.deslizantBarSize, opt.size))
+			{
+				if (mBTNClick && !opt.btnClickStat)
+				{
+					desselectAllClick();
+					opt.devStatus |= 1;
+					opt.devStatus |= 2;
+					opt.btnClickStat = true;
+				}
+			}
+
+			if (!opt.btnClickStat)
+			{
+				if ((opt.devStatus & 1) != 0)
+				{
+					opt.devStatus &= ~1;
+				}
+			}
+			else
+			{
+				if ((opt.devStatus & 1) != 0)
+				{
+					std::cout << (opt.devStatus & 1) << std::endl;
+					x += mxd;
+					y += myd;
+				}
+			}
+
+			break;
 		}
 
 		if (params.size() <= 3) params.push_back(CLuaH::customParam(-1.0));
@@ -551,8 +656,11 @@ void CMenu::updateDev()
 		return (charnums * size / 1.5) + (size / 2.0);
 	};
 
-	auto isMouseOver2DQuad = [](double x, double y, double w, double h){
+	auto isMouseOver2DQuad = [this](double x, double y, double w, double h){
 		double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
+		x += this->x;
+		y += this->y;
+
 		return mx >= x && mx <= x + w && my >= y - h && my <= y;
 	};
 
@@ -580,8 +688,6 @@ void CMenu::updateDev()
 	bool enterOpt = false, mBTNClick = false;
 
 	static bool btnClickStat = false;
-	static double mouseAX = CEngine::engine().mouseX;
-	static double mouseAY = CEngine::engine().mouseY;
 
 	double mxd = CEngine::engine().mouseX - mouseAX;
 	double myd = CEngine::engine().mouseY - mouseAY;
@@ -709,6 +815,11 @@ CMenu::CMenu()
 	gameMenu = false;
 	devEditMenu = nullptr;
 	uiMenu = false;
+
+	x = y = 0.0;
+
+	mouseAX = CEngine::engine().mouseX;
+	mouseAY = CEngine::engine().mouseY;
 }
 
 CMenu::CMenu(const std::string &name){
@@ -732,6 +843,11 @@ CMenu::CMenu(const std::string &name){
 
 	gameMenu = false;
 	uiMenu = false;
+
+	x = y = 0.0;
+
+	mouseAX = CEngine::engine().mouseX;
+	mouseAY = CEngine::engine().mouseY;
 }
 
 CMenu::~CMenu(){
