@@ -65,6 +65,11 @@ void CMenu::render(){
 		return (charnums * size / 1.5) + (size / 2.0);
 	};
 
+	if (qbgd.Text != 0)
+	{
+		CEngine::engine().Render3DQuadWithAlpha(qbgd);
+	}
+
 	for (auto &grp : groupInfo){
 		switch (grp.second.type){
 		case group::deslizant_h_menu:
@@ -101,7 +106,6 @@ void CMenu::render(){
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
 			{
 				double textSize = textSizeInScreen(opt.preText.size(), opt.size) + opt.size * 0.5;
-				CFonts::fonts().drawTextInScreenWithBuffer(opt.preText, opt.x, opt.y, opt.size);
 
 				{
 					CEngine::RenderDoubleStruct RenderData;
@@ -152,12 +156,13 @@ void CMenu::render(){
 
 					CEngine::engine().Render2DQuad(RenderData);
 				}
+
+				CFonts::fonts().drawTextInScreen(opt.preText, opt.x, opt.y, opt.size);
 			}
 			break;
 
 		case textbtn:
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
-			CFonts::fonts().drawTextInScreenWithBuffer(opt.text, opt.x, opt.y, opt.size);
 			if (opt.status & 1){
 				CEngine::RenderDoubleStruct RenderData;
 				RenderData.x1 = opt.x - opt.size / 2.0;
@@ -179,11 +184,11 @@ void CMenu::render(){
 
 				CEngine::engine().Render2DQuad(RenderData);
 			}
+			CFonts::fonts().drawTextInScreen(opt.text, opt.x, opt.y, opt.size);
 			break;
 
 		case deslizant_Select_list:
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
-			CFonts::fonts().drawTextInScreenWithBuffer(opt.text, opt.x, opt.y, opt.size);
 
 			double textSize = textSizeInScreen(opt.text.size(), opt.size);
 			double barPosX1 = opt.x + textSize + opt.size, barPosX2;
@@ -244,7 +249,8 @@ void CMenu::render(){
 
 			barPosX1 += opt.deslizantBarSize + opt.size;
 
-			CFonts::fonts().drawTextInScreenWithBuffer(opt.optList[opt.listID], barPosX1, opt.y, opt.size);
+			CFonts::fonts().drawTextInScreen(opt.text, opt.x, opt.y, opt.size);
+			CFonts::fonts().drawTextInScreen(opt.optList[opt.listID], barPosX1, opt.y, opt.size);
 			break;
 		}
 	}

@@ -1895,6 +1895,29 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 
 	static int uiRenameMenuText = 0;
 
+	uiRenameMenu.qbgd.alphaBottom = 1.0;
+	uiRenameMenu.qbgd.alphaTop = 1.0;
+
+	{
+		uiRenameMenu.qbgd.x1 = -0.1;
+		uiRenameMenu.qbgd.x2 = -0.1 + 0.7;
+		uiRenameMenu.qbgd.x3 = -0.1 + 0.7;
+		uiRenameMenu.qbgd.x4 = -0.1;
+
+		uiRenameMenu.qbgd.y1 = -0.6 + 0.5;
+		uiRenameMenu.qbgd.y2 = -0.6 + 0.5;
+		uiRenameMenu.qbgd.y3 = -0.6;
+		uiRenameMenu.qbgd.y4 = -0.6;
+
+		uiRenameMenu.qbgd.TextureX1 = 0.0;
+		uiRenameMenu.qbgd.TextureX2 = 1.0;
+
+		uiRenameMenu.qbgd.TextureY1 = 1.0;
+		uiRenameMenu.qbgd.TextureY2 = 0.0;
+
+		uiRenameMenu.qbgd.Text = 1;
+	}
+
 	{
 		CMenu::menuOpt opt;
 
@@ -1921,6 +1944,9 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 		opt.status = 0;
 		opt.type = CMenu::menusOPT::textbtn;
 		opt.goback = true;
+		opt.color[0] = 1.0;
+		opt.color[1] = 0.0;
+		opt.color[2] = 0.0;
 
 		uiRenameMenu.addOpt(opt);
 	}

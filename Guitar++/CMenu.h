@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <cstdint>
 #include "CLuaH.hpp"
+#include "CEngine.h"
 
 class CMenu{
 	std::string menuName;
@@ -39,6 +40,8 @@ public:
 
 	CLuaH::luaScript *lScript;
 	std::unordered_map <std::string, int> luaCallBacks;
+
+	CEngine::RenderDoubleStruct qbgd;
 
 	std::string backgroundTexture;
 	CMenu *devEditMenu;

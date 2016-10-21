@@ -48,9 +48,10 @@ class GPPGame{
 	std::string runningModule;
 
 	bool devMode;
-	CMenu devMenus, uiRenameMenu;
 
 public:
+	CMenu devMenus, uiRenameMenu;
+
 	std::string glanguage;
 
 	CSaveSystem::CSave mainSave;
