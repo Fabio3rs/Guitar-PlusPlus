@@ -14,7 +14,7 @@ public:
 
 	struct key{
 		double t;
-		bool pressed, lastFramePressed;
+		int pressed, lastFramePressed;
 		double data;
 
 		inline key()

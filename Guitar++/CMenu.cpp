@@ -5,6 +5,7 @@
 #include "CLanguageManager.h"
 #include <iostream>
 #include "CLog.h"
+#include "CControls.h"
 
 std::unordered_map <std::string, CMenu*> CMenu::Menus = std::unordered_map <std::string, CMenu*>();
 int CMenu::menusCreated = 0;
@@ -34,6 +35,13 @@ void CMenu::menuOpt::update()
 int CMenu::addOpt(const menuOpt &opt){
 	options.push_back(opt);
 	options.back().update();
+
+	auto genName = [this](int optID)
+	{
+		return menuName + std::string("_") + std::to_string((int)(options[optID].x * 100.0)) + std::to_string((int)(options[optID].y * 100.0)) + std::string("g") + std::to_string((int)(options[optID].group));
+	};
+	
+	options.back().optionName = genName(options.size() - 1);
 
 	auto &gp = groupInfo[opt.group];
 
@@ -85,6 +93,61 @@ void CMenu::render(){
 			break;
 
 		case text_input:
+			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
+			{
+				double textSize = textSizeInScreen(opt.preText.size(), opt.size) + opt.size * 0.5;
+				CFonts::fonts().drawTextInScreenWithBuffer(opt.preText, opt.x, opt.y, opt.size);
+
+				{
+					CEngine::RenderDoubleStruct RenderData;
+
+					RenderData.x1 = opt.x;
+					RenderData.x2 = opt.x + textSize;
+					RenderData.x3 = opt.x + textSize;
+					RenderData.x4 = opt.x;
+
+					RenderData.y1 = opt.y + opt.size;
+					RenderData.y2 = opt.y + opt.size;
+					RenderData.y3 = opt.y;
+					RenderData.y4 = opt.y;
+
+					RenderData.z1 = 0.0;
+					RenderData.z2 = 0.0;
+					RenderData.z3 = 0.0;
+					RenderData.z4 = 0.0;
+
+					RenderData.TextureX1 = 0.0;
+					RenderData.TextureX2 = 1.0;
+					RenderData.TextureY1 = 1.0;
+					RenderData.TextureY2 = 0.0;
+
+					RenderData.Text = 0;
+
+					CEngine::engine().Render2DQuad(RenderData);
+				}
+
+				if (opt.status & 4){
+					CEngine::RenderDoubleStruct RenderData;
+					RenderData.x1 = opt.x - opt.size / 2.0;
+					RenderData.x2 = opt.x - opt.size / 2.0 + opt.size;
+					RenderData.x3 = opt.x - opt.size / 2.0 + opt.size;
+					RenderData.x4 = opt.x - opt.size / 2.0;
+
+					RenderData.y1 = opt.y + opt.size;
+					RenderData.y2 = opt.y + opt.size;
+					RenderData.y3 = opt.y;
+					RenderData.y4 = opt.y;
+
+					RenderData.Text = GPPGame::GuitarPP().SPR["palheta"];
+
+					RenderData.TextureX1 = 0.0;
+					RenderData.TextureX2 = 1.0;
+					RenderData.TextureY1 = 1.0;
+					RenderData.TextureY2 = 0.0;
+
+					CEngine::engine().Render2DQuad(RenderData);
+				}
+			}
 			break;
 
 		case textbtn:
@@ -202,7 +265,17 @@ void CMenu::update(){
 		if (group < 0) return;
 		for (auto &opt : options){
 			if (opt.group == group){
-				opt.status &= ~1;
+				opt.status &= ~(1);
+			}
+		}
+	};
+
+	auto desselectAllTextClick = [this](CMenu::menuOpt &optd){
+		for (auto &opt : options)
+		{
+			if (&optd != &opt)
+			{
+				opt.status &= ~(/*1 |*/ 4);
 			}
 		}
 	};
@@ -233,14 +306,31 @@ void CMenu::update(){
 	double barPosX1 = 0.0;
 	double barPosX2 = 0.0;
 
+	auto kprocess = [](CControls::key &k, int i)
+	{
+		if (k.pressed && !k.lastFramePressed)
+		{
+			k.t = CEngine::engine().getTime() + 0.1;
+			return i;
+		}
+
+		if (k.pressed && k.lastFramePressed && (CEngine::engine().getTime() - k.t) > 0.1)
+		{
+			k.t = CEngine::engine().getTime();
+			return i;
+		}
+
+		return 0;
+	};
+
 	int i = 0;
 	for (auto &opt : options){
-		std::string optCallBackTXT = menuName + std::string("_") + std::to_string((int)(opt.x * 100.0)) + std::to_string((int)(opt.y * 100.0)) + std::string("g") + std::to_string((int)(opt.group));
+		//std::string optCallBackTXT = opt.optionName;
 
 		CLuaH::multiCallBackParams_t params;
 
 		params.push_back(CLuaH::customParam(menuName));
-		params.push_back(CLuaH::customParam(optCallBackTXT));
+		params.push_back(CLuaH::customParam(opt.optionName));
 		params.push_back(CLuaH::customParam(opt.optValue));
 
 		if (opt.shortcutKey){
@@ -263,6 +353,94 @@ void CMenu::update(){
 
 			break;
 
+		case text_input:
+			textSize = textSizeInScreen(opt.preText.size(), opt.size) + 0.1;
+
+			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05) && enterOpt)
+			{
+				desselectAllTextClick(opt);
+
+				desselectAllFromGroup(opt.group);
+				opt.status = 4;
+
+				CControls::controls().update();
+
+				if (params.size() <= 3) params.push_back(CLuaH::customParam((double)opt.status));
+
+				if (opt.group >= 0)
+				{
+					groupInfo[opt.group].selectedOpt = i;
+				}
+			}
+
+			if ((opt.status & 4))
+			{
+				CControls::controls().update();
+				int ch = 0;
+
+				for (int glfwkey = GLFW_KEY_A; glfwkey <= GLFW_KEY_Z; glfwkey++)
+				{
+					int chtmp = kprocess(CControls::controls().keys[glfwkey], glfwkey);
+
+					if (chtmp != 0)
+						ch = chtmp;
+				}
+
+				{
+					int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_SPACE], GLFW_KEY_SPACE);
+
+					if (chtmp != 0)
+						ch = chtmp;
+				}
+
+				{
+					int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_BACKSPACE], GLFW_KEY_BACKSPACE);
+
+					if (chtmp != 0)
+						ch = chtmp;
+				}
+				
+				static int capsLock = 0;
+				static int aCaps = 0;
+
+				int capsNow = CControls::controls().keys[GLFW_KEY_CAPS_LOCK].pressed;
+
+				if (aCaps != capsNow)
+				{
+					capsLock ^= capsNow;
+				}
+				aCaps = capsNow;
+
+				bool caps = capsLock;
+
+				if (CControls::controls().keys[GLFW_KEY_RIGHT_SHIFT].pressed || CControls::controls().keys[GLFW_KEY_LEFT_SHIFT].pressed)
+				{
+					caps = !caps;
+				}
+
+				if (!caps)
+				{
+					ch = tolower(ch);
+				}
+
+				if (ch != 0)
+				{
+					if (ch != GLFW_KEY_BACKSPACE)
+					{
+						if (opt.preText.size() < opt.preTextMaxSize)
+							opt.preText.push_back((char)ch);
+					}
+					else
+					{
+						if (opt.preText.size() > 0)
+						{
+							opt.preText.pop_back();
+						}
+					}
+				}
+			}
+			break;
+
 		case textbtn:
 			textSize = textSizeInScreen(opt.text.size(), opt.size);
 
@@ -270,9 +448,13 @@ void CMenu::update(){
 				desselectAllFromGroup(opt.group);
 				opt.status = enterOpt ? 1 | 2 : 1;
 
+				if (enterOpt)
+					desselectAllTextClick(opt);
+
 				if (params.size() <= 3) params.push_back(CLuaH::customParam((double)opt.status));
 
-				if (opt.group >= 0){
+				if (opt.group >= 0)
+				{
 					groupInfo[opt.group].selectedOpt = i;
 				}
 			}
@@ -291,6 +473,8 @@ void CMenu::update(){
 					double subX = (CEngine::engine().mouseX - barPosX1);
 					opt.listID = (int)(((double)opt.optList.size() / opt.deslizantBarSize) * subX);
 
+					desselectAllTextClick(opt);
+
 					if (opt.listID >= opt.optList.size()){
 						opt.listID = opt.optList.size() - 1;
 					}
@@ -304,7 +488,7 @@ void CMenu::update(){
 		}
 
 		if (params.size() <= 3) params.push_back(CLuaH::customParam(-1.0));
-		CLuaH::Lua().runEventWithParams(optCallBackTXT, params);
+		CLuaH::Lua().runEventWithParams(opt.optionName, params);
 		++i;
 	}
 	CLuaH::Lua().runEventWithParams(std::string("pos") + menuName + std::string("update"), menucallback);
@@ -375,6 +559,7 @@ void CMenu::updateDev()
 				if (mBTNClick && !btnClickStat)
 				{
 					opt.devStatus |= 1;
+					opt.devStatus |= 2;
 					btnClickStat = true;
 				}
 			}

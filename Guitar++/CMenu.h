@@ -15,8 +15,10 @@ class CMenu{
 	static int menusCreated;
 	static std::unordered_map <std::string, CMenu*> Menus;
 
+	static std::string textBuffer;
+
 public:
-	enum menusOPT{button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list};
+	enum menusOPT{button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui};
 	std::string mTitle;
 
 	CLuaH::luaScript *lScript;
@@ -30,6 +32,7 @@ public:
 		menusOPT type;
 		int group;
 		unsigned int texture;
+		std::string optionName;
 
 		bool goback;
 
@@ -37,6 +40,7 @@ public:
 		int shortcutKey;
 
 		std::string text, preText, langEntryKey;
+		int preTextMaxSize;
 		int status;
 		int devStatus;
 		double optValue, deslizantBarSize;
@@ -65,6 +69,7 @@ public:
 			listID = 0;
 			optValue = 0;
 			devStatus = 0;
+			preTextMaxSize = 30;
 
 			attachedLua = nullptr;
 
@@ -115,7 +120,7 @@ public:
 
 	std::string getNameFromOpt(int optID)
 	{
-		return menuName + std::string("_") + std::to_string((int)(options[optID].x * 100.0)) + std::to_string((int)(options[optID].y * 100.0)) + std::string("g") + std::to_string((int)(options[optID].group));
+		return options[optID].optionName;
 	}
 
 	void resetData();

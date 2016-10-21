@@ -48,7 +48,7 @@ class GPPGame{
 	std::string runningModule;
 
 	bool devMode;
-
+	CMenu devMenus;
 
 public:
 	std::string glanguage;
@@ -198,7 +198,7 @@ public:
 
 	void setVSyncMode(int mode);
 
-	void openMenus(CMenu *startMenu, std::function<int(void)> preFun = nullptr, std::function<int(void)> midFun = nullptr, std::function<int(void)> posFun = nullptr);
+	void openMenus(CMenu *startMenu, std::function<int(void)> preFun = nullptr, std::function<int(void)> midFun = nullptr, std::function<int(void)> posFun = nullptr, bool dev = false);
 
 	inline CMenu *getActualMenu()
 	{

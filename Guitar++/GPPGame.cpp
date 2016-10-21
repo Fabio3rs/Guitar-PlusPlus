@@ -1447,7 +1447,7 @@ std::string GPPGame::getRunningModule()
 	return runningModule;
 }
 
-void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::function<int(void)> midFun, std::function<int(void)> posFun)
+void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::function<int(void)> midFun, std::function<int(void)> posFun, bool dev)
 {
 	auto &engine = CEngine::engine();
 	auto &lua = CLuaH::Lua();
@@ -1540,8 +1540,10 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 
 		if (updateRender)
 		{
-			menu.update();
-			//menu.updateDev();
+			if (dev)
+				menu.updateDev();
+			else
+				menu.update();
 		}
 
 		auto &texture = gTextures[menu.backgroundTexture];
@@ -1804,7 +1806,7 @@ std::string GPPGame::ip = "127.0.0.1";
 std::string GPPGame::port = "7777";
 
 GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"),
-						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj")
+						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj"), devMenus("devMenus")
 {
 	mainSave.loadn("data/saves/mains");
 

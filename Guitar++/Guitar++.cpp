@@ -231,6 +231,20 @@ int main(int argc, char* argv[])
 		{
 			CMenu::menuOpt opt;
 
+			opt.text = "aaaa";
+			opt.y = -0.3;
+			opt.x = -proportion + 0.2;
+			opt.size = 0.075;
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::text_input;
+
+			mainMenu.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
 			opt.text = "Quick play";
 			opt.y = 0.4;
 			opt.size = 0.075;

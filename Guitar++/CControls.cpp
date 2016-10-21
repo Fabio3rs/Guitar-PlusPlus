@@ -8,7 +8,7 @@ void CControls::update()
 
 	double time = engine.getTime();
 
-	for (int i = 0; i < 300; i++)
+	for (int i = 0; i <= GLFW_KEY_LAST; i++)
 	{
 		auto &k = keys[i];
 
@@ -16,15 +16,17 @@ void CControls::update()
 		{
 			k.lastFramePressed = true;
 		}
-
-		k.pressed = engine.getKey(i);
-
-		if (!k.pressed)
+		else
 		{
 			k.lastFramePressed = false;
 		}
 
-		k.t = time;
+		k.pressed = engine.getKey(i);
+
+		if (k.pressed && !k.lastFramePressed)
+		{
+			k.t = time;
+		}
 	}
 }
 
