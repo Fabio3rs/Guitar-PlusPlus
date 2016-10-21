@@ -10,6 +10,11 @@
 std::unordered_map <std::string, CMenu*> CMenu::Menus = std::unordered_map <std::string, CMenu*>();
 int CMenu::menusCreated = 0;
 
+int CMenu::getUIListSize()
+{
+	return uiList.size();
+}
+
 void CMenu::menuOpt::update()
 {
 	if (langEntryKey.size() > 0)
@@ -244,6 +249,12 @@ void CMenu::render(){
 		}
 	}
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+
+
+	for (auto &ui : uiList)
+	{
+		ui->render();
+	}
 }
 
 void CMenu::update(){
@@ -438,6 +449,11 @@ void CMenu::update(){
 						}
 					}
 				}
+
+				if (opt.externalPreTextRef)
+				{
+					*opt.externalPreTextRef = opt.preText;
+				}
 			}
 			break;
 
@@ -492,6 +508,35 @@ void CMenu::update(){
 		++i;
 	}
 	CLuaH::Lua().runEventWithParams(std::string("pos") + menuName + std::string("update"), menucallback);
+
+	bool erase = false;
+	auto er = uiList.begin();
+
+	for (auto it = uiList.begin(); it != uiList.end(); ++it)
+	{
+		auto &ui = **it;
+		ui.update();
+
+		for (auto &opt : ui.options)
+		{
+			if ((opt.status & 3) == 3)
+			{
+				if (opt.goback)
+				{
+					er = it;
+					erase = true;
+					break;
+				}
+			}
+		}
+	}
+
+	if (erase)
+	{
+		(*er)->resetData();
+		delete (*er);
+		uiList.erase(er);
+	}
 }
 
 void CMenu::updateDev()
@@ -511,6 +556,14 @@ void CMenu::updateDev()
 			if (opt.group == group){
 				opt.status &= ~1;
 			}
+		}
+	};
+
+	auto desselectAllClick = [this]()
+	{
+		for (auto &opt : options)
+		{
+			opt.devStatus &= ~2;
 		}
 	};
 
@@ -558,6 +611,7 @@ void CMenu::updateDev()
 			{
 				if (mBTNClick && !btnClickStat)
 				{
+					desselectAllClick();
 					opt.devStatus |= 1;
 					opt.devStatus |= 2;
 					btnClickStat = true;
@@ -611,8 +665,30 @@ void CMenu::updateDev()
 	}
 }
 
-CMenu::CMenu(){
+void CMenu::pushUserInterface(const CMenu &m)
+{
+	uiList.push_back(new CMenu(m));
+	uiList.back()->uiMenu = true;
+}
+
+int CMenu::getDevSelectedMenuOpt()
+{
+	for (int i = 0, size = options.size(); i < size; ++i)
+	{
+		if ((options[i].devStatus & 2) != 0)
+			return i;
+	}
+
+	return -1;
+}
+
+CMenu::CMenu()
+{
 	status = 0;
+
+	devEditingOpt = 0;
+
+	devMenuNOUpdateOthers = false;
 
 	++menusCreated;
 	lScript = nullptr;
@@ -625,13 +701,20 @@ CMenu::CMenu(){
 	temp = false;
 
 	gameMenu = false;
+	devEditMenu = nullptr;
+	uiMenu = false;
 }
 
 CMenu::CMenu(const std::string &name){
 	status = 0;
 
+	devEditingOpt = 0;
+
 	++menusCreated;
 	lScript = nullptr;
+	devEditMenu = nullptr;
+
+	devMenuNOUpdateOthers = false;
 
 	menuName = "menu_";
 	menuName += name;
@@ -642,6 +725,7 @@ CMenu::CMenu(const std::string &name){
 	temp = false;
 
 	gameMenu = false;
+	uiMenu = false;
 }
 
 CMenu::~CMenu(){

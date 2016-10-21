@@ -48,7 +48,7 @@ class GPPGame{
 	std::string runningModule;
 
 	bool devMode;
-	CMenu devMenus;
+	CMenu devMenus, uiRenameMenu;
 
 public:
 	std::string glanguage;

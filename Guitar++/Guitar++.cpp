@@ -473,7 +473,7 @@ int main(int argc, char* argv[])
 
 
 		//game.getMainMenu()->backgroundTexture = menu.getGTextureName();
-		game.openMenus(game.getMainMenu());
+		game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, true);
 
 
 		lua.runEvent("atExit");

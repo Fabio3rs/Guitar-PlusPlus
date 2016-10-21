@@ -17,7 +17,23 @@ class CMenu{
 
 	static std::string textBuffer;
 
+	std::deque<CMenu*> uiList;
+
+	bool uiMenu;
+
 public:
+	int getUIListSize();
+
+	inline CMenu *getUILast()
+	{
+		if (uiList.size() > 0)
+			return uiList.back();
+
+		return nullptr;
+	}
+
+	bool devMenuNOUpdateOthers;
+
 	enum menusOPT{button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui};
 	std::string mTitle;
 
@@ -25,6 +41,8 @@ public:
 	std::unordered_map <std::string, int> luaCallBacks;
 
 	std::string backgroundTexture;
+	CMenu *devEditMenu;
+	int devEditingOpt;
 
 	bool temp, gameMenu;
 
@@ -40,6 +58,7 @@ public:
 		int shortcutKey;
 
 		std::string text, preText, langEntryKey;
+		std::string *externalPreTextRef;
 		int preTextMaxSize;
 		int status;
 		int devStatus;
@@ -58,7 +77,8 @@ public:
 
 		void update();
 
-		inline menuOpt(){
+		inline menuOpt()
+		{
 			type = button_ok;
 			group = -1;
 			status = 0;
@@ -72,6 +92,7 @@ public:
 			preTextMaxSize = 30;
 
 			attachedLua = nullptr;
+			externalPreTextRef = nullptr;
 
 			goback = false;
 
@@ -106,6 +127,10 @@ public:
 
 	std::unordered_map<int, group> groupInfo;
 	std::deque<menuOpt> options;
+
+	void pushUserInterface(const CMenu &m);
+
+	int getDevSelectedMenuOpt();
 
 	void update();
 	void updateDev();

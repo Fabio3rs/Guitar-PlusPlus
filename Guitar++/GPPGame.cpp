@@ -1454,6 +1454,7 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 	double waitForTime = 0.0;
 	
 	std::deque < CMenu* > menusStack;
+	//static std::deque < CMenu* > devMenusStack;
 
 	menusStack.push_back(startMenu);
 
@@ -1535,13 +1536,45 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 		auto &menu = *menusStack.back();
 		currentMenu = &menu;
 
+		if (dev)
+		{
+			devMenus.devEditMenu = &menu;
+		}
+
 		if (preFun)
 			preFun();
+
+		if (dev)
+		{
+			devMenus.update();
+
+			for (auto &opt : devMenus.options)
+			{
+				if ((opt.status & 3) == 3)
+				{
+					if (opt.menusXRef.size() > 0)
+					{
+						try{
+							auto function = getCallback(opt.menusXRef[0]);
+							if (function)
+							{
+								function(opt.menusXRef[0]);
+							}
+						}
+						catch (const std::exception &e){
+							CLog::log() << e.what();
+						}
+					}
+				}
+			}
+		}
 
 		if (updateRender)
 		{
 			if (dev)
+			{
 				menu.updateDev();
+			}
 			else
 				menu.update();
 		}
@@ -1565,6 +1598,14 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 			midFun();
 
 		menu.render();
+
+		if (dev)
+		{
+			devMenus.render();
+
+			//if (devMenusStack.size() > 0)
+			//	(*devMenusStack.back()).render();
+		}
 
 		for (auto &opt : menu.options)
 		{
@@ -1806,9 +1847,12 @@ std::string GPPGame::ip = "127.0.0.1";
 std::string GPPGame::port = "7777";
 
 GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"),
-						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj"), devMenus("devMenus")
+						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj"),
+						devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
 {
 	mainSave.loadn("data/saves/mains");
+	devMenus.gameMenu = true;
+	uiRenameMenu.gameMenu = true;
 
 	glanguage = "PT-BR";
 
@@ -1849,7 +1893,83 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 	HUDText = 0;
 	fretboardText = 0;
 
+	static int uiRenameMenuText = 0;
+
+	{
+		CMenu::menuOpt opt;
+
+		opt.text = "aaaa";
+		opt.y = -0.3;
+		opt.x = 0.0;
+		opt.size = 0.075;
+		opt.group = 1;
+		opt.status = 0;
+		opt.type = CMenu::menusOPT::text_input;
+
+		uiRenameMenuText = uiRenameMenu.addOpt(opt);
+	}
+
+
+	{
+		CMenu::menuOpt opt;
+
+		opt.text = "Close";
+		opt.y = -0.5;
+		opt.x = 0.0;
+		opt.size = 0.075;
+		opt.group = 1;
+		opt.status = 0;
+		opt.type = CMenu::menusOPT::textbtn;
+		opt.goback = true;
+
+		uiRenameMenu.addOpt(opt);
+	}
+
 	CEngine::engine().errorCallbackFun = logError;
+
+	{
+		CMenu::menuOpt opt;
+
+		opt.text = "Renomear";
+		//opt.langEntryKey = "devMenuRename";
+		opt.y = 0.8;
+		opt.x = -1.0;
+		opt.size = 0.075;
+		opt.group = 1;
+		opt.status = 0;
+		opt.type = CMenu::menusOPT::textbtn;
+
+		static auto devMenuRename = [](const std::string &name)
+		{
+			auto &gpp = GPPGame::GuitarPP();
+
+			if (gpp.devMenus.devEditMenu && gpp.devMenus.getUIListSize() == 0)
+			{
+				int op = gpp.devMenus.devEditMenu->getDevSelectedMenuOpt();
+
+				if (op != -1)
+				{
+					gpp.devMenus.devEditingOpt = op;
+
+					gpp.devMenus.pushUserInterface(gpp.uiRenameMenu);
+
+					CMenu *instM = gpp.devMenus.getUILast();
+
+					if (instM)
+					{
+						instM->options[uiRenameMenuText].preText = gpp.devMenus.devEditMenu->options[op].text;
+						instM->options[uiRenameMenuText].externalPreTextRef = &(gpp.devMenus.devEditMenu->options[op].text);
+					}
+
+					gpp.devMenus.devMenuNOUpdateOthers = true;
+				}
+			}
+		};
+
+		opt.menusXRef.push_back(addGameCallbacks("devMenuRename", devMenuRename));
+
+		devMenus.addOpt(opt);
+	}
 }
 
 
