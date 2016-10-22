@@ -160,6 +160,8 @@ void CMenu::render()
 					CEngine::engine().Render2DQuad(RenderData);
 				}
 
+				CFonts::fonts().drawTextInScreen(opt.preText, opt.x + x, opt.y + y, opt.size);
+
 				if (opt.status & 4){
 					CEngine::RenderDoubleStruct RenderData;
 
@@ -190,8 +192,6 @@ void CMenu::render()
 					CEngine::engine().Render2DQuad(RenderData);
 					CEngine::engine().matrixReset();
 				}
-
-				CFonts::fonts().drawTextInScreen(opt.preText, opt.x + x, opt.y + y, opt.size);
 			}
 			break;
 
@@ -477,9 +477,23 @@ void CMenu::update(){
 			{
 				desselectAllTextClick(opt);
 
+				int textChars = CFonts::utf8Size(opt.preText);
+
+				// return (charnums * size / 1.5) + (size / 2.0);
+
+				double xtest = mouseAX - opt.x;
+				xtest -= (opt.size / 2.0);
+				xtest /= opt.size / 1.5;
+
+				if (xtest < 0)
+					xtest = 0;
+
+				if (xtest > textChars)
+					xtest = textChars;
+
 				desselectAllFromGroup(opt.group);
 				opt.status = 4;
-				opt.strEditPoint = CFonts::utf8Size(opt.preText);
+				opt.strEditPoint = xtest;
 
 				CControls::controls().update();
 

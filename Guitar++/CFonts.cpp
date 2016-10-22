@@ -222,8 +222,9 @@ size_t CFonts::utf8InsertAt(std::string &s, const std::string &str, size_t at)
 		at = size;
 	}
 
+	auto it = s.begin();
+
 	try{
-		auto it = s.begin();
 
 		if (at > 0)
 		{
@@ -237,7 +238,21 @@ size_t CFonts::utf8InsertAt(std::string &s, const std::string &str, size_t at)
 		CLog::log() << e.what();
 	}
 
-	return utf8Size(s);
+	size_t sz = utf8Size(str);
+
+	for (auto sIt = s.begin(); sIt != it; ++sIt)
+	{
+		++sz;
+	}
+
+	size = utf8Size(s);
+
+	if (size < sz)
+	{
+		sz = size;
+	}
+
+	return sz;
 }
 
 void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName)
