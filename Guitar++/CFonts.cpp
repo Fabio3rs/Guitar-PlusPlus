@@ -8,6 +8,7 @@
 #include "GPPGame.h"
 #include "CEngine.h"
 #include "utf8.h"
+#include "CLog.h"
 
 CFonts &CFonts::fonts(){
 	static CFonts fn;
@@ -191,6 +192,52 @@ void CFonts::drawAllBuffers()
 		engine.drawTrianglesWithAlpha(b.second);
 		b.second.clear();
 	}
+}
+
+size_t CFonts::utf8Size(const std::string &s)
+{
+	std::string st = s + " ";
+	auto it = st.begin();
+	size_t size = 0;
+
+	for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
+	{
+		size++;
+	}
+
+	return size;
+}
+
+size_t CFonts::utf8InsertAt(std::string &s, const std::string &str, size_t at)
+{
+	if (at == (~0))
+	{
+		at = 0;
+	}
+
+	size_t size = utf8Size(s);
+
+	if (size < at)
+	{
+		at = size;
+	}
+
+	try{
+		auto it = s.begin();
+
+		if (at > 0)
+		{
+			utf8::advance(it, at, s.end());
+		}
+
+		s.insert(it, str.begin(), str.end());
+	}
+	catch (const std::exception &e)
+	{
+		CLog::log() << e.what();
+	}
+
+	return utf8Size(s);
 }
 
 void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName)

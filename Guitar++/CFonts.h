@@ -109,6 +109,9 @@ public:
 		Font();
 	};
 
+	static size_t utf8Size(const std::string &s);
+	static size_t utf8InsertAt(std::string &s, const std::string &str, size_t at);
+
 	// Adds Texture to font and create a font inst if doesnt exists
 	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::wstring &textChars);
 	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars);

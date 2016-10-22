@@ -60,8 +60,16 @@ void CMenu::resetData()
 	}
 }
 
-void CMenu::render(){
-	auto textSizeInScreen = [](double charnums, double size){
+void CMenu::render()
+{
+	auto textSizeInScreen = [](const std::string &s, double size)
+	{
+		double charnums = CFonts::utf8Size(s);
+		return (charnums * size / 1.5) + (size / 2.0);
+	};
+
+	auto textSizeInScreenCharNum = [](double charnums, double size)
+	{
 		return (charnums * size / 1.5) + (size / 2.0);
 	};
 
@@ -122,7 +130,7 @@ void CMenu::render(){
 		case text_input:
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
 			{
-				double textSize = textSizeInScreen(opt.preText.size(), opt.size) + opt.size * 0.5;
+				double textSize = textSizeInScreen(opt.preText, opt.size) + opt.size * 0.5;
 
 				{
 					CEngine::RenderDoubleStruct RenderData;
@@ -154,15 +162,19 @@ void CMenu::render(){
 
 				if (opt.status & 4){
 					CEngine::RenderDoubleStruct RenderData;
-					RenderData.x1 = opt.x - opt.size / 2.0 + x;
-					RenderData.x2 = opt.x - opt.size / 2.0 + opt.size + x;
-					RenderData.x3 = opt.x - opt.size / 2.0 + opt.size + x;
-					RenderData.x4 = opt.x - opt.size / 2.0 + x;
 
-					RenderData.y1 = opt.y + opt.size + y;
-					RenderData.y2 = opt.y + opt.size + y;
-					RenderData.y3 = opt.y + y;
-					RenderData.y4 = opt.y + y;
+					double ptrAt = textSizeInScreenCharNum(opt.strEditPoint, opt.size);
+
+					RenderData.x1 = 0.0;
+					RenderData.x1 += ptrAt - opt.size / 4.0;
+					RenderData.x2 = RenderData.x1;
+					RenderData.x3 = RenderData.x2 + opt.size;
+					RenderData.x4 = RenderData.x1 + opt.size;
+
+					RenderData.y1 = 0.0 - opt.size / 2.0;
+					RenderData.y2 = RenderData.y1 + opt.size;
+					RenderData.y3 = RenderData.y1 + opt.size;
+					RenderData.y4 = RenderData.y1;
 
 					RenderData.Text = GPPGame::GuitarPP().SPR["palheta"];
 
@@ -171,7 +183,12 @@ void CMenu::render(){
 					RenderData.TextureY1 = 1.0;
 					RenderData.TextureY2 = 0.0;
 
+					CEngine::engine().renderAt(opt.x + x, opt.y + y, 0.0);
+
+					//CEngine::engine().Rotate(90.0, 0.0, 0.0, 1.0);
+
 					CEngine::engine().Render2DQuad(RenderData);
+					CEngine::engine().matrixReset();
 				}
 
 				CFonts::fonts().drawTextInScreen(opt.preText, opt.x + x, opt.y + y, opt.size);
@@ -180,7 +197,8 @@ void CMenu::render(){
 
 		case textbtn:
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
-			if (opt.status & 1){
+			if (opt.status & 1)
+			{
 				CEngine::RenderDoubleStruct RenderData;
 				RenderData.x1 = opt.x - opt.size / 2.0 + x;
 				RenderData.x2 = opt.x - opt.size / 2.0 + opt.size + x;
@@ -208,7 +226,7 @@ void CMenu::render(){
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
 
 			{
-				double textSize = textSizeInScreen(opt.text.size(), opt.size);
+				double textSize = textSizeInScreen(opt.text, opt.size);
 				double barPosX1 = opt.x + textSize + opt.size, barPosX2;
 				barPosX1 += x;
 				barPosX2 = barPosX1 + opt.deslizantBarSize;
@@ -304,6 +322,15 @@ void CMenu::render(){
 				CEngine::engine().Render2DQuad(RenderData);
 			}
 			break;
+
+		case static_text:
+			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
+
+			CFonts::fonts().drawTextInScreen(opt.text, opt.x + x, opt.y + y, opt.size);
+			break;
+
+		default:
+			break;
 		}
 	}
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
@@ -321,9 +348,13 @@ void CMenu::update(){
 
 	CLuaH::Lua().runEventWithParams(std::string("pre") + menuName + std::string("update"), menucallback);
 
-	auto textSizeInScreen = [](double charnums, double size){
+	auto textSizeInScreen = [](const std::string &s, double size)
+	{
+		double charnums = CFonts::utf8Size(s);
 		return (charnums * size / 1.5) + (size / 2.0);
 	};
+
+	////std::cout << CFonts::utf8Size("aaa") << std::endl;
 
 	auto isMouseOver2DQuad = [this](double x, double y, double w, double h){
 		double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
@@ -440,7 +471,7 @@ void CMenu::update(){
 			break;
 
 		case text_input:
-			textSize = textSizeInScreen(opt.preText.size(), opt.size) + 0.1;
+			textSize = textSizeInScreen(opt.preText, opt.size) + 0.1;
 
 			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y - opt.size, textSize, opt.size * 1.05) && enterOpt)
 			{
@@ -448,6 +479,7 @@ void CMenu::update(){
 
 				desselectAllFromGroup(opt.group);
 				opt.status = 4;
+				opt.strEditPoint = CFonts::utf8Size(opt.preText);
 
 				CControls::controls().update();
 
@@ -514,13 +546,18 @@ void CMenu::update(){
 					if (ch != GLFW_KEY_BACKSPACE)
 					{
 						if (opt.preText.size() < opt.preTextMaxSize)
-							opt.preText.push_back((char)ch);
+						{
+							std::string tmp;
+							tmp.insert(0, 1, ch);
+							opt.strEditPoint = CFonts::utf8InsertAt(opt.preText, tmp, opt.strEditPoint);
+						}
 					}
 					else
 					{
 						if (opt.preText.size() > 0)
 						{
 							opt.preText.pop_back();
+							--opt.strEditPoint;
 						}
 					}
 				}
@@ -533,7 +570,7 @@ void CMenu::update(){
 			break;
 
 		case textbtn:
-			textSize = textSizeInScreen(opt.text.size(), opt.size);
+			textSize = textSizeInScreen(opt.text, opt.size);
 
 			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05)){
 				desselectAllFromGroup(opt.group);
@@ -555,7 +592,7 @@ void CMenu::update(){
 			break;
 
 		case deslizant_Select_list:
-			textSize = textSizeInScreen(opt.text.size(), opt.size);
+			textSize = textSizeInScreen(opt.text, opt.size);
 			barPosX1 = opt.x + textSize + opt.size;
 			barPosX2 = barPosX1 + opt.deslizantBarSize;
 
@@ -605,12 +642,18 @@ void CMenu::update(){
 			{
 				if ((opt.devStatus & 1) != 0)
 				{
-					std::cout << (opt.devStatus & 1) << std::endl;
+					//std::cout << (opt.devStatus & 1) << std::endl;
 					x += mxd;
 					y += myd;
 				}
 			}
 
+			break;
+
+		case static_text:
+			break;
+
+		default:
 			break;
 		}
 
@@ -652,7 +695,9 @@ void CMenu::update(){
 
 void CMenu::updateDev()
 {
-	auto textSizeInScreen = [](double charnums, double size){
+	auto textSizeInScreen = [](const std::string &s, double size)
+	{
+		double charnums = CFonts::utf8Size(s);
 		return (charnums * size / 1.5) + (size / 2.0);
 	};
 
@@ -717,7 +762,7 @@ void CMenu::updateDev()
 			break;
 
 		case textbtn:
-			textSize = textSizeInScreen(opt.text.size(), opt.size);
+			textSize = textSizeInScreen(opt.text, opt.size);
 
 			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05))
 			{
@@ -759,7 +804,7 @@ void CMenu::updateDev()
 			break;
 
 		case deslizant_Select_list:
-			textSize = textSizeInScreen(opt.text.size(), opt.size);
+			textSize = textSizeInScreen(opt.text, opt.size);
 			barPosX1 = opt.x + textSize + opt.size;
 			barPosX2 = barPosX1 + opt.deslizantBarSize;
 

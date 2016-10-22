@@ -37,7 +37,7 @@ public:
 
 	bool devMenuNOUpdateOthers;
 
-	enum menusOPT{button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui, drag_bar};
+	enum menusOPT{button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui, drag_bar, static_text};
 	std::string mTitle;
 
 	CLuaH::luaScript *lScript;
@@ -82,6 +82,7 @@ public:
 		std::deque < std::string > menusXRef;
 
 		double x, y, size;
+		int strEditPoint;
 
 		double color[4];
 
@@ -103,6 +104,7 @@ public:
 
 			attachedLua = nullptr;
 			externalPreTextRef = nullptr;
+			strEditPoint = 0;
 
 			goback = false;
 			btnClickStat = false;

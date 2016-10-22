@@ -8,7 +8,7 @@ void CControls::update()
 
 	double time = engine.getTime();
 
-	for (int i = 0; i <= GLFW_KEY_LAST; i++)
+	for (int i = 32; i <= GLFW_KEY_LAST; i++)
 	{
 		auto &k = keys[i];
 
