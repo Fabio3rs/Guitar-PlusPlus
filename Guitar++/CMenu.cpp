@@ -8,11 +8,13 @@
 #include "CControls.h"
 
 std::unordered_map <std::string, CMenu*> CMenu::Menus = std::unordered_map <std::string, CMenu*>();
+std::deque<CMenu::uiWindowStruct> CMenu::uiList = std::deque<CMenu::uiWindowStruct>();
+std::vector<CMenu::posUiOrder> CMenu::uiOrderList = std::vector<CMenu::posUiOrder>();
 int CMenu::menusCreated = 0;
 
 int CMenu::getUIListSize()
 {
-	return uiList.size();
+	return myUiList.size();
 }
 
 void CMenu::menuOpt::update()
@@ -336,13 +338,146 @@ void CMenu::render()
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 
 
-	for (auto &ui : uiList)
+	/*for (auto &ui : uiList)
 	{
 		ui->render();
-	}
+	}*/
 }
 
-void CMenu::update(){
+bool CMenu::isMouseOnThisMenu()
+{
+	auto textSizeInScreen = [](const std::string &s, double size)
+	{
+		double charnums = CFonts::utf8Size(s);
+		return (charnums * size / 1.5) + (size / 2.0);
+	};
+
+	auto isMouseOver2DQuad = [this](double x, double y, double w, double h)
+	{
+		double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
+		x += this->x;
+		y += this->y;
+
+		return mx >= x && mx <= (x + w) && my >= (y - h) && my <= y;
+	};
+
+	double textSize = 0.0;
+	double barPosX1 = 0.0;
+	double barPosX2 = 0.0;
+
+	if (qbgd.Text != 0)
+	{
+		double w = qbgd.x1 - qbgd.x2;
+
+		if (w < 0.0)
+			w = -w;
+
+		double h = qbgd.y1 - qbgd.y3;
+
+		if (h < 0.0)
+			h = -h;
+
+		bool isinbg = isMouseOver2DQuad(qbgd.x1, qbgd.y1, w, h);
+
+		if (isinbg)
+			return true;
+	}
+
+	for (auto &opt : options)
+	{
+		switch (opt.type){
+		case button_ok:
+
+			break;
+
+		case text_input:
+			textSize = textSizeInScreen(opt.preText, opt.size) + 0.1;
+
+			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y - opt.size, textSize, opt.size * 1.05))
+			{
+				return true;
+			}
+
+			break;
+
+		case textbtn:
+			textSize = textSizeInScreen(opt.text, opt.size);
+
+			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05))
+			{
+				return true;
+			}
+			break;
+
+		case deslizant_Select_list:
+			textSize = textSizeInScreen(opt.text, opt.size);
+			barPosX1 = opt.x + textSize + opt.size;
+			barPosX2 = barPosX1 + opt.deslizantBarSize;
+
+			if (isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize, opt.size))
+			{
+				return true;
+			}
+			break;
+
+		case drag_bar:
+			if (isMouseOver2DQuad(opt.x, opt.y, opt.deslizantBarSize, opt.size))
+			{
+				return true;
+			}
+
+			break;
+
+		case static_text:
+			textSize = textSizeInScreen(opt.text, opt.size);
+
+			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05))
+			{
+				return true;
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return false;
+}
+
+bool CMenu::isInterfaceOver()
+{
+	bool result = false;
+	if (thisUiID >= 0)
+	{
+		for (int i = uiOrderList.size() - 1; i > thisUiID; i--)
+		{
+			CMenu *m = uiList[uiOrderList[i].id].m;
+			if (m && m->isMouseOnThisMenu())
+			{
+				result = true;
+				break;
+			}
+		}
+	}
+	else
+	{
+		for (int i = uiOrderList.size() - 1; i >= 0; i--)
+		{
+			CMenu *m = uiList[uiOrderList[i].id].m;
+			if (m && m->isMouseOnThisMenu())
+			{
+				result = true;
+				break;
+			}
+		}
+	}
+
+	return result;
+}
+
+void CMenu::update()
+{
 	CLuaH::multiCallBackParams_t menucallback;
 	menucallback.push_back(CLuaH::customParam(menuName));
 
@@ -356,7 +491,13 @@ void CMenu::update(){
 
 	////std::cout << CFonts::utf8Size("aaa") << std::endl;
 
-	auto isMouseOver2DQuad = [this](double x, double y, double w, double h){
+	const bool mouseOnThisMenu = !isInterfaceOver();
+
+	auto isMouseOver2DQuad = [this, &mouseOnThisMenu](double x, double y, double w, double h)
+	{
+		if (!mouseOnThisMenu)
+			return false;
+
 		double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
 		x += this->x;
 		y += this->y;
@@ -481,7 +622,7 @@ void CMenu::update(){
 
 				// return (charnums * size / 1.5) + (size / 2.0);
 
-				double xtest = mouseAX - opt.x;
+				double xtest = (mouseAX - x) - opt.x;
 				xtest -= (opt.size / 2.0);
 				xtest /= opt.size / 1.5;
 
@@ -678,32 +819,61 @@ void CMenu::update(){
 	CLuaH::Lua().runEventWithParams(std::string("pos") + menuName + std::string("update"), menucallback);
 
 	bool erase = false;
-	auto er = uiList.begin();
+	//auto er = uiList.begin();
 
-	for (auto it = uiList.begin(); it != uiList.end(); ++it)
+	for (auto it = myUiList.begin(); it != myUiList.end(); /*****/)
 	{
-		auto &ui = **it;
-		ui.update();
-
-		for (auto &opt : ui.options)
+		auto &m = *it;
+		if (m == -1)
 		{
-			if ((opt.status & 3) == 3)
+			it = myUiList.erase(it);
+		}
+		else
+		{
+			if (myUiList.size() == 0)
+				break;
+
+			auto &uiw = uiList[m];
+			if (uiw.m != nullptr)
 			{
-				if (opt.goback)
+				auto &ui = *uiw.m;
+				bool erase = false;
+				ui.update();
+
+				for (auto &opt : ui.options)
 				{
-					er = it;
-					erase = true;
-					break;
+					if ((opt.status & 3) == 3)
+					{
+						if (opt.goback)
+						{
+							erase = true;
+							break;
+						}
+					}
+				}
+
+				if (erase)
+				{
+					uiw.m->resetData();
+					delete uiw.m;
+					uiw.m = nullptr;
+					uiw.pos = 0;
+
+					m = -1;
+
+					it = myUiList.erase(it);
 				}
 			}
-		}
-	}
+			else
+			{
+				m = -1;
 
-	if (erase)
-	{
-		(*er)->resetData();
-		delete (*er);
-		uiList.erase(er);
+				it = myUiList.erase(it);
+				continue;
+			}
+
+			++it;
+		}
 	}
 }
 
@@ -715,7 +885,13 @@ void CMenu::updateDev()
 		return (charnums * size / 1.5) + (size / 2.0);
 	};
 
-	auto isMouseOver2DQuad = [this](double x, double y, double w, double h){
+	const bool mouseOnThisMenu = !isInterfaceOver();
+
+	auto isMouseOver2DQuad = [this, &mouseOnThisMenu](double x, double y, double w, double h)
+	{
+		if (!mouseOnThisMenu)
+			return false;
+		
 		double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
 		x += this->x;
 		y += this->y;
@@ -836,10 +1012,67 @@ void CMenu::updateDev()
 	}
 }
 
-void CMenu::pushUserInterface(const CMenu &m)
+int CMenu::allocOrGetUiFreeSpace()
 {
-	uiList.push_back(new CMenu(m));
-	uiList.back()->uiMenu = true;
+	int result = -1;
+
+	for (int i = 0, size = uiList.size(); i < size; ++i)
+	{
+		if (uiList[i].m == nullptr)
+		{
+			result = i;
+			break;
+		}
+	}
+
+	if (result == -1)
+	{
+		uiWindowStruct w;
+		uiList.push_back(w);
+
+		result = uiList.size() - 1;
+	}
+
+	return result;
+}
+
+void CMenu::renderUiList()
+{
+	uiOrderList.clear();
+	for (int i = 0, size = uiList.size(); i < size; ++i)
+	{
+		posUiOrder b;
+		b.id = i;
+		b.pos = uiList[i].pos;
+		uiOrderList.push_back(b);
+	}
+
+	std::sort(uiOrderList.begin(), uiOrderList.end());
+
+
+	for (auto &uiTest : uiOrderList)
+	{
+		auto &uiw = uiList[uiTest.id];
+
+		if (uiw.m)
+		{
+			uiw.m->render();
+		}
+	}
+}
+
+int CMenu::pushUserInterface(const CMenu &m)
+{
+	int index = allocOrGetUiFreeSpace();
+
+	uiList[index].m = new CMenu(m);
+	uiList[index].m->uiMenu = true;
+	uiList[index].m->thisUiID = index;
+	uiList[index].pos = 100;
+
+	myUiList.push_back(index);
+
+	return index;
 }
 
 int CMenu::getDevSelectedMenuOpt()
@@ -856,6 +1089,7 @@ int CMenu::getDevSelectedMenuOpt()
 CMenu::CMenu()
 {
 	status = 0;
+	thisUiID = -1;
 
 	devEditingOpt = 0;
 
@@ -883,6 +1117,7 @@ CMenu::CMenu()
 
 CMenu::CMenu(const std::string &name){
 	status = 0;
+	thisUiID = -1;
 
 	devEditingOpt = 0;
 

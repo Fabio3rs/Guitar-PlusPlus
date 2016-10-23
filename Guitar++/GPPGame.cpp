@@ -1593,7 +1593,6 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 			engine.Render2DQuad(RenderData);
 		}
 
-
 		if (midFun)
 			midFun();
 
@@ -1602,6 +1601,7 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 		if (dev)
 		{
 			devMenus.render();
+			CMenu::renderUiList();
 
 			//if (devMenusStack.size() > 0)
 			//	(*devMenusStack.back()).render();
@@ -1992,9 +1992,9 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 				{
 					gpp.devMenus.devEditingOpt = op;
 
-					gpp.devMenus.pushUserInterface(gpp.uiRenameMenu);
+					int r = gpp.devMenus.pushUserInterface(gpp.uiRenameMenu);
 
-					CMenu *instM = gpp.devMenus.getUILast();
+					CMenu *instM = gpp.devMenus.getUiAt(r).m;
 
 					if (instM)
 					{

@@ -18,19 +18,68 @@ class CMenu{
 
 	static std::string textBuffer;
 
-	std::deque<CMenu*> uiList;
+	struct uiWindowStruct
+	{
+		CMenu *m;
+		int pos;
+
+		uiWindowStruct()
+		{
+			m = nullptr;
+			pos = 0;
+		}
+	};
+
+	struct posUiOrder
+	{
+		int id;
+		int pos;
+
+		bool operator>(const posUiOrder &p0) const
+		{
+			return pos > p0.pos;
+		}
+
+		bool operator<(const posUiOrder &p0) const
+		{
+			return pos < p0.pos;
+		}
+
+		bool operator==(const posUiOrder &p0) const
+		{
+			return pos == p0.pos;
+		}
+	};
+
+	static std::deque<uiWindowStruct> uiList;
+	static std::vector<posUiOrder> uiOrderList;
+	std::deque<int> myUiList;
+
+	static int allocOrGetUiFreeSpace();
 
 	bool uiMenu;
+	int thisUiID;
 
 public:
+	bool isInterfaceOver();
+
 	int getUIListSize();
 
-	inline CMenu *getUILast()
+	bool isMouseOnThisMenu();
+
+	static inline uiWindowStruct &getUiAt(int index)
+	{
+		return uiList[index];
+	}
+
+	static void renderUiList();
+
+	inline uiWindowStruct &getUILast()
 	{
 		if (uiList.size() > 0)
 			return uiList.back();
 
-		return nullptr;
+		return uiWindowStruct();
 	}
 
 	double x, y;
@@ -141,7 +190,7 @@ public:
 	std::unordered_map<int, group> groupInfo;
 	std::deque<menuOpt> options;
 
-	void pushUserInterface(const CMenu &m);
+	int pushUserInterface(const CMenu &m);
 
 	int getDevSelectedMenuOpt();
 
