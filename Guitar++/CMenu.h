@@ -60,6 +60,14 @@ class CMenu{
 	bool uiMenu;
 	int thisUiID;
 
+	static void refreshMenusUiPosOrder();
+	static void interfaceCalcPos();
+
+	posUiOrder &getThisOnUiOrder();
+	posUiOrder &getTopUI();
+	void putOnTop();
+	bool isThisOnTop();
+
 public:
 	bool isInterfaceOver();
 
