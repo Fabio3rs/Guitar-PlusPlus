@@ -1984,7 +1984,7 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 		{
 			auto &gpp = GPPGame::GuitarPP();
 
-			if (gpp.devMenus.devEditMenu && gpp.devMenus.getUIListSize() == 0)
+			if (gpp.devMenus.devEditMenu /*&& gpp.devMenus.getUIListSize() == 0*/)
 			{
 				int op = gpp.devMenus.devEditMenu->getDevSelectedMenuOpt();
 

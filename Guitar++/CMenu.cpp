@@ -532,11 +532,16 @@ void CMenu::putOnTop()
 		ui.pos = cpyui2.pos;
 		ui2.pos++;
 
+		uiList[ui.id].pos = ui.pos;
+		uiList[ui2.id].pos = ui2.pos;
+
+		std::sort(uiOrderList.begin(), uiOrderList.end());
+
 		//std::cout << ui.id << "  " << ui2.id << std::endl;
 
 		//uiList[ui.id].pos = ui.pos;
 		//uiList[ui2.id].pos = ui2.pos;
-		refreshMenusUiPosOrder();
+		//refreshMenusUiPosOrder();
 		interfaceCalcPos();
 	}
 }
@@ -607,7 +612,8 @@ void CMenu::update()
 		}
 	};
 	
-	if (CEngine::engine().getMouseButton(0)){
+	if (CEngine::engine().getMouseButton(0))
+	{
 		mBTNClick = true;
 	}
 
@@ -615,7 +621,7 @@ void CMenu::update()
 	{
 		bool ontop = isThisOnTop();
 
-		if (!ontop)
+		if (!ontop && isMouseOnThisMenu())
 		{
 			putOnTop();
 		}
@@ -689,7 +695,7 @@ void CMenu::update()
 		case text_input:
 			textSize = textSizeInScreen(opt.preText, opt.size) + 0.1;
 
-			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y - (opt.size * 0.1), textSize, opt.size * 1.10) && enterOpt)
+			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y - (opt.size), textSize, opt.size * 1.10) && enterOpt)
 			{
 				desselectAllTextClick(opt);
 
@@ -789,6 +795,11 @@ void CMenu::update()
 							opt.preText.pop_back();
 							--opt.strEditPoint;
 						}
+					}
+
+					if (opt.externalPreTextRef)
+					{
+						opt.preText = *opt.externalPreTextRef;
 					}
 				}
 
@@ -1127,13 +1138,16 @@ int CMenu::allocOrGetUiFreeSpace()
 
 void CMenu::interfaceCalcPos()
 {
-	uiOrderList.clear();
-	for (int i = 0, size = uiList.size(); i < size; ++i)
+	if (uiList.size() != uiOrderList.size())
 	{
-		posUiOrder b;
-		b.id = i;
-		b.pos = uiList[i].pos;
-		uiOrderList.push_back(b);
+		uiOrderList.clear();
+		for (int i = 0, size = uiList.size(); i < size; ++i)
+		{
+			posUiOrder b;
+			b.id = i;
+			b.pos = uiList[i].pos;
+			uiOrderList.push_back(b);
+		}
 	}
 
 	std::sort(uiOrderList.begin(), uiOrderList.end());
