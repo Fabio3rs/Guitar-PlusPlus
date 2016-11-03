@@ -172,7 +172,7 @@ int CLuaH::runScriptWithArgs(luaScript &lua, int args){
 	return false;
 }
 
-void CLuaH::runEvent(std::string name)
+void CLuaH::runEvent(const std::string &name)
 {
 	static const std::string barra("/");
 
@@ -209,7 +209,7 @@ void CLuaH::runHookEvent(uintptr_t address){
 }
 
 
-void CLuaH::runCheatEvent(std::string name){
+void CLuaH::runCheatEvent(const std::string &name){
 	static const std::string barra("/");
 	if (name.size() < 1)
 	{
@@ -364,7 +364,7 @@ void CLuaH::runScripts(){
 /*
 * Run a internal event (calls him specifics callbacks)
 */
-void CLuaH::runInternalEvent(luaScript &L, std::string name)
+void CLuaH::runInternalEvent(luaScript &L, const std::string &name)
 {
 	if (L.callbacksAdded && L.callbacks[name] != 0){
 		lua_rawgeti(L.luaState, LUA_REGISTRYINDEX, L.callbacks[name]);
@@ -434,6 +434,13 @@ CLuaH::luaScript::luaScript(luaScript &L){
 std::string CLuaH::getGlobalVarAsString(luaScript &l, const std::string &varname)
 {
 	lua_getglobal(l.luaState, varname.c_str());
+
+	return lua_tostring(l.luaState, -1);
+}
+
+const char *CLuaH::getGlobalVarAsString(luaScript &l, const char *varname)
+{
+	lua_getglobal(l.luaState, varname);
 
 	return lua_tostring(l.luaState, -1);
 }

@@ -407,12 +407,21 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 
 	if (rtime > -5.0)
 	{
-		double size = 0.2;
-		double position = -0.51;
+		const double idd = id;
+
+		const double size = 0.2;
+		const double position = -0.51;
+
+		auto form = [size, position](double idd)
+		{
+			return position + (idd * size / 48.0) + (idd * size);
+		};
+
+		const static double xdata[] = { form(0), form(1), form(2), form(3), form(4) };
 
 		TempStruct3D.Text = Texture;
-		TempStruct3D.TextureX1 = double(id) * 0.2;
-		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;
+		TempStruct3D.TextureX1 = idd * 0.2;
+		TempStruct3D.TextureX2 = idd * 0.2 + 0.2;
 
 		double nCalc = rtime * speedMp;
 
@@ -428,7 +437,7 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos, unsigned int T
 			TempStruct3D.TextureY2 = 0.5;
 		}
 
-		TempStruct3D.x1 = position + (double(id) * size / 48.0) + (double(id) * size);
+		TempStruct3D.x1 = xdata[id]/*position + (double(id) * size / 48.0) + (double(id) * size)*/;
 		TempStruct3D.x2 = TempStruct3D.x1 + size;
 		TempStruct3D.x3 = TempStruct3D.x1 + size;
 		TempStruct3D.x4 = TempStruct3D.x1;
@@ -496,6 +505,13 @@ void CGamePlay::renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned
 		double size = 0.2;
 		double position = -0.51;
 
+		auto form = [size, position](double idd)
+		{
+			return position + (idd * size / 48.0) + (idd * size);
+		};
+
+		const static double xdata[] = { form(0), form(1), form(2), form(3), form(4) };
+
 		TempStruct3D.Text = Texture;
 		TempStruct3D.TextureX1 = double(id) * 0.2;
 		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;
@@ -514,7 +530,7 @@ void CGamePlay::renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned
 			TempStruct3D.TextureY2 = 0.5;
 		}
 
-		TempStruct3D.x1 = position + (double(id) * size / 48.0) + (double(id) * size);
+		TempStruct3D.x1 = xdata[id]/*position + (double(id) * size / 48.0) + (double(id) * size)*/;
 		TempStruct3D.x2 = TempStruct3D.x1 + size;
 		TempStruct3D.x3 = TempStruct3D.x1 + size;
 		TempStruct3D.x4 = TempStruct3D.x1;
@@ -559,6 +575,13 @@ void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Tex
 	const double size = 0.25;
 	const double position = -0.56;
 
+	auto form = [size, position](double idd)
+	{
+		return position + (idd * size / 1.15);
+	};
+
+	const static double xdata[] = { form(0), form(1), form(2), form(3), form(4) };
+
 	TempStruct3D.Text = Texture;
 
 	TempStruct3D.TextureX1 = fretsText.FretIMGPos[fretsText.sAIDTI(state, id)].x * fretsText.columnSize;
@@ -566,7 +589,7 @@ void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Tex
 	TempStruct3D.TextureY1 = 1.0 - fretsText.FretIMGPos[fretsText.sAIDTI(state, id)].y * fretsText.lineFretSize;
 	TempStruct3D.TextureY2 = TempStruct3D.TextureY1 - fretsText.lineFretSize;
 
-	TempStruct3D.x1 = position + (double(id) * size / 1.15);
+	TempStruct3D.x1 = xdata[id]/*position + (double(id) * size / 1.15)*/;
 	TempStruct3D.x2 = TempStruct3D.x1 + size;
 	TempStruct3D.x3 = TempStruct3D.x1 + size;
 	TempStruct3D.x4 = TempStruct3D.x1;
@@ -677,6 +700,13 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 		double size = 0.2;
 		double position = -0.51;
 
+		auto form = [size, position](double idd)
+		{
+			return position + (idd * size / 48.0) + (idd * size);
+		};
+
+		const static double xdata[] = { form(0), form(1), form(2), form(3), form(4) };
+		
 		TempStruct3D.TextureX1 = 0.0;
 		TempStruct3D.TextureX2 = 1.0;
 
@@ -763,6 +793,13 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 		double size = 0.2;
 		double position = -0.51;
 
+		auto form = [size, position](double idd)
+		{
+			return position + (double(idd) * size / 48.0) + (double(idd) * size);
+		};
+
+		const static double xdata[] = { form(0), form(1), form(2), form(3), form(4) };
+		
 		//TempStruct3D.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolght.tga").getTextId();
 		/*TempStruct3D.TextureX1 = double(id) * 0.2;
 		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;*/
@@ -776,7 +813,7 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 		TempStruct3D.TextureY1 = 1.0;
 		TempStruct3D.TextureY2 = 0.0;
 
-		TempStruct3D.x1 = position + (double(id) * size / 48.0) + (double(id) * size);
+		TempStruct3D.x1 = xdata[id]/*position + (double(id) * size / 48.0) + (double(id) * size)*/;
 		TempStruct3D.x2 = TempStruct3D.x1 + size;
 		TempStruct3D.x3 = TempStruct3D.x1 + size;
 		TempStruct3D.x4 = TempStruct3D.x1;
@@ -889,6 +926,13 @@ void CGamePlay::renderIndividualLine(int id, double pos1, double pos2, unsigned 
 	const double size = 0.2;
 	const double position = -0.51;
 
+	auto form = [size, position](double idd)
+	{
+		return position + (idd * size / 48.0) + (idd * size);
+	};
+
+	const static double xdata[] = { form(0), form(1), form(2), form(3), form(4) };
+
 	double nCalc = rtime * speedMp;
 	double nCalc2 = rtime2 * speedMp;
 
@@ -901,7 +945,7 @@ void CGamePlay::renderIndividualLine(int id, double pos1, double pos2, unsigned 
 	TempStruct3D.TextureY1 = 1.0;
 	TempStruct3D.TextureY2 = 0.0;
 
-	TempStruct3D.x1 = position + (double(id) * size / 48.0) + (double(id) * size);
+	TempStruct3D.x1 = xdata[id]/*position + (double(id) * size / 48.0) + (double(id) * size)*/;
 	TempStruct3D.x2 = TempStruct3D.x1 + size;
 	TempStruct3D.x3 = TempStruct3D.x1 + size;
 	TempStruct3D.x4 = TempStruct3D.x1;

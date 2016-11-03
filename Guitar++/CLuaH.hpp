@@ -403,8 +403,8 @@ public:
 	/*
 	* Run a especific event (calls him specifics callbacks)
 	*/
-	void						runEvent(std::string name);
-	void						runCheatEvent(std::string name);
+	void						runEvent(const std::string &name);
+	void						runCheatEvent(const std::string &name);
 	void						runHookEvent(uintptr_t address);
 	
 	/*
@@ -415,7 +415,7 @@ public:
 	/*
 	* Run a internal event (calls him specifics callbacks)
 	*/
-	void						runInternalEvent(luaScript &L, std::string name);
+	void						runInternalEvent(luaScript &L, const std::string &name);
 
 	/*
 	* Run a internal with parameteres (calls him specifics callbacks)
@@ -433,6 +433,7 @@ public:
 	inline luaScript &getLastScript(){ return *lastScript.back(); }
 
 	static std::string getGlobalVarAsString(luaScript &l, const std::string &varname);
+	static const char *getGlobalVarAsString(luaScript &l, const char *varname);
 
 	void unloadAll();
 

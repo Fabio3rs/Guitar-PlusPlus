@@ -14,6 +14,7 @@
 
 class CShader{
 	bool enableShaders;
+	bool usingProgram;
 	
 	struct shaderInst{
 		int type;

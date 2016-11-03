@@ -4,6 +4,7 @@
 #include <GL/glew.h>
 #include "CShader.h"
 #include <Windows.h>
+#include "CLog.h"
 
 CShader &CShader::inst()
 {
@@ -58,6 +59,7 @@ void CShader::shaderInst::compile()
 		char shaderErrorDetail[1024] = {0, 0};
 		glGetShaderInfoLog(glID, length, &length, shaderErrorDetail);
 
+		CLog::log() << shaderErrorDetail;
 		std::cout << shaderErrorDetail << std::endl;
 	}
 }
@@ -86,6 +88,7 @@ void CShader::addShaderToEvent(const char *shaderEvent, int shaderID){
 	if(ID != -1){
 		glAttachShader(events[ID].shaderProg, shadersList[shaderID].glID);
 	}
+	usingProgram = false;
 	glUseProgram(0);
 }
 
@@ -93,7 +96,12 @@ void CShader::processEvent(int id){
 	if (!enableShaders)
 		return;
 
-	glUseProgram(events[id].shaderProg);
+	int shaderProg = events[id].shaderProg;
+
+	glUseProgram(shaderProg);
+
+	if (shaderProg != 0)
+		usingProgram = true;
 }
 
 int CShader::newShader(const char *shaderFile, int type, int eventToLink){
@@ -102,6 +110,7 @@ int CShader::newShader(const char *shaderFile, int type, int eventToLink){
 
 	shadersList.push_back(shaderInst(shaderFile, type));
 	glAttachShader(events[eventToLink].shaderProg, shadersList.back().glID);
+	usingProgram = false;
 	glUseProgram(0);
 	return shadersList.size() - 1;
 }
@@ -111,6 +120,7 @@ void CShader::desactivateShader()
 	if (!inst().enableShaders)
 		return;
 
+	usingProgram = false;
 	glUseProgram(0);
 }
 
@@ -147,6 +157,7 @@ void CShader::linkAllShaders(){
 CShader::CShader()
 {
 	enableShaders = true;
+	usingProgram = false;
 	
 	GLenum err = glewInit();
 	if (GLEW_OK != err){
