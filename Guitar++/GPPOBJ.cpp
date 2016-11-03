@@ -12,6 +12,7 @@ void GPPOBJ::draw(unsigned int texture, bool autoBindZeroVBO)
 
 void GPPOBJ::load(const std::string &path)
 {
+	lastPath = path;
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec2> uvs;
 	std::vector<glm::vec3> normals;
@@ -40,9 +41,16 @@ void GPPOBJ::load(const std::string &path)
 	vbodata.count = vertices.size();
 }
 
+void GPPOBJ::reload(const std::string &path)
+{
+	load(lastPath);
+}
+
 GPPOBJ::GPPOBJ(const std::string &path)
 {
-	std::vector<glm::vec3> vertices;
+	lastPath = path;
+	load(lastPath);
+	/*std::vector<glm::vec3> vertices;
 	std::vector<glm::vec2> uvs;
 	std::vector<glm::vec3> normals;
 
@@ -67,7 +75,7 @@ GPPOBJ::GPPOBJ(const std::string &path)
 	vbodata.pointer = &data[0];
 	vbodata.sizebytes = data.size();
 
-	vbodata.count = vertices.size();
+	vbodata.count = vertices.size();*/
 }
 
 GPPOBJ::GPPOBJ()

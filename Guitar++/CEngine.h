@@ -322,6 +322,8 @@ private:
 	double lastRenderAt[3];
 
 public:
+	double volumeMaster;
+
 	double eyex,
 		eyey,
 		eyez,

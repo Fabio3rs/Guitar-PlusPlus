@@ -40,8 +40,10 @@ class CGamePlay{
 	void renderIndivdualNoteShadow(int id, double pos, unsigned int Texture, bool tail, CPlayer &player);
 	double getRunningMusicTime(CPlayer &player);
 	double time2Position(double Time, CPlayer &player);
+	void renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player);
 	void renderNote(CPlayer::NotesData::Note &note, CPlayer &player);
 	void renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player);
+	void renderNoteShadowHpStyle(CPlayer &player);
 	void renderIndividualLine(int id, double pos1, double pos2, unsigned int Texture, CPlayer &player);
 	void renderTimeOnNote(double pos, double time, CPlayer &player);
 	void renderHoposLight();
@@ -68,6 +70,8 @@ class CGamePlay{
 
 
 public:
+	bool enableTails;
+
 	static const int notesFlagsConst[5];
 
 	struct lyricLine

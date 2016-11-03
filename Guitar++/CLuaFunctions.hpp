@@ -7,8 +7,16 @@
 #include "CLuaH.hpp"
 #include <map>
 #include <string>
+#include <deque>
+#include <functional>
+#include <memory>
+#include <algorithm>
 
 class CLuaFunctions{
+	std::deque < std::function<int(lua_State*)> > registerFunctionsAPICBs;
+	std::deque < std::function<int(lua_State*)> > registerGlobalsAPICBs;
+	std::deque < std::function<void(void)> > frameUpdateAPICBs;
+
 public:
 	static CLuaFunctions &LuaF();
 
@@ -206,10 +214,14 @@ public:
 	*/
 	void registerGlobals(lua_State *L);
 
-	CLuaFunctions(CLuaFunctions&) = delete;
+	void registerLuaFuncsAPI(std::function<int(lua_State*)> fun);
+	void registerLuaGlobalsAPI(std::function<int(lua_State*)> fun);
+	void registerFrameUpdateAPI(std::function<void(void)> fun);
 
 private:
 	CLuaFunctions();
+	CLuaFunctions(CLuaFunctions&) = delete;
+	~CLuaFunctions() = default;
 };
 
 #endif

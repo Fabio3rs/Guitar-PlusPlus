@@ -4,6 +4,21 @@
 #include <iostream>
 #include "CLog.h"
 
+void CLuaFunctions::registerLuaFuncsAPI(std::function<int(lua_State*)> fun)
+{
+	registerFunctionsAPICBs.push_back(fun);
+}
+
+void CLuaFunctions::registerLuaGlobalsAPI(std::function<int(lua_State*)> fun)
+{
+	registerGlobalsAPICBs.push_back(fun);
+}
+
+void CLuaFunctions::registerFrameUpdateAPI(std::function<void(void)> fun)
+{
+	frameUpdateAPICBs.push_back(fun);
+}
+
 CLuaFunctions &CLuaFunctions::LuaF()
 {
 	static CLuaFunctions LuaF;
@@ -991,6 +1006,13 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "assingGameFunctionToMenuOption", assingGameFunctionToMenuOption);
 	lua_register(L, "setGameVar", setGameVar);
 	lua_register(L, "getGameVar", getGameVar);
+
+	auto &funList = LuaF().registerFunctionsAPICBs;
+
+	for (auto &fun : funList)
+	{
+		fun(L);
+	}
 }
 
 
@@ -1012,6 +1034,12 @@ void CLuaFunctions::registerGlobals(lua_State *L)
 	setLuaGlobal(L, "VSYNC_AUTO", 3);
 
 
+	auto &funList = LuaF().registerGlobalsAPICBs;
+
+	for (auto &fun : funList)
+	{
+		fun(L);
+	}
 }
 
 CLuaFunctions::CLuaFunctions()

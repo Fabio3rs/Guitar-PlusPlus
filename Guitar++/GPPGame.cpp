@@ -1703,13 +1703,14 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 		const char brmods[] = { "http://brmodstudio.forumeiros.com/" };
 		const char oneByte[] = { "http://2nibble.forumeiros.com/" };
 		
+		/*
 		CFonts::fonts().drawTextInScreen(prog, CFonts::fonts().getCenterPos(strlen(prog), 0.08, 0.0), -0.8, 0.08);
 
 		CEngine::engine().setColor(0.5, 0.5, 1.0, 1.0);
 
 		CFonts::fonts().drawTextInScreen(brmods, CFonts::fonts().getCenterPos(strlen(brmods), 0.05, 0.0), -0.87, 0.05);
 		CFonts::fonts().drawTextInScreen(oneByte, CFonts::fonts().getCenterPos(strlen(oneByte), 0.05, 0.0), -0.93, 0.05);
-
+		*/
 		CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 
 		GPPGame::GuitarPP().renderFrame();
@@ -1984,7 +1985,7 @@ GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/m
 		{
 			auto &gpp = GPPGame::GuitarPP();
 
-			if (gpp.devMenus.devEditMenu /*&& gpp.devMenus.getUIListSize() == 0*/)
+			if (gpp.devMenus.devEditMenu && gpp.devMenus.getUIListSize() == 0)
 			{
 				int op = gpp.devMenus.devEditMenu->getDevSelectedMenuOpt();
 

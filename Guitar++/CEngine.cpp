@@ -91,7 +91,7 @@ bool CEngine::pauseSoundStream(int handle){
 
 bool CEngine::setSoundVolume(int handle, float volume)
 {
-	return BASS_ChannelSetAttribute(handle, BASS_ATTRIB_VOL, volume);
+	return BASS_ChannelSetAttribute(handle, BASS_ATTRIB_VOL, volume * volumeMaster);
 }
 
 CEngine::chdata CEngine::getChannelData(int handle)
@@ -1232,13 +1232,16 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_TEXTURE_2D);
+	//glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 	glEnable(GL_COLOR_MATERIAL);
-	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 	//glEnable(GL_CULL_FACE);
 	glDepthFunc(GL_LESS);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 	glEnable(GL_RESCALE_NORMAL);
+
+	float glMaterialff[] = {128.0, 0.0, 1.0, 1.0};
+	glMaterialfv(GL_FRONT, GL_SHININESS, glMaterialff);
 
 	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 0);
 
@@ -1893,6 +1896,7 @@ void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData){
 
 CEngine::CEngine()
 {
+	volumeMaster = 1.0;
 	AASamples = 0;
 	lastRenderAt[0] = 0.0;
 	lastRenderAt[1] = 0.0;
@@ -1937,6 +1941,7 @@ CEngine::CEngine()
 
 CEngine::CEngine(std::function <void(int, const std::string &e)> errfun)
 {
+	volumeMaster = 1.0;
 	lastRenderAt[0] = 0.0;
 	lastRenderAt[1] = 0.0;
 	lastRenderAt[2] = 0.0;

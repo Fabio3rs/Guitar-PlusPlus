@@ -1144,6 +1144,23 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 	if (bAddTailToBuffer) addTailToBuffer(note, lt, tlng, ltimet, player);
 }
 
+void CGamePlay::renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player){
+	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
+	double dif = time - ltimet;
+	double lt = 0.0, tlng = 0.0;
+	for (int i = 0; i < 5; i++){
+		if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
+		{
+			unsigned int texture = /*fretsText.notesTexture*/1;
+			/*if (note.type & notesFlags::nf_doing_slide){
+			time = ltimet;
+			}*/
+
+			if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, player);
+		}
+	}
+}
+
 void CGamePlay::updatePlayer(CPlayer &player)
 {
 	player.tailsData.clear();
@@ -2023,6 +2040,77 @@ void CGamePlay::loadSongLyrics(const std::string &song)
 	}
 }
 
+void CGamePlay::renderNoteShadowHpStyle(CPlayer &player)
+{
+	double size = 0.2;
+	double position = -0.51;
+
+	CEngine::RenderDoubleStruct TempStruct3D;
+
+	TempStruct3D.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "shadow.tga").getTextId();
+	TempStruct3D.TextureX1 = 0.0;
+	TempStruct3D.TextureX2 = 1.0;
+	TempStruct3D.TextureY1 = 1.0;
+	TempStruct3D.TextureY2 = 0.0;
+
+	double time = getRunningMusicTime(player);
+
+	//CFonts::fonts().drawTextInScreen(std::to_string(hopostp.size()), 0.0, 0.5, 0.1);
+
+	for (auto &note : player.buffer)
+	{
+		double rtime = time - note.time;
+		for (int i = 0; i < 5; ++i)
+		{
+			if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
+			{
+				double x = 0, y = -0.42/*62*/, z = 0;
+
+				{
+					double nCalc = rtime * speedMp;
+
+					nCalc += 0.55;
+
+					x = position + (double(i) * size / 48.0) + (double(i) * size);
+					z = nCalc;
+				}
+
+				TempStruct3D.x1 = x;
+				TempStruct3D.x2 = TempStruct3D.x1 + size;
+				TempStruct3D.x3 = TempStruct3D.x1 + size;
+				TempStruct3D.x4 = TempStruct3D.x1;
+
+				TempStruct3D.y1 = y;
+				TempStruct3D.y2 = TempStruct3D.y1;
+				TempStruct3D.y3 = y;
+				TempStruct3D.y4 = TempStruct3D.y3;
+
+				TempStruct3D.z1 = z + size;
+				TempStruct3D.z2 = TempStruct3D.z1;
+				TempStruct3D.z3 = z + size * 2.0;
+				TempStruct3D.z4 = TempStruct3D.z3;
+
+
+				/*double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
+
+
+				if (alpha <= 0.0)
+				{
+					continue;
+				}*/
+
+				CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+
+				CEngine::engine().Render3DQuad(TempStruct3D);
+			}
+		}
+	}
+
+
+	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+	hopostp.clear();
+}
+
 void CGamePlay::setHyperSpeed(double s)
 {
 	speedMp = s;
@@ -2085,7 +2173,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	for (auto &t : l0.specularLight)
 	{
-		t = 0.7;
+		t = 1.0;
 	}
 
 	for (auto &t : l0.diffuseLight)
@@ -2093,8 +2181,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		t = 1.0;
 	}
 
-	l0.specularLight[3] = 0.6;
-	l0.diffuseLight[3] = 0.4;
+	l0.specularLight[3] = 1.0;
+	l0.diffuseLight[3] = 0.3;
 
 	l0.angle = 120.0;
 	l0.direction[0] = 0.0;
@@ -2136,7 +2224,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		for (auto &t : l.specularLight)
 		{
-			t = 0.2;
+			t = 1.0;
 		}
 
 		for (auto &t : l.diffuseLight)
@@ -2188,7 +2276,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		for (auto &t : l.specularLight)
 		{
-			t = 0.2;
+			t = 1.0;
 		}
 
 		for (auto &t : l.diffuseLight)
@@ -2279,7 +2367,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		{ -20.0, -0.5, -20.0 },
 	};
 
-	static float floorPlane[4];
+	static float floorPlane[4] = {0, 0, 0, 1};
 	static float floorShadow[4][4];
 
 	//engine.addToAccumulationBuffer(0.5);
@@ -2308,14 +2396,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		for (auto &n : player.buffer)
 		{
 			renderNote(n, player);
-			renderNoteShadow(n, player);
+			//renderNoteShadow(n, player);
 		}
 	};
 
 	engine.activateLighting(true);
 
-
-	engine.setColor(1.0, 1.0, 1.0, 1.0);
+	
+	//engine.setColor(1.0, 1.0, 1.0, 1.0);
 	//if (player.plusEnabled || renablel0)
 	{
 		engine.activateLight(1, false);
@@ -2350,7 +2438,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		//engine.setLight(l0n, 0);{
 	}
 
-	renderScene();
+	//renderScene();
 	//engine.matrixReset();
 	/*{
 
@@ -2368,52 +2456,56 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		engine.setCamera(usingCamera);
 	}
 	*/
-	/*
-	CEngine::shadowMatrix(floorShadow, floorPlane, l0.position);
+	
+	//CEngine::shadowMatrix(floorShadow, floorPlane, l0.position);
 
+	renderScene();
 
-	engine.activateLight(0, false);
+	/*engine.activateLight(0, false);
 	engine.activateStencilTest(true);
 	engine.activateLighting(false);
 
 	engine.startShadowCapture();
 
-	renderPylmBar();
-
-	//engine.clearAccmumaltionBuffer();
 	for (auto &n : player.buffer)
 	{
-		renderNoteShadow(n, player);
+		renderNoteNoAdd(n, player);
+		//renderNoteShadow(n, player);
 	}
 
 	engine.endShadowCapture();
 
 	CEngine::pushMatrix();
 	engine.glEnable(0x8037);
-	engine.setColor(0.0, 0.0, 0.0, 0.5);
+	engine.setColor(0.0, 0.0, 0.0, 1.0);
 	engine.matrixReset();
 	{
 		engine.setCamera(player.playerCamera);
 	}
-	
-	CEngine::multiplyMatrix((float*)floorShadow);
 
-	renderPylmBar();
+	//renderPylmBar();
 
 	//engine.clearAccmumaltionBuffer();
-	for (auto &n : player.buffer)
-	{
-		renderNoteShadow(n, player);
-	}
+	//for (auto &n : player.buffer)
+	//{
+	//	renderNoteShadow(n, player);
+	//}
+
+	engine.bindVBOBuffer(0);
+	engine.activateNormals(false);
+	engine.activate3DRender(false);
+	renderNoteShadowHpStyle(player);
+	engine.activateNormals(true);
+	engine.activate3DRender(true);
 
 	engine.glDisable(0x8037);
+	
 	CEngine::popMatrix();
 	engine.matrixReset();
 	engine.setCamera(player.playerCamera);
 
-	renderScene();
-
 	engine.activateStencilTest(false);*/
+	//renderScene();
 
 	//engine.addToAccumulationBuffer(0.5);
 	//engine.retAccumulationBuffer(1.0);

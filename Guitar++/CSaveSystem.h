@@ -121,16 +121,20 @@ public:
 					return false;
 				}
 
-				for (size_t i = 0; i < v.size; i++)
+				/*for (size_t i = 0; i < v.size; i++)
 				{
 					((uint8_t*)(&var))[i] = v.svcontent[i];
-				}
+				}*/
+
+				memcpy(&var, &(v.svcontent[0]), v.size);
 			}
 			else{
 				for (int i = 0; i < sizeof(T); ++i)
 				{
 					v.svcontent.push_back(0);
 				}
+
+				memcpy(&(v.svcontent[0]), &var, sizeof(T));
 			}
 
 			v.type = 0;
