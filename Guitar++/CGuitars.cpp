@@ -52,6 +52,10 @@ void CGuitars::CGuitar::load()
 void CGuitars::CGuitar::unload()
 {
 	loaded = false;
+
+	// TODO unloader
+
+
 }
 
 CGuitars::CGuitar::CGuitar()
