@@ -11,8 +11,6 @@ using namespace std;
 
 #include <GL/glew.h>
 
-#include <common/shader.hpp>
-
 unsigned int LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
 
 	// Create the shaders

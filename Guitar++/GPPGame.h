@@ -237,6 +237,12 @@ public:
 
 	static std::mutex playersMutex;
 
+protected:
+	static int registerFunctions(lua_State *L);
+	static int registerGlobals(lua_State *L);
+
+	static int loadSingleTexture(lua_State *L);
+
 private:
 	static void callbackRenderFrame();
 

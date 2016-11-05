@@ -14,6 +14,7 @@
 #include "CEngine.h"
 #include "CParticle.h"
 #include <atomic>
+#include "CGuitars.h"
 
 class CCharter;
 
@@ -288,11 +289,13 @@ public:
 	int64_t getCombo();
 	int64_t getPoints();
 
-	CEngine::cameraSET playerCamera;
+	CEngine::cameraSET playerCamera, targetCamera;
 
 	bool bRenderP, bUpdateP;
 
 	CParticle playerParticles;
+
+	CGuitars::CGuitar *guitar;
 
 	CPlayer(const char *name);
 };

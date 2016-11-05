@@ -2,7 +2,6 @@
 #include "CEngine.h"
 #include "GPPGame.h"
 #include "CFonts.h"
-#include <common/shader.hpp>
 
 //unsigned int programID;
 //unsigned int MatrixID;
@@ -153,7 +152,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 	auto calcQuad = [&](double position, double runTime, CPlayer &Player)
 	{
-		CEngine::RenderDoubleStruct TempStruct3D;
+		static CEngine::RenderDoubleStruct TempStruct3D;
 		double rtime = runTime - position;
 
 		double nCalc = rtime * speedMp;
@@ -171,25 +170,28 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 		const double size = 0.3;
 
-		TempStruct3D.x1 = pos;
-		TempStruct3D.x2 = pos * -1.0;
-		TempStruct3D.x3 = TempStruct3D.x2;
-		TempStruct3D.x4 = TempStruct3D.x1;
+		static staticCallFunc rendr([&]()
+		{
+			TempStruct3D.x1 = pos;
+			TempStruct3D.x2 = pos * -1.0;
+			TempStruct3D.x3 = TempStruct3D.x2;
+			TempStruct3D.x4 = TempStruct3D.x1;
 
-		TempStruct3D.y1 = -0.4999;
-		TempStruct3D.y2 = TempStruct3D.y1;
-		TempStruct3D.y3 = -0.4999;
-		TempStruct3D.y4 = TempStruct3D.y3;
+			TempStruct3D.y1 = -0.4999;
+			TempStruct3D.y2 = TempStruct3D.y1;
+			TempStruct3D.y3 = -0.4999;
+			TempStruct3D.y4 = TempStruct3D.y3;
+
+			TempStruct3D.TextureX1 = 0.0f;
+			TempStruct3D.TextureX2 = 1.0f;
+			TempStruct3D.TextureY1 = 1.0f;
+			TempStruct3D.TextureY2 = 0.0f;
+		});
 
 		TempStruct3D.z1 = nCalc;
 		TempStruct3D.z2 = TempStruct3D.z1;
 		TempStruct3D.z3 = nCalc + size;
 		TempStruct3D.z4 = TempStruct3D.z3;
-
-		TempStruct3D.TextureX1 = 0.0f;
-		TempStruct3D.TextureX2 = 1.0f;
-		TempStruct3D.TextureY1 = 1.0f;
-		TempStruct3D.TextureY2 = 0.0f;
 
 		TempStruct3D.alphaBottom = alpha;
 		TempStruct3D.alphaTop = alpha;
@@ -1934,6 +1936,13 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 }
 
+void CGamePlay::renderPlayerPylmBar(CPlayer &player)
+{
+	CEngine::engine().renderAt(0.0, -0.5, 1.1);
+
+	player.guitar->gameplayBar.draw(player.guitar->textureID, false);
+}
+
 void CGamePlay::renderPylmBar()
 {
 	/*CEngine::RenderDoubleStruct TempStruct3D;
@@ -2395,7 +2404,11 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	//	engine.addToAccumulationBuffer(0.25);
 	//engine.retAccumulationBuffer(1.0);
 	CEngine::enableColorsPointer(true);
-	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], GPPGame::GuitarPP().fretboardText);
+
+	unsigned int fretboardText = (player.guitar == nullptr)? GPPGame::GuitarPP().fretboardText :
+								((player.guitar->fretboardText != 0)? player.guitar->fretboardText : GPPGame::GuitarPP().fretboardText);
+
+	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], fretboardText);
 	//engine.addToAccumulationBuffer(0.5);
 
 	if (showBPMLines) drawBPMLines(player);
@@ -2434,7 +2447,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	auto renderScene = [&]()
 	{
 		engine.setColor(1.0, 1.0, 1.0, 1.0);
-		renderPylmBar();
+		if (player.guitar == nullptr)
+		{
+			renderPylmBar();
+		}
+		else
+		{
+			renderPlayerPylmBar(player);
+		}
 
 		//engine.clearAccmumaltionBuffer();
 		for (auto &n : player.buffer)

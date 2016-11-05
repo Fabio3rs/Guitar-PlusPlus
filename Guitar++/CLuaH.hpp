@@ -420,7 +420,7 @@ public:
 	/*
 	* Run a internal with parameteres (calls him specifics callbacks)
 	*/
-	void						runinternalEventWithParams(luaScript &L, const std::string &name, multiCallBackParams_t &params);
+	void						runInternalEventWithParams(luaScript &L, const std::string &name, const multiCallBackParams_t &params);
 
 	luaScript					&getScript(const std::string &path, const std::string &f)
 	{

@@ -14,8 +14,7 @@
     <ProjectGuid>{71686D17-E8DF-4BD1-9591-673A550D2EDA}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Guitar</RootNamespace>
-    <WindowsTargetPlatformVersion>
-    </WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -27,7 +26,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
@@ -93,6 +92,7 @@
     <ClCompile Include="CEngine.cpp" />
     <ClCompile Include="CFonts.cpp" />
     <ClCompile Include="CGamePlay.cpp" />
+    <ClCompile Include="CGuitars.cpp" />
     <ClCompile Include="CLanguageManager.cpp" />
     <ClCompile Include="CLog.cpp" />
     <ClCompile Include="CLuaFunctions.cpp" />
@@ -105,6 +105,7 @@
     <ClCompile Include="CShader.cpp" />
     <ClCompile Include="CText.cpp" />
     <ClCompile Include="exception.cpp" />
+    <ClCompile Include="GGPPFileMGR.cpp" />
     <ClCompile Include="GPPGame.cpp" />
     <ClCompile Include="GPPOBJ.cpp" />
     <ClCompile Include="Guitar++.cpp" />
@@ -144,7 +145,6 @@
     <ClCompile Include="Lua\lvm.c" />
     <ClCompile Include="Lua\lzio.c" />
     <ClCompile Include="objloader.cpp" />
-    <ClCompile Include="shader.cpp" />
     <ClCompile Include="TestShadowMapping.h" />
     <ClCompile Include="tga.cpp" />
   </ItemGroup>
@@ -154,6 +154,8 @@
     <ClInclude Include="CEngine.h" />
     <ClInclude Include="CFonts.h" />
     <ClInclude Include="CGamePlay.h" />
+    <ClInclude Include="CGPPFileMGR.h" />
+    <ClInclude Include="CGuitars.h" />
     <ClInclude Include="CLanguageManager.h" />
     <ClInclude Include="CLog.h" />
     <ClInclude Include="CLuaFunctions.hpp" />

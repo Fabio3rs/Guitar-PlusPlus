@@ -374,6 +374,9 @@ void CEngine::setCamera(double eyex,
 	double upy,
 	double upz)
 {
+	if (window == nullptr)
+		return;
+
 	this->eyex = eyex;
 	this->eyey = eyey;
 	this->eyez = eyez;
@@ -1102,7 +1105,9 @@ void CEngine::activateNormals(bool a)
 		glDisableClientState(GL_NORMAL_ARRAY);
 }
 
-void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
+void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
+{
+	openWindowCalled = true;
 	GLFWmonitor *monitor = nullptr;
 	if ((fullScreen & 1) != 0)
 	{
@@ -1164,6 +1169,9 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen){
 
 	glfwMakeContextCurrent((GLFWwindow*)window);
 
+	setCamera(0.0, 0.0, 2.3, /* look from camera XYZ */
+		0, 0, 0, /* look at the origin */
+		0, 1, 0);
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -1896,6 +1904,7 @@ void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData){
 
 CEngine::CEngine()
 {
+	openWindowCalled = false;
 	volumeMaster = 1.0;
 	AASamples = 0;
 	lastRenderAt[0] = 0.0;
@@ -1923,7 +1932,9 @@ CEngine::CEngine()
 	FPS = 0;
 	tmpFPS = 0;
 
-	BASS_Init(-1, 44100, 0, 0, NULL);
+	std::cout << "BASS Init\n";
+	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
+	std::cout << "BASS Init result " << result << std::endl;
 	lastUpdatedNoise = 0.0;
 	updateNoiseInterval = 0.2;
 
@@ -1941,6 +1952,7 @@ CEngine::CEngine()
 
 CEngine::CEngine(std::function <void(int, const std::string &e)> errfun)
 {
+	openWindowCalled = false;
 	volumeMaster = 1.0;
 	lastRenderAt[0] = 0.0;
 	lastRenderAt[1] = 0.0;
@@ -1968,7 +1980,9 @@ CEngine::CEngine(std::function <void(int, const std::string &e)> errfun)
 	FPS = 0;
 	tmpFPS = 0;
 
-	BASS_Init(-1, 44100, 0, 0, NULL);
+	std::cout << "BASS Init\n";
+	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
+	std::cout << "BASS Init result " << result << std::endl;
 	lastUpdatedNoise = 0.0;
 	updateNoiseInterval = 0.2;
 

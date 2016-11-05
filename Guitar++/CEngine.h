@@ -161,9 +161,21 @@ struct lightData{
 
 typedef void(*customwcallback)(int w, int h, windowsNum state);
 
+class staticCallFunc
+{
+
+public:
+	template<class T, class... U>
+	staticCallFunc(T fun, U&&... u)
+	{
+		fun(std::forward<U>(u)...);
+	};
+};
+
 class CEngine{
 	void *window;
 	customwcallback wcallfunc;
+	bool openWindowCalled;
 
 public:
 	void setWindowCallbackFunction(customwcallback f){

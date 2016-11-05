@@ -85,7 +85,8 @@ CLuaH::luaScript CLuaH::newScriptR(const std::string &memf, const std::string &n
 	return lData;
 }
 
-CLuaH::luaScript CLuaH::newScript(const std::string &path, const std::string &f){
+CLuaH::luaScript CLuaH::newScript(const std::string &path, const std::string &f)
+{
 	static const std::string barra("/");
 	auto file_exists = [](const std::string &fileName){
 		return std::fstream(fileName).is_open();
@@ -373,6 +374,22 @@ void CLuaH::runInternalEvent(luaScript &L, const std::string &name)
 	}
 }
 
+void CLuaH::runInternalEventWithParams(luaScript &L, const std::string &name, const multiCallBackParams_t &params)
+{
+	if (L.callbacksAdded && L.callbacks[name] != 0)
+	{
+		lua_rawgeti(L.luaState, LUA_REGISTRYINDEX, L.callbacks[name]);
+
+		for (auto &p : params)
+		{
+			p.pushToLuaStack(L.luaState);
+		}
+
+		if (runScriptWithArgs(L, params.size()) != 0)
+			catchErrorString(L);
+	}
+}
+
 CLuaH::luaScript::luaScript(){
 	luaState = nullptr;
 	runAgain = true;
@@ -461,9 +478,9 @@ void CLuaH::unloadAll(){
 
 CLuaH::CLuaH()
 {
-	inited = loadFiles("LuaScripts");
+	inited = true;/*loadFiles("LuaScripts");
 
-	runScripts();
+	runScripts();*/
 }
 
 

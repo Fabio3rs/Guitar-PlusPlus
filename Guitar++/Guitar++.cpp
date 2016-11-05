@@ -20,6 +20,7 @@
 #include "CPlayer.h"
 #include "CSaveSystem.h"
 #include "CLanguageManager.h"
+#include "CGuitars.h"
 //#include "gambiwindows.h"
 
 int main(int argc, char* argv[])
@@ -46,6 +47,7 @@ int main(int argc, char* argv[])
 		//std::cout << "@_@: " << svtest.getVarContent<int>("variaveldopato") << std::endl;
 
 		auto &game = GPPGame::GuitarPP();
+		auto &guitars = CGuitars::inst();
 
 		game.parseParameters(argc, argv);
 
@@ -71,6 +73,7 @@ int main(int argc, char* argv[])
 		// Window
 		game.createWindow();
 
+		guitars.loadAllGuitars();
 
 		game.loadAllThemes();
 		game.gThemes["gppdefaulttheme"].apply();

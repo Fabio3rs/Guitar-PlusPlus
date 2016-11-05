@@ -1004,6 +1004,7 @@ void CPlayer::instrumentPause()
 
 CPlayer::CPlayer(const char *name)
 {
+	guitar = nullptr;
 	npPsetted = 0;
 	playerHudOffsetX = playerHudOffsetY = 0.0;
 	remoteControls = false;
@@ -1049,4 +1050,6 @@ CPlayer::CPlayer(const char *name)
 	playerCamera.upx = 0;
 	playerCamera.upy = 1;
 	playerCamera.upz = 0;
+
+	targetCamera = playerCamera;
 }

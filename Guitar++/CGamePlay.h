@@ -60,6 +60,7 @@ class CGamePlay{
 	lightData hoposLight, plusNoteLight;
 
 	void renderPylmBar();
+	void renderPlayerPylmBar(CPlayer &player);
 
 	void drawBPMLines(CPlayer &Player);
 	void drawBPMLine(double position, unsigned int Texture, CPlayer &Player);

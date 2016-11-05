@@ -1004,6 +1004,8 @@ void GPPGame::startModule(const std::string &name)
 	double startTime = module.players.back().startTime = CEngine::engine().getTime() + 3.0;
 	double openMenuTime = 0.0;
 	module.players.back().musicRunningTime = -3.0;
+	module.players.back().guitar = &CGuitars::inst().getGuitar("guitar test");
+	module.players.back().guitar->load();
 
 	bool enterInMenu = false, esc = false;
 	int musicstartedg = 0;
@@ -1012,6 +1014,8 @@ void GPPGame::startModule(const std::string &name)
 
 
 	module.players.back().enableBot = GPPGame::GuitarPP().botEnabled;
+	module.players.back().playerCamera.centery = 1.0;
+	module.players.back().playerCamera.eyez += 2.0;
 	//CLog::log() << std::to_string(module.players.back().enableBot) + "bot que voa";
 
 	std::cout << "Plus in chart: " << module.players.back().Notes.gPlus.size() << std::endl;
@@ -1086,6 +1090,29 @@ void GPPGame::startModule(const std::string &name)
 		else
 		{
 			module.update();
+
+			for (auto &p : module.players)
+			{
+				if (p.targetCamera.centery < p.playerCamera.centery)
+				{
+					p.playerCamera.centery -= CEngine::engine().getDeltaTime() * 0.5;
+				}
+
+				if (p.targetCamera.centery > p.playerCamera.centery)
+				{
+					p.playerCamera.centery = p.targetCamera.centery;
+				}
+
+				if (p.targetCamera.eyez < p.playerCamera.eyez)
+				{
+					p.playerCamera.eyez -= CEngine::engine().getDeltaTime() * 0.75;
+				}
+
+				if (p.targetCamera.eyez > p.playerCamera.eyez)
+				{
+					p.playerCamera.eyez = p.targetCamera.eyez;
+				}
+			}
 
 			if (!songTimeFixed && (CEngine::engine().getTime() - startTime) > 0.5)
 			{
@@ -1847,10 +1874,44 @@ void GPPGame::logError(int code, const std::string &e)
 std::string GPPGame::ip = "127.0.0.1";
 std::string GPPGame::port = "7777";
 
+int GPPGame::registerFunctions(lua_State *L)
+{
+	lua_register(L, "loadSingleTexture", loadSingleTexture);
+	return 0;
+}
+
+int GPPGame::registerGlobals(lua_State *L)
+{
+
+	return 0;
+}
+
+int GPPGame::loadSingleTexture(lua_State * L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	if (p.getNumParams() == 2)
+	{
+		std::string path, name;
+		p >> path;
+		p >> name;
+
+		p << GPPGame::GuitarPP().loadTexture(path, name, &CLuaH::Lua().getLastScript()).getTextId();
+	}
+	else
+	{
+		p << 0;
+	}
+	return p.rtn();
+}
+
 GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"),
 						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj"),
 						devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
 {
+	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerFunctions);
+	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerGlobals);
+
 	mainSave.loadn("data/saves/mains");
 	devMenus.gameMenu = true;
 	uiRenameMenu.gameMenu = true;
