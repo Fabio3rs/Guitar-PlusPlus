@@ -299,6 +299,7 @@ void GPPGame::loadMarathonThread(CGamePlay & module, loadThreadData & l)
 
 				module.players[i].correctNotesMarathon += module.players[i].correctNotes;
 				module.players[i].correctNotes = 0;
+				module.players[i].strklinent = -1;
 
 				tmpPlayers[i].songAudioID = -1;
 				tmpPlayers[i].instrumentSound = -1;
