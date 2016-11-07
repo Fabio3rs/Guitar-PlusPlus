@@ -48,9 +48,12 @@ public:
 	static CGuitars &inst();
 
 	CGuitar &getGuitar(const std::string &internalName);
+	CGuitar *getGuitarIfExists(const std::string &internalName);
 	CGuitar &addGuitar(const std::string &path, const std::string &internalName);
 
 	void loadAllGuitars();
+
+	void unload();
 
 protected:
 	static int registerFunctions(lua_State *L);

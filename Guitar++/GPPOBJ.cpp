@@ -77,6 +77,13 @@ void GPPOBJ::reload(const std::string &path)
 	load(lastPath);
 }
 
+void GPPOBJ::unload()
+{
+	data.clear();
+	vbodata.pointer = nullptr;
+	vbodata.destroy();
+}
+
 GPPOBJ::GPPOBJ(const std::string &path)
 {
 	lastPath = path;
@@ -112,5 +119,10 @@ GPPOBJ::GPPOBJ(const std::string &path)
 GPPOBJ::GPPOBJ()
 {
 
+}
+
+GPPOBJ::~GPPOBJ()
+{
+	unload();
 }
 

@@ -387,21 +387,24 @@ public:
 	{
 		void *pointer;
 		unsigned int vertexL;
-		unsigned int uvL; 
+		unsigned int uvL;
 		unsigned int normalsL;
 		unsigned int texture;
 		unsigned int bufferID;
 		unsigned int sizebytes;
 		int count;
 
-		staticDrawBuffer()
+		inline staticDrawBuffer()
 		{
-			pointer = 0;
+			pointer = nullptr;
 			count = 0;
 			vertexL = uvL = normalsL = texture = 0;
 			bufferID = ~0;
 			sizebytes = 0;
 		}
+
+		void destroy(bool deletePtr = false);
+		~staticDrawBuffer();
 	};
 
 	struct dTriangleWithAlpha

@@ -847,6 +847,7 @@ void CPlayer::NotesData::unloadChart(){
 	}
 
 	BPM.clear();
+	gPlus.clear();
 }
 
 void CPlayer::resetData()
@@ -906,6 +907,21 @@ void CPlayer::processError()
 	if (publicAprov > 0) publicAprov--;
 }
 
+void CPlayer::releaseSong()
+{
+	if (songAudioID != -1 && songAudioID)
+	{
+		CEngine::engine().unloadSoundStream(songAudioID);
+	}
+
+	if (instrumentSound != -1 && instrumentSound)
+	{
+		CEngine::engine().unloadSoundStream(instrumentSound);
+	}
+
+	songAudioID = -1;
+}
+
 void CPlayer::breakCombo()
 {
 	combo = 0;
@@ -924,6 +940,28 @@ int64_t CPlayer::getCombo()
 int64_t CPlayer::getPoints()
 {
 	return points;
+}
+
+bool CPlayer::isSongChartFinished()
+{
+	auto size = Notes.gNotes.size();
+	if (Notes.gNotes.size() > 0)
+	{
+		auto &lastNote = Notes.gNotes[size - 1];
+
+		double finalTime = lastNote.time + lastNote.lTime;
+
+		if ((musicRunningTime - finalTime) > 2.0)
+		{
+			return true;
+		}
+	}
+	else
+	{
+		return true;
+	}
+
+	return false;
 }
 
 double CPlayer::comboToMultiplier()
@@ -1004,6 +1042,7 @@ void CPlayer::instrumentPause()
 
 CPlayer::CPlayer(const char *name)
 {
+	correctNotesMarathon = 0;
 	guitar = nullptr;
 	npPsetted = 0;
 	playerHudOffsetX = playerHudOffsetY = 0.0;

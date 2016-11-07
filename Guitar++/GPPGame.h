@@ -176,6 +176,7 @@ public:
 
 	static void teste(const std::string &name);
 	static void startModule(const std::string &name);
+	static void startMarathonModule(const std::string &name);
 	static void serverModule(const std::string &name);
 	static void continueCampaing(const std::string &name);
 	static void benchmark(const std::string &name);
@@ -237,6 +238,8 @@ public:
 
 	static std::mutex playersMutex;
 
+	std::string defaultGuitar;
+
 protected:
 	static int registerFunctions(lua_State *L);
 	static int registerGlobals(lua_State *L);
@@ -246,11 +249,26 @@ protected:
 private:
 	static void callbackRenderFrame();
 
-	struct loadThreadData{
+	struct loadThreadData
+	{
 		std::atomic<bool> processing;
+		std::atomic<bool> continueThread;
+		std::atomic<bool> loadSong;
+		std::atomic<bool> sendToModulePlayers;
+		std::atomic<bool> listEnd;
+		std::atomic<int> songID;
+
+		std::deque<std::string> songsList;
+
+		inline ~loadThreadData()
+		{
+			continueThread = false;
+		}
 	};
 
 	static void loadThread(CGamePlay &module, loadThreadData &l);
+	static void loadMarathonThread(CGamePlay &module, loadThreadData &l);
+	static std::deque<std::string> getDirectory(const char *dir, bool getFiles, bool getDirectories);
 
 	void eraseGameMenusAutoCreateds();
 

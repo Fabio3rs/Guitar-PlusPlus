@@ -3,6 +3,11 @@
 #include "CLuaFunctions.hpp"
 #include "CLog.h"
 
+void CGuitars::unload()
+{
+	guitars.clear();
+}
+
 CGuitars::CGuitar &CGuitars::addGuitar(const std::string &path, const std::string &internalName)
 {
 	std::string fullPath;
@@ -35,8 +40,20 @@ CGuitars::CGuitar &CGuitars::getGuitar(const std::string &internalName)
 	return guitars[internalName];
 }
 
+CGuitars::CGuitar *CGuitars::getGuitarIfExists(const std::string & internalName)
+{
+	auto it = guitars.find(internalName);
+
+	if (it != guitars.end())
+		return &((*it).second);
+
+	return nullptr;
+}
+
 void CGuitars::CGuitar::load()
 {
+	if (this == nullptr)
+		return;
 	if (!loaded)
 	{
 		loaded = true;

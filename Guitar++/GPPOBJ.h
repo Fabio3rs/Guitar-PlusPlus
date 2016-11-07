@@ -17,10 +17,12 @@ public:
 	void load(const std::string &path);
 	void load(const char *path);
 	void reload(const std::string &path = "");
+	void unload();
 
 
 	GPPOBJ(const std::string &path);
 	GPPOBJ();
+	~GPPOBJ();
 };
 
 

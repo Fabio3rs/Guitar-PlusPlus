@@ -110,6 +110,7 @@ public:
 	//static CGamePlay &gamePlay();
 
 	void update();
+	void marathonUpdate();
 	void render();
 
 	bool bRenderHUD;

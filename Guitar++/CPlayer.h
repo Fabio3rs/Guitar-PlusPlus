@@ -252,6 +252,7 @@ public:
 	void updateControls();
 	void breakCombo();
 	void processError();
+	void releaseSong();
 
 	void doNote(int64_t i);
 
@@ -282,12 +283,14 @@ public:
 	std::string playerSave;
 
 	double startTime, plusThunterStrikeStart, plusPower, plusParticleEffectPosition, maxPlusPower, plusLoadF, plusLoadB, plusLoadInterval;
-	double publicAprov, maxPublicAprov, correctNotes;
+	double publicAprov, maxPublicAprov, correctNotes, correctNotesMarathon;
 
 	unsigned int plusCircleBuffer, plusLoadBuffer, publicApprovBuffer, correctNotesBuffer, multiplierBuffer;
 
 	int64_t getCombo();
 	int64_t getPoints();
+
+	bool isSongChartFinished();
 
 	CEngine::cameraSET playerCamera, targetCamera;
 

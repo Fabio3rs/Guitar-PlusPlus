@@ -1875,7 +1875,7 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 	fretboardLData.useColors = true;
 	fretboardLData.autoEnDisaColors = false;
 
-	double size = 2.1;
+	double size = 2.1 * 1.33333333;
 
 	auto positionCalcByT = [this, size](double p, double prop)
 	{
@@ -1945,37 +1945,9 @@ void CGamePlay::renderPlayerPylmBar(CPlayer &player)
 
 void CGamePlay::renderPylmBar()
 {
-	/*CEngine::RenderDoubleStruct TempStruct3D;
-	double rtime = 0.14;
-
-	if (rtime > -5.0)
-	{
-		double size = 0.2;
-		double position = -0.51;
-		
-		TempStruct3D.Text = Texture;
-		TempStruct3D.TextureX1 = double(id) * 0.2;
-		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;
-
-		double nCalc = rtime * speedMp;
-
-		nCalc += 0.55;
-
-		TempStruct3D.z1 = nCalc;
-		TempStruct3D.z2 = TempStruct3D.z1;
-		TempStruct3D.z3 = nCalc + size * 2.0;
-		TempStruct3D.z4 = TempStruct3D.z3;
-
-		//CEngine::engine().Render3DQuad(TempStruct3D);
-
-		std::cout << TempStruct3D.z1 + size << std::endl;
-		*/
 	CEngine::engine().renderAt(0.0, -0.5, 1.1);
 
 	GPPGame::GuitarPP().pylmbarOBJ.draw(GPPGame::GuitarPP().pylmBarText, false);
-
-	//CEngine::engine().matrixReset();
-	//}
 }
 
 void CGamePlay::renderLyrics()
@@ -2835,6 +2807,15 @@ void CGamePlay::update()
 	}
 }
 
+void CGamePlay::marathonUpdate()
+{
+	//std::lock_guard<std::mutex> l(GPPGame::playersMutex);
+	for (auto &p : players)
+	{
+		if (p.bUpdateP && !p.isSongChartFinished()) updatePlayer(p);
+	}
+}
+
 void CGamePlay::resetModule()
 {
 	players.clear();
@@ -2926,7 +2907,7 @@ CGamePlay::CGamePlay() : engine(CEngine::engine())
 
 	BPMTextID = GPPGame::GuitarPP().loadTexture("data/sprites", BPMLineText).getTextId();
 
-	showBPMLines = true;
+	showBPMLines = false;
 
 	for (auto &al : hoposLight.ambientLight)
 	{

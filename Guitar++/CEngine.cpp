@@ -2010,3 +2010,26 @@ CEngine::~CEngine(){
 	}*/
 
 }
+
+void CEngine::staticDrawBuffer::destroy(bool deletePtr)
+{
+	if (bufferID != (~0) && glIsBuffer != nullptr && glDeleteBuffers != nullptr && glIsBuffer(bufferID))
+	{
+		GLFWerrorfun(0, (std::string("CEngine::staticDrawBuffer::destroy glDeleteBuffers ") + std::to_string(bufferID)).c_str());
+		glDeleteBuffers(1, &bufferID);
+	}
+
+	if (deletePtr && pointer != nullptr)
+		delete[] pointer;
+
+	pointer = nullptr;
+	count = 0;
+	vertexL = uvL = normalsL = texture = 0;
+	bufferID = ~0;
+	sizebytes = 0;
+}
+
+CEngine::staticDrawBuffer::~staticDrawBuffer()
+{
+	destroy();
+}

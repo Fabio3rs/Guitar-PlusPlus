@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
 
-			std::string testecallback = game.addGameCallbacks("gamePlaySelectedInMenu", GPPGame::startModule);
+			std::string testecallback = game.addGameCallbacks("gamePlaySelectedInMenu", GPPGame::startMarathonModule);
 			opt.menusXRef.push_back(testecallback);
 
 			singlePlayOp = gmenu.addOpt(opt);
@@ -480,6 +480,7 @@ int main(int argc, char* argv[])
 
 
 		lua.runEvent("atExit");
+		guitars.unload();
 		lua.unloadAll();
 	} catch (const std::exception &e)
 	{
