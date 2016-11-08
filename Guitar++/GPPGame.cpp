@@ -281,7 +281,7 @@ void GPPGame::loadMarathonThread(CGamePlay & module, loadThreadData & l)
 			l.listEnd = true;
 		}
 
-		if (l.sendToModulePlayers)
+		if (l.sendToModulePlayers && l.songID < l.songsList.size())
 		{
 			l.processing = true;
 			const std::string &song = l.songsList[l.songID];
