@@ -1468,6 +1468,11 @@ void GPPGame::startMarathonModule(const std::string & name)
 		{
 			if (!interval)
 				module.marathonUpdate();
+			else
+			{
+				for (auto &p : module.players)
+					p.musicRunningTime += engine.getDeltaTime() * module.getgSpeed();
+			}
 
 			bool songChartEnd = true;
 
@@ -1509,8 +1514,6 @@ void GPPGame::startMarathonModule(const std::string & name)
 					l.sendToModulePlayers = true;
 					l.processing = true;
 
-					std::cout << "SongID" << l.songID << std::endl;
-
 					waitingIntervalLoad = true;
 				}
 				else
@@ -1525,28 +1528,57 @@ void GPPGame::startMarathonModule(const std::string & name)
 					{
 						double waitTime = 5.0;
 
-						for (auto &p : module.players)
+						double deltaTol = engine.getDeltaTime();
+
+						if (deltaTol < 0.005)
+							deltaTol = 0.005;
+
+						deltaTol /= 2.0;
+
+						double dmaxrntime = 0.0;
+
+						double rningTimeFretCalcMn = module.fretboardPositionCalcByT(module.players.back().musicRunningTime - deltaTol - 4.0, 1.02, &dmaxrntime);
+						double rningTimeFretCalcMs = module.fretboardPositionCalcByT(module.players.back().musicRunningTime + deltaTol - 4.0, 1.02);
+
+						rningTimeFretCalcMn = rningTimeFretCalcMn < 0.0 ? -rningTimeFretCalcMn : rningTimeFretCalcMn;
+						rningTimeFretCalcMs = rningTimeFretCalcMs < 0.0 ? -rningTimeFretCalcMs : rningTimeFretCalcMs;
+
+						double fretBoardPos = module.fretboardPositionCalcByT(-5 - 4.0, 1.02);
+
+						if (fretBoardPos > 0.0)
 						{
-							p.startTime = engine.getTime() + waitTime;
-							p.musicRunningTime = -waitTime;
+							fretBoardPos = dmaxrntime - fretBoardPos;
+						}
+						else
+						{
+							fretBoardPos *= -1.0;
 						}
 
-						startTime = module.players.back().startTime = engine.getTime() + waitTime;
-						openMenuTime = 0.0;
-						module.players.back().musicRunningTime = -waitTime;
+						if (fretBoardPos > rningTimeFretCalcMn && fretBoardPos < rningTimeFretCalcMs)
+						{
+							for (auto &p : module.players)
+							{
+								p.startTime = engine.getTime() + waitTime;
+								p.musicRunningTime = -waitTime;
+							}
 
-						songTimeFixed = false;
-						musicstartedg = 0;
+							startTime = module.players.back().startTime = engine.getTime() + waitTime;
+							openMenuTime = 0.0;
+							module.players.back().musicRunningTime = -waitTime;
 
-						l.songID++;
-						interval = false;
-						l.loadSong = true;
-						waitingIntervalLoad = false;
+							songTimeFixed = false;
+							musicstartedg = 0;
 
-						auto &playerb = module.players.back();
-						songName = playerb.Notes.songName;
-						songArtist = playerb.Notes.songArtist;
-						songCharter = playerb.Notes.songCharter;
+							l.songID++;
+							interval = false;
+							l.loadSong = true;
+							waitingIntervalLoad = false;
+
+							auto &playerb = module.players.back();
+							songName = playerb.Notes.songName;
+							songArtist = playerb.Notes.songArtist;
+							songCharter = playerb.Notes.songCharter;
+						}
 					}
 				}
 			}
@@ -1584,6 +1616,7 @@ void GPPGame::startMarathonModule(const std::string & name)
 			{
 
 				fadeoutdsc = engine.getTime();
+				
 				fonts.drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
 				musicstartedg = 0;
 			}
@@ -1600,6 +1633,23 @@ void GPPGame::startMarathonModule(const std::string & name)
 
 				if (fadeoutdscAlphaCalc < 1.0) engine.setColor(1.0, 1.0, 1.0, 1.0);
 			}
+
+			/*{
+				double deltaTol = engine.getDeltaTime();
+
+				if (deltaTol < 0.005)
+					deltaTol = 0.005;
+
+				double rningTimeFretCalcMn = module.fretboardPositionCalcByT(-9.0 - deltaTol, 1.02);
+				double rningTimeFretCalcMs = module.fretboardPositionCalcByT(-9.0 + deltaTol, 1.02);
+
+				rningTimeFretCalcMn = rningTimeFretCalcMn < 0.0 ? -rningTimeFretCalcMn : rningTimeFretCalcMn;
+				rningTimeFretCalcMs = rningTimeFretCalcMs < 0.0 ? -rningTimeFretCalcMs : rningTimeFretCalcMs;
+
+				fonts.drawTextInScreenWithBuffer(std::to_string(rningTimeFretCalcMn), -1.3, 0.8, 0.1);
+				fonts.drawTextInScreenWithBuffer(std::to_string(rningTimeFretCalcMs), -1.3, 0.65, 0.1);
+				fonts.drawTextInScreenWithBuffer(std::to_string(dmaxrntime), -1.3, 0.50, 0.1);
+			}*/
 
 			if (musicstartedg == 1)
 			{

@@ -73,6 +73,8 @@ class CGamePlay{
 public:
 	bool enableTails;
 
+	double fretboardPositionCalcByT(double time, double prop, double *max = nullptr);
+
 	static const int notesFlagsConst[5];
 
 	struct lyricLine
@@ -88,6 +90,11 @@ public:
 
 	void setHyperSpeed(double s);
 	void setMusicSpeed(double s);
+
+	inline double getgSpeed()
+	{
+		return gSpeed;
+	}
 
 	CMenu moduleMenu;
 	int exitModuleOpt;

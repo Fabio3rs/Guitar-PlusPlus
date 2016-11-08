@@ -55,6 +55,23 @@ void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Play
 	CEngine::engine().Render3DQuad(TempStruct3D);
 }
 
+double CGamePlay::fretboardPositionCalcByT(double time, double prop, double *max)
+{
+	const double size = 2.1 * 1.33333333;
+
+	if (max)
+		*max = size * prop;
+
+	double cCalc = -time * 5.0;
+	double propSpeeed = 5.0 / speedMp;
+
+	cCalc /= propSpeeed;
+
+	cCalc *= 1000000.0;
+	cCalc = (int64_t)cCalc % (int64_t)((size * 1000000) * prop);
+	return cCalc / 1000000.0;
+}
+
 double CGamePlay::getBPMAt(CPlayer &player, double time)
 {
 	double result = 120.0, resultI = 0;
@@ -1818,9 +1835,9 @@ void CGamePlay::renderFretBoardShadow(CPlayer &player, double x1, double x2, dou
 
 		cCalc /= propSpeeed;
 
-		cCalc *= 100000.0;
-		cCalc = (int)cCalc % (int)((size * 100000) * prop);
-		return cCalc / 100000.0;
+		cCalc *= 1000000.0;
+		cCalc = (int64_t)cCalc % (int64_t)((size * 1000000) * prop);
+		return cCalc / 1000000.0;
 	};
 
 	double musicRunningTime = getRunningMusicTime(player) - 4.0;
@@ -1884,9 +1901,9 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 		cCalc /= propSpeeed;
 
-		cCalc *= 100000.0;
-		cCalc = (int)cCalc % (int)((size * 100000) * prop);
-		return cCalc / 100000.0;
+		cCalc *= 1000000.0;
+		cCalc = (int64_t)cCalc % (int64_t)((size * 1000000) * prop);
+		return cCalc / 1000000.0;
 	};
 	
 	double musicRunningTime = getRunningMusicTime(player) - 4.0;
