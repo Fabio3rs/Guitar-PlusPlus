@@ -16,7 +16,6 @@
 #include <bitset>
 #include <deque>
 #include <map>
-#include <unordered_map>
 #include <algorithm>
 #include <utility>
 #include <functional>
@@ -325,7 +324,7 @@ private:
 		}
 	};
 
-	std::unordered_map<int, CCircleStream> circlesBuffer;
+	std::map<int, CCircleStream> circlesBuffer;
 	//*****************************************
 
 

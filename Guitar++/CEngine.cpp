@@ -21,6 +21,8 @@
 #include <cmath>
 #include <GL/GL.h>
 
+static const double perspectiveMaxDist = 500000.0;
+
 /*
 #include <assimp/Importer.hpp>      // C++ importer interface
 #include <assimp/scene.h>           // Output data structure
@@ -236,7 +238,7 @@ void CEngine::matrixReset(){
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	gluPerspective(45.0, (double)windowWidth / (double)windowHeight, 0.005, 1000.0);
+	gluPerspective(45.0, (double)windowWidth / (double)windowHeight, 0.005, perspectiveMaxDist);
 	gluLookAt(eyex,
 		eyey,
 		eyez,
@@ -390,7 +392,7 @@ void CEngine::setCamera(double eyex,
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	gluPerspective(45.0, (double)windowWidth / (double)windowHeight, 0.005, 1000.0);
+	gluPerspective(45.0, (double)windowWidth / (double)windowHeight, 0.005, perspectiveMaxDist);
 	gluLookAt(engine().eyex,
 		engine().eyey,
 		engine().eyez,
@@ -422,7 +424,7 @@ static void windowCallBack(GLFWwindow *window, int w, int h){
 	engine.windowWidth = w;
 	engine.windowHeight = h;
 
-	gluPerspective(45.0, (double)w / (double)h, 0.005, 1000.0);
+	gluPerspective(45.0, (double)w / (double)h, 0.005, perspectiveMaxDist);
 
 	gluLookAt(engine.eyex,
 		engine.eyey,
@@ -1126,7 +1128,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
 		h = mode->height;
 	}
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
 	if (fullScreen & 2)

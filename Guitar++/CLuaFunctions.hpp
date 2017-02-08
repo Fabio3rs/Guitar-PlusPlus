@@ -3,9 +3,8 @@
 #define _LUA_HOOKER_CLUAFUNCTIONS_HPP_
 
 #include <memory>
-#include <unordered_map>
-#include "CLuaH.hpp"
 #include <map>
+#include "CLuaH.hpp"
 #include <string>
 #include <deque>
 #include <functional>

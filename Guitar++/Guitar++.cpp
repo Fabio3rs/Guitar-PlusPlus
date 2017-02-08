@@ -73,14 +73,26 @@ int main(int argc, char* argv[])
 		// Window
 		game.createWindow();
 
+		double ltime = CEngine::engine().getTime();
+
+		while (CEngine::engine().windowOpened() && (CEngine::engine().getTime() - ltime) < 0.2)
+		{
+			if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
+			{
+				break;
+			}
+
+			game.clearScreen();
+
+			game.renderFrame();
+		}
+
 		guitars.loadAllGuitars();
 
 		game.loadAllThemes();
 		game.gThemes["gppdefaulttheme"].apply();
 
 		auto &logotext = game.loadTexture("data/sprites", "logo.tga");
-
-		double ltime = CEngine::engine().getTime();
 
 		CEngine::engine().activate3DRender(false);
 
@@ -106,6 +118,8 @@ int main(int argc, char* argv[])
 
 		std::string str2nibblePresents = "2Nibble Studios presents...";
 
+		ltime = CEngine::engine().getTime();
+
 		while (CEngine::engine().windowOpened() && (CEngine::engine().getTime() - ltime) < 3.0)
 		{
 			if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
@@ -113,7 +127,7 @@ int main(int argc, char* argv[])
 				break;
 			}
 
-			GPPGame::GuitarPP().clearScreen();
+			game.clearScreen();
 			double t = (CEngine::engine().getTime() - ltime) * 3.14 / 3.0, t2;
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t));
@@ -124,7 +138,7 @@ int main(int argc, char* argv[])
 			
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
-			GPPGame::GuitarPP().renderFrame();
+			game.renderFrame();
 		}
 
 		if (!CEngine::engine().windowOpened())
@@ -135,9 +149,9 @@ int main(int argc, char* argv[])
 		game.loadBasicSprites();
 
 		auto &mainMenu = game.newMenu();
-		auto &gmenu = GPPGame::GuitarPP().newNamedMenu("playOptions");
-		auto &cmpopts = GPPGame::GuitarPP().newNamedMenu("mainCampaingOptions");
-		auto &optionsmenu = GPPGame::GuitarPP().newNamedMenu("optionsmenu");
+		auto &gmenu = game.newNamedMenu("playOptions");
+		auto &cmpopts = game.newNamedMenu("mainCampaingOptions");
+		auto &optionsmenu = game.newNamedMenu("optionsmenu");
 		int startOP, configOP, extrasOp, ajudaOp, quitOp, singlePlayOp;
 
 		double proportion = game.getWindowProportion();

@@ -3,7 +3,7 @@
 #define _GUITAR_PP_CGPPGAME_h_
 
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <memory>
 #include <deque>
 #include "CLuaFunctions.hpp"
@@ -39,7 +39,7 @@ public:
 };
 
 class GPPGame{
-	std::unordered_map <std::string, CMenu> gameMenus;
+	std::map <std::string, CMenu> gameMenus;
 
 	CMenu *mainMenu;
 
@@ -67,7 +67,7 @@ public:
 
 		CEngine::GLFWimage imgData;
 
-		std::unordered_map < CLuaH::luaScript*, bool > associatedToScript;
+		std::map < CLuaH::luaScript*, bool > associatedToScript;
 
 		// DO NOT DUPLICATE THE TEXTURE INSTANCE!!!!!!!
 		gppTexture(gppTexture&) = delete;
@@ -150,16 +150,16 @@ public:
 	CMenu &getMenuByName(const std::string &name);
 
 	// loaded game sprites - TODO: improve it
-	std::unordered_map <std::string, int> SPR;
-	std::unordered_map <std::string, gppTexture> gTextures;
-	std::unordered_map <std::string, CTheme> gThemes;
+	std::map <std::string, int> SPR;
+	std::map <std::string, gppTexture> gTextures;
+	std::map <std::string, CTheme> gThemes;
 
-	std::unordered_map <std::string, func_t> gameCallbacks;
-	std::unordered_map <std::string, std::string> gameCallbacksWrapper;
+	std::map <std::string, func_t> gameCallbacks;
+	std::map <std::string, std::string> gameCallbacksWrapper;
 
-	std::unordered_map <std::string, CGamePlay> gameModules;
+	std::map <std::string, CGamePlay> gameModules;
 
-	std::unordered_map <std::string, fretsPosition> frets;
+	std::map <std::string, fretsPosition> frets;
 
 	void setDevMode(bool mode);
 
@@ -247,6 +247,8 @@ protected:
 	static int loadSingleTexture(lua_State *L);
 
 private:
+	GPPOBJ testobj;
+
 	static void callbackRenderFrame();
 
 	struct loadThreadData

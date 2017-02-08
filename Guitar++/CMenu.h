@@ -6,7 +6,6 @@
 #include <map>
 #include <string>
 #include <iostream>
-#include <unordered_map>
 #include <cstdint>
 #include "CLuaH.hpp"
 #include "CEngine.h"
@@ -14,7 +13,7 @@
 class CMenu{
 	std::string menuName;
 	static int menusCreated;
-	static std::unordered_map <std::string, CMenu*> Menus;
+	static std::map <std::string, CMenu*> Menus;
 
 	static std::string textBuffer;
 
@@ -98,7 +97,7 @@ public:
 	std::string mTitle;
 
 	CLuaH::luaScript *lScript;
-	std::unordered_map <std::string, int> luaCallBacks;
+	std::map <std::string, int> luaCallBacks;
 
 	CEngine::RenderDoubleStruct qbgd;
 
@@ -195,7 +194,7 @@ public:
 		return menuName;
 	}
 
-	std::unordered_map<int, group> groupInfo;
+	std::map<int, group> groupInfo;
 	std::deque<menuOpt> options;
 
 	int pushUserInterface(const CMenu &m);

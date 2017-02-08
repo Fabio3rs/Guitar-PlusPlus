@@ -1597,6 +1597,158 @@ void GPPGame::startMarathonModule(const std::string & name)
 				}
 			}
 
+
+			{
+
+
+				engine.activate3DRender(true);
+				engine.activateLighting(true);
+
+				{
+					double centerx = 0.0;
+					double centerz = -650.0;
+
+					double rtime = module.players.back().musicRunningTime / 10.0;
+					double eyexcam = sin(rtime) * 1400.0 + centerx;
+					double eyezcam = cos(rtime) * 1400.0 + centerz;
+
+					CEngine::cameraSET usingCamera;
+					usingCamera.eyex = eyexcam;
+					usingCamera.eyey = 320.0;
+					usingCamera.eyez = eyezcam;
+					usingCamera.centerx = centerx;
+					usingCamera.centery = 280.0;
+					usingCamera.centerz = centerz;
+					usingCamera.upx = 0;
+					usingCamera.upy = 1;
+					usingCamera.upz = 0;
+
+					engine.setCamera(usingCamera);
+				}
+
+				{
+					lightData l;
+
+					for (auto &t : l.ambientLight)
+					{
+						t = 0.1;
+					}
+
+					for (auto &t : l.direction)
+					{
+						t = 2.5;
+					}
+
+					for (auto &t : l.position)
+					{
+						t = 0.0;
+					}
+
+					for (auto &t : l.specularLight)
+					{
+						t = 1.0;
+					}
+
+					for (auto &t : l.diffuseLight)
+					{
+						t = 0.2;
+					}
+
+					l.specularLight[1] = 1.0;
+					l.specularLight[2] = 1.0;
+					l.diffuseLight[0] = 1.0;
+					l.diffuseLight[1] = 1.0;
+					l.specularLight[3] = 0.5;
+					l.diffuseLight[3] = 0.5;
+					l.ambientLight[3] = 0.1;
+
+					l.angle = 100.0;
+					l.direction[0] = 0.0;
+					l.direction[1] = -0.5;
+					l.direction[2] = -5.0;
+
+					l.position[3] = 1.0;
+					l.position[1] = 0.0;
+					l.position[2] = 2.5;
+
+					engine.activateLight(1, true);
+					engine.setLight(l, 1);
+				}
+
+				{
+					lightData l;
+
+					for (auto &t : l.ambientLight)
+					{
+						t = 0.1;
+					}
+
+					for (auto &t : l.direction)
+					{
+						t = 2.5;
+					}
+
+					for (auto &t : l.position)
+					{
+						t = 0.0;
+					}
+
+					for (auto &t : l.specularLight)
+					{
+						t = 1.0;
+					}
+
+					for (auto &t : l.diffuseLight)
+					{
+						t = 0.5;
+					}
+
+					l.specularLight[1] = 1.0;
+					l.specularLight[2] = 1.0;
+					l.specularLight[3] = 0.5;
+					l.diffuseLight[3] = 0.5;
+					l.ambientLight[3] = 0.1;
+
+					l.angle = 80.0;
+					l.direction[0] = 100.0;
+					l.direction[1] = -0.5;
+					l.direction[2] = 0.0;
+
+					l.position[3] = 0.0;
+					l.position[1] = 50.0;
+					l.position[2] = 100.5;
+
+					engine.activateLight(0, true);
+					engine.setLight(l, 0);
+				}
+
+				static const unsigned int cityTextID = game.loadTexture("test", "city.tga").getTextId();
+
+				game.testobj.draw(cityTextID);
+				engine.matrixReset();
+
+
+				{
+					CEngine::cameraSET usingCamera;
+					usingCamera.eyex = 0.0;
+					usingCamera.eyey = 0.0;
+					usingCamera.eyez = 2.3;
+					usingCamera.centerx = 0;
+					usingCamera.centery = 0;
+					usingCamera.centerz = 0.0;
+					usingCamera.upx = 0;
+					usingCamera.upy = 1;
+					usingCamera.upz = 0;
+
+					engine.setCamera(usingCamera);
+				}
+
+				engine.activateLighting(false);
+				engine.activate3DRender(false);
+			}
+
+
+
 			module.render();
 
 			if (!interval)
@@ -2083,6 +2235,94 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 			}
 		}
 
+		engine.activate3DRender(true);
+		engine.activateLighting(true);
+
+		{
+			CEngine::cameraSET usingCamera;
+			usingCamera.eyex = 500.0;
+			usingCamera.eyey = 320.0;
+			usingCamera.eyez = 500.3;
+			usingCamera.centerx = 0;
+			usingCamera.centery = 280.0;
+			usingCamera.centerz = 0;
+			usingCamera.upx = 0;
+			usingCamera.upy = 1;
+			usingCamera.upz = 0;
+
+			engine.setCamera(usingCamera);
+		}
+
+		{
+			lightData l;
+
+			for (auto &t : l.ambientLight)
+			{
+				t = 0.1;
+			}
+
+			for (auto &t : l.direction)
+			{
+				t = 2.5;
+			}
+
+			for (auto &t : l.position)
+			{
+				t = 0.0;
+			}
+
+			for (auto &t : l.specularLight)
+			{
+				t = 1.0;
+			}
+
+			for (auto &t : l.diffuseLight)
+			{
+				t = 0.2;
+			}
+
+			l.specularLight[1] = 1.0;
+			l.specularLight[2] = 1.0;
+			l.diffuseLight[0] = 1.0;
+			l.diffuseLight[1] = 1.0;
+			l.ambientLight[4] = 0.1;
+
+			l.angle = 100.0;
+			l.direction[0] = 0.0;
+			l.direction[1] = -0.5;
+			l.direction[2] = -5.0;
+
+			l.position[3] = 1.0;
+			l.position[1] = 0.0;
+			l.position[2] = 2.5;
+
+			engine.activateLight(0, false);
+			engine.activateLight(1, true);
+			engine.setLight(l, 1);
+		}
+
+		testobj.draw(loadTexture("test", "city.tga").getTextId());
+		engine.matrixReset();
+
+
+		{
+			CEngine::cameraSET usingCamera;
+			usingCamera.eyex = 0.0;
+			usingCamera.eyey = 0.0;
+			usingCamera.eyez = 2.3;
+			usingCamera.centerx = 0;
+			usingCamera.centery = 0;
+			usingCamera.centerz = 0.0;
+			usingCamera.upx = 0;
+			usingCamera.upy = 1;
+			usingCamera.upz = 0;
+
+			engine.setCamera(usingCamera);
+		}
+
+		engine.activateLighting(false);
+		engine.activate3DRender(false);
+
 		if (updateRender)
 		{
 			if (dev)
@@ -2287,13 +2527,13 @@ int GPPGame::createWindow()
 
 	try
 	{
-		CShader::inst();
+		/*CShader::inst();
 		CShader::inst().addEvent("test");
 		int l0 = CShader::inst().newShader("vert.vert", 0, "test");
 		int l = CShader::inst().newShader("frag.frag", 1, "test");
 		CShader::inst().addShaderToEvent("test", l0);
 		CShader::inst().addShaderToEvent("test", l);
-		CShader::inst().linkAllShaders();
+		CShader::inst().linkAllShaders();*/
 	}
 	catch (std::exception &e)
 	{
@@ -2334,6 +2574,7 @@ int GPPGame::createWindow()
 	}
 
 
+	testobj.load("test/The City.obj");
 
 	return CEngine::engine().windowOpened();
 }

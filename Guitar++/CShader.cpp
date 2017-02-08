@@ -5,6 +5,7 @@
 #include "CShader.h"
 #include <Windows.h>
 #include "CLog.h"
+#include "CLuaFunctions.hpp"
 
 CShader &CShader::inst()
 {
@@ -156,8 +157,9 @@ void CShader::linkAllShaders(){
 
 CShader::CShader()
 {
-	enableShaders = true;
+	enableShaders = false;
 	usingProgram = false;
+	CLuaFunctions::GameVariables::gv().pushVar("enableShaders", enableShaders);
 	
 	GLenum err = glewInit();
 	if (GLEW_OK != err){

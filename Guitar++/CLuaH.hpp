@@ -7,9 +7,9 @@
 #include <string>
 #include <map>
 #include <deque>
-#include <unordered_map>
 #include <cstdint>
 #include <iostream>
+#include <vector>
 
 class CLuaH
 {
@@ -132,12 +132,12 @@ public:
 		lua_State											*luaState;
 		bool												runAgain;
 
-		std::unordered_map < std::string, std::string >		savedValues;
+		std::map < std::string, std::string >		savedValues;
 		std::string											filePath;
 		std::string											fileName;
-		std::unordered_map < std::string, int >				callbacks;
-		std::unordered_map < std::string, int >				cheats;
-		std::unordered_map < uintptr_t, int >				hooks;
+		std::map < std::string, int >				callbacks;
+		std::map < std::string, int >				cheats;
+		std::map < uintptr_t, int >				hooks;
 
 		bool												cheatsAdded;
 		bool												callbacksAdded;
@@ -157,8 +157,8 @@ public:
 		std::string name;
 	};
 
-	std::unordered_map < std::string, std::unordered_map<std::string, luaScript> >		files; /* std::unordered_map<pathForScripts, std::unordered_map<scriptName, scriptData>> */
-	std::unordered_map <std::string, callBacksStruct>									callbacks;
+	std::map < std::string, std::map<std::string, luaScript> >		files; /* std::map<pathForScripts, std::map<scriptName, scriptData>> */
+	std::map <std::string, callBacksStruct>									callbacks;
 
 	// Lua functions custom param wrapper
 	class customParam{

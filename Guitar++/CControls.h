@@ -5,7 +5,6 @@
 #include <vector>
 #include <deque>
 #include <map>
-#include <unordered_map>
 
 class CControls{
 	CControls(CControls&) = delete;
@@ -25,7 +24,7 @@ public:
 		}
 	};
 
-	std::unordered_map < int, key > keys;
+	std::map < int, key > keys;
 
 
 	static CControls &controls();
@@ -37,7 +36,7 @@ public:
 	class CPlayerControls{
 
 	public:
-		std::unordered_map < int, int > keys;
+		std::map < int, int > keys;
 
 		CPlayerControls();
 	};

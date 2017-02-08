@@ -118,7 +118,7 @@ void CGuitars::loadAllGuitars()
 
 int CGuitars::changeGuitarData(lua_State *L)
 {
-	const static std::unordered_map<std::string, int> mp = { { "name", 0 }, { "gameplayBarName", 1 }, { "textureID", 2 }, { "fretboardText", 3 } };
+	const static std::map<std::string, int> mp = { { "name", 0 }, { "gameplayBarName", 1 }, { "textureID", 2 }, { "fretboardText", 3 } };
 
 	CLuaFunctions::LuaParams p(L);
 

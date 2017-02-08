@@ -7,7 +7,7 @@
 #include "CLog.h"
 #include "CControls.h"
 
-std::unordered_map <std::string, CMenu*> CMenu::Menus = std::unordered_map <std::string, CMenu*>();
+std::map <std::string, CMenu*> CMenu::Menus = std::map <std::string, CMenu*>();
 std::deque<CMenu::uiWindowStruct> CMenu::uiList = std::deque<CMenu::uiWindowStruct>();
 std::vector<CMenu::posUiOrder> CMenu::uiOrderList = std::vector<CMenu::posUiOrder>();
 int CMenu::menusCreated = 0;
