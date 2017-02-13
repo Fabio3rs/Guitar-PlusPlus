@@ -54,7 +54,7 @@ public:
 		class chartbl{
 			int pos;
 			int line;
-			int align, size;
+			double align, size;
 			fontTexture *textureLst;
 			unsigned int textID;
 
@@ -97,7 +97,7 @@ public:
 				line = 0;
 				textureLst = nullptr;
 				align = 0;
-				size = 0;
+				size = 1.0;
 			}
 		};
 

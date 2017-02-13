@@ -178,6 +178,7 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 
 		int pixelsPerCol = text.getImgHeight() / linesn;
 		int pixelsPerLines = text.getImgWidth();
+		int pixelsPerLinesDiv = text.getImgWidth() / colsn;
 
 		int pixelPosCol = pixelsPerCol * (getPos());
 		int pixelPosLine = pixelsPerLines * (symbolLine);
@@ -193,8 +194,6 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 			calc += symbolLine * pixelsPerCol * pixelsPerLines;
 			calc += pixelPosCol;
 
-			std::cout << pixelPosLine << std::endl;
-
 			return &(imgRGBA[calc]);
 		};
 
@@ -202,28 +201,73 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 		{
 			//while (true)
 			{
+				std::vector<int> colCalcMinMax;
+
 				for (int i = pixelsPerCol - 1; i >= 0; i--)
 				{
 					auto lnPtr = getLineText(i);
 
-					for (int j = 0; j < pixelsPerCol; j++)
+					for (int j = 0; j < pixelsPerLinesDiv; j++)
 					{
-						/*
-						if (j > 50)
-							fs.flush();
-						*/
-
 						int pixel = lnPtr[j].rgba[0] | lnPtr[j].rgba[1] | lnPtr[j].rgba[2] | lnPtr[j].rgba[3];
 						pixel = pixel != 0;
 
 						fs << pixel << " ";
+						if (pixel != 0)
+						{
+							colCalcMinMax.push_back(j);
+							break;
+						}
 					}
+				}
+
+				if (colCalcMinMax.size() == 0)
+					return;
+
+				std::sort(colCalcMinMax.begin(), colCalcMinMax.end());
+
+				align = (double)colCalcMinMax[colCalcMinMax.size() - 1] / (double)(text.getImgWidth() / linesn);
+
+				colCalcMinMax.clear();
+
+				for (int i = pixelsPerCol - 1; i >= 0; i--)
+				{
+					auto lnPtr = getLineText(i);
+
+					for (int j = pixelsPerLinesDiv - 1; j >= 0; j--)
+					{
+						int pixel = lnPtr[j].rgba[0] | lnPtr[j].rgba[1] | lnPtr[j].rgba[2] | lnPtr[j].rgba[3];
+						pixel = pixel != 0;
+
+						if (pixel != 0)
+						{
+							colCalcMinMax.push_back(j);
+							break;
+						}
+					}
+				}
+
+				std::sort(colCalcMinMax.begin(), colCalcMinMax.end());
+
+				size = (double)colCalcMinMax.front() / (double)(text.getImgWidth() / linesn);
+
+				colCalcMinMax.clear();
+
+				std::cout << align << "   " << size << "\n";
+
+				/*colCalcMinMax.push_back(0);
+
+					std::cout << colCalcMinMax.size() << std::endl;
+
+					
+
+					
+
+					
 
 					char stra[] = {(char)ch, 0};
 
-					fs << stra << std::endl;
-				}
-
+					fs << stra << std::endl;*/
 				//break;
 			}
 
