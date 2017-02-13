@@ -2633,7 +2633,7 @@ int GPPGame::loadSingleTexture(lua_State * L)
 	return p.rtn();
 }
 
-GPPGame::GPPGame() : noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"),
+GPPGame::GPPGame() : gppTextureKeepBuffer(false), noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"),
 						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj"),
 						devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
 {

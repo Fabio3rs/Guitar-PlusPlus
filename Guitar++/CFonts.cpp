@@ -17,14 +17,24 @@ CFonts &CFonts::fonts(){
 
 void CFonts::Font::fontTexture::load(const std::string &path, const std::string &name)
 {
+	bool preValue = GPPGame::GuitarPP().gppTextureKeepBuffer;
+	GPPGame::GuitarPP().gppTextureKeepBuffer = true;
+
 	this->name = GPPGame::GuitarPP().loadTexture(path, name).getGTextureName();
 	lines = columns = 0;
+
+	GPPGame::GuitarPP().gppTextureKeepBuffer = preValue;
 }
 
 CFonts::Font::fontTexture::fontTexture(const std::string &path, const std::string &name)
 {
+	bool preValue = GPPGame::GuitarPP().gppTextureKeepBuffer;
+	GPPGame::GuitarPP().gppTextureKeepBuffer = true;
+
 	this->name = GPPGame::GuitarPP().loadTexture(path, name).getGTextureName();
 	lines = columns = 0;
+
+	GPPGame::GuitarPP().gppTextureKeepBuffer = preValue;
 }
 
 CFonts::Font::fontTexture::fontTexture()
@@ -89,6 +99,8 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 
 	auto it = textChars.begin();
 
+	std::vector<int32_t> charTemp;
+
 	for (auto ch = utf8::next(it, textChars.end()); it != textChars.end(); ch = utf8::next(it, textChars.end()))
 	{
 		switch (ch)
@@ -104,6 +116,8 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 			break;
 
 		default:
+			charTemp.push_back(ch);
+
 			auto &charInst = chars[ch];
 
 			charInst.setLine(tex.lines - 1);
@@ -113,11 +127,97 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 			break;
 		}
 	}
+
+	for (auto &ch : charTemp)
+	{
+		auto &charInst = chars[ch];
+		charInst.internalProcessTexture();
+	}
 }
 
 void CFonts::Font::chartbl::setTextID(const fontTexture &texture)
 {
 	textID = GPPGame::GuitarPP().gTextures[texture.getName()].getTextId();
+}
+
+void CFonts::Font::chartbl::internalProcessTexture()
+{
+	auto &text = GPPGame::GuitarPP().gTextures[textureLst->getName()];
+
+#pragma pack(push, 1)
+	struct RGBA{
+		unsigned char rgba[4];
+	};
+#pragma pack(pop)
+
+	RGBA *imgRGBA = (RGBA*)text.getImageData().Data;
+
+	static std::fstream fs;
+
+	static int countP = 0;
+
+	++countP;
+
+	if (imgRGBA)
+	{
+		int colsn = textureLst->columns;
+		int linesn = textureLst->lines;
+
+		if (linesn == 0 || colsn == 0)
+			return;
+
+		int total = text.getImgHeight() * text.getImgWidth();
+
+		int pixelsPerCol = text.getImgHeight() / linesn;
+		int pixelsPerLines = text.getImgWidth();
+
+		int pixelPosCol = pixelsPerCol * getPos();
+		int pixelPosLine = pixelsPerLines * getline();
+
+		auto getColumn = [&](int col, int line)
+		{
+			return;
+		};
+
+		auto getLine = [&](int lineIdNum)
+		{
+			int calc = lineIdNum * pixelsPerLines;
+			calc += getline() * pixelsPerLines;
+			calc = total - calc;
+			calc += pixelPosCol;
+
+			std::cout << pixelsPerCol << "  " << pixelsPerLines << std::endl;
+
+			return &(imgRGBA[calc]);
+		};
+
+		if (!fs.is_open() && countP > 1)
+		{
+			fs.open("test.txt", std::ios::binary | std::ios::out | std::ios::trunc);
+
+			while (true)
+			{
+				for (int i = 0, size = pixelsPerCol; i < size; i++)
+				{
+					auto lnPtr = getLine(i);
+
+					for (int j = 0; j < pixelsPerCol; j++)
+					{
+						int pixel = lnPtr[j].rgba[0] | lnPtr[j].rgba[1] | lnPtr[j].rgba[2] | lnPtr[j].rgba[3];
+						pixel = pixel != 0;
+
+						fs << pixel << " ";
+					}
+
+					fs << std::endl;
+				}
+
+				break;
+			}
+
+			fs.flush();
+		}
+	}
 }
 
 void CFonts::draw3DTextInScreen(const std::string &str, const double posX1, const double posY1, const double posZ1, const double sizeX, const double sizeY, const double sizeZ, const std::string &fontName)

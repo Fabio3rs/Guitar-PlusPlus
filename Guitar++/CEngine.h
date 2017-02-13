@@ -185,12 +185,23 @@ public:
 		return wcallfunc;
 	}
 
-	typedef struct {
+	struct GLFWimageC {
 		int Width, Height;
 		int Format;
 		int BytesPerPixel;
 		unsigned char *Data;
-	} GLFWimage;
+		unsigned char *tmpData;
+		bool keepData;
+
+		GLFWimageC()
+		{
+			keepData = false;
+			Data = nullptr;
+			tmpData = nullptr;
+		}
+	};
+
+	typedef GLFWimageC GLFWimage;
 
 	typedef struct {
 		FILE*   file;

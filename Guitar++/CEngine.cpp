@@ -736,6 +736,7 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 		// Allocate memory for new RGBA image data
 		newsize = img->Width * img->Height * img->BytesPerPixel;
 		data = (unsigned char *)malloc(newsize);
+
 		if (data == NULL)
 		{
 			free(img->Data);
@@ -784,6 +785,14 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 	else
 	{
 		format = img->Format;
+	}
+
+	if (img->keepData)
+	{
+		newsize = img->Width * img->Height * img->BytesPerPixel;
+		img->tmpData = (unsigned char *)malloc(newsize);
+
+		memcpy(img->tmpData, img->Data, newsize);
 	}
 
 	// Upload to texture memeory
@@ -913,7 +922,8 @@ void CEngine::RenderMulti3DQuad(const std::deque<RenderDoubleStruct> &quad3DData
 	glBindBuffer(GL_ARRAY_BUFFER_ARB, 0);*/
 }
 
-int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg){
+int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg)
+{
 	GLFWimage img;
 
 	// Force rescaling if necessary
@@ -928,6 +938,9 @@ int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg){
 		return GL_FALSE;
 	}
 
+	if (eimg)
+		img.keepData = eimg->keepData;
+
 	if (!loadTextureImage2D(&img, flags))
 	{
 		return GL_FALSE;
@@ -935,7 +948,19 @@ int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg){
 
 	if (eimg)
 	{
-		std::copy(&img, &img + 1, eimg);
+		bool keepData = eimg->keepData;
+		*eimg = img;
+		eimg->keepData = keepData;
+
+		if (eimg->keepData)
+		{
+			eimg->Data = eimg->tmpData;
+			eimg->tmpData = nullptr;
+
+			freeImage(&img);
+
+			return GL_TRUE;
+		}
 
 		eimg->Data = nullptr;
 	}

@@ -54,12 +54,14 @@ public:
 		class chartbl{
 			int pos;
 			int line;
+			int align, size;
 			fontTexture *textureLst;
 			unsigned int textID;
 
 			void setTextID(const fontTexture &texture);
 
 		public:
+			void internalProcessTexture();
 
 			inline void setLine(int l){
 				line = l;
@@ -94,6 +96,8 @@ public:
 				pos = -1;
 				line = 0;
 				textureLst = nullptr;
+				align = 0;
+				size = 0;
 			}
 		};
 

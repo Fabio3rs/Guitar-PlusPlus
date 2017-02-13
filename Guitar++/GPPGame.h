@@ -58,6 +58,8 @@ public:
 
 	typedef void(*func_t)(const std::string &name);
 
+	bool gppTextureKeepBuffer;
+
 	// Texture instance manager
 	class gppTexture{
 		friend GPPGame;
@@ -97,7 +99,15 @@ public:
 			return imgData.Height;
 		}
 
-		gppTexture(const std::string &path, const std::string &texture){
+		inline CEngine::GLFWimage &getImageData()
+		{
+			return imgData;
+		}
+
+		gppTexture(const std::string &path, const std::string &texture)
+		{
+			imgData.keepData = GPPGame::GuitarPP().gppTextureKeepBuffer;
+
 			text = CEngine::engine().loadTexture((path + std::string("/") + texture).c_str(), &imgData);
 			textPath = path;
 			textName = texture;
