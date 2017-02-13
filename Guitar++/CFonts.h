@@ -61,7 +61,7 @@ public:
 			void setTextID(const fontTexture &texture);
 
 		public:
-			void internalProcessTexture();
+			void internalProcessTexture(int ch);
 
 			inline void setLine(int l){
 				line = l;

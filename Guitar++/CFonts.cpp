@@ -131,7 +131,7 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 	for (auto &ch : charTemp)
 	{
 		auto &charInst = chars[ch];
-		charInst.internalProcessTexture();
+		charInst.internalProcessTexture(ch);
 	}
 }
 
@@ -140,7 +140,7 @@ void CFonts::Font::chartbl::setTextID(const fontTexture &texture)
 	textID = GPPGame::GuitarPP().gTextures[texture.getName()].getTextId();
 }
 
-void CFonts::Font::chartbl::internalProcessTexture()
+void CFonts::Font::chartbl::internalProcessTexture(int ch)
 {
 	auto &text = GPPGame::GuitarPP().gTextures[textureLst->getName()];
 
@@ -152,7 +152,7 @@ void CFonts::Font::chartbl::internalProcessTexture()
 
 	RGBA *imgRGBA = (RGBA*)text.getImageData().Data;
 
-	static std::fstream fs;
+	static std::fstream fs("test.txt", std::ios::binary | std::ios::out | std::ios::trunc);
 
 	static int countP = 0;
 
@@ -163,56 +163,68 @@ void CFonts::Font::chartbl::internalProcessTexture()
 		int colsn = textureLst->columns;
 		int linesn = textureLst->lines;
 
+		int symbolLine = (linesn - 1) - getline();
+
 		if (linesn == 0 || colsn == 0)
 			return;
 
 		int total = text.getImgHeight() * text.getImgWidth();
 
+		if (!text.getImageData().bRevPixels)
+		{
+			//std::reverse(imgRGBA, imgRGBA + total);
+			text.getImageData().bRevPixels = true;
+		}
+
 		int pixelsPerCol = text.getImgHeight() / linesn;
 		int pixelsPerLines = text.getImgWidth();
 
-		int pixelPosCol = pixelsPerCol * getPos();
-		int pixelPosLine = pixelsPerLines * getline();
+		int pixelPosCol = pixelsPerCol * (getPos());
+		int pixelPosLine = pixelsPerLines * (symbolLine);
 
 		auto getColumn = [&](int col, int line)
 		{
 			return;
 		};
 
-		auto getLine = [&](int lineIdNum)
+		auto getLineText = [&](int lineIdNum)
 		{
-			int calc = lineIdNum * pixelsPerLines;
-			calc += getline() * pixelsPerLines;
-			calc = total - calc;
+			int calc = (lineIdNum) * pixelsPerLines;
+			calc += symbolLine * pixelsPerCol * pixelsPerLines;
 			calc += pixelPosCol;
 
-			std::cout << pixelsPerCol << "  " << pixelsPerLines << std::endl;
+			std::cout << pixelPosLine << std::endl;
 
 			return &(imgRGBA[calc]);
 		};
 
-		if (!fs.is_open() && countP > 1)
+		if (fs.is_open())
 		{
-			fs.open("test.txt", std::ios::binary | std::ios::out | std::ios::trunc);
-
-			while (true)
+			//while (true)
 			{
-				for (int i = 0, size = pixelsPerCol; i < size; i++)
+				for (int i = pixelsPerCol - 1; i >= 0; i--)
 				{
-					auto lnPtr = getLine(i);
+					auto lnPtr = getLineText(i);
 
 					for (int j = 0; j < pixelsPerCol; j++)
 					{
+						/*
+						if (j > 50)
+							fs.flush();
+						*/
+
 						int pixel = lnPtr[j].rgba[0] | lnPtr[j].rgba[1] | lnPtr[j].rgba[2] | lnPtr[j].rgba[3];
 						pixel = pixel != 0;
 
 						fs << pixel << " ";
 					}
 
-					fs << std::endl;
+					char stra[] = {(char)ch, 0};
+
+					fs << stra << std::endl;
 				}
 
-				break;
+				//break;
 			}
 
 			fs.flush();

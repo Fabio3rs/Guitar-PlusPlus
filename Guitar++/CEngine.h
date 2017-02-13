@@ -191,6 +191,7 @@ public:
 		int BytesPerPixel;
 		unsigned char *Data;
 		unsigned char *tmpData;
+		bool bRevPixels;
 		bool keepData;
 
 		GLFWimageC()
@@ -198,6 +199,7 @@ public:
 			keepData = false;
 			Data = nullptr;
 			tmpData = nullptr;
+			bRevPixels = false;
 		}
 	};
 
