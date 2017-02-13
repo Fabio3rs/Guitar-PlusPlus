@@ -63,6 +63,16 @@ public:
 		public:
 			void internalProcessTexture(int ch);
 
+			inline double getAlign()
+			{
+				return align;
+			}
+
+			inline double getSize()
+			{
+				return size;
+			}
+
 			inline void setLine(int l){
 				line = l;
 			}

@@ -262,6 +262,23 @@ int main(int argc, char* argv[])
 		{
 			CMenu::menuOpt opt;
 
+			opt.text = "Maratona";
+			opt.y = 0.4;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, -0.5);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			std::string testecallback = game.addGameCallbacks("gamePlaySelectedInMenu", GPPGame::startMarathonModule);
+			opt.menusXRef.push_back(testecallback);
+
+			gmenu.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
 			opt.text = "Quick play";
 			opt.y = 0.4;
 			opt.size = 0.075;
@@ -270,7 +287,7 @@ int main(int argc, char* argv[])
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
 
-			std::string testecallback = game.addGameCallbacks("gamePlaySelectedInMenu", GPPGame::startMarathonModule);
+			std::string testecallback = game.addGameCallbacks("gamePlaySelectedInMenu", GPPGame::startModule);
 			opt.menusXRef.push_back(testecallback);
 
 			singlePlayOp = gmenu.addOpt(opt);

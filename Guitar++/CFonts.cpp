@@ -152,7 +152,7 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 
 	RGBA *imgRGBA = (RGBA*)text.getImageData().Data;
 
-	static std::fstream fs("test.txt", std::ios::binary | std::ios::out | std::ios::trunc);
+	//static std::fstream fs("test.txt", std::ios::binary | std::ios::out | std::ios::trunc);
 
 	static int countP = 0;
 
@@ -197,7 +197,7 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 			return &(imgRGBA[calc]);
 		};
 
-		if (fs.is_open())
+		//if (fs.is_open())
 		{
 			//while (true)
 			{
@@ -209,24 +209,40 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 
 					for (int j = 0; j < pixelsPerLinesDiv; j++)
 					{
-						int pixel = lnPtr[j].rgba[0] | lnPtr[j].rgba[1] | lnPtr[j].rgba[2] | lnPtr[j].rgba[3];
+						int pixel = /*lnPtr[j].rgba[0] | lnPtr[j].rgba[1] | lnPtr[j].rgba[2] |*/ lnPtr[j].rgba[3];
 						pixel = pixel != 0;
 
-						fs << pixel << " ";
+						//fs << pixel << " ";
 						if (pixel != 0)
 						{
 							colCalcMinMax.push_back(j);
 							break;
 						}
 					}
+
+					//char stra[] = {ch, 0};
+
+					//fs << stra << std::endl;
 				}
 
 				if (colCalcMinMax.size() == 0)
 					return;
 
 				std::sort(colCalcMinMax.begin(), colCalcMinMax.end());
+				double alignD = 0;
 
-				align = (double)colCalcMinMax[colCalcMinMax.size() - 1] / (double)(text.getImgWidth() / linesn);
+				{
+					alignD = (double)colCalcMinMax.front();
+
+					//std::cout << alignD << "  " << (double)colCalcMinMax.back() << std::endl;
+
+					alignD -= 1.0;
+
+					if (alignD < 0.0)
+						alignD = 0;
+
+					align = alignD / (double)(pixelsPerLinesDiv);
+				}
 
 				colCalcMinMax.clear();
 
@@ -236,7 +252,7 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 
 					for (int j = pixelsPerLinesDiv - 1; j >= 0; j--)
 					{
-						int pixel = lnPtr[j].rgba[0] | lnPtr[j].rgba[1] | lnPtr[j].rgba[2] | lnPtr[j].rgba[3];
+						int pixel = /*lnPtr[j].rgba[0] | lnPtr[j].rgba[1] | lnPtr[j].rgba[2] |*/ lnPtr[j].rgba[3];
 						pixel = pixel != 0;
 
 						if (pixel != 0)
@@ -249,29 +265,31 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 
 				std::sort(colCalcMinMax.begin(), colCalcMinMax.end());
 
-				size = (double)colCalcMinMax.front() / (double)(text.getImgWidth() / linesn);
+				{
+					double d = (double)colCalcMinMax.back();
+
+					//d += 1.0;
+
+					if (d > pixelsPerLinesDiv)
+					{
+						d = pixelsPerLinesDiv;
+					}
+
+					size = (d - alignD) / (double)(pixelsPerLinesDiv);
+
+					if (size < 0.3)
+						size = 0.3;
+				}
 
 				colCalcMinMax.clear();
 
-				std::cout << align << "   " << size << "\n";
-
-				/*colCalcMinMax.push_back(0);
-
-					std::cout << colCalcMinMax.size() << std::endl;
-
-					
-
-					
-
-					
-
-					char stra[] = {(char)ch, 0};
-
-					fs << stra << std::endl;*/
-				//break;
+				if (ch == 'w')
+				{
+					std::cout << align << "   " << size << "\n";
+				}
 			}
 
-			fs.flush();
+			//fs.flush();
 		}
 	}
 }
@@ -415,9 +433,9 @@ void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double pos
 {
 	auto &fontToUse = fontsReg[fontName];
 
-	double CharPos = 0.0;
 	const double sizeDiv1_5 = size / 1.5, sizeDiv2_0 = size / 2.0;
 	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
+	double CharPos = posX1PlusSizeDiv2_0;
 
 	auto &engine = CEngine::engine();
 	CEngine::RenderDoubleStruct RenderData;
@@ -445,7 +463,11 @@ void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double pos
 	{
 		auto &chData = fontToUse.chars[ch];
 
-		if (chData.getText())
+		if (iswblank(ch))
+		{
+			CharPos += size / 1.5;
+		}
+		else if (chData.getText())
 		{
 			RenderData.Text = chData.getTextID();
 			if (RenderData.Text != lasttext)
@@ -466,12 +488,30 @@ void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double pos
 			const double sizeFromChar = 1.0 / (double)fontsTextData.getcolumns();
 			const double sizeOfLine = 1.0 / (double)fontsTextData.getlines();
 
-			CharPos = posX1PlusSizeDiv2_0 + (((double)i) * sizeDiv1_5);
+			if (chData.getAlign() > 0.15)
+				CharPos += -(chData.getAlign() * size) + size / 10.0;
+
+			if (chData.getAlign() < 0.1)
+				CharPos += size / 20.0;
 
 			RenderData.x1 = CharPos;
+			RenderData.x4 = CharPos;
 			RenderData.x2 = CharPos + size;
 			RenderData.x3 = CharPos + size;
-			RenderData.x4 = CharPos;
+
+			double sizCalc = size / 12.0;
+			double useSiz = chData.getSize();
+
+			if (useSiz < 0.45)
+			{
+				useSiz = 0.45;
+			}
+			else if (useSiz > 0.9)
+			{
+				sizCalc = 0;
+			}
+
+			CharPos += useSiz * size + sizCalc;
 
 			RenderData.TextureY1 = 1.0 - (sizeOfLine * chData.getline());
 			RenderData.TextureY2 = RenderData.TextureY1 - sizeOfLine;
@@ -492,9 +532,9 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 {
 	auto &fontToUse = fontsReg[fontName];
 
-	double CharPos = 0.0;
 	const double sizeDiv1_5 = size / 1.5, sizeDiv2_0 = size / 2.0;
 	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
+	double CharPos = posX1PlusSizeDiv2_0;
 
 	auto &engine =  CEngine::engine();
 	CEngine::RenderDoubleStruct RenderData;
@@ -510,11 +550,17 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 
 	auto it = st.begin();
 
+	double lastL = 1.0;
+
 	for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
 	{
 		auto &chData = fontToUse.chars[ch];
 
-		if (chData.getText())
+		if (iswblank(ch))
+		{
+			CharPos += size / 1.5;
+		}
+		else if (chData.getText())
 		{
 			RenderData.Text = chData.getTextID();
 			auto &fontsTextData = *chData.getText();
@@ -523,12 +569,38 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 			const double sizeFromChar = 1.0 / (double)fontsTextData.getcolumns();
 			const double sizeOfLine = 1.0 / (double)fontsTextData.getlines();
 
-			CharPos = posX1PlusSizeDiv2_0 + (((double)i) * sizeDiv1_5);
+			if (chData.getAlign() > 0.15)
+				CharPos += -(chData.getAlign() * size) + size / 10.0;
+
+			if (chData.getAlign() < 0.1)
+				CharPos += size / 20.0;
+			/*if (lastL < 0.8)
+				CharPos += -(chData.getAlign() * size);
+			else
+				CharPos += -(chData.getAlign() * size) / 2.0;*/
+
+			//CharPos += size / 10.0;
 
 			RenderData.x1 = CharPos;
+			RenderData.x4 = CharPos;
 			RenderData.x2 = CharPos + size;
 			RenderData.x3 = CharPos + size;
-			RenderData.x4 = CharPos;
+
+			double sizCalc = size / 12.0;
+			double useSiz = chData.getSize();
+
+			if (useSiz < 0.45)
+			{
+				useSiz = 0.45;
+			}
+			else if (useSiz > 0.9)
+			{
+				sizCalc = 0;
+			}
+
+			CharPos += useSiz * size + sizCalc;
+
+			lastL = chData.getSize();
 
 			RenderData.TextureY1 = 1.0 - (sizeOfLine * chData.getline());
 			RenderData.TextureY2 = RenderData.TextureY1 - sizeOfLine;
