@@ -42,10 +42,10 @@ CFonts::Font::fontTexture::fontTexture()
 	lines = columns = 0;
 }
 
-double CFonts::getCenterPos(int charsnum, double size, double posX1)
+/*double CFonts::getCenterPos(int charsnum, double size, double posX1)
 {
 	return posX1 - (((double)(charsnum)* size / 1.5) + (size / 2.0)) / 2.0;
-}
+}*/
 
 void CFonts::Font::registerTexture(const std::string &path, const std::string &texture, const std::wstring &textChars)
 {
@@ -631,6 +631,55 @@ std::string CFonts::addTextureToFont(const std::string &fontName, const std::str
 	font.registerTexture(path, texture, textChars);
 
 	return (path + "/" + texture);
+}
+
+double CFonts::getCenterPos(const std::string &text, double size, double posX1, const std::string &fontName)
+{
+	auto &fontToUse = fontsReg[fontName];
+
+	const double sizeDiv2_0 = size / 2.0;
+	double CharPos = sizeDiv2_0;
+
+	auto &engine = CEngine::engine();
+
+	auto it = text.begin();
+
+	for (auto ch = utf8::next(it, text.end()); it != text.end(); ch = utf8::next(it, text.end()))
+	{
+		auto &chData = fontToUse.chars[ch];
+
+		if (iswblank(ch))
+		{
+			CharPos += size / 1.5;
+		}
+		else if (chData.getText())
+		{
+			auto &fontsTextData = *chData.getText();
+
+			if (chData.getAlign() > 0.15)
+				CharPos += -(chData.getAlign() * size) + size / 10.0;
+
+			if (chData.getAlign() < 0.1)
+				CharPos += size / 20.0;
+
+			double sizCalc = size / 12.0;
+			double useSiz = chData.getSize();
+
+			if (useSiz < 0.45)
+			{
+				useSiz = 0.45;
+			}
+			else if (useSiz > 0.9)
+			{
+				sizCalc = 0;
+			}
+
+			CharPos += useSiz * size + sizCalc;
+
+		}
+	}
+
+	return posX1 - CharPos / 2.0;
 }
 
 CFonts::Font::Font()

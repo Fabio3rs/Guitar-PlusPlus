@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
 			CEngine::engine().Render2DQuad(lgrdata);
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t + 0.1));
-			CFonts::fonts().drawTextInScreenWithBuffer(str2nibblePresents, CFonts::fonts().getCenterPos(str2nibblePresents.size(), 0.1, 0.0), -0.6, 0.1);
+			CFonts::fonts().drawTextInScreenWithBuffer(str2nibblePresents, CFonts::fonts().getCenterPos(str2nibblePresents, 0.1, 0.0), -0.6, 0.1);
 			
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
@@ -265,7 +265,7 @@ int main(int argc, char* argv[])
 			opt.text = "Maratona";
 			opt.y = 0.4;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, -0.5);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -282,7 +282,7 @@ int main(int argc, char* argv[])
 			opt.text = "Quick play";
 			opt.y = 0.4;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -299,7 +299,7 @@ int main(int argc, char* argv[])
 			opt.text = "Campaing";
 			opt.y = 0.3;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -314,7 +314,7 @@ int main(int argc, char* argv[])
 			opt.text = "Server MP";
 			opt.y = 0.2;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -331,7 +331,7 @@ int main(int argc, char* argv[])
 			opt.text = "Client MP";
 			opt.y = 0.1;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -349,7 +349,7 @@ int main(int argc, char* argv[])
 			opt.text = "Voltar";
 			opt.y = 0.0;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -367,7 +367,7 @@ int main(int argc, char* argv[])
 			opt.text = "Nova campanha";
 			opt.y = 0.4;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, -0.5);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -381,7 +381,7 @@ int main(int argc, char* argv[])
 			opt.text = "Continuar campanha";
 			opt.y = 0.3;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, -0.5);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -397,7 +397,7 @@ int main(int argc, char* argv[])
 			opt.text = "Voltar";
 			opt.y = -0.2;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, -0.5);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -415,7 +415,7 @@ int main(int argc, char* argv[])
 			opt.text = "Graficos";
 			opt.y = 0.4;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -429,7 +429,7 @@ int main(int argc, char* argv[])
 			opt.text = "Audio";
 			opt.y = 0.3;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -443,7 +443,7 @@ int main(int argc, char* argv[])
 			opt.text = "Gameplay";
 			opt.y = 0.2;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -457,7 +457,7 @@ int main(int argc, char* argv[])
 			opt.text = "Voltar";
 			opt.y = -0.4;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;

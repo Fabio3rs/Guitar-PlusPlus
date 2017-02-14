@@ -1844,7 +1844,7 @@ void GPPGame::continueCampaing(const std::string &name)
 			opt.text = "Patos voadores";
 			opt.y = 0.3;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;
@@ -1858,7 +1858,7 @@ void GPPGame::continueCampaing(const std::string &name)
 			opt.text = "Voltar";
 			opt.y = 0.0;
 			opt.size = 0.075;
-			opt.x = CFonts::fonts().getCenterPos(opt.text.size(), opt.size, 0.0);
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
 			opt.group = 1;
 			opt.status = 0;
 			opt.type = CMenu::menusOPT::textbtn;

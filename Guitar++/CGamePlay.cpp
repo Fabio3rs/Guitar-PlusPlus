@@ -1035,7 +1035,7 @@ void CGamePlay::renderTimeOnNote(double pos, double time, CPlayer &player)
 		//CEngine::engine().Render3DQuad(TempStruct3D);
 		std::string timestr = std::to_string(time);
 
-		CFonts::fonts().draw3DTextInScreen(timestr, CFonts::fonts().getCenterPos(timestr.size(), 0.2, 0.0), -0.4992, TempStruct3D.z1, 0.2, 0.0, -0.2);
+		CFonts::fonts().draw3DTextInScreen(timestr, CFonts::fonts().getCenterPos(timestr, 0.2, 0.0), -0.4992, TempStruct3D.z1, 0.2, 0.0, -0.2);
 	}
 }
 
@@ -1982,7 +1982,7 @@ void CGamePlay::renderLyrics()
 		if (time > songlyrics[songlyricsIndex].tstart)
 		{
 			std::string &s = songlyrics[songlyricsIndex].lyric;
-			CFonts::fonts().drawTextInScreenWithBuffer(s, CFonts::fonts().getCenterPos(s.size(), 0.1, 0.0), 0.6, 0.1);
+			CFonts::fonts().drawTextInScreenWithBuffer(s, CFonts::fonts().getCenterPos(s, 0.1, 0.0), 0.6, 0.1);
 		}
 	}
 }
