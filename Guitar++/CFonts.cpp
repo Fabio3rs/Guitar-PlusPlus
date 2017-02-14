@@ -283,10 +283,10 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 
 				colCalcMinMax.clear();
 
-				if (ch == 'w')
+				/*if (ch == 'w')
 				{
 					std::cout << align << "   " << size << "\n";
-				}
+				}*/
 			}
 
 			//fs.flush();
@@ -433,7 +433,7 @@ void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double pos
 {
 	auto &fontToUse = fontsReg[fontName];
 
-	const double sizeDiv1_5 = size / 1.5, sizeDiv2_0 = size / 2.0;
+	const double sizeDiv2_0 = size / 2.0, sizeDiv12_0 = size / 12.0, sizeDiv10_0 = size / 10.0, sizeDiv20_0 = size / 20.0;
 	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
 	double CharPos = posX1PlusSizeDiv2_0;
 
@@ -489,17 +489,17 @@ void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double pos
 			const double sizeOfLine = 1.0 / (double)fontsTextData.getlines();
 
 			if (chData.getAlign() > 0.15)
-				CharPos += -(chData.getAlign() * size) + size / 10.0;
+				CharPos += -(chData.getAlign() * size) + sizeDiv10_0;
 
 			if (chData.getAlign() < 0.1)
-				CharPos += size / 20.0;
+				CharPos += sizeDiv20_0;
 
 			RenderData.x1 = CharPos;
 			RenderData.x4 = CharPos;
 			RenderData.x2 = CharPos + size;
 			RenderData.x3 = CharPos + size;
 
-			double sizCalc = size / 12.0;
+			double sizCalc = sizeDiv12_0;
 			double useSiz = chData.getSize();
 
 			if (useSiz < 0.45)
@@ -532,7 +532,7 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 {
 	auto &fontToUse = fontsReg[fontName];
 
-	const double sizeDiv1_5 = size / 1.5, sizeDiv2_0 = size / 2.0;
+	const double sizeDiv2_0 = size / 2.0, sizeDiv12_0 = size / 12.0, sizeDiv10_0 = size / 10.0, sizeDiv20_0 = size / 20.0;
 	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
 	double CharPos = posX1PlusSizeDiv2_0;
 
@@ -570,10 +570,10 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 			const double sizeOfLine = 1.0 / (double)fontsTextData.getlines();
 
 			if (chData.getAlign() > 0.15)
-				CharPos += -(chData.getAlign() * size) + size / 10.0;
+				CharPos += -(chData.getAlign() * size) + sizeDiv10_0;
 
 			if (chData.getAlign() < 0.1)
-				CharPos += size / 20.0;
+				CharPos += sizeDiv20_0;
 			/*if (lastL < 0.8)
 				CharPos += -(chData.getAlign() * size);
 			else
@@ -586,7 +586,7 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 			RenderData.x2 = CharPos + size;
 			RenderData.x3 = CharPos + size;
 
-			double sizCalc = size / 12.0;
+			double sizCalc = sizeDiv12_0;
 			double useSiz = chData.getSize();
 
 			if (useSiz < 0.45)
@@ -637,7 +637,7 @@ double CFonts::getCenterPos(const std::string &text, double size, double posX1, 
 {
 	auto &fontToUse = fontsReg[fontName];
 
-	const double sizeDiv2_0 = size / 2.0;
+	const double sizeDiv2_0 = size / 2.0, sizeDiv12_0 = size / 12.0, sizeDiv10_0 = size / 10.0, sizeDiv20_0 = size / 20.0;
 	double CharPos = sizeDiv2_0;
 
 	auto &engine = CEngine::engine();
@@ -657,12 +657,12 @@ double CFonts::getCenterPos(const std::string &text, double size, double posX1, 
 			auto &fontsTextData = *chData.getText();
 
 			if (chData.getAlign() > 0.15)
-				CharPos += -(chData.getAlign() * size) + size / 10.0;
+				CharPos += -(chData.getAlign() * size) + sizeDiv10_0;
 
 			if (chData.getAlign() < 0.1)
-				CharPos += size / 20.0;
+				CharPos += sizeDiv20_0;
 
-			double sizCalc = size / 12.0;
+			double sizCalc = sizeDiv12_0;
 			double useSiz = chData.getSize();
 
 			if (useSiz < 0.45)
