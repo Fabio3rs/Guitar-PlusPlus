@@ -2620,7 +2620,18 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		}
 		else if (calcP > -0.023)
 		{
-			if ((int(time * 1000.0) % 50) % 2)
+			int calcTest = (int(time * 1000.0) % 50);
+
+			if (player.plusLoadF > 0.0)
+			{
+				calcTest %= 5;
+			}
+			else
+			{
+				calcTest %= 2;
+			}
+
+			if (calcTest)
 			{
 				CParticle::particleData pd;
 

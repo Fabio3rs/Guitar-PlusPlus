@@ -278,7 +278,8 @@ int CEngine::getCRCKeyboardNoise(){
 std::string CEngine::getKeyboardNoise(){
 	keyboardNoise = "";
 
-	for (int i = 1; i < GLFW_KEY_LAST; i++){
+	for (int i = 1; i < GLFW_KEY_LAST; i++)
+	{
 		keyboardNoise += (char)i;
 		keyboardNoise += (char)getKey(i);
 	}
@@ -1949,7 +1950,8 @@ CEngine::CEngine()
 
 	glfwSetErrorCallback(GLFWerrorfun);
 
-	if (!glfwInit()){
+	if (!glfwInit())
+	{
 		throw std::logic_error("Fail to initialize GLFW");
 	}
 
@@ -1959,9 +1961,9 @@ CEngine::CEngine()
 	FPS = 0;
 	tmpFPS = 0;
 
-	std::cout << "BASS Init\n";
+	//std::cout << "BASS Init\n";
 	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
-	std::cout << "BASS Init result " << result << std::endl;
+	//std::cout << "BASS Init result " << result << std::endl;
 	lastUpdatedNoise = 0.0;
 	updateNoiseInterval = 0.2;
 
@@ -1997,7 +1999,8 @@ CEngine::CEngine(std::function <void(int, const std::string &e)> errfun)
 
 	glfwSetErrorCallback(GLFWerrorfun);
 
-	if (!glfwInit()){
+	if (!glfwInit())
+	{
 		throw std::logic_error("Fail to initialize GLFW");
 	}
 
@@ -2007,9 +2010,7 @@ CEngine::CEngine(std::function <void(int, const std::string &e)> errfun)
 	FPS = 0;
 	tmpFPS = 0;
 
-	std::cout << "BASS Init\n";
 	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
-	std::cout << "BASS Init result " << result << std::endl;
 	lastUpdatedNoise = 0.0;
 	updateNoiseInterval = 0.2;
 
