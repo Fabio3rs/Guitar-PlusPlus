@@ -584,10 +584,13 @@ void GPPGame::testClient(const std::string &name)
 		}
 		else
 		{
-			if (!botK && CEngine::engine().getKey('B'))
+			if (CEngine::engine().getKey('B'))
 			{
-				botK = true;
-				module.players.back().enableBot ^= 1;
+				if (!botK)
+				{
+					botK = true;
+					module.players.back().enableBot ^= 1;
+				}
 			}
 			else if (botK)
 			{
@@ -1248,6 +1251,161 @@ void GPPGame::startModule(const std::string &name)
 
 				songTimeFixed = true;
 			}
+
+
+
+
+			{
+
+
+				engine.activate3DRender(true);
+				engine.activateLighting(true);
+
+				{
+					double centerx = 0.0;
+					double centerz = -650.0;
+
+					double rtime = module.players.back().musicRunningTime / 10.0;
+					double eyexcam = sin(0) * 700.0 + centerx + sin(rtime) * 100.0;
+					double eyezcam = cos(0) * 700.0 + centerz + cos(rtime) * 100.0;
+
+					CEngine::cameraSET usingCamera;
+					usingCamera.eyex = eyexcam;
+					usingCamera.eyey = 130.0;
+					usingCamera.eyez = eyezcam;
+					usingCamera.centerx = centerx;
+					usingCamera.centery = 130.0;
+					usingCamera.centerz = centerz;
+					usingCamera.upx = 0;
+					usingCamera.upy = 1;
+					usingCamera.upz = 0;
+
+					engine.setCamera(usingCamera);
+				}
+
+				{
+					lightData l;
+
+					for (auto &t : l.ambientLight)
+					{
+						t = 0.1;
+					}
+
+					for (auto &t : l.direction)
+					{
+						t = 2.5;
+					}
+
+					for (auto &t : l.position)
+					{
+						t = 0.0;
+					}
+
+					for (auto &t : l.specularLight)
+					{
+						t = 1.0;
+					}
+
+					for (auto &t : l.diffuseLight)
+					{
+						t = 0.2;
+					}
+
+					l.specularLight[1] = 1.0;
+					l.specularLight[2] = 1.0;
+					l.diffuseLight[0] = 1.0;
+					l.diffuseLight[1] = 1.0;
+					l.specularLight[3] = 0.5;
+					l.diffuseLight[3] = 0.5;
+					l.ambientLight[3] = 0.1;
+
+					l.angle = 100.0;
+					l.direction[0] = 0.0;
+					l.direction[1] = -0.5;
+					l.direction[2] = -5.0;
+
+					l.position[3] = 1.0;
+					l.position[1] = 0.0;
+					l.position[2] = 2.5;
+
+					engine.activateLight(1, true);
+					engine.setLight(l, 1);
+				}
+
+				{
+					lightData l;
+
+					for (auto &t : l.ambientLight)
+					{
+						t = 0.1;
+					}
+
+					for (auto &t : l.direction)
+					{
+						t = 2.5;
+					}
+
+					for (auto &t : l.position)
+					{
+						t = 0.0;
+					}
+
+					for (auto &t : l.specularLight)
+					{
+						t = 1.0;
+					}
+
+					for (auto &t : l.diffuseLight)
+					{
+						t = 0.5;
+					}
+
+					l.specularLight[1] = 1.0;
+					l.specularLight[2] = 1.0;
+					l.specularLight[3] = 0.5;
+					l.diffuseLight[3] = 0.5;
+					l.ambientLight[3] = 0.1;
+
+					l.angle = 80.0;
+					l.direction[0] = 100.0;
+					l.direction[1] = -0.5;
+					l.direction[2] = 0.0;
+
+					l.position[3] = 0.0;
+					l.position[1] = 50.0;
+					l.position[2] = 100.5;
+
+					engine.activateLight(0, true);
+					engine.setLight(l, 0);
+				}
+
+				static const unsigned int cityTextID = game.loadTexture("test", "city.tga").getTextId();
+
+				game.testobj.draw(cityTextID);
+				engine.matrixReset();
+
+
+				{
+					CEngine::cameraSET usingCamera;
+					usingCamera.eyex = 0.0;
+					usingCamera.eyey = 0.0;
+					usingCamera.eyez = 2.3;
+					usingCamera.centerx = 0;
+					usingCamera.centery = 0;
+					usingCamera.centerz = 0.0;
+					usingCamera.upx = 0;
+					usingCamera.upy = 1;
+					usingCamera.upz = 0;
+
+					engine.setCamera(usingCamera);
+				}
+
+				engine.activateLighting(false);
+				engine.activate3DRender(false);
+			}
+
+
+
 
 			module.render();
 			module.renderLyrics();
