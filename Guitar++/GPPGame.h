@@ -251,6 +251,7 @@ public:
 	std::string defaultGuitar;
 
 	double gameplayRunningTime;
+	bool gamePlayPlusEnabled;
 
 protected:
 	static int registerFunctions(lua_State *L);
@@ -259,6 +260,7 @@ protected:
 	static int loadSingleTexture(lua_State *L);
 	static int getGameplayRunningTime(lua_State *L);
 	static int getDeltaTime(lua_State *L);
+	static int getGamePlayPlusState(lua_State *L);
 
 private:
 	GPPOBJ testobj;

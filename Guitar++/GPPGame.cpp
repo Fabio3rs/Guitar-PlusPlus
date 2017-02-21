@@ -1241,11 +1241,12 @@ void GPPGame::startModule(const std::string &name)
 				}
 			}
 
-			game.gameplayRunningTime = module.players.back().musicRunningTime;
+			game.gameplayRunningTime = playerb.musicRunningTime;
+			game.gamePlayPlusEnabled = playerb.plusEnabled;
 
 			if (!songTimeFixed && (engine.getTime() - startTime) > 0.5)
 			{
-				engine.setSoundTime(module.players.back().songAudioID, module.players.back().musicRunningTime);
+				engine.setSoundTime(module.players.back().songAudioID, playerb.musicRunningTime);
 
 				for (auto &p : module.players)
 				{
@@ -2771,6 +2772,7 @@ int GPPGame::registerFunctions(lua_State *L)
 	lua_register(L, "loadSingleTexture", loadSingleTexture);
 	lua_register(L, "getGameplayRunningTime", getGameplayRunningTime);
 	lua_register(L, "getDeltaTime", getDeltaTime);
+	lua_register(L, "getGamePlayPlusState", getGamePlayPlusState);
 	return 0;
 }
 
@@ -2817,6 +2819,15 @@ int GPPGame::getDeltaTime(lua_State * L)
 	return p.rtn();
 }
 
+int GPPGame::getGamePlayPlusState(lua_State * L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	p << GPPGame::GuitarPP().gamePlayPlusEnabled;
+
+	return p.rtn();
+}
+
 GPPGame::GPPGame() : gppTextureKeepBuffer(false), noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"),
 						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj"),
 						devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
@@ -2829,6 +2840,7 @@ GPPGame::GPPGame() : gppTextureKeepBuffer(false), noteOBJ("data/models/GPP_Note.
 	mainSave.loadn("data/saves/mains");
 	devMenus.gameMenu = true;
 	uiRenameMenu.gameMenu = true;
+	gamePlayPlusEnabled = false;
 
 	glanguage = "PT-BR";
 
