@@ -250,11 +250,15 @@ public:
 
 	std::string defaultGuitar;
 
+	double gameplayRunningTime;
+
 protected:
 	static int registerFunctions(lua_State *L);
 	static int registerGlobals(lua_State *L);
 
 	static int loadSingleTexture(lua_State *L);
+	static int getGameplayRunningTime(lua_State *L);
+	static int getDeltaTime(lua_State *L);
 
 private:
 	GPPOBJ testobj;

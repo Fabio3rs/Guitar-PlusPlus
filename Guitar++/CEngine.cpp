@@ -96,6 +96,11 @@ bool CEngine::setSoundVolume(int handle, float volume)
 	return BASS_ChannelSetAttribute(handle, BASS_ATTRIB_VOL, volume * volumeMaster);
 }
 
+int CEngine::setSoundFlags(int handle, int flags, int mask)
+{
+	return BASS_ChannelFlags(handle, flags, mask);
+}
+
 CEngine::chdata CEngine::getChannelData(int handle)
 {
 	chdata result;

@@ -537,6 +537,7 @@ public:
 	void setSoundTime(int handle, double time);
 	double getSoundTime(int handle);
 	bool setSoundVolume(int handle, float volume);
+	int setSoundFlags(int handle, int flags, int mask);
 	chdata getChannelData(int handle);
 	chdata getChannelData(int handle, int b);
 

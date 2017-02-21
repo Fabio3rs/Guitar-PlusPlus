@@ -198,6 +198,17 @@ public:
 	static int newGamePlayModule(lua_State *L);
 
 
+	static int loadSound(lua_State *L);
+	static int loadSoundDecode(lua_State *L);
+	static int playSound(lua_State *L);
+	static int pauseSound(lua_State *L);
+	static int stopSound(lua_State *L);
+	static int setSoundTime(lua_State *L);
+	static int setSoundVolume(lua_State *L);
+	static int releaseSound(lua_State *L);
+	static int setSoundFlags(lua_State *L);
+
+
 	static int setGameVar(lua_State *L);
 	static int getGameVar(lua_State *L);
 

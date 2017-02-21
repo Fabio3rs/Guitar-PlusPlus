@@ -1045,6 +1045,7 @@ void GPPGame::startModule(const std::string &name)
 	auto &fonts = CFonts::fonts();
 	auto realname = game.getCallBackRealName(name);
 	auto &module = game.gameModules[realname];
+	game.gameplayRunningTime = 0.0;
 
 	if (game.getRunningModule().size() > 0)
 	{
@@ -1101,6 +1102,8 @@ void GPPGame::startModule(const std::string &name)
 	l.processing = true;
 
 	std::thread load(loadThread, std::ref(module), std::ref(l));
+
+	CLuaH::Lua().runEvent("gameplayLoading");
 
 	while (engine.windowOpened() && l.processing)
 	{
@@ -1237,6 +1240,8 @@ void GPPGame::startModule(const std::string &name)
 					p.playerCamera.eyez = p.targetCamera.eyez;
 				}
 			}
+
+			game.gameplayRunningTime = module.players.back().musicRunningTime;
 
 			if (!songTimeFixed && (engine.getTime() - startTime) > 0.5)
 			{
@@ -1416,6 +1421,7 @@ void GPPGame::startModule(const std::string &name)
 
 			if (firstStartFrame)
 			{
+				CLuaH::Lua().runEvent("firstStartFrame");
 				engine.playSoundStream(GuitarPP().startSound);
 				firstStartFrame = false;
 			}
@@ -2763,6 +2769,8 @@ std::string GPPGame::port = "7777";
 int GPPGame::registerFunctions(lua_State *L)
 {
 	lua_register(L, "loadSingleTexture", loadSingleTexture);
+	lua_register(L, "getGameplayRunningTime", getGameplayRunningTime);
+	lua_register(L, "getDeltaTime", getDeltaTime);
 	return 0;
 }
 
@@ -2791,12 +2799,32 @@ int GPPGame::loadSingleTexture(lua_State * L)
 	return p.rtn();
 }
 
+int GPPGame::getGameplayRunningTime(lua_State * L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	p << GPPGame::GuitarPP().gameplayRunningTime;
+
+	return p.rtn();
+}
+
+int GPPGame::getDeltaTime(lua_State * L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	p << CEngine::engine().getDeltaTime();
+
+	return p.rtn();
+}
+
 GPPGame::GPPGame() : gppTextureKeepBuffer(false), noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"),
 						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj"),
 						devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
 {
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerFunctions);
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerGlobals);
+
+	gameplayRunningTime = 0.0;
 
 	mainSave.loadn("data/saves/mains");
 	devMenus.gameMenu = true;

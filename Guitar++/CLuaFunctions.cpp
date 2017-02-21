@@ -603,6 +603,205 @@ int CLuaFunctions::newGamePlayModule(lua_State *L)
 	return p.rtn();
 }
 
+int CLuaFunctions::loadSound(lua_State * L)
+{
+	LuaParams p(L);
+
+	for (int i = 0; i < p.getNumParams(); i++) {
+		if (lua_isstring(L, i + 1)) {
+			std::string str;
+			p >> str;
+
+			int result = 0;
+
+			if (CEngine::engine().loadSoundStream(str.c_str(), result))
+			{
+				p << result;
+			}
+			else {
+				p << false;
+			}
+		}
+		else {
+			p << false;
+		}
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::loadSoundDecode(lua_State * L)
+{
+	LuaParams p(L);
+
+	for (int i = 0; i < p.getNumParams(); i++) {
+		if (lua_isstring(L, i + 1)) {
+			std::string str = "<<nullstring>>";
+			p >> str;
+
+			int result = 0;
+
+			if (CEngine::engine().loadSoundStream(str.c_str(), result, true))
+			{
+				p << result;
+			}
+			else {
+				p << false;
+			}
+		}
+		else {
+			p << false;
+		}
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::playSound(lua_State * L)
+{
+	LuaParams p(L);
+
+	for (int i = 0; i < p.getNumParams(); i++) {
+		if (lua_isnumber(L, i + 1)) {
+			int handle = 0;
+			p >> handle;
+
+			p << CEngine::engine().playSoundStream(handle);
+		}
+		else
+		{
+			p << false;
+		}
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::pauseSound(lua_State * L)
+{
+	LuaParams p(L);
+
+	for (int i = 0; i < p.getNumParams(); i++) {
+		if (lua_isnumber(L, i + 1)) {
+			int handle = 0;
+			p >> handle;
+
+			p << CEngine::engine().pauseSoundStream(handle);
+		}
+		else
+		{
+			p << false;
+		}
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::stopSound(lua_State * L)
+{
+	LuaParams p(L);
+
+	for (int i = 0; i < p.getNumParams(); i++) {
+		if (lua_isnumber(L, i + 1)) {
+			int handle = 0;
+			p >> handle;
+
+
+			if (CEngine::engine().pauseSoundStream(handle))
+			{
+				p << true;
+				CEngine::engine().setSoundTime(handle, 0.0);
+			}
+			else
+			{
+				p << false;
+			}
+		}
+		else
+		{
+			p << false;
+		}
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::setSoundTime(lua_State * L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 2 && lua_isnumber(L, 1) && lua_isnumber(L, 2))
+	{
+		int handle = 0;
+		double value = 0.0;
+
+		p >> handle;
+		p >> value;
+
+		CEngine::engine().setSoundTime(handle, value);
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::setSoundVolume(lua_State * L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 2 && lua_isnumber(L, 1) && lua_isnumber(L, 2))
+	{
+		int handle = 0;
+		double value = 0.0;
+
+		p >> handle;
+		p >> value;
+
+		CEngine::engine().setSoundVolume(handle, value);
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::releaseSound(lua_State * L)
+{
+	LuaParams p(L);
+
+	for (int i = 0; i < p.getNumParams(); i++) {
+		if (lua_isnumber (L, i + 1)) {
+			int handle = 0;
+			p >> handle;
+
+			p << CEngine::engine().unloadSoundStream(handle);
+		}
+		else
+		{
+			p << false;
+		}
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::setSoundFlags(lua_State * L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 3 && lua_isnumber(L, 1) && lua_isnumber(L, 2) && lua_isnumber(L, 3))
+	{
+		int handle = 0;
+		int64_t flags = 0;
+		int64_t mask = 0;
+
+		p >> handle;
+		p >> flags;
+		p >> mask;
+
+		CEngine::engine().setSoundFlags(handle, flags, mask);
+	}
+
+	return p.rtn();
+}
+
 /*
 * Load a texture (load file & load opengl texture)
 */
@@ -1005,7 +1204,15 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "getGameCallback", getGameCallback);
 	lua_register(L, "assingGameFunctionToMenuOption", assingGameFunctionToMenuOption);
 	lua_register(L, "setGameVar", setGameVar);
-	lua_register(L, "getGameVar", getGameVar);
+
+	lua_register(L, "loadSound", loadSound);
+	lua_register(L, "loadSoundDecode", loadSoundDecode);
+	lua_register(L, "playSound", playSound);
+	lua_register(L, "stopSound", stopSound);
+	lua_register(L, "setSoundTime", setSoundTime);
+	lua_register(L, "setSoundVolume", setSoundVolume);
+	lua_register(L, "releaseSound", releaseSound);
+	lua_register(L, "setSoundFlags", setSoundFlags);
 
 	auto &funList = LuaF().registerFunctionsAPICBs;
 
@@ -1022,6 +1229,8 @@ template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const
 	lua_setglobal(L, name.c_str());
 }
 
+#include <bass.h>
+
 /*
 * Register default game globals
 */
@@ -1033,6 +1242,18 @@ void CLuaFunctions::registerGlobals(lua_State *L)
 	setLuaGlobal(L, "VSYNC_HALF", 2);
 	setLuaGlobal(L, "VSYNC_AUTO", 3);
 
+	setLuaGlobal(L, "BASS_SAMPLE_LOOP", BASS_SAMPLE_LOOP);
+	setLuaGlobal(L, "BASS_STREAM_AUTOFREE", BASS_STREAM_AUTOFREE);
+	setLuaGlobal(L, "BASS_STREAM_RESTRATE", BASS_STREAM_RESTRATE);
+	setLuaGlobal(L, "BASS_MUSIC_NONINTER", BASS_MUSIC_NONINTER);
+	setLuaGlobal(L, "BASS_MUSIC_SINCINTER", BASS_MUSIC_SINCINTER);
+	setLuaGlobal(L, "BASS_MUSIC_SURROUND", BASS_MUSIC_SURROUND);
+	setLuaGlobal(L, "BASS_MUSIC_SURROUND2", BASS_MUSIC_SURROUND2);
+	setLuaGlobal(L, "BASS_MUSIC_FT2MOD", BASS_MUSIC_FT2MOD);
+	setLuaGlobal(L, "BASS_MUSIC_PT1MOD", BASS_MUSIC_PT1MOD);
+	setLuaGlobal(L, "BASS_MUSIC_POSRESET", BASS_MUSIC_POSRESET);
+	setLuaGlobal(L, "BASS_MUSIC_POSRESETEX", BASS_MUSIC_POSRESETEX);
+	setLuaGlobal(L, "BASS_MUSIC_STOPBACK", BASS_MUSIC_STOPBACK);
 
 	auto &funList = LuaF().registerGlobalsAPICBs;
 
