@@ -21,7 +21,7 @@
 #include "CSaveSystem.h"
 #include "CLanguageManager.h"
 #include "CGuitars.h"
-//#include "gambiwindows.h"
+#include "CCampaing.h"
 
 
 int main(int argc, char* argv[])
@@ -56,6 +56,8 @@ int main(int argc, char* argv[])
 		//variaveldopato = 10;
 
 		//svtest.saves();
+		
+		auto &campaingMgr = CCampaing::campaingMGR();
 
 		auto &lua = CLuaH::Lua();
 

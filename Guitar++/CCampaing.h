@@ -9,6 +9,9 @@
 #include <string>
 #include <cstdint>
 #include "CGuitars.h"
+#include "CLuaFunctions.hpp"
+#include <cereal/cereal.hpp>
+#include <cereal/archives/portable_binary.hpp>
 
 class CCampaing
 {
@@ -33,6 +36,7 @@ public:
 	struct Show
 	{
 		std::vector<std::string> songName;
+		std::string local;
 		int64_t points;
 		int64_t maxCombo;
 		double money;
@@ -73,6 +77,17 @@ public:
 		}
 	};
 
+	struct News
+	{
+		int64_t day;
+		std::string text;
+
+		News()
+		{
+			day = 0;
+		}
+	};
+
 	class CCampaingData
 	{
 		std::vector<CPlayer> campaingPlayers;
@@ -86,13 +101,24 @@ public:
 		std::vector <std::string> guitars;
 		std::vector <Email> emailList;
 		std::vector <Contract> contractList;
+		std::vector <News> newsList;
+
+		std::map <std::string, CLuaH::customParam> scriptVars;
 
 		CCampaingData();
 	};
 
+	static int getCampaingList(lua_State *L);
+
+	static int registerLuaFunctions(lua_State *L);
+
 	static CCampaing &campaingMGR();
 
+private:
 	CCampaing();
+
+	CCampaing(CCampaing&) = delete;
+	CCampaing(CCampaing&&) = delete;
 };
 
 #endif
