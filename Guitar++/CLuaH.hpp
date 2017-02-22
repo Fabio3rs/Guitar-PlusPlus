@@ -387,6 +387,8 @@ public:
 	*/
 	bool						loadFiles(const std::string &path);
 
+	bool						loadFilesDequeStorage(const std::string &path, std::deque<CLuaH::luaScript> &storage);
+
 	/*
 	* Run all scripts in script quere
 	*/
@@ -394,6 +396,8 @@ public:
 
 
 	void						runScriptsFromPath(const std::string &path);
+
+	void						runScriptsFromDequeStorage(std::deque<CLuaH::luaScript> &storage);
 
 	/*
 	* New script and DO NOT add it to quere
@@ -418,11 +422,13 @@ public:
 	void						runEvent(const std::string &name);
 	void						runCheatEvent(const std::string &name);
 	void						runHookEvent(uintptr_t address);
+	void						runEventFromDeque(const std::string &name, std::deque<CLuaH::luaScript> &storage);
 	
 	/*
 	* Run a especific with parameteres (calls him specifics callbacks)
 	*/
 	void						runEventWithParams(const std::string &name, const multiCallBackParams_t &params);
+	void						runEventWithParamsFromDeque(const std::string &name, const multiCallBackParams_t &params, std::deque<CLuaH::luaScript> &storage);
 
 	/*
 	* Run a internal event (calls him specifics callbacks)

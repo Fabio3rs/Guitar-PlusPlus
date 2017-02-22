@@ -44,6 +44,34 @@ bool CLuaH::loadFiles(const std::string &path)
 	return true;
 }
 
+bool CLuaH::loadFilesDequeStorage(const std::string &path, std::deque<CLuaH::luaScript> &storage)
+{
+	auto extension_from_filename = [](const std::string &fname)
+	{
+		size_t s;
+		return std::string(((s = fname.find_first_of('.')) != fname.npos) ? (&fname.c_str()[++s]) : (""));
+	};
+
+	DIR *direntd = opendir((std::string("./") + path).c_str());
+	dirent *rrd = nullptr;
+
+	if (direntd)
+	{
+		rrd = readdir(direntd);
+		while ((rrd = readdir(direntd)) != nullptr)
+		{
+			if ((rrd->d_type & DT_DIR) == 0 && extension_from_filename(rrd->d_name) == "lua")
+			{
+				CLog::log() << ("Loading <<" + path + "/" + rrd->d_name + ">>");
+				storage.push_back(std::move(newScript(path, rrd->d_name)));
+			}
+		}
+		closedir(direntd);
+	}
+
+	return true;
+}
+
 CLuaH::luaScript *CLuaH::newScriptInQuere(luaScript &&lua){
 	files[lua.filePath][lua.fileName] = std::move(lua);
 	return &files[lua.filePath][lua.fileName];
@@ -209,6 +237,20 @@ void CLuaH::runHookEvent(uintptr_t address){
 	}
 }
 
+void CLuaH::runEventFromDeque(const std::string & name, std::deque<CLuaH::luaScript>& storage)
+{
+	for (auto &scripts : storage)
+	{
+		int luaindex = 0;
+
+		if (scripts.callbacksAdded && (luaindex = scripts.callbacks[name]) != 0) {
+			lua_rawgeti(scripts.luaState, LUA_REGISTRYINDEX, luaindex);
+			if (runScript(scripts) != 0)
+				catchErrorString(scripts);
+		}
+	}
+}
+
 
 void CLuaH::runCheatEvent(const std::string &name){
 	static const std::string barra("/");
@@ -343,11 +385,94 @@ void CLuaH::runEventWithParams(const std::string &name, const multiCallBackParam
 	}
 }
 
+void CLuaH::runEventWithParamsFromDeque(const std::string & name, const multiCallBackParams_t & params, std::deque<CLuaH::luaScript>& storage)
+{
+	for (auto &scripts : storage)
+	{
+		if (scripts.callbacksAdded && scripts.callbacks[name] != 0) {
+			lua_rawgeti(scripts.luaState, LUA_REGISTRYINDEX, scripts.callbacks[name]);
+
+			for (auto &p : params)
+			{
+				p.pushToLuaStack(scripts.luaState);
+			}
+
+			if (runScriptWithArgs(scripts, params.size()) != 0) {
+				std::string errors = "Event name ";
+				errors += name;
+				errors += " num params: ";
+				errors += std::to_string(params.size());
+				errors += " data: ";
+
+				for (auto &p : params) {
+					switch (p.getType())
+					{
+					case LUA_TNIL:
+						errors += " <null> ";
+						break;
+
+					case LUA_TNUMBER:
+						errors += " Number<";
+						errors += std::to_string(p.getNumber());
+						errors += "> ";
+						break;
+
+					case LUA_TBOOLEAN:
+						errors += ((p.getBoolean() != 0) ? " Boolean<True> " : " Boolean<False> ");
+						break;
+
+					case LUA_TSTRING:
+						errors += " String<";
+						errors += p.getString();
+						errors += "> ";
+						break;
+
+					case LUA_TTABLE:
+						errors += " <Get LUA_TTABLE: **TODO**> ";
+						break;
+
+					case LUA_TFUNCTION:
+						errors += " <Get LUA_TFUNCTION: **TODO**> ";
+						break;
+
+					case LUA_TUSERDATA:
+						errors += " <Get LUA_TUSERDATA: **TODO**> ";
+						break;
+
+					case LUA_TTHREAD:
+						errors += " <Get LUA_TTHREAD: **TODO**> ";
+						break;
+
+					case LUA_TLIGHTUSERDATA:
+						errors += " <Get LUA_TLIGHTUSERDATA: **TODO**> ";
+						break;
+
+					default:
+						errors += " <unknow argment type> ";
+						break;
+					}
+				}
+
+				CLog::log() << errors;
+				catchErrorString(scripts);
+			}
+		}
+	}
+}
+
 void CLuaH::runScriptsFromPath(const std::string &path)
 {
 	for (auto &pathScripts : Lua().files[path])
 	{
 		runScript(pathScripts.second);
+	}
+}
+
+void CLuaH::runScriptsFromDequeStorage(std::deque<CLuaH::luaScript>& storage)
+{
+	for (auto &pathScripts : storage)
+	{
+		runScript(pathScripts);
 	}
 }
 

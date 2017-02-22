@@ -20,6 +20,8 @@ class CCampaing
 	bool loadCampaingF(const std::string &filepath);
 	bool saveCampaingF();
 
+	std::deque <CLuaH::luaScript> campaingScripts;
+
 public:
 	struct Contract
 	{
@@ -154,6 +156,8 @@ public:
 
 	class CCampaingData
 	{
+		friend class CCampaing;
+		std::string mode;
 		std::vector<CPlayer> campaingPlayers;
 		std::string bandName;
 
@@ -173,13 +177,13 @@ public:
 		template<class Archive>
 		void load(Archive &archive)
 		{
-			archive(campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scriptVars);
+			archive(mode, campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scriptVars);
 		}
 
 		template<class Archive>
 		void save(Archive &archive) const
 		{
-			archive(campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scriptVars);
+			archive(mode, campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scriptVars);
 		}
 		
 		CCampaingData();

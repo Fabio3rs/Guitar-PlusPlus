@@ -5,11 +5,12 @@ CCampaing::CCampaingData::CCampaingData()
 {
 	money = 0.0;
 	reputationPoints = 0;
-
+	mode = "default";
 }
 
 bool CCampaing::loadCampaingF(const std::string &filepath)
 {
+	std::string campaingScriptsDirectory = "data/campaings/";
 	try {
 		std::fstream svfstream(filepath, std::ios::in | std::ios::binary);
 
@@ -24,6 +25,9 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 
 		campaingLoaded = true;
 		loadedCampaingFilepath = filepath;
+
+		CLuaH::Lua().loadFilesDequeStorage(campaingScriptsDirectory + campaingNow.mode, campaingScripts);
+		CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
 	}
 	catch (const std::exception &e)
 	{
@@ -33,7 +37,7 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 	}
 	catch (...)
 	{
-		CLog::log() << "Fail to load save " + filepath;
+		CLog::log() << "Fail to load campaing data " + filepath;
 		campaingLoaded = false;
 		return false;
 	}
@@ -62,6 +66,7 @@ bool CCampaing::saveCampaingF()
 	}
 	catch (...)
 	{
+		CLog::log() << "Fail to save campaing data " + loadedCampaingFilepath;
 		return false;
 	}
 	return true;
