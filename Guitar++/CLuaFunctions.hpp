@@ -205,8 +205,11 @@ public:
 	static int stopSound(lua_State *L);
 	static int setSoundTime(lua_State *L);
 	static int setSoundVolume(lua_State *L);
+	static int getSoundVolume(lua_State *L);
+	static int getSoundTime(lua_State *L);
 	static int releaseSound(lua_State *L);
 	static int setSoundFlags(lua_State *L);
+	static int setSoundAttribute(lua_State *L);
 
 
 	static int setGameVar(lua_State *L);

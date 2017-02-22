@@ -756,7 +756,47 @@ int CLuaFunctions::setSoundVolume(lua_State * L)
 		p >> handle;
 		p >> value;
 
-		CEngine::engine().setSoundVolume(handle, value);
+		p << CEngine::engine().setSoundVolume(handle, value);
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::getSoundVolume(lua_State * L)
+{
+	LuaParams p(L);
+
+	for (int i = 0; i < p.getNumParams(); i++) {
+		if (lua_isnumber(L, i + 1)) {
+			int handle = 0;
+			p >> handle;
+
+			p << CEngine::engine().getSoundVolume(handle);
+		}
+		else
+		{
+			p << false;
+		}
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::getSoundTime(lua_State * L)
+{
+	LuaParams p(L);
+
+	for (int i = 0; i < p.getNumParams(); i++) {
+		if (lua_isnumber(L, i + 1)) {
+			int handle = 0;
+			p >> handle;
+
+			p << CEngine::engine().getSoundTime(handle);
+		}
+		else
+		{
+			p << false;
+		}
 	}
 
 	return p.rtn();
@@ -796,7 +836,27 @@ int CLuaFunctions::setSoundFlags(lua_State * L)
 		p >> flags;
 		p >> mask;
 
-		CEngine::engine().setSoundFlags(handle, flags, mask);
+		p << CEngine::engine().setSoundFlags(handle, flags, mask);
+	}
+
+	return p.rtn();
+}
+
+int CLuaFunctions::setSoundAttribute(lua_State * L)
+{
+	LuaParams p(L);
+
+	if (p.getNumParams() == 3 && lua_isnumber(L, 1) && lua_isnumber(L, 2) && lua_isnumber(L, 3))
+	{
+		int handle = 0;
+		int64_t flags = 0;
+		double value = 0;
+
+		p >> handle;
+		p >> flags;
+		p >> value;
+
+		p << CEngine::engine().setSoundAttribute(handle, flags, value);
 	}
 
 	return p.rtn();
@@ -1213,6 +1273,9 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "setSoundVolume", setSoundVolume);
 	lua_register(L, "releaseSound", releaseSound);
 	lua_register(L, "setSoundFlags", setSoundFlags);
+	lua_register(L, "getSoundTime", getSoundTime);
+	lua_register(L, "getSoundVolume", getSoundVolume);
+	lua_register(L, "setSoundAttribute", setSoundAttribute);
 
 	auto &funList = LuaF().registerFunctionsAPICBs;
 
@@ -1230,6 +1293,7 @@ template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const
 }
 
 #include <bass.h>
+#include <bass_fx.h>
 
 /*
 * Register default game globals
@@ -1254,6 +1318,35 @@ void CLuaFunctions::registerGlobals(lua_State *L)
 	setLuaGlobal(L, "BASS_MUSIC_POSRESET", BASS_MUSIC_POSRESET);
 	setLuaGlobal(L, "BASS_MUSIC_POSRESETEX", BASS_MUSIC_POSRESETEX);
 	setLuaGlobal(L, "BASS_MUSIC_STOPBACK", BASS_MUSIC_STOPBACK);
+
+
+	setLuaGlobal(L, "BASS_ATTRIB_EAXMIX", BASS_ATTRIB_EAXMIX);
+	setLuaGlobal(L, "BASS_ATTRIB_CPU", BASS_ATTRIB_CPU);
+	setLuaGlobal(L, "BASS_ATTRIB_FREQ", BASS_ATTRIB_FREQ);
+	setLuaGlobal(L, "BASS_ATTRIB_MUSIC_ACTIVE", /*BASS_ATTRIB_MUSIC_ACTIVE*/-1);
+	setLuaGlobal(L, "BASS_ATTRIB_MUSIC_AMPLIFY", BASS_ATTRIB_MUSIC_AMPLIFY);
+	setLuaGlobal(L, "BASS_ATTRIB_MUSIC_BPM", BASS_ATTRIB_MUSIC_BPM);
+	setLuaGlobal(L, "BASS_ATTRIB_MUSIC_PANSEP", BASS_ATTRIB_MUSIC_PANSEP);
+	setLuaGlobal(L, "BASS_ATTRIB_MUSIC_PSCALER", BASS_ATTRIB_MUSIC_PSCALER);
+	setLuaGlobal(L, "BASS_ATTRIB_MUSIC_SPEED", BASS_ATTRIB_MUSIC_SPEED);
+	setLuaGlobal(L, "BASS_ATTRIB_MUSIC_VOL_CHAN", BASS_ATTRIB_MUSIC_VOL_CHAN);
+	setLuaGlobal(L, "BASS_ATTRIB_MUSIC_VOL_GLOBAL", BASS_ATTRIB_MUSIC_VOL_GLOBAL);
+	setLuaGlobal(L, "BASS_ATTRIB_MUSIC_VOL_INST", BASS_ATTRIB_MUSIC_VOL_INST);
+	setLuaGlobal(L, "BASS_ATTRIB_NOBUFFER", BASS_ATTRIB_NOBUFFER);
+	setLuaGlobal(L, "BASS_ATTRIB_PAN", BASS_ATTRIB_PAN);
+	setLuaGlobal(L, "BASS_ATTRIB_SRC", BASS_ATTRIB_SRC);
+	setLuaGlobal(L, "BASS_ATTRIB_VOL", BASS_ATTRIB_VOL);
+	setLuaGlobal(L, "BASS_ATTRIB_TEMPO", BASS_ATTRIB_TEMPO);
+	setLuaGlobal(L, "BASS_ATTRIB_TEMPO_PITCH", BASS_ATTRIB_TEMPO_PITCH);
+	setLuaGlobal(L, "BASS_ATTRIB_TEMPO_FREQ", BASS_ATTRIB_TEMPO_FREQ);
+	setLuaGlobal(L, "BASS_ATTRIB_TEMPO_OPTION_USE_AA_FILTER", BASS_ATTRIB_TEMPO_OPTION_USE_AA_FILTER);
+	setLuaGlobal(L, "BASS_ATTRIB_TEMPO_OPTION_AA_FILTER_LENGTH", BASS_ATTRIB_TEMPO_OPTION_AA_FILTER_LENGTH);
+	setLuaGlobal(L, "BASS_ATTRIB_TEMPO_OPTION_USE_QUICKALGO", BASS_ATTRIB_TEMPO_OPTION_USE_QUICKALGO);
+	setLuaGlobal(L, "BASS_ATTRIB_TEMPO_OPTION_SEQUENCE_MS", BASS_ATTRIB_TEMPO_OPTION_SEQUENCE_MS);
+	setLuaGlobal(L, "BASS_ATTRIB_TEMPO_OPTION_USE_QUICKALGO", BASS_ATTRIB_TEMPO_OPTION_USE_QUICKALGO);
+	setLuaGlobal(L, "BASS_ATTRIB_TEMPO_OPTION_SEEKWINDOW_MS", BASS_ATTRIB_TEMPO_OPTION_SEEKWINDOW_MS);
+	setLuaGlobal(L, "BASS_ATTRIB_TEMPO_OPTION_OVERLAP_MS", BASS_ATTRIB_TEMPO_OPTION_OVERLAP_MS);
+	setLuaGlobal(L, "BASS_ATTRIB_REVERSE_DIR", BASS_ATTRIB_REVERSE_DIR);
 
 	auto &funList = LuaF().registerGlobalsAPICBs;
 

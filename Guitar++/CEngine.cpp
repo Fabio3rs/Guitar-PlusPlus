@@ -101,6 +101,11 @@ int CEngine::setSoundFlags(int handle, int flags, int mask)
 	return BASS_ChannelFlags(handle, flags, mask);
 }
 
+int CEngine::setSoundAttribute(int handle, int attribute, float value)
+{
+	return BASS_ChannelSetAttribute(handle, attribute, value);
+}
+
 CEngine::chdata CEngine::getChannelData(int handle)
 {
 	chdata result;
@@ -312,6 +317,14 @@ void CEngine::setColor(double r, double g, double b, double a)
 double CEngine::getSoundTime(int handle)
 {
 	return BASS_ChannelBytes2Seconds(handle, BASS_ChannelGetPosition(handle, BASS_POS_BYTE));
+}
+
+double CEngine::getSoundVolume(int handle)
+{
+	float vol = -1.0;
+	BASS_ChannelGetAttribute(handle, BASS_ATTRIB_VOL, &vol);
+
+	return vol;
 }
 
 void CEngine::setSoundTime(int handle, double time)

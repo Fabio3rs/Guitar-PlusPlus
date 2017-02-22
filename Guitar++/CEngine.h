@@ -536,8 +536,10 @@ public:
 	bool unloadSoundStream(int &handle);
 	void setSoundTime(int handle, double time);
 	double getSoundTime(int handle);
+	double getSoundVolume(int handle);
 	bool setSoundVolume(int handle, float volume);
 	int setSoundFlags(int handle, int flags, int mask);
+	int setSoundAttribute(int handle, int attribute, float value);
 	chdata getChannelData(int handle);
 	chdata getChannelData(int handle, int b);
 
