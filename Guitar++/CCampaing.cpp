@@ -29,7 +29,31 @@ CCampaing &CCampaing::campaingMGR()
 	return campaing;
 }
 
+int CCampaing::newCampaing()
+{
+
+
+	return 0;
+}
+
+int CCampaing::continueCampaing(const std::string &path)
+{
+
+
+
+	return 0;
+}
+
+int CCampaing::campaingMenu()
+{
+
+
+
+	return 0;
+}
+
 CCampaing::CCampaing()
 {
+	campaingLoaded = false;
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerLuaFunctions);
 }

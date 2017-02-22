@@ -10,11 +10,11 @@
 #include <cstdint>
 #include "CGuitars.h"
 #include "CLuaFunctions.hpp"
-#include <cereal/cereal.hpp>
-#include <cereal/archives/portable_binary.hpp>
+#include "CSaveSystem.h"
 
 class CCampaing
 {
+	bool campaingLoaded;
 
 public:
 	struct Contract
@@ -113,6 +113,11 @@ public:
 	static int registerLuaFunctions(lua_State *L);
 
 	static CCampaing &campaingMGR();
+
+	int newCampaing();
+	int continueCampaing(const std::string &path);
+
+	int campaingMenu();
 
 private:
 	CCampaing();
