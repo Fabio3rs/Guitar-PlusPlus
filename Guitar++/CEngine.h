@@ -543,6 +543,8 @@ public:
 	chdata getChannelData(int handle);
 	chdata getChannelData(int handle, int b);
 
+	static int getBassError();
+
 	void setScale(double x, double y, double z);
 
 	double getTime();

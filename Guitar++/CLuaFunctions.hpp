@@ -211,6 +211,7 @@ public:
 	static int setSoundFlags(lua_State *L);
 	static int setSoundAttribute(lua_State *L);
 
+	static int getBassError(lua_State *L);
 
 	static int setGameVar(lua_State *L);
 	static int getGameVar(lua_State *L);

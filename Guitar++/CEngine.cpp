@@ -146,6 +146,11 @@ CEngine::chdata CEngine::getChannelData(int handle, int b)
 	return result;
 }
 
+int CEngine::getBassError()
+{
+	return BASS_ErrorGetCode();
+}
+
 std::deque<CEngine::Resolution> CEngine::getPossibleVideoModes()
 {
 	int count = 0;

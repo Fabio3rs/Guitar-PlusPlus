@@ -862,6 +862,15 @@ int CLuaFunctions::setSoundAttribute(lua_State * L)
 	return p.rtn();
 }
 
+int CLuaFunctions::getBassError(lua_State * L)
+{
+	LuaParams p(L);
+
+	p << CEngine::getBassError();
+
+	return p.rtn();
+}
+
 /*
 * Load a texture (load file & load opengl texture)
 */
@@ -1276,6 +1285,8 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "getSoundTime", getSoundTime);
 	lua_register(L, "getSoundVolume", getSoundVolume);
 	lua_register(L, "setSoundAttribute", setSoundAttribute);
+	lua_register(L, "getBassError", getBassError);
+	
 
 	auto &funList = LuaF().registerFunctionsAPICBs;
 
