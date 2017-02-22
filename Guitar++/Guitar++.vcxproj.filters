@@ -204,6 +204,9 @@
     <ClCompile Include="GGPPFileMGR.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CCampaing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPPGame.h">
@@ -285,6 +288,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CGPPFileMGR.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CCampaing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

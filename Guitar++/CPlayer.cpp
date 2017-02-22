@@ -13,6 +13,7 @@
 #include "CLog.h"
 #include "GPPGame.h"
 #include "CMultiplayer.h"
+#include "CFonts.h"
 
 const int CPlayer::notesEnum = nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
 
@@ -39,8 +40,6 @@ std::string CPlayer::smartChartSearch(const std::string &path){
 
 	return "";
 }
-
-#include "CFonts.h"
 
 void CPlayer::muteInstrument()
 {

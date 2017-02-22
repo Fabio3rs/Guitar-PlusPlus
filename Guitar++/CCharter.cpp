@@ -4,6 +4,7 @@
 void CCharter::prepareDemoGamePlay(CGamePlay &gp)
 {
 	workingNote = nullptr;
+	processNewNote = true;
 
 	for (auto &p : gpModule.players)
 	{
@@ -532,6 +533,7 @@ CCharter::CCharter()
 	std::cout << "audio id " << CEngine::engine().loadSoundStream(gpModule.players.back().Notes.songFullPath.c_str(), songAudioID, true) << std::endl;
 	gpModule.bRenderHUD = false;
 	gpModule.showBPMVlaues = true;
+	gpModule.showBPMLines = true;
 
 	for (auto &b : fretKeys)
 	{

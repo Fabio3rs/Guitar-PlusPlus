@@ -87,6 +87,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CCampaing.cpp" />
     <ClCompile Include="CCharter.cpp" />
     <ClCompile Include="CControls.cpp" />
     <ClCompile Include="CEngine.cpp" />
@@ -149,6 +150,7 @@
     <ClCompile Include="tga.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CCampaing.h" />
     <ClInclude Include="CCharter.h" />
     <ClInclude Include="CControls.h" />
     <ClInclude Include="CEngine.h" />
