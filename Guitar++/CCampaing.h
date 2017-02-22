@@ -78,9 +78,8 @@ public:
 		std::vector<CPlayer> campaingPlayers;
 		std::string bandName;
 
-		int64_t money;
+		double money;
 		int64_t reputationPoints;
-		int64_t showsFinished;
 
 		std::vector <Show> playedSongs;
 		std::vector <Schedule> showsSchedule;
