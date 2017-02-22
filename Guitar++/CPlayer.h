@@ -15,6 +15,15 @@
 #include "CParticle.h"
 #include <atomic>
 #include "CGuitars.h"
+#include <map>
+#include <sstream>
+#include <cereal/cereal.hpp>
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/string.hpp>
 
 class CCharter;
 
@@ -103,6 +112,18 @@ class CPlayer{
 	std::string playerName;
 
 public:
+	template<class Archive>
+	void load(Archive &archive)
+	{
+		archive(playerName);
+	}
+
+	template<class Archive>
+	void save(Archive &archive) const
+	{
+		archive(playerName);
+	}
+
 	static const int notesEnum;
 
 	bool remoteControls;
@@ -301,6 +322,11 @@ public:
 	CGuitars::CGuitar *guitar;
 
 	CPlayer(const char *name);
+
+	inline CPlayer() : CPlayer("default")
+	{
+
+	}
 };
 
 #endif

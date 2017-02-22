@@ -15,6 +15,10 @@
 class CCampaing
 {
 	bool campaingLoaded;
+	std::string loadedCampaingFilepath;
+
+	bool loadCampaingF(const std::string &filepath);
+	bool saveCampaingF();
 
 public:
 	struct Contract
@@ -23,6 +27,18 @@ public:
 		double cost, expectedProfit, cancellationFine;
 		int numShows;
 		bool exclusivity;
+
+		template<class Archive>
+		void load(Archive &archive)
+		{
+			archive(day, hour, timeToAccept, cost, expectedProfit, cancellationFine, numShows, exclusivity);
+		}
+
+		template<class Archive>
+		void save(Archive &archive) const
+		{
+			archive(day, hour, timeToAccept, cost, expectedProfit, cancellationFine, numShows, exclusivity);
+		}
 
 		inline Contract()
 		{
@@ -41,6 +57,18 @@ public:
 		int64_t maxCombo;
 		double money;
 
+		template<class Archive>
+		void load(Archive &archive)
+		{
+			archive(songName, local, points, maxCombo, money);
+		}
+
+		template<class Archive>
+		void save(Archive &archive) const
+		{
+			archive(songName, local, points, maxCombo, money);
+		}
+
 		inline Show()
 		{
 			points = maxCombo = 0;
@@ -56,6 +84,18 @@ public:
 		std::string local;
 		std::vector<std::string> possibleSongs;
 
+		template<class Archive>
+		void load(Archive &archive)
+		{
+			archive(day, hour, cost, local, possibleSongs);
+		}
+
+		template<class Archive>
+		void save(Archive &archive) const
+		{
+			archive(day, hour, cost, local, possibleSongs);
+		}
+
 		inline Schedule()
 		{
 			day = hour = 0;
@@ -70,6 +110,18 @@ public:
 
 		size_t contract;
 
+		template<class Archive>
+		void load(Archive &archive)
+		{
+			archive(day, hour, from, subject, text, contract);
+		}
+
+		template<class Archive>
+		void save(Archive &archive) const
+		{
+			archive(day, hour, from, subject, text, contract);
+		}
+
 		inline Email()
 		{
 			day = hour = 0;
@@ -81,6 +133,18 @@ public:
 	{
 		int64_t day;
 		std::string text;
+
+		template<class Archive>
+		void load(Archive &archive)
+		{
+			archive(day, text);
+		}
+
+		template<class Archive>
+		void save(Archive &archive) const
+		{
+			archive(day, text);
+		}
 
 		News()
 		{
@@ -105,6 +169,19 @@ public:
 
 		std::map <std::string, CLuaH::customParam> scriptVars;
 
+	public:
+		template<class Archive>
+		void load(Archive &archive)
+		{
+			archive(campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scriptVars);
+		}
+
+		template<class Archive>
+		void save(Archive &archive) const
+		{
+			archive(campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scriptVars);
+		}
+		
 		CCampaingData();
 	};
 
@@ -120,6 +197,8 @@ public:
 	int campaingMenu();
 
 private:
+	CCampaingData campaingNow;
+
 	CCampaing();
 
 	CCampaing(CCampaing&) = delete;

@@ -170,6 +170,18 @@ public:
 		int64_t inumber;
 
 	public:
+		template<class Archive>
+		void load(Archive &archive)
+		{
+			archive(type, str, num, boolean, function, inumber);
+		}
+
+		template<class Archive>
+		void save(Archive &archive) const
+		{
+			archive(type, str, num, boolean, function, inumber);
+		}
+
 		int getType() const{
 			return type;
 		}

@@ -10,14 +10,14 @@ CSaveSystem &CSaveSystem::saveSystem()
 bool CSaveSystem::CSave::loads()
 {
 	try{
-		std::fstream svfstream(fpath, std::ios::in);
+		std::fstream svfstream(fpath, std::ios::in | std::ios::binary);
 
 		if (!svfstream.is_open())
 		{
 			return false;
 		}
 
-		cereal::BinaryInputArchive iarchive(svfstream); // Create an output archive
+		cereal::BinaryInputArchive iarchive(svfstream);
 
 		iarchive(*this);
 
@@ -41,7 +41,7 @@ bool CSaveSystem::CSave::loads()
 bool CSaveSystem::CSave::saves()
 {
 	try{
-		std::fstream svfstream(fpath, std::ios::out | std::ios::trunc);
+		std::fstream svfstream(fpath, std::ios::out | std::ios::trunc | std::ios::binary);
 
 		if (!svfstream.is_open())
 		{
