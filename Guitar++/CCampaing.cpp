@@ -2,6 +2,7 @@
 #include "CLog.h"
 #include "GPPGame.h"
 #include "CFonts.h"
+#include <dirent.h>
 
 CCampaing::CCampaingData::CCampaingData()
 {
@@ -12,7 +13,6 @@ CCampaing::CCampaingData::CCampaingData()
 
 bool CCampaing::loadCampaingF(const std::string &filepath)
 {
-	std::string campaingScriptsDirectory = "data/campaings/";
 	try {
 		std::fstream svfstream(filepath, std::ios::in | std::ios::binary);
 
@@ -28,7 +28,9 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 		campaingLoaded = true;
 		loadedCampaingFilepath = filepath;
 
-		CLuaH::Lua().loadFilesDequeStorage(campaingScriptsDirectory + campaingNow.mode, campaingScripts);
+		std::string scriptsPath = campaingScriptsDirectory + "/" + campaingNow.mode;
+
+		CLuaH::Lua().loadFilesDequeStorage(scriptsPath, campaingScripts);
 		CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
 	}
 	catch (const std::exception &e)
@@ -98,7 +100,13 @@ CCampaing &CCampaing::campaingMGR()
 
 int CCampaing::newCampaing()
 {
+	campaingScripts.clear();
+
 	campaingNow = CCampaingData();
+
+	std::string scriptsPath = campaingScriptsDirectory + "/" + campaingNow.mode;
+	CLuaH::Lua().loadFilesDequeStorage(scriptsPath, campaingScripts);
+
 	saveCampaingF();
 
 
@@ -107,6 +115,8 @@ int CCampaing::newCampaing()
 
 int CCampaing::continueCampaing(const std::string &path)
 {
+	campaingScripts.clear();
+
 
 
 
@@ -176,6 +186,53 @@ int CCampaing::campaingMainMenu(CMenu &menu)
 	return 0;
 }
 
+void CCampaing::loadCampaingModes()
+{
+	auto &lua = CLuaH::Lua();
+	const std::string campaingModesPath = "data/campaings";
+
+	DIR *direntd = opendir(("./" + campaingModesPath).c_str());
+	dirent *rrd = nullptr;
+
+	if (direntd)
+	{
+		rrd = readdir(direntd);
+		while ((rrd = readdir(direntd)) != nullptr)
+		{
+			std::string dname = rrd->d_name;
+			if ((rrd->d_type & DT_DIR) != 0 && dname != "." && dname != "..")
+			{
+				std::string rpath = campaingModesPath + "/" + dname;
+				std::string fullpath = rpath + "/info.lua";
+				CLog::log() << ("Loading <<" + fullpath + ">>");
+
+				{
+					if (!std::fstream(fullpath, std::ios::in | std::ios::binary).is_open())
+					{
+						CLog::log() << ("<<" + fullpath + ">> does not exist");
+
+						continue;
+					}
+				}
+
+				auto infoScript = lua.newScript(rpath, "info.lua");
+
+				if (infoScript.luaState != nullptr)
+				{
+					lua.runScript(infoScript);
+
+					auto &mode = campaingModes[dname];
+
+					mode.name = CLuaH::getGlobalVarAsString(infoScript, "name");
+					mode.description = CLuaH::getGlobalVarAsString(infoScript, "description");
+					mode.author = CLuaH::getGlobalVarAsString(infoScript, "author");
+				}
+			}
+		}
+		closedir(direntd);
+	}
+}
+
 std::deque<std::string> CCampaing::listCampaingSaves()
 {
 	return GPPGame::getDirectory("./data/saves/campaings", false, true);
@@ -201,7 +258,7 @@ int CCampaing::cotinueCampaingOptCallback(CMenu::menuOpt &opt)
 	return 0;
 }
 
-CCampaing::CCampaing()
+CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings")
 {
 	numCampaingSaves = 0;
 	menuNovaCampanhaID = menuContinuarCampanhaID = 0;

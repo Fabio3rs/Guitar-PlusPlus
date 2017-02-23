@@ -448,6 +448,10 @@ int main(int argc, char* argv[])
 					}
 					break;
 
+				case 5:
+					campaingMgr.loadCampaingModes();
+					break;
+
 				default:
 					break;
 				}

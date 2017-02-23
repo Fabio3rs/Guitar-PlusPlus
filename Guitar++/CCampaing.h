@@ -17,6 +17,7 @@ class CCampaing
 {
 	bool campaingLoaded;
 	std::string loadedCampaingFilepath;
+	const std::string campaingScriptsDirectory;
 
 	int numCampaingSaves;
 	int menuNovaCampanhaID, menuContinuarCampanhaID;
@@ -195,6 +196,18 @@ public:
 		CCampaingData();
 	};
 
+	struct CampaingMode
+	{
+		std::string name, author, description;
+
+		CampaingMode()
+		{
+
+		}
+	};
+
+	std::map <std::string, CampaingMode> campaingModes;
+
 	static int getCampaingList(lua_State *L);
 
 	static int registerLuaFunctions(lua_State *L);
@@ -206,6 +219,8 @@ public:
 
 	int campaingMenu();
 	int campaingMainMenu(CMenu &menu);
+
+	void loadCampaingModes();
 
 	static std::deque<std::string> listCampaingSaves();
 
