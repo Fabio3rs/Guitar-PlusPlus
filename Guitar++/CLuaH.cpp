@@ -98,8 +98,11 @@ CLuaH::luaScript CLuaH::newScriptR(const std::string &memf, const std::string &n
 	lData.filePath = "*";
 	lData.fileName = "";
 
-	CLuaFunctions::LuaF().registerFunctions(lData.luaState);
-	CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+	if (registerCustomFunctions)
+	{
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+	}
 
 	int load_result = luaL_loadbuffer(lData.luaState, memf.c_str(), memf.size(), name.c_str());
 
@@ -135,8 +138,11 @@ CLuaH::luaScript CLuaH::newScript(const std::string &path, const std::string &f)
 	lData.filePath = path;
 	lData.fileName = f;
 
-	CLuaFunctions::LuaF().registerFunctions(lData.luaState);
-	CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+	if (registerCustomFunctions)
+	{
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+	}
 
 	int load_result = luaL_loadfile(lData.luaState, std::string(lData.filePath + barra + lData.fileName).c_str());
 
@@ -584,6 +590,9 @@ const char *CLuaH::getGlobalVarAsString(luaScript &l, const char *varname)
 {
 	lua_getglobal(l.luaState, varname);
 
+	if (lua_isnil(l.luaState, -1))
+		return "";
+
 	return lua_tostring(l.luaState, -1);
 }
 
@@ -603,6 +612,7 @@ void CLuaH::unloadAll(){
 
 CLuaH::CLuaH()
 {
+	registerCustomFunctions = true;
 	inited = true;/*loadFiles("LuaScripts");
 
 	runScripts();*/

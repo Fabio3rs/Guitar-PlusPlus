@@ -376,6 +376,8 @@ public:
 		}
 	};
 
+	bool registerCustomFunctions;
+
 	typedef std::deque<customParam> multiCallBackParams_t;
 
 	static CLuaH				&Lua();

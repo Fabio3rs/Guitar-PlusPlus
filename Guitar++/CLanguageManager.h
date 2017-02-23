@@ -11,16 +11,17 @@ class CLanguageManager
 	class CLanguage
 	{
 		friend CLanguageManager;
-		CLuaH::luaScript *luaf;
+		std::deque<CLuaH::luaScript*> luaf;
 
 		bool loaded;
-		std::string name, file;
+		std::string name, path;
 
 		std::map < std::string, std::string > entries;
 
 	public:
+		void loadFrom(CLuaH::luaScript &ls);
 
-		CLanguage(CLuaH::luaScript &ls);
+		CLanguage(const std::string &path);
 		CLanguage();
 	};
 

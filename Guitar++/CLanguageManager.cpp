@@ -1,45 +1,37 @@
 #include "CLanguageManager.h"
 #include <iostream>
+#include <dirent.h>
+#include "CLog.h"
 
-CLanguageManager::CLanguage::CLanguage(CLuaH::luaScript &ls)
+void PrintTable(lua_State *L)
 {
-	luaf = &ls;
-	name = CLuaH::getGlobalVarAsString(ls, "langName");
-	entries["menuPlayTitle"] = CLuaH::getGlobalVarAsString(ls, "menuPlayTitle");
+    lua_pushnil(L);
+
+	int index = 0;
+
+    while(index = lua_next(L, -2) != 0)
+    {
+        if(lua_isstring(L, -1))
+          printf("%s = %s\n", lua_tostring(L, -2), lua_tostring(L, -1));
+        else if(lua_isnumber(L, -1))
+          printf("%s = %d\n", lua_tostring(L, -2), lua_tonumber(L, -1));
+        else if(lua_istable(L, -1))
+          PrintTable(L);
+
+        lua_pop(L, 1);
+    }
+}
+
+CLanguageManager::CLanguage::CLanguage(const std::string &path)
+{
+	/*entries["menuPlayTitle"] = CLuaH::getGlobalVarAsString(ls, "menuPlayTitle");
 	entries["menuOptionsTitle"] = CLuaH::getGlobalVarAsString(ls, "menuOptionsTitle");
 	entries["menuExtrasTitle"] = CLuaH::getGlobalVarAsString(ls, "menuExtrasTitle");
-
-	loaded = true;
-}
-
-CLanguageManager::CLanguage::CLanguage()
-{
-	loaded = false;
-	luaf = nullptr;
-}
-
-std::string CLanguageManager::getLanguageName(const std::string &lang)
-{
-	return langs[lang].name;
-}
-
-std::string CLanguageManager::getTextDirectFromFile(const std::string &lang, const std::string &entry)
-{
-	if (langs[lang].luaf == nullptr)
-		return "Lang file " + lang + " not loaded";
-
-	return CLuaH::getGlobalVarAsString(*langs[lang].luaf, entry);
-}
-
-std::string CLanguageManager::getText(const std::string &lang, const std::string &entry)
-{
-	return langs[lang].entries[entry];
-}
-
-CLanguageManager::CLanguageManager()
-{
+	*/
 	auto &lua = CLuaH::Lua();
-	const std::string langPath = "data/languages";
+	const std::string langPath = "data/languages/" + path;
+
+	lua.registerCustomFunctions = false;
 
 	if (lua.loadFiles(langPath))
 	{
@@ -53,9 +45,100 @@ CLanguageManager::CLanguageManager()
 				name.resize(p);
 			}
 
-			langs[name] = CLanguage(langscript.second);
+			loadFrom(langscript.second);
 		}
 	}
+
+	lua.registerCustomFunctions = true;
+
+	loaded = true;
+}
+
+void CLanguageManager::CLanguage::loadFrom(CLuaH::luaScript &ls)
+{
+	luaf.push_back(&ls);
+
+	std::string tmpName = CLuaH::getGlobalVarAsString(ls, "langName");
+
+	if (tmpName.size() > 0)
+		name = tmpName;
+
+	lua_State *L = ls.luaState;
+
+	lua_pushglobaltable(L);
+	lua_pushnil(L);
+
+	int index = -2;
+
+	while (index = lua_next(L, -2))
+	{
+		//std::cout << lua_tostring(L, -2) << " " << lua_isstring(L, -1) << std::endl;
+
+		if (lua_isstring(L, -1))
+		{
+			entries[lua_tostring(L, -2)] = lua_tostring(L, -1);
+		}
+
+		lua_pop(L, 1);
+	}
+
+	lua_pop(L, 1);
+
+	loaded = true;
+}
+
+CLanguageManager::CLanguage::CLanguage()
+{
+	loaded = false;
+}
+
+std::string CLanguageManager::getLanguageName(const std::string &lang)
+{
+	return langs[lang].name;
+}
+
+std::string CLanguageManager::getTextDirectFromFile(const std::string &lang, const std::string &entry)
+{
+	/*if (langs[lang].luaf == nullptr)
+		return "Lang file " + lang + " not loaded";
+
+	return CLuaH::getGlobalVarAsString(*langs[lang].luaf, entry);*/
+
+	return "TODO";
+}
+
+std::string CLanguageManager::getText(const std::string &lang, const std::string &entry)
+{
+	return langs[lang].entries[entry];
+}
+
+CLanguageManager::CLanguageManager()
+{
+	auto &lua = CLuaH::Lua();
+	const std::string langPath = "./data/languages";
+
+	lua.registerCustomFunctions = false;
+
+	DIR *direntd = opendir(langPath.c_str());
+	dirent *rrd = nullptr;
+
+	if (direntd)
+	{
+		rrd = readdir(direntd);
+		while ((rrd = readdir(direntd)) != nullptr)
+		{
+			std::string dname = rrd->d_name;
+			if ((rrd->d_type & DT_DIR) != 0 && dname != "." && dname != "..")
+			{
+				CLog::log() << ("Loading <<" + langPath + "/" + dname + ">>");
+				
+				langs[rrd->d_name] = CLanguage(dname);
+			}
+		}
+		closedir(direntd);
+	}
+
+	lua.registerCustomFunctions = true;
 }
 
 CLanguageManager &CLanguageManager::langMGR()
