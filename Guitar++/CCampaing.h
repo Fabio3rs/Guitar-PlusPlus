@@ -58,23 +58,25 @@ public:
 		int64_t points;
 		int64_t maxCombo;
 		double money;
+		bool openBar;
 
 		template<class Archive>
 		void load(Archive &archive)
 		{
-			archive(songName, local, points, maxCombo, money);
+			archive(songName, local, points, maxCombo, money, openBar);
 		}
 
 		template<class Archive>
 		void save(Archive &archive) const
 		{
-			archive(songName, local, points, maxCombo, money);
+			archive(songName, local, points, maxCombo, money, openBar);
 		}
 
 		inline Show()
 		{
 			points = maxCombo = 0;
 			money = 0.0;
+			openBar = false;
 		}
 	};
 
