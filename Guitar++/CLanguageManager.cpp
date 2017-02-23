@@ -1,4 +1,5 @@
 #include "CLanguageManager.h"
+#include "CLuaFunctions.hpp"
 #include <iostream>
 #include <dirent.h>
 #include "CLog.h"
@@ -114,6 +115,10 @@ std::string CLanguageManager::getText(const std::string &lang, const std::string
 
 CLanguageManager::CLanguageManager()
 {
+	usingLang = "PT-BR";
+	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerFunctions);
+	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerGlobals);
+
 	auto &lua = CLuaH::Lua();
 	const std::string langPath = "./data/languages";
 
@@ -139,6 +144,41 @@ CLanguageManager::CLanguageManager()
 	}
 
 	lua.registerCustomFunctions = true;
+}
+
+int CLanguageManager::translateString(lua_State * L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	if (p.getNumParams() > 1)
+	{
+		std::string key, usingLangL = langMGR().usingLang;
+
+		p >> key;
+
+		if (p.getNumParams() == 2)
+			p >> usingLangL;
+
+		p << langMGR().getText(usingLangL, key);
+	}
+	else
+	{
+		p << "null";
+	}
+
+	return p.rtn();
+}
+
+int CLanguageManager::registerFunctions(lua_State *L)
+{
+	lua_register(L, "translateString", translateString);
+
+	return 0;
+}
+
+int CLanguageManager::registerGlobals(lua_State *L)
+{
+	return 0;
 }
 
 CLanguageManager &CLanguageManager::langMGR()
