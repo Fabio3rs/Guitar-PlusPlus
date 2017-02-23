@@ -370,50 +370,7 @@ int main(int argc, char* argv[])
 
 						//////////////////***********************************************************
 
-						{
-							CMenu::menuOpt opt;
-
-							opt.text = "Nova campanha";
-							opt.y = 0.4;
-							opt.size = 0.075;
-							opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
-							opt.group = 1;
-							opt.status = 0;
-							opt.type = CMenu::menusOPT::textbtn;
-
-							cmpopts.addOpt(opt);
-						}
-
-						{
-							CMenu::menuOpt opt;
-
-							opt.text = "Continuar campanha";
-							opt.y = 0.3;
-							opt.size = 0.075;
-							opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
-							opt.group = 1;
-							opt.status = 0;
-							opt.type = CMenu::menusOPT::textbtn;
-
-							opt.menusXRef.push_back(game.addGameCallbacks("continueCampaingFunctionMGR", GPPGame::continueCampaing));
-
-							cmpopts.addOpt(opt);
-						}
-
-						{
-							CMenu::menuOpt opt;
-
-							opt.text = "Voltar";
-							opt.y = -0.2;
-							opt.size = 0.075;
-							opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
-							opt.group = 1;
-							opt.status = 0;
-							opt.type = CMenu::menusOPT::textbtn;
-							opt.goback = true;
-
-							cmpopts.addOpt(opt);
-						}
+						campaingMgr.campaingMainMenu(cmpopts);
 
 						//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 					}

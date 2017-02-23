@@ -18,6 +18,9 @@ class CCampaing
 	bool campaingLoaded;
 	std::string loadedCampaingFilepath;
 
+	int numCampaingSaves;
+	int menuNovaCampanhaID, menuContinuarCampanhaID;
+
 	bool loadCampaingF(const std::string &filepath);
 	bool saveCampaingF();
 
@@ -202,10 +205,14 @@ public:
 	int continueCampaing(const std::string &path);
 
 	int campaingMenu();
+	int campaingMainMenu(CMenu &menu);
 
 	static std::deque<std::string> listCampaingSaves();
 
 private:
+	static int openCampaingMenuCallback(CMenu &menu);
+	static int cotinueCampaingOptCallback(CMenu::menuOpt &opt);
+
 	CCampaingData campaingNow;
 
 	CCampaing();

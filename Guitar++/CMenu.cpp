@@ -663,8 +663,11 @@ void CMenu::update()
 	};
 
 	int i = 0;
-	for (auto &opt : options){
+	for (auto &opt : options)
+	{
 		//std::string optCallBackTXT = opt.optionName;
+		if (opt.updateCppCallback)
+			opt.updateCppCallback(opt);
 
 		CLuaH::multiCallBackParams_t params;
 
@@ -815,7 +818,7 @@ void CMenu::update()
 
 			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05)){
 				desselectAllFromGroup(opt.group);
-				opt.status = enterOpt ? 1 | 2 : 1;
+				opt.status = (enterOpt && opt.enableEnter)? 1 | 2 : 1;
 
 				if (enterOpt)
 					desselectAllTextClick(opt);

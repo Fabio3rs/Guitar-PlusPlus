@@ -118,6 +118,8 @@ public:
 
 		bool goback;
 
+		bool enableEnter;
+
 		int pressingShortcutKey;
 		int shortcutKey;
 
@@ -142,6 +144,8 @@ public:
 
 		double color[4];
 
+		std::function<int(menuOpt&)> updateCppCallback;
+
 		void update();
 
 		inline menuOpt()
@@ -164,6 +168,8 @@ public:
 
 			goback = false;
 			btnClickStat = false;
+
+			enableEnter = true;
 
 			pressingShortcutKey = shortcutKey = 0;
 
@@ -196,6 +202,8 @@ public:
 
 	std::map<int, group> groupInfo;
 	std::deque<menuOpt> options;
+
+	std::function <int (CMenu&)> openCallback;
 
 	int pushUserInterface(const CMenu &m);
 

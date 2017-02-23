@@ -2595,6 +2595,11 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 						menusStack.pop_back();
 					}
 					else{
+						if (m && m->openCallback)
+						{
+							m->openCallback(*m);
+						}
+
 						lua.runEvent("menusNext");
 					}
 					break;
