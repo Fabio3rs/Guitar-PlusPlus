@@ -11,6 +11,7 @@
 #include "CGuitars.h"
 #include "CLuaFunctions.hpp"
 #include "CSaveSystem.h"
+#include "CMenu.h"
 
 class CCampaing
 {
@@ -201,6 +202,8 @@ public:
 	int continueCampaing(const std::string &path);
 
 	int campaingMenu();
+
+	static std::deque<std::string> listCampaingSaves();
 
 private:
 	CCampaingData campaingNow;

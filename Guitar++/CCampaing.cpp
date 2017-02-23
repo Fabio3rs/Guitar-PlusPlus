@@ -1,5 +1,6 @@
 #include "CCampaing.h"
 #include "CLog.h"
+#include "GPPGame.h"
 
 CCampaing::CCampaingData::CCampaingData()
 {
@@ -96,6 +97,8 @@ CCampaing &CCampaing::campaingMGR()
 
 int CCampaing::newCampaing()
 {
+	campaingNow = CCampaingData();
+	saveCampaingF();
 
 
 	return 0;
@@ -115,6 +118,11 @@ int CCampaing::campaingMenu()
 
 
 	return 0;
+}
+
+std::deque<std::string> CCampaing::listCampaingSaves()
+{
+	return GPPGame::getDirectory("./data/saves/campaings", false, true);
 }
 
 CCampaing::CCampaing()

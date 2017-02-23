@@ -253,6 +253,8 @@ public:
 	double gameplayRunningTime;
 	bool gamePlayPlusEnabled;
 
+	static std::deque<std::string> getDirectory(const char *dir, bool getFiles, bool getDirectories);
+
 protected:
 	static int registerFunctions(lua_State *L);
 	static int registerGlobals(lua_State *L);
@@ -286,7 +288,6 @@ private:
 
 	static void loadThread(CGamePlay &module, loadThreadData &l);
 	static void loadMarathonThread(CGamePlay &module, loadThreadData &l);
-	static std::deque<std::string> getDirectory(const char *dir, bool getFiles, bool getDirectories);
 
 	void eraseGameMenusAutoCreateds();
 
