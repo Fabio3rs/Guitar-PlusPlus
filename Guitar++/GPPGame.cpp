@@ -360,6 +360,41 @@ std::deque<std::string> GPPGame::getDirectory(const char *dir, bool getFiles, bo
 	return result;
 }
 
+void GPPGame::initialLoad()
+{
+	testobj.load("test/The City.obj");
+
+	int itext = 0;
+
+	for (auto &s : strumsTexture3D)
+	{
+		s = loadTexture("data/sprites", "strum" + std::to_string(itext++) + ".tga").getTextId();
+	}
+
+	itext = 0;
+
+	for (auto &s : hopoTexture3D)
+	{
+		s = loadTexture("data/sprites", "hopo" + std::to_string(itext++) + ".tga").getTextId();
+	}
+
+	itext = 0;
+
+	for (auto &sb : sbaseTexture3D)
+	{
+		sb = loadTexture("data/sprites", "base" + std::to_string(itext++) + ".tga").getTextId();
+	}
+
+	itext = 0;
+
+	for (auto &st : striggerTexture3D)
+	{
+		st = loadTexture("data/sprites", "trigger" + std::to_string(itext++) + ".tga").getTextId();
+
+		//std::cout << st << std::endl;
+	}
+}
+
 void GPPGame::parseParameters(int argc, char *argv[])
 {
 	for (int i = 0; i < argc; ++i)
@@ -2712,39 +2747,6 @@ int GPPGame::createWindow()
 
 
 	CLuaH::Lua().runEvent("posCreateWindow");
-
-	int itext = 0;
-
-	for (auto &s : strumsTexture3D)
-	{
-		s = loadTexture("data/sprites", "strum" + std::to_string(itext++) + ".tga").getTextId();
-	}
-
-	itext = 0;
-
-	for (auto &s : hopoTexture3D)
-	{
-		s = loadTexture("data/sprites", "hopo" + std::to_string(itext++) + ".tga").getTextId();
-	}
-
-	itext = 0;
-
-	for (auto &sb : sbaseTexture3D)
-	{
-		sb = loadTexture("data/sprites", "base" + std::to_string(itext++) + ".tga").getTextId();
-	}
-
-	itext = 0;
-
-	for (auto &st : striggerTexture3D)
-	{
-		st = loadTexture("data/sprites", "trigger" + std::to_string(itext++) + ".tga").getTextId();
-
-		std::cout << st << std::endl;
-	}
-
-
-	testobj.load("test/The City.obj");
 
 	return CEngine::engine().windowOpened();
 }

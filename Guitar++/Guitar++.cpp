@@ -148,7 +148,9 @@ int main(int argc, char* argv[])
 
 		ltime = CEngine::engine().getTime();
 
-		while (CEngine::engine().windowOpened() && ((CEngine::engine().getTime() - ltime) < 3.0 || loadLoop < 100))
+		bool wOpened = true;
+
+		while ((wOpened = CEngine::engine().windowOpened()) && ((CEngine::engine().getTime() - ltime) < 3.0 || loadLoop < 100))
 		{
 			if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
 			{
@@ -444,12 +446,16 @@ int main(int argc, char* argv[])
 				case 4:
 					{
 						auto &menu = game.loadTexture("data/sprites", "menu.tga");
-						GPPGame::GuitarPP().uiRenameMenu.qbgd.Text = game.loadTexture("data/sprites", "interfacebg.tga").getTextId();
+						game.uiRenameMenu.qbgd.Text = game.loadTexture("data/sprites", "interfacebg.tga").getTextId();
 					}
 					break;
 
 				case 5:
 					campaingMgr.loadCampaingModes();
+					break;
+
+				case 6:
+					game.initialLoad();
 					break;
 
 				default:
@@ -474,7 +480,7 @@ int main(int argc, char* argv[])
 			game.renderFrame();
 		}
 
-		if (!CEngine::engine().windowOpened())
+		if (!wOpened)
 		{
 			return 0;
 		}
