@@ -62,25 +62,25 @@ public:
 		std::string local;
 		int64_t points;
 		int64_t maxCombo;
-		double money;
+		double money, cost;
 		bool openBar;
 
 		template<class Archive>
 		void load(Archive &archive)
 		{
-			archive(songName, local, points, maxCombo, money, openBar);
+			archive(songName, local, points, maxCombo, money, cost, openBar);
 		}
 
 		template<class Archive>
 		void save(Archive &archive) const
 		{
-			archive(songName, local, points, maxCombo, money, openBar);
+			archive(songName, local, points, maxCombo, money, cost, openBar);
 		}
 
 		inline Show()
 		{
 			points = maxCombo = 0;
-			money = 0.0;
+			money = cost = 0.0;
 			openBar = false;
 		}
 	};

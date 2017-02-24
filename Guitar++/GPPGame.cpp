@@ -395,6 +395,14 @@ void GPPGame::initialLoad()
 	}
 }
 
+void GPPGame::initialLoad2()
+{
+	noteOBJ.load("data/models/GPP_Note.obj");
+	triggerBASEOBJ.load("data/models/TriggerBase.obj");
+	triggerOBJ.load("data/models/Trigger.obj");
+	pylmbarOBJ.load("data/models/pylmbar.obj");
+}
+
 void GPPGame::parseParameters(int argc, char *argv[])
 {
 	for (int i = 0; i < argc; ++i)
@@ -2835,9 +2843,7 @@ int GPPGame::getGamePlayPlusState(lua_State * L)
 	return p.rtn();
 }
 
-GPPGame::GPPGame() : gppTextureKeepBuffer(false), noteOBJ("data/models/GPP_Note.obj"), triggerBASEOBJ("data/models/TriggerBase.obj"),
-						triggerOBJ("data/models/Trigger.obj"), pylmbarOBJ("data/models/pylmbar.obj"),
-						devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
+GPPGame::GPPGame() : gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
 {
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerFunctions);
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerGlobals);

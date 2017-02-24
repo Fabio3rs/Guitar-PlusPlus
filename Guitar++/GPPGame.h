@@ -256,6 +256,7 @@ public:
 	static std::deque<std::string> getDirectory(const char *dir, bool getFiles, bool getDirectories);
 
 	void initialLoad();
+	void initialLoad2();
 
 protected:
 	static int registerFunctions(lua_State *L);

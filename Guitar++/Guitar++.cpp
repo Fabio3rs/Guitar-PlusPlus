@@ -79,7 +79,9 @@ int main(int argc, char* argv[])
 
 		int loadLoop = 0;
 
-		while (CEngine::engine().windowOpened() && ((CEngine::engine().getTime() - ltime) < 0.2 || loadLoop < 10))
+		bool wOpened = true;
+
+		while ((wOpened = CEngine::engine().windowOpened()) && ((CEngine::engine().getTime() - ltime) < 0.2 || loadLoop < 10))
 		{
 			if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
 			{
@@ -147,8 +149,6 @@ int main(int argc, char* argv[])
 		double proportion = game.getWindowProportion();
 
 		ltime = CEngine::engine().getTime();
-
-		bool wOpened = true;
 
 		while ((wOpened = CEngine::engine().windowOpened()) && ((CEngine::engine().getTime() - ltime) < 3.0 || loadLoop < 100))
 		{
@@ -456,6 +456,10 @@ int main(int argc, char* argv[])
 
 				case 6:
 					game.initialLoad();
+					break;
+
+				case 7:
+					game.initialLoad2();
 					break;
 
 				default:
