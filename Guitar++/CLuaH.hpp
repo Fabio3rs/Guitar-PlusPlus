@@ -132,12 +132,13 @@ public:
 		lua_State											*luaState;
 		bool												runAgain;
 
-		std::map < std::string, std::string >		savedValues;
+		void												*customPtr;
+		std::map < std::string, std::string >				savedValues;
 		std::string											filePath;
 		std::string											fileName;
-		std::map < std::string, int >				callbacks;
-		std::map < std::string, int >				cheats;
-		std::map < uintptr_t, int >				hooks;
+		std::map < std::string, int >						callbacks;
+		std::map < std::string, int >						cheats;
+		std::map < uintptr_t, int >							hooks;
 
 		bool												cheatsAdded;
 		bool												callbacksAdded;
@@ -147,6 +148,10 @@ public:
 
 		luaScript &operator=(luaScript &&script);
 		luaScript &operator=(const luaScript &script) = delete; // No copy constructor!!!
+
+		luaScript clone();
+
+		std::vector<char> dumpBytecode();
 
 		luaScript(luaScript &L); // Works like move operator
 		luaScript();
@@ -450,7 +455,7 @@ public:
 	/*
 	* Get last runned (or running) script
 	*/
-	inline luaScript &getLastScript(){ return *lastScript.back(); }
+	luaScript &getLuaStateScript(lua_State *L);
 
 	static std::string getGlobalVarAsString(luaScript &l, const std::string &varname);
 	static const char *getGlobalVarAsString(luaScript &l, const char *varname);
@@ -458,7 +463,7 @@ public:
 	void unloadAll();
 
 private:
-	std::vector < luaScript* > lastScript;
+	//std::vector < luaScript* > lastScript;
 
 	CLuaH(const CLuaH&) = delete;
 

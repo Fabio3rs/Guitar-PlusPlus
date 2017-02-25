@@ -885,7 +885,7 @@ int CLuaFunctions::loadTexture(lua_State *L)
 
 			unsigned int result = 0;
 
-			result = GPPGame::GuitarPP().loadTexture("data/sprites", str, &CLuaH::Lua().getLastScript()).getTextId();
+			result = GPPGame::GuitarPP().loadTexture("data/sprites", str, &CLuaH::Lua().getLuaStateScript(L)).getTextId();
 
 			if (result){
 				p << result;
@@ -904,7 +904,7 @@ int CLuaFunctions::loadTexture(lua_State *L)
 
 int CLuaFunctions::doNotRunAgain(lua_State *L)
 {
-	CLuaH::Lua().getLastScript().runAgain = false;
+	CLuaH::Lua().getLuaStateScript(L).runAgain = false;
 
 	return 0;
 }
@@ -923,8 +923,8 @@ int CLuaFunctions::setCallBackToEvent(lua_State *L)
 		lua_pushvalue(L, 2);
 		int	fnRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
-		CLuaH::Lua().getLastScript().callbacks[eventName] = fnRef;
-		CLuaH::Lua().getLastScript().callbacksAdded = true;
+		CLuaH::Lua().getLuaStateScript(L).callbacks[eventName] = fnRef;
+		CLuaH::Lua().getLuaStateScript(L).callbacksAdded = true;
 	}
 
 
@@ -1107,7 +1107,7 @@ int CLuaFunctions::newMenuOption(lua_State *L)
 		int	fnRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
 		// event menuOptionName
-		CLuaH::Lua().getLastScript().callbacks[GPPGame::GuitarPP().getMenuByName(menuName).getNameFromOpt(optID)] = fnRef;
+		CLuaH::Lua().getLuaStateScript(L).callbacks[GPPGame::GuitarPP().getMenuByName(menuName).getNameFromOpt(optID)] = fnRef;
 	}
 	return p.rtn();
 }

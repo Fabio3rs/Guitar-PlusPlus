@@ -9,6 +9,7 @@
 #include <map>
 #include "CLog.h"
 #include <dirent.h>
+#include "Lua/lstate.h"
 
 CLuaH &CLuaH::Lua()
 {
@@ -177,9 +178,8 @@ int CLuaH::runScript(luaScript &lua){
 	static const std::string barra("/");
 
 	if (lua.luaState){
-		lastScript.push_back(&lua);
+		lua.luaState->script = &lua;
 		auto pcallr = lua_pcall(lua.luaState, 0, LUA_MULTRET, 0);
-		lastScript.pop_back();
 		return pcallr;
 	}
 
@@ -197,10 +197,10 @@ int CLuaH::runScript(const std::string &path, const std::string &f)
 int CLuaH::runScriptWithArgs(luaScript &lua, int args){
 	static const std::string barra("/");
 
-	if (lua.luaState){
-		lastScript.push_back(&lua);
+	if (lua.luaState)
+	{
+		lua.luaState->script = &lua;
 		auto pcallr = lua_pcall(lua.luaState, args, LUA_MULTRET, 0);
-		lastScript.pop_back();
 		return pcallr;
 	}
 
@@ -542,6 +542,65 @@ CLuaH::luaScript &CLuaH::luaScript::operator=(luaScript &&script){
 	return *this;
 }
 
+std::vector <char> bytes;
+
+int luaWriter(lua_State *L,
+	const void* p,
+	size_t sz,
+	void* ud)
+{
+	const char *pc = (const char*)p;
+	bytes.insert(bytes.end(), pc, pc + sz);
+	return 0;
+}
+
+CLuaH::luaScript CLuaH::luaScript::clone()
+{
+	bytes.clear();
+	luaScript lData;
+	lData.luaState = luaL_newstate();
+	luaL_openlibs(lData.luaState);
+	lData.customPtr = customPtr;
+	CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+	CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+
+	lua_dump(luaState, luaWriter, nullptr, 0);
+
+	luaL_loadbuffer(lData.luaState, &bytes[0], bytes.size(), "Clone");
+
+	return lData;
+}
+
+std::vector<char> CLuaH::luaScript::dumpBytecode()
+{
+	std::vector<char> result;
+
+	auto luaWriterLambda = [](lua_State *L,
+		const void* p,
+		size_t sz,
+		void* ud)
+	{
+		std::vector<char> &result = *(std::vector<char>*)ud;
+
+		const char *pc = (const char*)p;
+		result.insert(result.end(), pc, pc + sz);
+		return 0;
+	};
+
+	int dump_result = lua_dump(luaState, luaWriterLambda, &result, 0);
+
+	if (dump_result != 0)
+	{
+		CLog::log() << std::string("lua_dump(") + std::to_string((unsigned int)luaState) +
+			std::string(", ") + std::string(filePath + "/" + fileName) +
+			std::string(") failed to load with result ") + std::to_string(dump_result);
+
+		CLuaH::Lua().catchErrorString(*this);
+	}
+
+	return result;
+}
+
 void CLuaH::luaScript::unload(){
 	if (luaState != nullptr){
 		CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
@@ -577,6 +636,11 @@ CLuaH::luaScript::luaScript(luaScript &L){
 	cheatsAdded = L.cheatsAdded;
 	callbacksAdded = L.callbacksAdded;
 	hooksAdded = L.hooksAdded;
+}
+
+CLuaH::luaScript &CLuaH::getLuaStateScript(lua_State *L)
+{
+	return *((luaScript*)L->script);
 }
 
 std::string CLuaH::getGlobalVarAsString(luaScript &l, const std::string &varname)

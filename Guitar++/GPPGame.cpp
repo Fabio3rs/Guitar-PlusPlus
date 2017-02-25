@@ -2807,7 +2807,7 @@ int GPPGame::loadSingleTexture(lua_State * L)
 		p >> path;
 		p >> name;
 
-		p << GPPGame::GuitarPP().loadTexture(path, name, &CLuaH::Lua().getLastScript()).getTextId();
+		p << GPPGame::GuitarPP().loadTexture(path, name, &CLuaH::Lua().getLuaStateScript(L)).getTextId();
 	}
 	else
 	{
