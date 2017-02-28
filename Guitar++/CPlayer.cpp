@@ -165,6 +165,10 @@ void CPlayer::update()
 
 		std::copy(fretsPressed, fretsPressed + 5, lastFretsPressed);
 
+		int countI = 0;
+
+		double timeC = CEngine::engine().getTime();
+
 		for (auto &f : fretsPressed)
 		{
 			bool ftemp = f;
@@ -173,7 +177,12 @@ void CPlayer::update()
 			if (ftemp != f)
 			{
 				palhetaKey = false;
+
+				if (f)
+					fretsPressedTime[countI] = timeC;
 			}
+
+			countI++;
 		}
 	}
 	else
@@ -217,6 +226,8 @@ void CPlayer::update()
 			}
 		}
 
+		double timeC = CEngine::engine().getTime();
+		
 		for (auto &f : fretsPressed)
 		{
 			bool ftemp = f;
@@ -225,6 +236,9 @@ void CPlayer::update()
 			if (ftemp != f)
 			{
 				palhetaKey = false;
+
+				if (f)
+					fretsPressedTime[i] = timeC;
 			}
 		}
 	}
@@ -1072,6 +1086,7 @@ CPlayer::CPlayer(const char *name)
 	memset(notesSlide, -1, sizeof(notesSlide));
 	memset(lastFretsPressed, 0, sizeof(lastFretsPressed));
 	memset(fretsPressed, 0, sizeof(fretsPressed));
+	memset(fretsPressedTime, 0.0, sizeof(fretsPressedTime));
 	
 	instrumentSound = 0;
 	strklinenttime = -5.0;

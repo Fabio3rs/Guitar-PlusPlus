@@ -1456,7 +1456,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	auto processError = [&]()
 	{
-		if (!bIsACharterGP){
+		if (!bIsACharterGP)
+		{
 			player.processError();
 
 			errorThisFrame = true;
@@ -1470,6 +1471,30 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				fretPid++;
 			}
 		}
+	};
+
+	auto isTapping = [&player](int flags, double time)
+	{
+		bool result = true;
+
+		double ttime = CEngine::engine().getTime();
+
+		for (int ji = 0; ji < 5; ji++)
+		{
+			if (flags & notesFlagsConst[ji])
+			{
+				if (result)
+				{
+					result = (ttime - player.fretsPressedTime[ji]) < time;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+
+		return result;
 	};
 
 	for (size_t i = notes.notePos, size = gNotes.size(); i < size; i++)
@@ -1508,6 +1533,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				player.buffer.push_front(note);
 			}
 		}
+
+		bool tappable = note.type & notesFlags::noteTap;
 
 		if (endNoteTime > -1.5 && noteTime < 5.0)
 		{
@@ -1627,6 +1654,34 @@ void CGamePlay::updatePlayer(CPlayer &player)
 							{
 								player.aError = true;
 							}
+						}
+					}
+					
+					if (tappable && !noteDoedThisFrame && !errorThisFrame && isTapping(note.type, 0.15 - noteTime))
+					{
+						if (note.type & notesFlags::strmstlrc)
+						{
+							if (checkCorrect(ntsInac, ntsT, noteHF, note))
+							{
+								doNoteFunc(note, i);
+								player.lastHOPO = 0;
+							}
+							else
+							{
+								////////////////////////////////////////////////////////////////
+								//processError();
+								////////////////////////////////////////////////////////////////
+							}
+						}
+						else if (ntsInac > 1 && fretsPressedFlags == ntsT)
+						{
+							doNoteFunc(note, i);
+							player.lastHOPO = 0;
+						}
+						else if (ntsInac == 1 && highestFlagInPressedKey == noteHF)
+						{
+							doNoteFunc(note, i);
+							player.lastHOPO = noteHF;
 						}
 					}
 				}
@@ -1766,10 +1821,10 @@ void CGamePlay::updatePlayer(CPlayer &player)
 							cancelAllLongNotes = true;
 						}
 						/////// TODO extra checks
-						//else if (highestFlagInPressedKey != getHighestFlag(ntsT))
-					//	{
-						//	cancelAllLongNotes = true;
-						//}
+						else if (highestFlagInPressedKey != getHighestFlag(ntsT))
+						{
+							cancelAllLongNotes = true;
+						}
 					}
 
 					if (endNoteTime < 0.13)

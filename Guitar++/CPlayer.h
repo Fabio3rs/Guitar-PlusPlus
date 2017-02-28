@@ -255,6 +255,7 @@ public:
 
 	bool lastFretsPressed[5];
 	bool fretsPressed[5];
+	double fretsPressedTime[5];
 	int64_t notesSlide[5];
 
 	int64_t strklinent;
