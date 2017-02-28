@@ -16,6 +16,7 @@
 #include "CFonts.h"
 
 const int CPlayer::notesEnum = nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
+const int CPlayer::notesEnumWithOpenNotes = nf_green | nf_red | nf_yellow | nf_blue | nf_orange | nf_open;
 
 std::string CPlayer::smartChartSearch(const std::string &path){
 	auto file_exists = [](const std::string &fileName){
@@ -49,6 +50,17 @@ void CPlayer::muteInstrument()
 void CPlayer::unmuteInstrument()
 {
 	CEngine::engine().setSoundVolume(instrumentSound, 1.0f);
+}
+
+std::string trim(const std::string &str)
+{
+	size_t first = str.find_first_not_of(' ');
+	size_t last = str.find_last_not_of(' ');
+
+	if (first == str.npos)
+		return str;
+
+	return str.substr(first, str.size() - first);
 }
 
 std::atomic<int> palhetaNpKey;
@@ -352,13 +364,16 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 		std::string myScope = "nothing";
 
-		while (chart.getline(temp, sizeof(temp))){
+		while (chart.getline(temp, sizeof(temp)))
+		{
 			if (chart.fail())
 				return;
 
 			std::string str = temp;
 
-			if (*temp == '['){
+			str = trim(str);
+
+			if (str.c_str()[0] == '['){
 				myScope = str;
 			}
 			else{
@@ -600,7 +615,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 				note.type |= nf_not_hopo;
 			}
 
-			int type1 = note.type & notesEnum, type2 = gNotes[i].type & notesEnum;
+			int type1 = note.type & notesEnumWithOpenNotes, type2 = gNotes[i].type & notesEnumWithOpenNotes;
 
 			if (type1 == type2)
 			{
@@ -668,6 +683,38 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 				if (gNotes[gNotes.size() - 1].time == Nts[i].time)
 				{
 					gNotes[gNotes.size() - 1].type |= noteTap;
+				}
+			}
+		}
+		else if (Nts[i].type == 7)
+		{
+			if (gNotes.size() == 0)
+			{
+				Note newNote;
+				newNote.time = Nts[i].time;
+				newNote.lTime = 0;
+				newNote.type = nf_open;
+
+				hopoTest(newNote);
+
+				gNotes.push_back(newNote);
+			}
+			else
+			{
+				if (gNotes[gNotes.size() - 1].time == Nts[i].time)
+				{
+					gNotes[gNotes.size() - 1].type |= nf_not_hopo;
+				}
+				else
+				{
+					Note newNote;
+					newNote.time = Nts[i].time;
+					newNote.lTime = 0;
+					newNote.type = nf_open;
+
+					hopoTest(newNote);
+
+					gNotes.push_back(newNote);
 				}
 			}
 		}

@@ -27,11 +27,11 @@
 
 class CCharter;
 
-enum notesFlags{
+enum notesFlags {
 	nf_green = 1, nf_red = 2, nf_yellow = 4, nf_blue = 8, nf_orange = 16,
 	nf_not_hopo = 32, nf_doing_slide = 64, nf_failed = 128, nf_picked = 256,
 	nf_slide = 512, nf_slide_picked = 1024, losted = 2048, plus_mid = 4096, plus_end = 8192,
-	hopontstrmmd = 16384, strmstlrc = 32768, noteTap = 65536
+	hopontstrmmd = 16384, strmstlrc = 32768, noteTap = 65536, nf_open = 131072
 };
 
 enum playerTypes{local_main, local, lan, lan_main};
@@ -126,6 +126,7 @@ public:
 	}
 
 	static const int notesEnum;
+	static const int notesEnumWithOpenNotes;
 
 	bool remoteControls;
 
