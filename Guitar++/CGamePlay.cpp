@@ -1528,7 +1528,10 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 		if (noteTime <= 5.0)
 		{
-			if ((note.type & notesFlags::nf_picked) == 0 || noteTime >= -0.0025)
+			double endNoteTime = noteTime + note.lTime;
+
+			bool bLongNPicked = (note.type & notesFlags::nf_slide_picked) != 0 && endNoteTime >= 0.03;
+			if ((note.type & notesFlags::nf_picked) == 0 || noteTime >= -0.0025 || bLongNPicked)
 			{
 				player.buffer.push_front(note);
 			}
@@ -2053,7 +2056,7 @@ void CGamePlay::loadSongLyrics(const std::string &song)
 	songlyricsIndex = 0;
 
 	std::string lyricFile = "data/songs/" + song + "/lyrics.srt";
-	std::ifstream lyrics(lyricFile);
+	std::ifstream lyrics(lyricFile, std::ios::binary);
 
 	auto deduceTime = [](int *a)
 	{
@@ -2079,8 +2082,8 @@ void CGamePlay::loadSongLyrics(const std::string &song)
 
 		double offset = 0.0, offt;
 
-		lyrics.seekg(0, std::ios::end);
-		std::cout << lyrics.tellg() << std::endl;
+		//lyrics.seekg(0, std::ios::end);
+		//std::cout << lyrics.tellg() << std::endl;
 		lyrics.seekg(0, std::ios::beg);
 
 		lyricLine l;
@@ -2533,20 +2536,20 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		auto l0n = (const lightData)l0;
 
-		l0n.ambientLight[0] = 0.1;
-		l0n.ambientLight[1] = 0.1;
-		l0n.ambientLight[2] = 0.1;
-		l0n.ambientLight[3] = 1.0;
+		l0n.ambientLight[0] = 0.1f;
+		l0n.ambientLight[1] = 0.1f;
+		l0n.ambientLight[2] = 0.1f;
+		l0n.ambientLight[3] = 1.0f;
 
-		l0n.diffuseLight[0] = 0.0;
-		l0n.diffuseLight[1] = 0.0;
-		l0n.diffuseLight[2] = 0.0;
-		l0n.diffuseLight[3] = 0.0;
+		l0n.diffuseLight[0] = 0.0f;
+		l0n.diffuseLight[1] = 0.0f;
+		l0n.diffuseLight[2] = 0.0f;
+		l0n.diffuseLight[3] = 0.0f;
 
-		l0n.specularLight[0] = 0.0;
-		l0n.specularLight[1] = 0.0;
-		l0n.specularLight[2] = 0.0;
-		l0n.specularLight[3] = 0.0;
+		l0n.specularLight[0] = 0.0f;
+		l0n.specularLight[1] = 0.0f;
+		l0n.specularLight[2] = 0.0f;
+		l0n.specularLight[3] = 0.0f;
 
 		//engine.setLight(l0n, 0);{
 	}
@@ -2916,9 +2919,10 @@ void CGamePlay::resetModule()
 
 void CGamePlay::render()
 {
-	CEngine::RenderDoubleStruct RenderData;
+	//CEngine::RenderDoubleStruct RenderData;
 
 	auto &game = GPPGame::GuitarPP();
+	auto &engine = CEngine::engine();
 	/*auto &menu = game.loadTexture("data/sprites", "5168047.tga");
 
 	double prop = (double)menu.getImgWidth() / (double)menu.getImgHeight();
@@ -2961,7 +2965,7 @@ void CGamePlay::render()
 	}
 	//*******************************************************************************************************
 
-	CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(CEngine::engine().getFPS()) + " FPS", 0.8, 0.8, 0.1);
+	CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(engine.getFPS()) + " FPS", 0.8, 0.8, 0.1);
 }
 
 /*
@@ -3007,23 +3011,23 @@ CGamePlay::CGamePlay() : engine(CEngine::engine())
 		al = 1.0;
 	}
 
-	hoposLight.diffuseLight[4] = 0.2;
+	hoposLight.diffuseLight[4] = 0.2f;
 
 	for (auto &al : hoposLight.specularLight)
 	{
 		al = 1.0;
 	}
 
-	hoposLight.specularLight[4] = 0.2;
+	hoposLight.specularLight[4] = 0.2f;
 
 	plusNoteLight = hoposLight;
 
-	plusNoteLight.diffuseLight[0] = 0.2;
-	plusNoteLight.diffuseLight[1] = 0.2;
-	plusNoteLight.specularLight[0] = 0.2;
-	plusNoteLight.specularLight[1] = 0.2;
+	plusNoteLight.diffuseLight[0] = 0.2f;
+	plusNoteLight.diffuseLight[1] = 0.2f;
+	plusNoteLight.specularLight[0] = 0.2f;
+	plusNoteLight.specularLight[1] = 0.2f;
 
-	hoposLight.angle = 90.0;
+	hoposLight.angle = 90.0f;
 
 	{
 		CMenu::menuOpt opt;
