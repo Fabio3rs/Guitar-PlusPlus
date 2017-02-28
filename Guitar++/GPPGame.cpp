@@ -380,6 +380,13 @@ void GPPGame::initialLoad()
 
 	itext = 0;
 
+	for (auto &s : tapTexture3D)
+	{
+		s = loadTexture("data/sprites", "tap" + std::to_string(itext++) + ".tga").getTextId();
+	}
+
+	itext = 0;
+
 	for (auto &sb : sbaseTexture3D)
 	{
 		sb = loadTexture("data/sprites", "base" + std::to_string(itext++) + ".tga").getTextId();

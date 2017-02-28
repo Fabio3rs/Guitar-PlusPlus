@@ -647,6 +647,16 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 				}
 			}
 		}
+		else if (Nts[i].type == 6)
+		{
+			if (gNotes.size() > 0)
+			{
+				if (gNotes[gNotes.size() - 1].time == Nts[i].time)
+				{
+					gNotes[gNotes.size() - 1].type |= noteTap;
+				}
+			}
+		}
 		else if (Nts[i].type == -1)
 		{
 			plusNote plusT;

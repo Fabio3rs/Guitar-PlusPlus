@@ -800,7 +800,7 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 		CEngine::engine().matrixReset();
 }
 
-void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CPlayer &player)
+void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, int type, CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
 	double rtime = getRunningMusicTime(player) - pos;
@@ -901,6 +901,11 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, CP
 		}
 
 		auto texts = (Texture == GPPGame::GuitarPP().HOPOSText) ? GPPGame::GuitarPP().hopoTexture3D : GPPGame::GuitarPP().strumsTexture3D;
+
+		if (type & noteTap)
+		{
+			texts = GPPGame::GuitarPP().tapTexture3D;
+		}
 
 		/*if (Texture == GPPGame::GuitarPP().HOPOSText)
 		{
@@ -1200,7 +1205,7 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 
 			//renderTimeOnNote(time, time, player);
 
-			if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, player);
+			if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, note.type, player);
 		}
 	}
 
@@ -1219,7 +1224,7 @@ void CGamePlay::renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player)
 			time = ltimet;
 			}*/
 
-			if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, player);
+			if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, note.type, player);
 		}
 	}
 }
