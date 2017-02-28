@@ -60,7 +60,10 @@ std::string trim(const std::string &str)
 	if (first == str.npos)
 		return str;
 
-	return str.substr(first, str.size() - first);
+	if (last == str.npos)
+		last = str.size();
+
+	return str.substr(first, last - first + 1);
 }
 
 std::atomic<int> palhetaNpKey;
@@ -387,10 +390,18 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 					continue;
 
 				sB = str.find_first_of(' ', d);
-				sB = (sB == str.npos || sB >= s) ? (s - 1) : (sB - 1);
+				sB = (sB == str.npos || sB >= s) ? (s - 1) : (sB);
 
 				std::string name;
+
+				if (!isblank(str[0]))
+				{
+					d = 0;
+				}
+				
 				name.insert(0, str, d, sB);
+
+				name = trim(name);
 
 				sC = str.find_first_not_of(' ', ++s);
 				sC = sC == str.npos ? s : sC;
