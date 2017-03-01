@@ -986,6 +986,20 @@ void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlay
 		TempStruct3D.z3 = nCalc + size * 2.0;
 		TempStruct3D.z4 = TempStruct3D.z3;
 
+		bool notHOPO = (type & notesFlags::nf_not_hopo);
+
+		if (!notHOPO)
+		{
+			for (int i = 0; i < 5; ++i)
+			{
+				glm::vec3 vec3data;
+				vec3data.x = xdata[i];
+				vec3data.y = -0.47;
+				vec3data.z = TempStruct3D.z1;
+
+				hopostp.push_front(vec3data);
+			}
+		}
 
 		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
 
@@ -1002,11 +1016,11 @@ void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlay
 
 		if (player.plusEnabled)
 		{
-			text = (type & notesFlags::nf_not_hopo) ? GPPGame::GuitarPP().openNotePTexture3D : GPPGame::GuitarPP().openNoteHOPOPTexture3D;
+			text = notHOPO ? GPPGame::GuitarPP().openNotePTexture3D : GPPGame::GuitarPP().openNoteHOPOPTexture3D;
 		}
 		else
 		{
-			text = (type & notesFlags::nf_not_hopo) ? GPPGame::GuitarPP().openNoteTexture3D : GPPGame::GuitarPP().openNoteHOPOTexture3D;
+			text = notHOPO ? GPPGame::GuitarPP().openNoteTexture3D : GPPGame::GuitarPP().openNoteHOPOTexture3D;
 		}
 
 		GPPGame::GuitarPP().openNoteOBJ.draw(text, false);
