@@ -37,6 +37,7 @@ class CGamePlay{
 	void updatePlayer(CPlayer &player);
 	void renderPlayer(CPlayer &player);
 	void renderIndivdualNote(int id, double pos, unsigned int Texture, int type, CPlayer &player);
+	void renderOpenNote(double pos, unsigned int Texture, int type, CPlayer &player);
 	void renderIndivdualNoteShadow(int id, double pos, unsigned int Texture, bool tail, CPlayer &player);
 	double getRunningMusicTime(CPlayer &player);
 	double time2Position(double Time, CPlayer &player);

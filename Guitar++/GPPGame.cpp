@@ -400,6 +400,11 @@ void GPPGame::initialLoad()
 
 		//std::cout << st << std::endl;
 	}
+
+	openNoteTexture3D = loadTexture("data/sprites", "Opennote.tga").getTextId();
+	openNoteHOPOTexture3D = loadTexture("data/sprites", "OpennoteHOPO.tga").getTextId();
+	openNotePTexture3D = loadTexture("data/sprites", "OpennoteP.tga").getTextId();
+	openNoteHOPOPTexture3D = loadTexture("data/sprites", "OpennoteHOPOP.tga").getTextId();
 }
 
 void GPPGame::initialLoad2()
@@ -408,6 +413,7 @@ void GPPGame::initialLoad2()
 	triggerBASEOBJ.load("data/models/TriggerBase.obj");
 	triggerOBJ.load("data/models/Trigger.obj");
 	pylmbarOBJ.load("data/models/pylmbar.obj");
+	openNoteOBJ.load("data/models/GPP_Opennote.obj");
 }
 
 void GPPGame::parseParameters(int argc, char *argv[])

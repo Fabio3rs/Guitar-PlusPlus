@@ -939,6 +939,80 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, in
 		CEngine::engine().matrixReset();
 }
 
+void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlayer & player)
+{
+	CEngine::RenderDoubleStruct TempStruct3D;
+	double rtime = getRunningMusicTime(player) - pos;
+
+	bool rotated = false;
+
+	if (rtime > -5.0)
+	{
+		double size = 0.2;
+		double position = -0.51;
+
+		auto form = [size, position](double idd)
+		{
+			return position + (double(idd) * size / 48.0) + (double(idd) * size);
+		};
+
+		const static double xdata[] = { form(0), form(1), form(2), form(3), form(4) };
+
+		//TempStruct3D.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolght.tga").getTextId();
+		/*TempStruct3D.TextureX1 = double(id) * 0.2;
+		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;*/
+		TempStruct3D.TextureX1 = 0.0;
+		TempStruct3D.TextureX2 = 1.0;
+
+		double nCalc = rtime * speedMp;
+
+		nCalc += 0.55;
+
+		TempStruct3D.TextureY1 = 1.0;
+		TempStruct3D.TextureY2 = 0.0;
+
+		TempStruct3D.x1 = xdata[2]/*position + (double(id) * size / 48.0) + (double(id) * size)*/;
+		TempStruct3D.x2 = TempStruct3D.x1 + size;
+		TempStruct3D.x3 = TempStruct3D.x1 + size;
+		TempStruct3D.x4 = TempStruct3D.x1;
+
+		TempStruct3D.y1 = -0.46;
+		TempStruct3D.y2 = TempStruct3D.y1;
+		TempStruct3D.y3 = -0.46;
+		TempStruct3D.y4 = TempStruct3D.y3;
+
+		TempStruct3D.z1 = nCalc;
+		TempStruct3D.z2 = TempStruct3D.z1;
+		TempStruct3D.z3 = nCalc + size * 2.0;
+		TempStruct3D.z4 = TempStruct3D.z3;
+
+
+		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
+
+		if (alpha <= 0.0)
+		{
+			return;
+		}
+
+		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
+
+		CEngine::engine().renderAt(0.0, -0.5, TempStruct3D.z1 + size);
+
+		unsigned int text = 0;
+
+		if (player.plusEnabled)
+		{
+			text = (type & notesFlags::nf_not_hopo) ? GPPGame::GuitarPP().openNotePTexture3D : GPPGame::GuitarPP().openNoteHOPOPTexture3D;
+		}
+		else
+		{
+			text = (type & notesFlags::nf_not_hopo) ? GPPGame::GuitarPP().openNoteTexture3D : GPPGame::GuitarPP().openNoteHOPOTexture3D;
+		}
+
+		GPPGame::GuitarPP().openNoteOBJ.draw(text, false);
+	}
+}
+
 void CGamePlay::renderIndividualLine(int id, double pos1, double pos2, unsigned int Texture, CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
@@ -1167,7 +1241,15 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 	double dif = time - ltimet;
 	bool bAddTailToBuffer = false;
 	double lt = 0.0, tlng = 0.0;
-	for (int i = 0; i < 5; i++){
+
+	if (note.type & notesFlags::nf_open)
+	{
+		if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide)) renderOpenNote(time, 0, note.type, player);
+		return;
+	}
+
+	for (int i = 0; i < 5; i++)
+	{
 		if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
 		{
 			unsigned int texture = /*fretsText.notesTexture*/1;

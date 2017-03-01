@@ -219,7 +219,7 @@ public:
 
 	static void helpMenu(const std::string &name);
 	
-	GPPOBJ noteOBJ, triggerBASEOBJ, triggerOBJ, pylmbarOBJ;
+	GPPOBJ noteOBJ, triggerBASEOBJ, triggerOBJ, pylmbarOBJ, openNoteOBJ;
 
 	unsigned int strumsTexture3D[6];
 	unsigned int hopoTexture3D[6];
@@ -227,7 +227,7 @@ public:
 
 	unsigned int sbaseTexture3D[6];
 	unsigned int striggerTexture3D[6];
-
+	unsigned int openNoteTexture3D, openNoteHOPOTexture3D, openNotePTexture3D, openNoteHOPOPTexture3D;
 
 	unsigned int strumKeys[5], fretOneKey, fretTwoKey;
 
