@@ -149,6 +149,8 @@ public:
 
 		double chartResolutionProp;
 
+		double BPMMinPosition;
+
 		double fretsNotePickedTime[5];
 		bool inLongNote[5];
 		int longNoteComb;

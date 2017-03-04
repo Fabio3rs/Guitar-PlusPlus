@@ -573,6 +573,9 @@ public:
 	static void shadowMatrix(float shadowMat[4][4], float groundplane[4], float lightpos[4]);
 	static void findPlane(float plane[4], float v0[3], float v1[3], float v2[3]);
 
+	static void enablePolygonOffset();
+	static void disablePolygonOffset();
+
 	void setVSyncMode(int mode);
 
 	~CEngine();

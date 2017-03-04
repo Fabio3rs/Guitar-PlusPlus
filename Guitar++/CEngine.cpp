@@ -1379,23 +1379,23 @@ void CEngine::activateStencilTest(bool a)
 
 void CEngine::startShadowCapture()
 {
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-	glDepthMask(GL_FALSE);
-	glDepthFunc(GL_LESS);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_INCR_WRAP);
-	glStencilFunc(GL_ALWAYS, 1, -1);
-	glCullFace(GL_BACK);
+	//glDepthMask(GL_FALSE);
+	//glDepthFunc(GL_LESS);
+	glStencilFunc(GL_ALWAYS, 1, ~0);
+	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+	//glCullFace(GL_BACK);
 }
 
 void CEngine::endShadowCapture()
 {
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	glDepthMask(GL_TRUE);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-	glStencilFunc(GL_EQUAL, 0, -1);
-	glCullFace(GL_FRONT);
-	glDisable(GL_CULL_FACE);
+	//glDepthMask(GL_TRUE);
+	glStencilFunc(GL_EQUAL, 1, ~0);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_ZERO);
+	//glCullFace(GL_FRONT);
+	//glDisable(GL_CULL_FACE);
 }
 
 void CEngine::findPlane(float plane[4], float v0[3], float v1[3], float v2[3])
@@ -1424,6 +1424,17 @@ void CEngine::findPlane(float plane[4], float v0[3], float v1[3], float v2[3])
 	plane[C] = vec0[X] * vec1[Y] - vec0[Y] * vec1[X];
 
 	plane[D] = -(plane[A] * v0[X] + plane[B] * v0[Y] + plane[C] * v0[Z]);
+}
+
+void CEngine::enablePolygonOffset()
+{
+	::glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(1.0, 2.0);
+}
+
+void CEngine::disablePolygonOffset()
+{
+	::glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
 void CEngine::shadowMatrix(float shadowMat[4][4], float groundplane[4], float lightpos[4])

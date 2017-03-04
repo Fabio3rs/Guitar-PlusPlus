@@ -526,7 +526,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 			}
 
 			if (BPM < (BPMs.size() - 1)){
-				if (BPMs[BPM + 1].offset <= nt.time)
+				if (BPMs[BPM + 1].offset < nt.time)
 					++BPM;
 			}
 
@@ -943,6 +943,7 @@ CPlayer::NotesData::NotesData(){
 	longNoteComb = 0;
 	chartResolutionProp = 1.0;
 	plusPos = 0;
+	BPMMinPosition = 0.0;
 
 	instrument = "[ExpertSingle]";
 

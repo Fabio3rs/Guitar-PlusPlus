@@ -2,6 +2,7 @@
 #include "CEngine.h"
 #include "GPPGame.h"
 #include "CFonts.h"
+#include <array>
 
 //unsigned int programID;
 //unsigned int MatrixID;
@@ -245,7 +246,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			int nbuff = BPMnowbuff + 1;
 			if (Player.Notes.BPM.size() > nbuff)
 			{
-				if ((mtimem1 >= (Player.Notes.BPM[nbuff].time)))
+				if ((mtimem1 > (Player.Notes.BPM[nbuff].time)))
 				{
 					BPMnowbuff = nbuff;
 				}
@@ -256,7 +257,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			BPMnowbuff = 0;
 		}
 
-		double BPMnowTime = Player.Notes.BPM[BPMnowbuff].time;
+		/*double BPMnowTime = Player.Notes.BPM[BPMnowbuff].time;
 		double BPMnowTimeDiffToMtimem1 = (mtimem1 - BPMnowTime);
 
 		if (BPMnowTimeDiffToMtimem1 > 3.1)
@@ -273,7 +274,9 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		else
 		{
 			minPosition = BPMnowTime;
-		}
+		}*/
+
+		minPosition = Player.Notes.BPMMinPosition;
 
 		if (minPosition < 0.0 || mscRunnTime < 0.0)
 		{
@@ -308,7 +311,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 				if (Player.Notes.BPM.size() > nbuff)
 				{
-					if ((blinetime + BPS / 32.0) > Player.Notes.BPM[nbuff].time)
+					if ((blinetime + BPS) > Player.Notes.BPM[nbuff].time)
 					{
 						contloop = true;
 						
@@ -322,6 +325,11 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			}
 
 			tCalc += BPS;
+
+			if ((mscRunnTime - blinetime) >= 2.0)
+			{
+				Player.Notes.BPMMinPosition = blinetime;
+			}
 		}
 
 		Player.BPMNowBuffer = BPMnowbuff;
@@ -721,11 +729,14 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 
 		auto form = [size, position](double idd)
 		{
-			return position + (idd * size / 48.0) + (idd * size);
+			return position + (double(idd) * size / 48.0) + (double(idd) * size);
 		};
 
 		const static double xdata[] = { form(0), form(1), form(2), form(3), form(4) };
-		
+
+		//TempStruct3D.Text = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolght.tga").getTextId();
+		/*TempStruct3D.TextureX1 = double(id) * 0.2;
+		TempStruct3D.TextureX2 = double(id) * 0.2 + 0.2;*/
 		TempStruct3D.TextureX1 = 0.0;
 		TempStruct3D.TextureX2 = 1.0;
 
@@ -736,14 +747,14 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 		TempStruct3D.TextureY1 = 1.0;
 		TempStruct3D.TextureY2 = 0.0;
 
-		TempStruct3D.x1 = position + (double(id) * size / 48.0) + (double(id) * size);
+		TempStruct3D.x1 = xdata[id]/*position + (double(id) * size / 48.0) + (double(id) * size)*/;
 		TempStruct3D.x2 = TempStruct3D.x1 + size;
 		TempStruct3D.x3 = TempStruct3D.x1 + size;
 		TempStruct3D.x4 = TempStruct3D.x1;
 
-		TempStruct3D.y1 = -0.48;
+		TempStruct3D.y1 = -0.46;
 		TempStruct3D.y2 = TempStruct3D.y1;
-		TempStruct3D.y3 = -0.48;
+		TempStruct3D.y3 = -0.46;
 		TempStruct3D.y4 = TempStruct3D.y3;
 
 		TempStruct3D.z1 = nCalc;
@@ -751,32 +762,8 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 		TempStruct3D.z3 = nCalc + size * 2.0;
 		TempStruct3D.z4 = TempStruct3D.z3;
 
+		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, TempStruct3D.z1 + size);
 
-		double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
-
-		if (alpha <= 0.0)
-		{
-			return;
-		}
-
-		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
-
-		if (Texture == GPPGame::GuitarPP().HOPOSText)
-		{
-			glm::vec3 vec3data;
-			vec3data.x = TempStruct3D.x1;
-			vec3data.y = -0.462;
-			vec3data.z = TempStruct3D.z1;
-
-
-			hopostp.push_front(vec3data);
-		}
-
-		double atz = tail ? TempStruct3D.z1 + size / 1.25 : TempStruct3D.z1 + size / 1.5;
-
-		CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5, atz);
-
-		engine.setScale(1.0, 0.05, 2.0);
 		size_t plusPos = player.Notes.plusPos;
 
 		if (plusPos < player.Notes.gPlus.size())
@@ -790,10 +777,9 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 			}
 		}
 
-		CEngine::engine().setColor(0.0, 0.0, 0.0, tail? 0.25 : 0.7);
-		GPPGame::GuitarPP().noteOBJ.draw(0/*GPPGame::GuitarPP().loadTexture("data/sprites", "shadow.tga").getTextId()*/, false);
-		CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
-		CEngine::engine().matrixReset();
+		auto texts = (Texture == GPPGame::GuitarPP().HOPOSText) ? GPPGame::GuitarPP().hopoTexture3D : GPPGame::GuitarPP().strumsTexture3D;
+
+		GPPGame::GuitarPP().noteOBJ.draw(player.plusEnabled ? texts[5] : texts[id], false);
 	}
 
 	if (rotated)
@@ -2336,6 +2322,30 @@ void CGamePlay::setMusicSpeed(double s)
 	gSpeed = s;
 }
 
+void shadowMatrix(float m[4][4],
+	float plane[4],
+	float light[4])
+{
+	float dot = plane[0] * light[0] + plane[1] * light[1] +
+		plane[2] * light[2] + plane[3] * light[3];
+	m[0][0] = dot - light[0] * plane[0];
+	m[1][0] = -light[0] * plane[1];
+	m[2][0] = -light[0] * plane[2];
+	m[3][0] = -light[0] * plane[3];
+	m[0][1] = -light[1] * plane[0];
+	m[1][1] = dot - light[1] * plane[1];
+	m[2][1] = -light[1] * plane[2];
+	m[3][1] = -light[1] * plane[3];
+	m[0][2] = -light[2] * plane[0];
+	m[1][2] = -light[2] * plane[1];
+	m[2][2] = dot - light[2] * plane[2];
+	m[3][2] = -light[2] * plane[3];
+	m[0][3] = -light[3] * plane[0];
+	m[1][3] = -light[3] * plane[1];
+	m[2][3] = -light[3] * plane[2];
+	m[3][3] = dot - light[3] * plane[3];
+}
+
 void CGamePlay::renderPlayer(CPlayer &player)
 {
 	lightData l0;
@@ -2575,19 +2585,12 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	if (showBPMLines) drawBPMLines(player);
 
-	CEngine::enableColorsPointer(false);
-
-	engine.activateNormals(true);
-
 	static float floorVertices[4][3] = {
 		{ -20.0, -0.5, 20.0 },
 		{ 20.0, -0.5, 20.0 },
 		{ 20.0, -0.5, -20.0 },
 		{ -20.0, -0.5, -20.0 },
 	};
-
-	static float floorPlane[4] = {0, 0, 0, 1};
-	static float floorShadow[4][4];
 
 	//engine.addToAccumulationBuffer(0.5);
 	//engine.retAccumulationBuffer(1.0);
@@ -2683,9 +2686,79 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}
 	*/
 	
-	//CEngine::shadowMatrix(floorShadow, floorPlane, l0.position);
+	auto planeEquation = [](const glm::vec3 &p1, const glm::vec3 &dir)
+	{
+		float a = dir.x, b = dir.y, c = dir.z;
+		float d = -(a * p1.x) - (b * p1.y) - (c * p1.z);
+		return std::array<float, 4>{ a, b, c, d };
+	};
+
+	static float floorShadow[4][4];
+
+	float matrix[4][4];
+
+	float lightPosition[4] = { 0, 0, 2.5, 1.0 };
+	// A*x + B*y + C*z + D = 0
+	std::array<float, 4> groundPlane = planeEquation({ 0.0f, -0.5f, 0.0f }, { 0, 1, 0 });
+
+	CEngine::shadowMatrix(matrix, groundPlane.data(), l0.position);
+
+	/*
+	xyz -1 -0.5 -1
+	A    0   1  0
+	n    0 -0.5 0
+	*/
+
+	engine.activateStencilTest(true);
+	engine.startShadowCapture();
+
+	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], fretboardText);
+
+	engine.endShadowCapture();
+
+
+	CEngine::enableColorsPointer(false);
+
+	engine.activateNormals(true);
+	engine.activateStencilTest(false);
+
 
 	renderScene();
+
+	engine.activateStencilTest(true);
+	//CEngine::pushMatrix();
+	engine.setCamera(player.playerCamera);
+	CEngine::multiplyMatrix((float*)matrix);
+	
+	engine.glEnable(0x8037);
+	engine.setColor(0.0, 0.0, 0.0, 0.5);
+	engine.activate3DRender(false);
+	engine.enablePolygonOffset();
+
+	if (player.guitar == nullptr)
+	{
+		renderPylmBar();
+	}
+	else
+	{
+		renderPlayerPylmBar(player);
+	}
+
+	for (auto &n : player.buffer)
+	{
+		renderNoteShadow(n, player);
+	}
+
+	engine.glDisable(0x8037);
+	engine.disablePolygonOffset();
+
+	engine.activate3DRender(true);
+	//CEngine::popMatrix();
+	CEngine::engine().matrixReset();
+	engine.setCamera(player.playerCamera);
+
+	engine.activateStencilTest(false);
+
 
 	/*engine.activateLight(0, false);
 	engine.activateStencilTest(true);
@@ -2848,7 +2921,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	engine.activateLighting(false);
 
-	if (player.playerParticles.part.size()){
+	if (player.playerParticles.part.size())
+	{
 		//engine.clearAccmumaltionBuffer();
 		player.playerParticles.render();
 		//	engine.addToAccumulationBuffer(0.25);
