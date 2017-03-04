@@ -2709,14 +2709,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	n    0 -0.5 0
 	*/
 
-	engine.activateStencilTest(true);
+	/*engine.activateStencilTest(true);
 	engine.startShadowCapture();
 
 	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], fretboardText);
 
 	engine.endShadowCapture();
 
-
+	*/
 	CEngine::enableColorsPointer(false);
 
 	engine.activateNormals(true);
@@ -2725,7 +2725,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	renderScene();
 
-	engine.activateStencilTest(true);
+	/*engine.activateStencilTest(true);
 	//CEngine::pushMatrix();
 	engine.setCamera(player.playerCamera);
 	CEngine::multiplyMatrix((float*)matrix);
@@ -2758,7 +2758,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	engine.setCamera(player.playerCamera);
 
 	engine.activateStencilTest(false);
-
+	*/
 
 	/*engine.activateLight(0, false);
 	engine.activateStencilTest(true);
