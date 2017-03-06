@@ -2951,9 +2951,9 @@ GPPGame::GPPGame() : gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenu
 		CMenu::menuOpt opt;
 
 		opt.text = "aaaa";
-		opt.y = 0.075;
+		opt.y = 0.05;
 		opt.x = 0.0;
-		opt.size = 0.05;
+		opt.size = 0.075;
 		opt.group = 1;
 		opt.status = 0;
 		opt.type = CMenu::menusOPT::text_input;
