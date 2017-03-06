@@ -429,6 +429,21 @@ size_t CFonts::utf8InsertAt(std::string &s, const std::string &str, size_t at)
 	return sz;
 }
 
+void CFonts::utf8RemoveLast(std::string &s)
+{
+	auto it = s.begin();
+	auto it0 = s.begin();
+	size_t size = 0;
+
+
+	for (auto ch = utf8::next(it, s.end()); it != s.end(); ch = utf8::next(it, s.end()))
+	{
+		it0 = it;
+	}
+
+	s.erase(it0);
+}
+
 void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName)
 {
 	auto &fontToUse = fontsReg[fontName];

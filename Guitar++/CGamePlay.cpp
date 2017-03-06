@@ -2720,8 +2720,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	CEngine::enableColorsPointer(false);
 
 	engine.activateNormals(true);
-	engine.activateStencilTest(false);
-
+	//engine.activateStencilTest(false);
+	
 
 	renderScene();
 
@@ -2741,12 +2741,9 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}
 	else
 	{
-		renderPlayerPylmBar(player);
-	}
+		CEngine::engine().renderAt(0.0, -0.2, 1.1);
 
-	for (auto &n : player.buffer)
-	{
-		renderNoteShadow(n, player);
+		player.guitar->gameplayBar.draw(player.guitar->textureID, false);
 	}
 
 	engine.glDisable(0x8037);
@@ -2758,8 +2755,11 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	engine.setCamera(player.playerCamera);
 
 	engine.activateStencilTest(false);
-	*/
+	engine.setColor(1.0, 1.0, 1.0, 1.0);
+	
+	CEngine::engine().renderAt(0.0, -0.2, 1.1);
 
+	player.guitar->gameplayBar.draw(player.guitar->textureID, false);*/
 	/*engine.activateLight(0, false);
 	engine.activateStencilTest(true);
 	engine.activateLighting(false);

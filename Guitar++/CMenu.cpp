@@ -795,8 +795,11 @@ void CMenu::update()
 					{
 						if (opt.preText.size() > 0)
 						{
-							opt.preText.pop_back();
+							CFonts::utf8RemoveLast(opt.preText);
 							--opt.strEditPoint;
+
+							if (opt.strEditPoint < 0)
+								opt.strEditPoint = 0;
 						}
 					}
 
