@@ -2942,6 +2942,8 @@ GPPGame::GPPGame() : gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenu
 		opt.status = 0;
 		opt.type = CMenu::menusOPT::drag_bar;
 
+		CEngine::colorRGBToArray(0x3F51B5, opt.color);
+
 		uiRenameMenu.addOpt(opt);
 	}
 

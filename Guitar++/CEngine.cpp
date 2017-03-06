@@ -1437,6 +1437,19 @@ void CEngine::disablePolygonOffset()
 	::glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
+void CEngine::colorRGBToArray(int32_t rgb, double *arr)
+{
+	uint8_t colorArray[4] = { 0, 0, 0, 0 };
+	memcpy(colorArray, &rgb, sizeof(colorArray));
+
+	for (int i = 0; i < 3; i++)
+	{
+		arr[i] = ((double)colorArray[3 - i]) / (255.0);
+	}
+
+	arr[3] = 1.0;
+}
+
 void CEngine::shadowMatrix(float shadowMat[4][4], float groundplane[4], float lightpos[4])
 {
 	enum {

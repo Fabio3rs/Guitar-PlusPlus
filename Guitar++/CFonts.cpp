@@ -478,6 +478,11 @@ void CFonts::utf8RemoveAtRange(std::string &s, int at, int size)
 		}
 	}
 
+	if (i == pos)
+	{
+		itE = it;
+	}
+
 	s.erase(itB, itE);
 }
 

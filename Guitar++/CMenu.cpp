@@ -756,6 +756,32 @@ void CMenu::update()
 					if (chtmp != 0)
 						ch = chtmp;
 				}
+
+				{
+					int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_LEFT], GLFW_KEY_LEFT);
+
+					if (chtmp != 0)
+					{
+						--opt.strEditPoint;
+
+						if (opt.strEditPoint < 0)
+							opt.strEditPoint = 0;
+					}
+				}
+
+				{
+					int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_RIGHT], GLFW_KEY_RIGHT);
+
+					if (chtmp != 0)
+					{
+						++opt.strEditPoint;
+
+						int textChars = CFonts::utf8Size(opt.preText);
+
+						if (opt.strEditPoint > textChars)
+							opt.strEditPoint = textChars;
+					}
+				}
 				
 				static int capsLock = 0;
 				static int aCaps = 0;
@@ -782,6 +808,11 @@ void CMenu::update()
 
 				if (ch != 0)
 				{
+					if (opt.externalPreTextRef)
+					{
+						opt.preText = *opt.externalPreTextRef;
+					}
+
 					if (ch != GLFW_KEY_BACKSPACE)
 					{
 						if (opt.preText.size() < opt.preTextMaxSize)
@@ -802,11 +833,6 @@ void CMenu::update()
 							if (opt.strEditPoint < 0)
 								opt.strEditPoint = 0;
 						}
-					}
-
-					if (opt.externalPreTextRef)
-					{
-						opt.preText = *opt.externalPreTextRef;
 					}
 				}
 
