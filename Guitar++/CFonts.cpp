@@ -435,13 +435,50 @@ void CFonts::utf8RemoveLast(std::string &s)
 	auto it0 = s.begin();
 	size_t size = 0;
 
-
 	for (auto ch = utf8::next(it, s.end()); it != s.end(); ch = utf8::next(it, s.end()))
 	{
 		it0 = it;
 	}
 
 	s.erase(it0);
+}
+
+void CFonts::utf8RemoveAtRange(std::string &s, int at, int size)
+{
+	if (at < 0)
+		return;
+
+	if (size < 0)
+		return;
+
+	if (s.size() == 0)
+		return;
+
+	auto it = s.begin();
+	auto itB = s.begin();
+	auto itE = s.end();
+
+	int i = 0;
+
+	int pos = (at + size);
+
+	for (auto ch = utf8::next(it, s.end()); it != s.end(); ch = utf8::next(it, s.end()))
+	{
+		++i;
+
+		if (i == at)
+		{
+			itB = it;
+		}
+
+		if (i == pos)
+		{
+			itE = it;
+			break;
+		}
+	}
+
+	s.erase(itB, itE);
 }
 
 void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName)
