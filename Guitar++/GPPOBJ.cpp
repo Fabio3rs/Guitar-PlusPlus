@@ -56,11 +56,24 @@ void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file)
 				auto &mtl = mtlLib[usingmtl];
 				mtl.textureName = bufferMtlName.data();
 				mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
-
+				newmtllt = true;
 				//std::cout << path + " / " + mtl.textureName + std::to_string(mtl.textureID) << std::endl;
 				continue;
 			}
 		}
+	}
+
+	if (!newmtllt)
+	{
+		auto &mtl = mtlLib[usingmtl];
+		mtl.textureName = usingmtl;
+
+		if (mtl.textureName.find(".tga") == std::string::npos)
+		{
+			mtl.textureName += ".tga";
+		}
+
+		mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
 	}
 }
 

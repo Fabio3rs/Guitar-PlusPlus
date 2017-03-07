@@ -1871,19 +1871,30 @@ void GPPGame::startMarathonModule(const std::string & name)
 					double centerz = -650.0;
 
 					double rtime = module.players.back().musicRunningTime / 10.0;
-					double eyexcam = sin(rtime) * 1400.0 + centerx;
-					double eyezcam = cos(rtime) * 1400.0 + centerz;
+					double eyexcam = sin(0) * 1.0 + centerx + sin(rtime) * 1.0;
+					double eyezcam = cos(0) * 1.0 + centerz + cos(rtime) * 1.0;
 
 					CEngine::cameraSET usingCamera;
-					usingCamera.eyex = eyexcam;
-					usingCamera.eyey = 320.0;
-					usingCamera.eyez = eyezcam;
-					usingCamera.centerx = centerx;
-					usingCamera.centery = 280.0;
-					usingCamera.centerz = centerz;
+
+
+					usingCamera.eyex = 3.0;
+					usingCamera.eyey = 2.5;
+					usingCamera.eyez = 1.0;
+					usingCamera.centerx = 3.0 + sin(rtime);
+					usingCamera.centery = 0.5;
+					usingCamera.centerz = -5;
 					usingCamera.upx = 0;
 					usingCamera.upy = 1;
 					usingCamera.upz = 0;
+					/*usingCamera.eyex = eyexcam;
+					usingCamera.eyey = 130.0;
+					usingCamera.eyez = eyezcam;
+					usingCamera.centerx = centerx;
+					usingCamera.centery = 130.0;
+					usingCamera.centerz = centerz;
+					usingCamera.upx = 0;
+					usingCamera.upy = 1;
+					usingCamera.upz = 0;*/
 
 					engine.setCamera(usingCamera);
 				}
@@ -1908,7 +1919,7 @@ void GPPGame::startMarathonModule(const std::string & name)
 
 					for (auto &t : l.specularLight)
 					{
-						t = 1.0;
+						t = 0.2;
 					}
 
 					for (auto &t : l.diffuseLight)
@@ -1916,77 +1927,113 @@ void GPPGame::startMarathonModule(const std::string & name)
 						t = 0.2;
 					}
 
-					l.specularLight[1] = 1.0;
-					l.specularLight[2] = 1.0;
-					l.diffuseLight[0] = 1.0;
-					l.diffuseLight[1] = 1.0;
 					l.specularLight[3] = 0.5;
-					l.diffuseLight[3] = 0.5;
 					l.ambientLight[3] = 0.1;
 
-					l.angle = 100.0;
+					l.angle = 45.0;
 					l.direction[0] = 0.0;
 					l.direction[1] = -0.5;
 					l.direction[2] = -5.0;
 
-					l.position[3] = 1.0;
-					l.position[1] = 0.0;
+					l.position[1] = 2.0;
 					l.position[2] = 2.5;
+					l.position[3] = 1.0;
 
 					engine.activateLight(1, true);
 					engine.setLight(l, 1);
 				}
 
+				/*{
+				lightData l;
+
+				for (auto &t : l.ambientLight)
 				{
-					lightData l;
-
-					for (auto &t : l.ambientLight)
-					{
-						t = 0.1;
-					}
-
-					for (auto &t : l.direction)
-					{
-						t = 2.5;
-					}
-
-					for (auto &t : l.position)
-					{
-						t = 0.0;
-					}
-
-					for (auto &t : l.specularLight)
-					{
-						t = 1.0;
-					}
-
-					for (auto &t : l.diffuseLight)
-					{
-						t = 0.5;
-					}
-
-					l.specularLight[1] = 1.0;
-					l.specularLight[2] = 1.0;
-					l.specularLight[3] = 0.5;
-					l.diffuseLight[3] = 0.5;
-					l.ambientLight[3] = 0.1;
-
-					l.angle = 80.0;
-					l.direction[0] = 100.0;
-					l.direction[1] = -0.5;
-					l.direction[2] = 0.0;
-
-					l.position[3] = 0.0;
-					l.position[1] = 50.0;
-					l.position[2] = 100.5;
-
-					engine.activateLight(0, true);
-					engine.setLight(l, 0);
+				t = 0.1;
 				}
 
-				game.testobj.draw(0);
-				engine.matrixReset();
+				for (auto &t : l.direction)
+				{
+				t = 2.5;
+				}
 
+				for (auto &t : l.position)
+				{
+				t = 0.0;
+				}
+
+				for (auto &t : l.specularLight)
+				{
+				t = 1.0;
+				}
+
+				for (auto &t : l.diffuseLight)
+				{
+				t = 0.5;
+				}
+
+				l.specularLight[1] = 1.0;
+				l.specularLight[2] = 1.0;
+				l.specularLight[3] = 0.5;
+				l.diffuseLight[3] = 0.5;
+				l.ambientLight[3] = 0.1;
+
+				l.angle = 80.0;
+				l.direction[0] = 100.0;
+				l.direction[1] = -0.5;
+				l.direction[2] = 0.0;
+
+				l.position[3] = 0.0;
+				l.position[1] = 50.0;
+				l.position[2] = 100.5;
+
+				engine.activateLight(0, true);
+				engine.setLight(l, 0);
+				}*/
+
+				//static const unsigned int cityTextID = game.loadTexture("test", "city.tga").getTextId();
+
+				game.testobj.draw(0);
+
+				engine.matrixReset();
+				engine.activateLighting(false);
+				engine.activate3DRender(false);
+
+				{
+					double size = 0.4;
+
+					CEngine::RenderDoubleStruct TempStruct3D;
+
+					static auto hopoLightText = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolight.tga").getTextId();
+
+					double flarex = 2.92, flarey = 2.5, flarez = -1.0;
+
+					TempStruct3D.Text = hopoLightText;
+					TempStruct3D.TextureX1 = 0.0;
+					TempStruct3D.TextureX2 = 1.0;
+					TempStruct3D.TextureY1 = 1.0;
+					TempStruct3D.TextureY2 = 0.0;
+
+					//CFonts::fonts().drawTextInScreen(std::to_string(hopostp.size()), 0.0, 0.5, 0.1);
+
+					TempStruct3D.x1 = flarex;
+					TempStruct3D.x2 = TempStruct3D.x1 + size;
+					TempStruct3D.x3 = TempStruct3D.x1 + size;
+					TempStruct3D.x4 = TempStruct3D.x1;
+
+					TempStruct3D.y1 = flarey;
+					TempStruct3D.y2 = TempStruct3D.y1;
+					TempStruct3D.y3 = flarey + 0.2;
+					TempStruct3D.y4 = TempStruct3D.y3;
+
+					TempStruct3D.z1 = flarez + size * 2.0;
+					TempStruct3D.z2 = TempStruct3D.z1;
+					TempStruct3D.z3 = flarez;
+					TempStruct3D.z4 = TempStruct3D.z3;
+
+					CEngine::engine().Render3DQuad(TempStruct3D);
+				}
+
+				engine.clear3DBuffer();
 
 				{
 					CEngine::cameraSET usingCamera;
@@ -2002,9 +2049,6 @@ void GPPGame::startMarathonModule(const std::string & name)
 
 					engine.setCamera(usingCamera);
 				}
-
-				engine.activateLighting(false);
-				engine.activate3DRender(false);
 			}
 
 

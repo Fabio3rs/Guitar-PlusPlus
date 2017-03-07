@@ -1165,7 +1165,7 @@ CPlayer::CPlayer(const char *name)
 
 	playerCamera.eyex = 0.0;
 	playerCamera.eyey = 0.5;
-	playerCamera.eyez = 2.3;
+	playerCamera.eyez = 2.42;
 	playerCamera.centerx = 0;
 	playerCamera.centery = -0.2;
 	playerCamera.centerz = 0;
