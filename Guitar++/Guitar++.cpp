@@ -490,6 +490,8 @@ int main(int argc, char* argv[])
 		}
 
 		GPPGame::GuitarPP().setVSyncMode(1);
+		GPPOBJ asdw;
+		asdw.loadInternalObj("garage_gpp.obj", "");
 
 		// menu background texture
 

@@ -158,6 +158,16 @@ struct lightData{
 
 };
 
+struct gppVec3f
+{
+	float x, y, z;
+};
+
+struct gppVec2f
+{
+	float x, y;
+};
+
 typedef void(*customwcallback)(int w, int h, windowsNum state);
 
 class staticCallFunc
