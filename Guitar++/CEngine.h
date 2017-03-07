@@ -578,6 +578,8 @@ public:
 	void activateLight(int id, bool a);
 	void setLight(const lightData &l, int id, bool setAmbient = true);
 
+	void clear3DBuffer();
+
 	void startShadowCapture();
 	void endShadowCapture();
 	static void shadowMatrix(float shadowMat[4][4], float groundplane[4], float lightpos[4]);

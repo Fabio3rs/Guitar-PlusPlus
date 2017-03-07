@@ -60,7 +60,7 @@ void CGuitars::CGuitar::load()
 
 		CLuaH::multiCallBackParams_t g = { path, internalName };
 
-		gameplayBar.load((path + "/" + internalName + "/" + gameplayBarName).c_str());
+		gameplayBar.load((path + "/" + internalName).c_str(), gameplayBarName);
 
 		CLuaH::Lua().runInternalEventWithParams(luaF, "loadGuitar", g);
 	}

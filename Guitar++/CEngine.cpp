@@ -1342,6 +1342,11 @@ void CEngine::setLight(const lightData &l, int id, bool setAmbient)
 	glLightfv(GL_LIGHT0 + id, GL_SPOT_DIRECTION, l.direction);
 }
 
+void CEngine::clear3DBuffer()
+{
+	glClear(GL_DEPTH_BUFFER_BIT);
+}
+
 void CEngine::activateLight(int id, bool a)
 {
 	if (a)

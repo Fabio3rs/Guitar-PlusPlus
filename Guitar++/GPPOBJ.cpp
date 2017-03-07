@@ -2,15 +2,78 @@
 #include "CEngine.h"
 #include <iostream>
 #include "CShader.h"
+#include "GPPGame.h"
 
-bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &objName, bool loadMtlLib)
+void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file)
 {
-	std::fstream obj(path, std::ios::in | std::ios::binary);
+	mtlLib.clear();
+
+	std::fstream mtl(path + "/" + file, std::ios::in | std::ios::binary);
+
+	if (!mtl.is_open())
+		return;
+
+	mtlLoaded = true;
+
+	std::array<char, 1024> buffer;
+	std::array<char, 32> bufferLn;
+	std::array<char, 256> bufferMtlName;
+
+	bool acceptPosData = true;
+	bool newmtllt = true;
+	int64_t lines = -1;
+
+	std::string usingmtl;
+
+	while (mtl.getline(buffer.data(), buffer.size() - 1))
+	{
+		int readResult = sscanf(buffer.data(), "%31s %255s", bufferLn.data(), bufferMtlName.data());
+
+		if (readResult == 2)
+		{
+			if (strcmp(bufferLn.data(), "newmtl") == 0)
+			{
+				if (!newmtllt)
+				{
+					auto &mtl = mtlLib[usingmtl];
+					mtl.textureName = usingmtl;
+
+					if (mtl.textureName.find(".tga") == std::string::npos)
+					{
+						mtl.textureName += ".tga";
+					}
+
+					mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
+				}
+
+				usingmtl = bufferMtlName.data();
+				newmtllt = false;
+				continue;
+			}
+
+			if (strcmp(bufferLn.data(), "map_Kd") == 0)
+			{
+				auto &mtl = mtlLib[usingmtl];
+				mtl.textureName = bufferMtlName.data();
+				mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
+
+				//std::cout << path + " / " + mtl.textureName + std::to_string(mtl.textureID) << std::endl;
+				continue;
+			}
+		}
+	}
+}
+
+bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, const std::string &objName, bool loadMtlLib)
+{
+	std::fstream obj(path + "/" + file, std::ios::in | std::ios::binary);
 
 	if (!obj.is_open())
 		return false;
 
 	multiData.clear();
+
+	loadMtlLibData(path, "garage_gpp.mtl");
 
 	modelData mData;
 
@@ -93,8 +156,12 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &objName
 
 				if (matches != 10)
 				{
-					std::cout << "matches fail " << matches << " at line " << lines << std::endl;
-					return false;
+					matches = sscanf(buffer.data(), "%31s %d//%d %d//%d %d//%d\n", bufferLn.data(), &vertexIndex[0], &normalIndex[0], &vertexIndex[1], &normalIndex[1], &vertexIndex[2], &normalIndex[2]);
+					if (matches != 7)
+					{
+						std::cout << "matches fail " << matches << " at line " << lines << std::endl;
+						return false;
+					}
 				}
 
 				index.vertexIndices.push_back(vertexIndex[0]);
@@ -120,15 +187,28 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &objName
 			unsigned int uvIndex = part.uvIndices[i];
 			unsigned int normalIndex = part.normalIndices[i];
 
-			// Get the attributes thanks to the index
-			auto vertex = mData.vertices[vertexIndex - 1];
-			auto uv = mData.uvs[uvIndex - 1];
-			auto normal = mData.normals[normalIndex - 1];
+			if (uvIndex != 0)
+			{
+				// Get the attributes thanks to the index
+				auto vertex = mData.vertices[vertexIndex - 1];
+				auto uv = mData.uvs[uvIndex - 1];
+				auto normal = mData.normals[normalIndex - 1];
 
-			// Put the attributes in buffers
-			out_vertices.push_back(vertex);
-			out_uvs.push_back(uv);
-			out_normals.push_back(normal);
+				// Put the attributes in buffers
+				out_vertices.push_back(vertex);
+				out_uvs.push_back(uv);
+				out_normals.push_back(normal);
+			}
+			else
+			{
+				auto vertex = mData.vertices[vertexIndex - 1];
+				auto normal = mData.normals[normalIndex - 1];
+
+				// Put the attributes in buffers
+				out_vertices.push_back(vertex);
+				out_uvs.push_back({0, 0});
+				out_normals.push_back(normal);
+			}
 		}
 	};
 
@@ -148,7 +228,20 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &objName
 
 		out_part(part, vertices, uvs, normals);
 
+		if (mtlLoaded)
+		{
+			adata.textureID = mtlLib[part.name].textureID;
+
+			if (adata.textureID == 0)
+				std::cout << part.name << std::endl;
+		}
+		else
+		{
+			adata.textureID = 0;
+		}
+
 		auto &data = adata.data;
+		adata.vbodata.texture = adata.textureID;
 
 		{
 			adata.vbodata.vertexL = data.size();
@@ -169,25 +262,27 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &objName
 
 	std::cout << "multiData " << multiData.size() << std::endl;
 
-	return false;
+	return true;
 }
 
 void GPPOBJ::draw(unsigned int texture, bool autoBindZeroVBO)
 {
-	vbodata.texture = texture;
-	CShader::inst().processEvent(0);
-	CEngine::engine().RenderCustomVerticesFloat(vbodata, autoBindZeroVBO);
+	//vbodata.texture = texture;
+	//CShader::inst().processEvent(0);
+	//CEngine::engine().RenderCustomVerticesFloat(vbodata, autoBindZeroVBO);
 
 	for (auto &modelPart : multiData)
 	{
-		modelPart.vbodata.texture = texture;
+		if (texture != 0)
+			modelPart.vbodata.texture = texture;
+
 		CEngine::engine().RenderCustomVerticesFloat(modelPart.vbodata, autoBindZeroVBO);
 	}
 }
 
-void GPPOBJ::load(const std::string &path)
+void GPPOBJ::load(const std::string &path, const std::string &file)
 {
-	loadInternalObj(path);
+	loadInternalObj(path, file);
 	return;
 
 	lastPath = path;
@@ -219,10 +314,10 @@ void GPPOBJ::load(const std::string &path)
 	vbodata.count = vertices.size();
 }
 
-void GPPOBJ::reload(const std::string &path)
+/*void GPPOBJ::reload(const std::string &path)
 {
 	load(lastPath);
-}
+}*/
 
 void GPPOBJ::unload()
 {
@@ -232,41 +327,16 @@ void GPPOBJ::unload()
 	multiData.clear();
 }
 
-GPPOBJ::GPPOBJ(const std::string &path) : GPPOBJ()
+/*GPPOBJ::GPPOBJ(const std::string &path) : GPPOBJ()
 {
 	lastPath = path;
 	load(lastPath);
-	/*std::vector<glm::vec3> vertices;
-	std::vector<glm::vec2> uvs;
-	std::vector<glm::vec3> normals;
-
-	auto cpy = [](std::vector<int8_t> &data, int8_t *ptr, int size)
-	{
-		data.insert(data.end(), ptr, ptr+size);
-	};
-	
-	bool res = loadOBJ(path.c_str(), vertices, uvs, normals);
-
-	//data.reserve(vertices.size() * sizeof(glm::vec3) + uvs.size() * sizeof(glm::vec3) + normals.size() * sizeof(glm::vec3));
-
-	vbodata.vertexL = data.size();
-	cpy(data, (int8_t*)&vertices[0], vertices.size() * sizeof(glm::vec3));
-
-	vbodata.uvL = data.size();
-	cpy(data, (int8_t*)&uvs[0], uvs.size() * sizeof(glm::vec2));
-
-	vbodata.normalsL = data.size();
-	cpy(data, (int8_t*)&normals[0], normals.size() * sizeof(glm::vec3));
-
-	vbodata.pointer = &data[0];
-	vbodata.sizebytes = data.size();
-
-	vbodata.count = vertices.size();*/
-}
+}*/
 
 GPPOBJ::GPPOBJ()
 {
 	keepModelDataLoaded = false;
+	mtlLoaded = false;
 }
 
 GPPOBJ::~GPPOBJ()

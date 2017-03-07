@@ -362,7 +362,7 @@ std::deque<std::string> GPPGame::getDirectory(const char *dir, bool getFiles, bo
 
 void GPPGame::initialLoad()
 {
-	testobj.load("test/The City.obj");
+	testobj.load("test", "garage_gpp.obj");
 
 	int itext = 0;
 
@@ -409,11 +409,11 @@ void GPPGame::initialLoad()
 
 void GPPGame::initialLoad2()
 {
-	noteOBJ.load("data/models/GPP_Note.obj");
-	triggerBASEOBJ.load("data/models/TriggerBase.obj");
-	triggerOBJ.load("data/models/Trigger.obj");
-	pylmbarOBJ.load("data/models/pylmbar.obj");
-	openNoteOBJ.load("data/models/GPP_Opennote.obj");
+	noteOBJ.load("data/models", "GPP_Note.obj");
+	triggerBASEOBJ.load("data/models", "TriggerBase.obj");
+	triggerOBJ.load("data/models", "Trigger.obj");
+	pylmbarOBJ.load("data/models", "pylmbar.obj");
+	openNoteOBJ.load("data/models", "GPP_Opennote.obj");
 }
 
 void GPPGame::parseParameters(int argc, char *argv[])
@@ -1328,11 +1328,22 @@ void GPPGame::startModule(const std::string &name)
 					double centerz = -650.0;
 
 					double rtime = module.players.back().musicRunningTime / 10.0;
-					double eyexcam = sin(0) * 700.0 + centerx + sin(rtime) * 100.0;
-					double eyezcam = cos(0) * 700.0 + centerz + cos(rtime) * 100.0;
+					double eyexcam = sin(0) * 1.0 + centerx + sin(rtime) * 1.0;
+					double eyezcam = cos(0) * 1.0 + centerz + cos(rtime) * 1.0;
 
 					CEngine::cameraSET usingCamera;
-					usingCamera.eyex = eyexcam;
+
+					
+					usingCamera.eyex = 3.0;
+					usingCamera.eyey = 2.75;
+					usingCamera.eyez = 2.0;
+					usingCamera.centerx = 3.0 + sin(rtime);
+					usingCamera.centery = 2.0;
+					usingCamera.centerz = 0;
+					usingCamera.upx = 0;
+					usingCamera.upy = 1;
+					usingCamera.upz = 0;
+					/*usingCamera.eyex = eyexcam;
 					usingCamera.eyey = 130.0;
 					usingCamera.eyez = eyezcam;
 					usingCamera.centerx = centerx;
@@ -1340,7 +1351,7 @@ void GPPGame::startModule(const std::string &name)
 					usingCamera.centerz = centerz;
 					usingCamera.upx = 0;
 					usingCamera.upy = 1;
-					usingCamera.upz = 0;
+					usingCamera.upz = 0;*/
 
 					engine.setCamera(usingCamera);
 				}
@@ -1370,7 +1381,7 @@ void GPPGame::startModule(const std::string &name)
 
 					for (auto &t : l.diffuseLight)
 					{
-						t = 0.2;
+						t = 1.0;
 					}
 
 					l.specularLight[1] = 1.0;
@@ -1441,12 +1452,12 @@ void GPPGame::startModule(const std::string &name)
 					engine.setLight(l, 0);
 				}
 
-				static const unsigned int cityTextID = game.loadTexture("test", "city.tga").getTextId();
+				//static const unsigned int cityTextID = game.loadTexture("test", "city.tga").getTextId();
 
-				game.testobj.draw(cityTextID);
+				game.testobj.draw(0);
 				engine.matrixReset();
 
-
+				engine.clear3DBuffer();
 				{
 					CEngine::cameraSET usingCamera;
 					usingCamera.eyex = 0.0;
@@ -1943,9 +1954,7 @@ void GPPGame::startMarathonModule(const std::string & name)
 					engine.setLight(l, 0);
 				}
 
-				static const unsigned int cityTextID = game.loadTexture("test", "city.tga").getTextId();
-
-				game.testobj.draw(cityTextID);
+				game.testobj.draw(0);
 				engine.matrixReset();
 
 
@@ -2461,11 +2470,11 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 
 		{
 			CEngine::cameraSET usingCamera;
-			usingCamera.eyex = 500.0;
-			usingCamera.eyey = 320.0;
-			usingCamera.eyez = 500.3;
-			usingCamera.centerx = 0;
-			usingCamera.centery = 280.0;
+			usingCamera.eyex = 3.0;
+			usingCamera.eyey = 1.75;
+			usingCamera.eyez = 2.7;
+			usingCamera.centerx = 3.0;
+			usingCamera.centery = 1.3;
 			usingCamera.centerz = 0;
 			usingCamera.upx = 0;
 			usingCamera.upy = 1;
@@ -2522,7 +2531,7 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 			engine.setLight(l, 1);
 		}
 
-		testobj.draw(loadTexture("test", "city.tga").getTextId());
+		testobj.draw(0);
 		engine.matrixReset();
 
 

@@ -12,6 +12,8 @@ class GPPOBJ{
 	std::vector<int8_t> data;
 	CEngine::staticDrawBuffer vbodata;
 
+	bool mtlLoaded;
+
 	struct modelPart
 	{
 		CEngine::staticDrawBuffer vbodata;
@@ -26,9 +28,18 @@ class GPPOBJ{
 
 	struct mtl
 	{
-		std::string name, texture;
+		std::string textureName;
+		unsigned int textureID;
 
+		inline mtl()
+		{
+			textureID = 0;
+		}
 	};
+
+	std::map<std::string, mtl> mtlLib;
+
+	void loadMtlLibData(const std::string &path, const std::string &file);
 
 	struct modelPartIndex
 	{
@@ -56,17 +67,17 @@ class GPPOBJ{
 	std::string lastPath;
 
 public:
-	bool loadInternalObj(const std::string &path, const std::string &objName = "", bool loadMtlLib = false);
+	bool loadInternalObj(const std::string &path, const std::string &file, const std::string &objName = "", bool loadMtlLib = false);
 
 	bool keepModelDataLoaded;
 
 	void draw(unsigned int texture, bool autoBindZeroVBO = true);
-	void load(const std::string &path);
-	void reload(const std::string &path = "");
+	void load(const std::string &path, const std::string &file);
+	//void reload(const std::string &path = "");
 	void unload();
 
 
-	GPPOBJ(const std::string &path);
+	//GPPOBJ(const std::string &path);
 	GPPOBJ();
 	~GPPOBJ();
 };
