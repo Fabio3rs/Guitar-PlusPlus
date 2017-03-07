@@ -62,7 +62,6 @@ public:
 
 	void draw(unsigned int texture, bool autoBindZeroVBO = true);
 	void load(const std::string &path);
-	void load(const char *path);
 	void reload(const std::string &path = "");
 	void unload();
 

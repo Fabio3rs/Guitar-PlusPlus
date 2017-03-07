@@ -53,7 +53,13 @@ bool loadOBJ(
 		}else if ( strcmp( lineHeader, "vt" ) == 0 ){
 			glm::vec2 uv;
 			fscanf(file, "%f %f\n", &uv.x, &uv.y );
+
 			uv.y = -uv.y; // Invert V coordinate since we will only use DDS texture, which are inverted. Remove if you want to use TGA or BMP loaders.
+
+			if (uv.y < 0)
+				uv.y *= -1.0;
+
+			uv.y = 1.0 - uv.y;
 			temp_uvs.push_back(uv);
 		}else if ( strcmp( lineHeader, "vn" ) == 0 ){
 			glm::vec3 normal;

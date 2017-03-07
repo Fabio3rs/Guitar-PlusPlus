@@ -32,7 +32,7 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &objName
 
 		if (readResult > 0)
 		{
-			std::cout << bufferLn.data() << std::endl;
+			//std::cout << bufferLn.data() << std::endl;
 
 			if (strcmp(bufferLn.data(), "v") == 0)
 			{
@@ -79,8 +79,11 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &objName
 			{
 				if (modelPartIndexes.size() == 0)
 				{
-					std::cout << "f without usemtl\n";
-					return false;
+					modelPartIndexes.push_back({});
+
+					auto &index = modelPartIndexes.back();
+
+					index.name = "None";
 				}
 
 				auto &index = modelPartIndexes.back();
@@ -111,11 +114,21 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &objName
 		std::vector<gppVec2f> &out_uvs,
 		std::vector<gppVec3f> &out_normals)
 	{
-		for (unsigned int i = 0; i< part.vertexIndices.size(); i++)
+		for (unsigned int i = 0; i < part.vertexIndices.size(); i++)
 		{
-			out_vertices.push_back(mData.vertices[part.vertexIndices[i] - 1]);
-			out_uvs.push_back(mData.uvs[part.uvIndices[i] - 1]);
-			out_normals.push_back(mData.normals[part.normalIndices[i] - 1]);
+			unsigned int vertexIndex = part.vertexIndices[i];
+			unsigned int uvIndex = part.uvIndices[i];
+			unsigned int normalIndex = part.normalIndices[i];
+
+			// Get the attributes thanks to the index
+			auto vertex = mData.vertices[vertexIndex - 1];
+			auto uv = mData.uvs[uvIndex - 1];
+			auto normal = mData.normals[normalIndex - 1];
+
+			// Put the attributes in buffers
+			out_vertices.push_back(vertex);
+			out_uvs.push_back(uv);
+			out_normals.push_back(normal);
 		}
 	};
 
@@ -138,21 +151,23 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &objName
 		auto &data = adata.data;
 
 		{
-			vbodata.vertexL = data.size();
+			adata.vbodata.vertexL = data.size();
 			cpy(data, (int8_t*)&vertices[0], vertices.size() * sizeof(glm::vec3));
 
-			vbodata.uvL = data.size();
+			adata.vbodata.uvL = data.size();
 			cpy(data, (int8_t*)&uvs[0], uvs.size() * sizeof(glm::vec2));
 
-			vbodata.normalsL = data.size();
+			adata.vbodata.normalsL = data.size();
 			cpy(data, (int8_t*)&normals[0], normals.size() * sizeof(glm::vec3));
 
-			vbodata.pointer = &data[0];
-			vbodata.sizebytes = data.size();
+			adata.vbodata.pointer = &data[0];
+			adata.vbodata.sizebytes = data.size();
 
-			vbodata.count = vertices.size();
+			adata.vbodata.count = vertices.size();
 		}
 	}
+
+	std::cout << "multiData " << multiData.size() << std::endl;
 
 	return false;
 }
@@ -160,12 +175,21 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &objName
 void GPPOBJ::draw(unsigned int texture, bool autoBindZeroVBO)
 {
 	vbodata.texture = texture;
-	//CShader::inst().processEvent(0);
+	CShader::inst().processEvent(0);
 	CEngine::engine().RenderCustomVerticesFloat(vbodata, autoBindZeroVBO);
+
+	for (auto &modelPart : multiData)
+	{
+		modelPart.vbodata.texture = texture;
+		CEngine::engine().RenderCustomVerticesFloat(modelPart.vbodata, autoBindZeroVBO);
+	}
 }
 
 void GPPOBJ::load(const std::string &path)
 {
+	loadInternalObj(path);
+	return;
+
 	lastPath = path;
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec2> uvs;
@@ -195,37 +219,6 @@ void GPPOBJ::load(const std::string &path)
 	vbodata.count = vertices.size();
 }
 
-void GPPOBJ::load(const char *path)
-{
-	lastPath = path;
-	std::vector<glm::vec3> vertices;
-	std::vector<glm::vec2> uvs;
-	std::vector<glm::vec3> normals;
-
-	auto cpy = [](std::vector<int8_t> &data, int8_t *ptr, int size)
-	{
-		data.insert(data.end(), ptr, ptr + size);
-	};
-
-	bool res = loadOBJ(path, vertices, uvs, normals);
-
-	//data.reserve(vertices.size() * sizeof(glm::vec3) + uvs.size() * sizeof(glm::vec3) + normals.size() * sizeof(glm::vec3));
-
-	vbodata.vertexL = data.size();
-	cpy(data, (int8_t*)&vertices[0], vertices.size() * sizeof(glm::vec3));
-
-	vbodata.uvL = data.size();
-	cpy(data, (int8_t*)&uvs[0], uvs.size() * sizeof(glm::vec2));
-
-	vbodata.normalsL = data.size();
-	cpy(data, (int8_t*)&normals[0], normals.size() * sizeof(glm::vec3));
-
-	vbodata.pointer = &data[0];
-	vbodata.sizebytes = data.size();
-
-	vbodata.count = vertices.size();
-}
-
 void GPPOBJ::reload(const std::string &path)
 {
 	load(lastPath);
@@ -233,9 +226,10 @@ void GPPOBJ::reload(const std::string &path)
 
 void GPPOBJ::unload()
 {
-	data.clear();
-	vbodata.pointer = nullptr;
-	vbodata.destroy();
+	//data.clear();
+	//vbodata.pointer = nullptr;
+	//vbodata.destroy();
+	multiData.clear();
 }
 
 GPPOBJ::GPPOBJ(const std::string &path) : GPPOBJ()

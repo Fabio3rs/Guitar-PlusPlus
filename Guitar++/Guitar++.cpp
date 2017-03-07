@@ -491,7 +491,7 @@ int main(int argc, char* argv[])
 
 		GPPGame::GuitarPP().setVSyncMode(1);
 		GPPOBJ asdw;
-		asdw.loadInternalObj("garage_gpp.obj", "");
+		asdw.loadInternalObj("test/The City.obj", "");
 
 		// menu background texture
 
@@ -525,7 +525,7 @@ int main(int argc, char* argv[])
 
 
 		//game.getMainMenu()->backgroundTexture = menu.getGTextureName();
-		game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, true);
+		game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, false);
 
 
 		lua.runEvent("atExit");
