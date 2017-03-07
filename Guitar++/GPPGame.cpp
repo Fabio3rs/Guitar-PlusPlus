@@ -8,7 +8,6 @@
 #include "CControls.h"
 #include <functional>
 #include "CFonts.h"
-#include "objloader.hpp"
 #include "CCharter.h"
 #include "CMultiplayer.h"
 
@@ -1879,7 +1878,7 @@ void GPPGame::startMarathonModule(const std::string & name)
 
 					usingCamera.eyex = 3.0;
 					usingCamera.eyey = 2.5;
-					usingCamera.eyez = 1.0;
+					usingCamera.eyez = 1.0 + cos(rtime);
 					usingCamera.centerx = 3.0 + sin(rtime);
 					usingCamera.centery = 0.5;
 					usingCamera.centerz = -5;
@@ -1999,13 +1998,13 @@ void GPPGame::startMarathonModule(const std::string & name)
 				engine.activate3DRender(false);
 
 				{
-					double size = 0.4;
+					double size = 0.5;
 
 					CEngine::RenderDoubleStruct TempStruct3D;
 
 					static auto hopoLightText = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolight.tga").getTextId();
 
-					double flarex = 2.92, flarey = 2.5, flarez = -1.0;
+					double flarex = 2.92, flarey = 2.54, flarez = -1.5;
 
 					TempStruct3D.Text = hopoLightText;
 					TempStruct3D.TextureX1 = 0.0;
@@ -2606,8 +2605,46 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 		}
 
 		testobj.draw(0);
-		engine.matrixReset();
 
+		engine.activateLighting(false);
+		engine.activate3DRender(false);
+
+		{
+			double size = 0.4;
+
+			CEngine::RenderDoubleStruct TempStruct3D;
+
+			static auto hopoLightText = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolight.tga").getTextId();
+
+			double flarex = 2.93, flarey = 2.40, flarez = -1.0;
+
+			TempStruct3D.Text = hopoLightText;
+			TempStruct3D.TextureX1 = 0.0;
+			TempStruct3D.TextureX2 = 1.0;
+			TempStruct3D.TextureY1 = 1.0;
+			TempStruct3D.TextureY2 = 0.0;
+
+			//CFonts::fonts().drawTextInScreen(std::to_string(hopostp.size()), 0.0, 0.5, 0.1);
+
+			TempStruct3D.x1 = flarex;
+			TempStruct3D.x2 = TempStruct3D.x1 + size;
+			TempStruct3D.x3 = TempStruct3D.x1 + size;
+			TempStruct3D.x4 = TempStruct3D.x1;
+
+			TempStruct3D.y1 = flarey;
+			TempStruct3D.y2 = TempStruct3D.y1;
+			TempStruct3D.y3 = flarey + 0.2;
+			TempStruct3D.y4 = TempStruct3D.y3;
+
+			TempStruct3D.z1 = flarez + size * 2.0;
+			TempStruct3D.z2 = TempStruct3D.z1;
+			TempStruct3D.z3 = flarez;
+			TempStruct3D.z4 = TempStruct3D.z3;
+
+			CEngine::engine().Render3DQuad(TempStruct3D);
+		}
+
+		engine.matrixReset();
 
 		{
 			CEngine::cameraSET usingCamera;
@@ -2623,9 +2660,6 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 
 			engine.setCamera(usingCamera);
 		}
-
-		engine.activateLighting(false);
-		engine.activate3DRender(false);
 
 		if (updateRender)
 		{

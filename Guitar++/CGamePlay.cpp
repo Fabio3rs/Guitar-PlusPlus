@@ -847,7 +847,7 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, in
 
 		if (Texture == GPPGame::GuitarPP().HOPOSText)
 		{
-			glm::vec3 vec3data;
+			gppVec3f vec3data;
 			vec3data.x = TempStruct3D.x1;
 			vec3data.y = -0.462;
 			vec3data.z = TempStruct3D.z1;
@@ -978,7 +978,7 @@ void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlay
 		{
 			for (int i = 0; i < 5; ++i)
 			{
-				glm::vec3 vec3data;
+				gppVec3f vec3data;
 				vec3data.x = xdata[i];
 				vec3data.y = -0.47;
 				vec3data.z = TempStruct3D.z1;
@@ -2686,7 +2686,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}
 	*/
 	
-	auto planeEquation = [](const glm::vec3 &p1, const glm::vec3 &dir)
+	auto planeEquation = [](const gppVec3f &p1, const gppVec3f &dir)
 	{
 		float a = dir.x, b = dir.y, c = dir.z;
 		float d = -(a * p1.x) - (b * p1.y) - (c * p1.z);

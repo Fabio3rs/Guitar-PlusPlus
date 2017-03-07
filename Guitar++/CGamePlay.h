@@ -55,7 +55,7 @@ class CGamePlay{
 	CPlayer::NotesData::Note getBPMAtStruct(CPlayer &player, double time);
 	std::deque<CPlayer::NotesData::Note>::iterator getBPMAtIt(CPlayer &player, double time);
 
-	std::deque <glm::vec3> hopostp;
+	std::deque <gppVec3f> hopostp;
 	CEngine::dTriangleWithAlpha BPMl, fretboardLData;
 
 	lightData hoposLight, plusNoteLight;

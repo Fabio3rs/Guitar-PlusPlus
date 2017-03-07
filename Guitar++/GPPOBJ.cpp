@@ -258,13 +258,13 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, c
 
 		{
 			adata.vbodata.vertexL = data.size();
-			cpy(data, (int8_t*)&vertices[0], vertices.size() * sizeof(glm::vec3));
+			cpy(data, (int8_t*)&vertices[0], vertices.size() * sizeof(gppVec3f));
 
 			adata.vbodata.uvL = data.size();
-			cpy(data, (int8_t*)&uvs[0], uvs.size() * sizeof(glm::vec2));
+			cpy(data, (int8_t*)&uvs[0], uvs.size() * sizeof(gppVec2f));
 
 			adata.vbodata.normalsL = data.size();
-			cpy(data, (int8_t*)&normals[0], normals.size() * sizeof(glm::vec3));
+			cpy(data, (int8_t*)&normals[0], normals.size() * sizeof(gppVec3f));
 
 			adata.vbodata.pointer = &data[0];
 			adata.vbodata.sizebytes = data.size();
@@ -295,36 +295,8 @@ void GPPOBJ::draw(unsigned int texture, bool autoBindZeroVBO)
 
 void GPPOBJ::load(const std::string &path, const std::string &file)
 {
-	loadInternalObj(path, file);
-	return;
-
 	lastPath = path;
-	std::vector<glm::vec3> vertices;
-	std::vector<glm::vec2> uvs;
-	std::vector<glm::vec3> normals;
-
-	auto cpy = [](std::vector<int8_t> &data, int8_t *ptr, int size)
-	{
-		data.insert(data.end(), ptr, ptr + size);
-	};
-
-	bool res = loadOBJ(path.c_str(), vertices, uvs, normals);
-
-	//data.reserve(vertices.size() * sizeof(glm::vec3) + uvs.size() * sizeof(glm::vec3) + normals.size() * sizeof(glm::vec3));
-
-	vbodata.vertexL = data.size();
-	cpy(data, (int8_t*)&vertices[0], vertices.size() * sizeof(glm::vec3));
-
-	vbodata.uvL = data.size();
-	cpy(data, (int8_t*)&uvs[0], uvs.size() * sizeof(glm::vec2));
-
-	vbodata.normalsL = data.size();
-	cpy(data, (int8_t*)&normals[0], normals.size() * sizeof(glm::vec3));
-
-	vbodata.pointer = &data[0];
-	vbodata.sizebytes = data.size();
-
-	vbodata.count = vertices.size();
+	loadInternalObj(path, file);
 }
 
 /*void GPPOBJ::reload(const std::string &path)

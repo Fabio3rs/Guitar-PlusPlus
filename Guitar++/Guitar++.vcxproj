@@ -145,7 +145,6 @@
     <ClCompile Include="Lua\lutf8lib.c" />
     <ClCompile Include="Lua\lvm.c" />
     <ClCompile Include="Lua\lzio.c" />
-    <ClCompile Include="objloader.cpp" />
     <ClCompile Include="TestShadowMapping.h" />
     <ClCompile Include="tga.cpp" />
   </ItemGroup>
@@ -199,7 +198,6 @@
     <ClInclude Include="Lua\lundump.h" />
     <ClInclude Include="Lua\lvm.h" />
     <ClInclude Include="Lua\lzio.h" />
-    <ClInclude Include="objloader.hpp" />
     <ClInclude Include="utf8.h" />
     <ClInclude Include="utf8\checked.h" />
     <ClInclude Include="utf8\core.h" />

@@ -4,7 +4,6 @@
 #include <string>
 #include <array>
 #include <vector>
-#include "objloader.hpp"
 #include "CEngine.h"
 #include "CLuaH.hpp"
 
