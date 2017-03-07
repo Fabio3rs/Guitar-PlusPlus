@@ -241,6 +241,8 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, c
 
 		out_part(part, vertices, uvs, normals);
 
+		adata.mtl = part.name;
+
 		if (mtlLoaded)
 		{
 			adata.textureID = mtlLib[part.name].textureID;
@@ -297,6 +299,23 @@ void GPPOBJ::load(const std::string &path, const std::string &file)
 {
 	lastPath = path;
 	loadInternalObj(path, file);
+}
+
+gppVec3f GPPOBJ::boxTestForMtl(const std::string &mtl)
+{
+	gppVec3f result;
+
+	for (auto &modelPart : multiData)
+	{
+		if (modelPart.mtl == mtl)
+		{
+			double mx, my, mz, max, may, maz;
+			mx = my = mz = max = may = maz = 0.0;
+
+		}
+	}
+
+	return result;
 }
 
 /*void GPPOBJ::reload(const std::string &path)

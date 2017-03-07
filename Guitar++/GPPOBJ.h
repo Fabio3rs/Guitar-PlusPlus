@@ -18,6 +18,7 @@ class GPPOBJ{
 		CEngine::staticDrawBuffer vbodata;
 		std::vector<int8_t> data;
 		unsigned int textureID;
+		std::string mtl;
 
 		inline modelPart()
 		{
@@ -72,6 +73,8 @@ public:
 
 	void draw(unsigned int texture, bool autoBindZeroVBO = true);
 	void load(const std::string &path, const std::string &file);
+
+	gppVec3f boxTestForMtl(const std::string &mtl);
 	//void reload(const std::string &path = "");
 	void unload();
 

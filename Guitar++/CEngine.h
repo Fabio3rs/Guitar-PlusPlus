@@ -589,6 +589,7 @@ public:
 	static void disablePolygonOffset();
 
 	static void colorRGBToArray(int32_t rgb, double *arr);
+	static void colorRGBToArrayf(int32_t rgb, float *arr);
 
 	void setVSyncMode(int mode);
 
