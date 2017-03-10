@@ -13,6 +13,13 @@ class GPPOBJ{
 
 	bool mtlLoaded;
 
+	struct loadedTextures
+	{
+		std::string path, name;
+	};
+
+	std::map <unsigned int, loadedTextures> loadedTextures;
+
 	struct modelPart
 	{
 		CEngine::staticDrawBuffer vbodata;
@@ -23,6 +30,11 @@ class GPPOBJ{
 		inline modelPart()
 		{
 			textureID = 0;
+		}
+
+		inline ~modelPart()
+		{
+			vbodata.destroy();
 		}
 	};
 

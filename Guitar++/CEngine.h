@@ -181,12 +181,16 @@ public:
 	};
 };
 
-class CEngine{
+class CEngine {
 	void *window;
 	customwcallback wcallfunc;
 	bool openWindowCalled;
 
+	std::array<double, 16> projMatrix;
+
 public:
+	inline const double *getProjMatrix() { return projMatrix.data();  }
+
 	void setWindowCallbackFunction(customwcallback f){
 		wcallfunc = f;
 	}

@@ -1317,6 +1317,10 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
 
 	//glCullFace(GL_BACK);
 
+	//int a = { 1 };
+
+	//glLightModeliv(GL_LIGHT_MODEL_LOCAL_VIEWER, &a);
+
 	cursorText = loadTexture("data/sprites/cursor.tga");
 	glfwSetInputMode((GLFWwindow*)window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 	//setVSyncMode(0);
@@ -1332,7 +1336,9 @@ void CEngine::setLight(const lightData &l, int id, bool setAmbient)
 	glLightfv(GL_LIGHT0 + id, GL_AMBIENT, l.ambientLight);
 	glLightfv(GL_LIGHT0 + id, GL_DIFFUSE, l.diffuseLight);
 	glLightfv(GL_LIGHT0 + id, GL_SPECULAR, l.specularLight);
-	glLightfv(GL_LIGHT0 + id, GL_EMISSION, l.specularLight);
+	//glMaterialfv(GL_FRONT, GL_SPECULAR, l.specularLight);
+	//glLightfv(GL_LIGHT0 + id, GL_EMISSION, l.specularLight);
+	//glMaterialfv(GL_FRONT, GL_EMISSION, l.specularLight);
 	glLightfv(GL_LIGHT0 + id, GL_POSITION, l.position);
 
 	glLightf(GL_LIGHT0 + id, GL_SPOT_CUTOFF, l.angle);
@@ -1537,7 +1543,6 @@ void CEngine::bindTexture(unsigned int text){
 
 void CEngine::clearScreen(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	glLoadIdentity();
 }
 
 void CEngine::draw2DLine(double *linedata, int points)

@@ -54,6 +54,7 @@ void CGuitars::CGuitar::load()
 {
 	if (this == nullptr)
 		return;
+
 	if (!loaded)
 	{
 		loaded = true;
@@ -68,10 +69,13 @@ void CGuitars::CGuitar::load()
 
 void CGuitars::CGuitar::unload()
 {
-	loaded = false;
-
-	// TODO unloader
-
+	if (!loaded)
+	{
+		CLuaH::multiCallBackParams_t g = { path, internalName };
+		CLuaH::Lua().runInternalEventWithParams(luaF, "unloadingGuitar", g);
+		gameplayBar.unload();
+		loaded = false;
+	}
 
 }
 

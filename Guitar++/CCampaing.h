@@ -58,7 +58,7 @@ public:
 
 	struct Show
 	{
-		std::vector<std::string> songName;
+		std::deque<std::string> songName;
 		std::string local;
 		int64_t points;
 		int64_t maxCombo;
@@ -91,7 +91,7 @@ public:
 		double cost, expectedProfit;
 
 		std::string local;
-		std::vector<std::string> possibleSongs;
+		std::deque<std::string> possibleSongs;
 
 		template<class Archive>
 		void load(Archive &archive)
@@ -165,18 +165,18 @@ public:
 	{
 		friend class CCampaing;
 		std::string mode;
-		std::vector<CPlayer> campaingPlayers;
+		std::deque<CPlayer> campaingPlayers;
 		std::string bandName;
 
 		double money;
 		int64_t reputationPoints;
 
-		std::vector <Show> playedSongs;
-		std::vector <Schedule> showsSchedule;
-		std::vector <std::string> guitars;
-		std::vector <Email> emailList;
-		std::vector <Contract> contractList;
-		std::vector <News> newsList;
+		std::deque <Show> playedSongs;
+		std::deque <Schedule> showsSchedule;
+		std::deque <std::string> guitars;
+		std::deque <Email> emailList;
+		std::deque <Contract> contractList;
+		std::deque <News> newsList;
 
 		std::map <std::string, CLuaH::customParam> scriptVars;
 
@@ -223,6 +223,15 @@ public:
 	void loadCampaingModes();
 
 	static std::deque<std::string> listCampaingSaves();
+
+protected:
+	static int getBandName(lua_State *L);
+	static int getCampaingMode(lua_State *L);
+	static int getBandMoney(lua_State *L);
+	static int getBandReputationPoints(lua_State *L);
+	static int isCampaingLoaded(lua_State *L);
+	static int getLoadedCampaingPath(lua_State *L);
+
 
 private:
 	static int openCampaingMenuCallback(CMenu &menu);

@@ -1580,7 +1580,7 @@ void GPPGame::startModule(const std::string &name)
 	if (load.joinable()) load.join();
 }
 
-void GPPGame::startMarathonModule(const std::string & name)
+void GPPGame::startMarathonModule(const std::string &name)
 {
 	loadThreadData l;
 

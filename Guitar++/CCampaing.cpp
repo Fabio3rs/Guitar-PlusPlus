@@ -88,6 +88,12 @@ int CCampaing::getCampaingList(lua_State *L)
 int CCampaing::registerLuaFunctions(lua_State *L)
 {
 	lua_register(L, "getCampaingList", getCampaingList);
+	lua_register(L, "getBandName", getBandName);
+	lua_register(L, "getCampaingMode", getCampaingMode);
+	lua_register(L, "getBandMoney", getBandMoney);
+	lua_register(L, "getBandReputationPoints", getBandReputationPoints);
+	lua_register(L, "isCampaingLoaded", isCampaingLoaded);
+	lua_register(L, "getLoadedCampaingPath", getLoadedCampaingPath);
 
 	return 0;
 }
@@ -238,7 +244,61 @@ std::deque<std::string> CCampaing::listCampaingSaves()
 	return GPPGame::getDirectory("./data/saves/campaings", false, true);
 }
 
-int CCampaing::openCampaingMenuCallback(CMenu & menu)
+int CCampaing::getBandName(lua_State *L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	p << campaingMGR().campaingNow.bandName;
+
+	return p.rtn();
+}
+
+int CCampaing::getCampaingMode(lua_State *L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	p << campaingMGR().campaingNow.mode;
+
+	return p.rtn();
+}
+
+int CCampaing::getBandMoney(lua_State *L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	p << campaingMGR().campaingNow.money;
+
+	return p.rtn();
+}
+
+int CCampaing::getBandReputationPoints(lua_State *L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	p << campaingMGR().campaingNow.reputationPoints;
+
+	return p.rtn();
+}
+
+int CCampaing::isCampaingLoaded(lua_State *L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	p << campaingMGR().campaingLoaded;
+
+	return p.rtn();
+}
+
+int CCampaing::getLoadedCampaingPath(lua_State *L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	p << campaingMGR().loadedCampaingFilepath;
+
+	return p.rtn();
+}
+
+int CCampaing::openCampaingMenuCallback(CMenu &menu)
 {
 	campaingMGR().numCampaingSaves = listCampaingSaves().size();
 

@@ -59,6 +59,14 @@ CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator<<(int param)
 	return *this;
 }
 
+CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator<<(int64_t param)
+{
+	lua_pushinteger(L, param);
+	++ret;
+
+	return *this;
+}
+
 CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator<<(size_t param)
 {
 	lua_pushinteger(L, param);
@@ -106,6 +114,21 @@ CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator>>(double &param)
 CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator>>(int &param)
 {
 	if (stck <= num_params){
+		param = lua_tointeger(L, stck);
+		++stck;
+	}
+	else
+	{
+		fail_bit = 1;
+	}
+
+	return *this;
+}
+
+CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator>>(int64_t &param)
+{
+	if (stck <= num_params)
+	{
 		param = lua_tointeger(L, stck);
 		++stck;
 	}

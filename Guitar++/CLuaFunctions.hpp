@@ -29,12 +29,14 @@ public:
 		LuaParams &operator<<(const std::string &param);
 		LuaParams &operator<<(double param);
 		LuaParams &operator<<(int param);
+		LuaParams &operator<<(int64_t param);
 		LuaParams &operator<<(bool param);
 		LuaParams &operator<<(size_t param);
 
 		LuaParams &operator>>(std::string &param);
 		LuaParams &operator>>(double &param);
 		LuaParams &operator>>(int &param);
+		LuaParams &operator>>(int64_t &param);
 		LuaParams &operator>>(void *&param);
 		LuaParams &operator>>(bool &param);
 
