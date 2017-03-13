@@ -1124,6 +1124,7 @@ void CPlayer::instrumentPause()
 
 CPlayer::CPlayer(const char *name)
 {
+	usarPalheta = GPPGame::GuitarPP().usarPalheta;
 	correctNotesMarathon = 0;
 	guitar = nullptr;
 	npPsetted = 0;

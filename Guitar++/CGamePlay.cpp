@@ -1449,10 +1449,25 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		return player.Notes.gNotes[i].time - player.Notes.gNotes[player.Notes.lastNotePicked].time;
 	};
 
+	auto tapResulted = [&player](int flags)
+	{
+		double ttime = CEngine::engine().getTime();
+
+		for (int ji = 0; ji < 5; ji++)
+		{
+			if (flags & notesFlagsConst[ji])
+			{
+				player.fretsPressedTime[ji] = ttime - 100.0;
+			}
+		}
+	};
+
 	auto doNoteFunc = [&](CPlayer::NotesData::Note &note, int64_t i)
 	{
 		if (!noteDoedThisFrame && !bIsACharterGP)
 		{
+			tapResulted(note.type);
+
 			if (note.lTime == 0.0)
 			{
 				player.doNote(i);
@@ -1641,9 +1656,11 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				}
 			}
 
+			const bool isStrum = (note.type & notesFlags::nf_not_hopo) != 0;
+
 			int ntsInac = 0;
-			int ntsT = note.type & CPlayer::notesEnum;
-			int noteHF = getHighestFlag(ntsT);
+			const int ntsT = note.type & CPlayer::notesEnum;
+			const int noteHF = getHighestFlag(ntsT);
 
 			for (int i = 0; i < 5; ++i)
 			{
@@ -1655,7 +1672,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 			if (!noteDoedThisFrame && noteTime >= 0.1 && noteTime < 0.15 && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::strmstlrc))
 			{
-				if (player.palhetaKey && (note.type & notesFlags::nf_not_hopo))
+				if (player.palhetaKey && (note.type & notesFlags::nf_not_hopo) && (ntsT != 0 || player.usarPalheta))
 				{
 					if (checkCorrect(ntsInac, ntsT, noteHF, note))
 					{
@@ -1677,41 +1694,59 @@ void CGamePlay::updatePlayer(CPlayer &player)
 			{
 				if (!noteDoedThisFrame)
 				{
-					if ((player.palhetaKey && (note.type & notesFlags::nf_not_hopo)))
+					bool palhetaTest = player.palhetaKey;
+
+					if (!player.usarPalheta)
 					{
-						if (note.type & notesFlags::strmstlrc)
+						palhetaTest = isTapping(note.type, 0.15 - noteTime);
+					}
+
+					if (isStrum)
+					{
+						if (player.palhetaKey)
 						{
-							if (checkCorrect(ntsInac, ntsT, noteHF, note))
+							if (note.type & notesFlags::strmstlrc)
+							{
+								if (checkCorrect(ntsInac, ntsT, noteHF, note))
+								{
+									doNoteFunc(note, i);
+									player.lastHOPO = 0;
+								}
+								else
+								{
+									////////////////////////////////////////////////////////////////
+									processError();
+									////////////////////////////////////////////////////////////////
+								}
+							}
+							else if (ntsInac > 1 && fretsPressedFlags == ntsT)
 							{
 								doNoteFunc(note, i);
 								player.lastHOPO = 0;
 							}
-							else
+							else if (ntsInac == 1 && highestFlagInPressedKey == noteHF)
 							{
+								doNoteFunc(note, i);
+								player.lastHOPO = noteHF;
+							}
+							else if (ntsInac == 0 && fretsPressedFlags == 0)
+							{
+								doNoteFunc(note, i);
+								player.lastHOPO = 0;
+							}
+							else {
 								////////////////////////////////////////////////////////////////
 								processError();
 								////////////////////////////////////////////////////////////////
 							}
 						}
-						else if (ntsInac > 1 && fretsPressedFlags == ntsT)
+						else if (!player.usarPalheta)
 						{
-							doNoteFunc(note, i);
-							player.lastHOPO = 0;
-						}
-						else if (ntsInac == 1 && highestFlagInPressedKey == noteHF)
-						{
-							doNoteFunc(note, i);
-							player.lastHOPO = noteHF;
-						}
-						else if (ntsInac == 0 && fretsPressedFlags == 0)
-						{
-							doNoteFunc(note, i);
-							player.lastHOPO = 0;
-						}
-						else{
-							////////////////////////////////////////////////////////////////
-							processError();
-							////////////////////////////////////////////////////////////////
+							if (!player.aError && (note.type & notesFlags::nf_open) && ntsInac == 0 && fretsPressedFlags == 0)
+							{
+								doNoteFunc(note, i);
+								player.lastHOPO = 0;
+							}
 						}
 					}
 					else if (!(note.type & notesFlags::nf_not_hopo))
@@ -1741,7 +1776,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 							}
 							else
 							{
-								if (player.palhetaKey)
+								if (palhetaTest && (highestFlagInPressedKey != 0 || player.palhetaKey))
 								{
 									doNoteFunc(note, i);
 									regiserr = false;
@@ -1755,8 +1790,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 							}
 						}
 					}
-					
-					if (tappable && !noteDoedThisFrame && !errorThisFrame && isTapping(note.type, 0.15 - noteTime))
+
+					if ((tappable || !player.usarPalheta) && isStrum && !noteDoedThisFrame && !errorThisFrame && isTapping(note.type, 0.15 - noteTime))
 					{
 						if (note.type & notesFlags::strmstlrc)
 						{

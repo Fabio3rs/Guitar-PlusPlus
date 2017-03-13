@@ -267,6 +267,8 @@ public:
 	bool palhetaKeyLast;
 	bool palhetaKey;
 
+	bool usarPalheta;
+
 	void addPointsByNoteDoed();
 	void addPointsByDoingLongNote();
 	double comboToMultiplier();

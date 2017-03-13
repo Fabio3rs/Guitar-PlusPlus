@@ -239,7 +239,7 @@ public:
 
 	double hyperSpeed;
 
-	bool botEnabled;
+	bool botEnabled, usarPalheta;
 
 	static void charterModule(const std::string &name);
 

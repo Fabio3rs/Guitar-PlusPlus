@@ -3014,7 +3014,9 @@ GPPGame::GPPGame() : gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenu
 	hyperSpeed = 1.0;
 
 	botEnabled = false;
+	usarPalheta = true;
 	CLuaFunctions::GameVariables::gv().pushVar("botEnabled", botEnabled);
+	CLuaFunctions::GameVariables::gv().pushVar("usarPalheta", usarPalheta);
 	CLuaFunctions::GameVariables::gv().pushVar("multiplayerClientIP", ip);
 	CLuaFunctions::GameVariables::gv().pushVar("multiplayerPort", port);
 	CLuaFunctions::GameVariables::gv().pushVar("defaultGuitar", defaultGuitar);
