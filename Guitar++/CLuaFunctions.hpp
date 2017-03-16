@@ -218,7 +218,7 @@ public:
 	static int setGameVar(lua_State *L);
 	static int getGameVar(lua_State *L);
 
-
+	static int printGlobals(lua_State *L);
 
 	/*
 	* Register custom functions lua state

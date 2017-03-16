@@ -682,4 +682,59 @@ CLuaH::CLuaH()
 	runScripts();*/
 }
 
+void CLuaH::customParam::loadTableWOPush(lua_State *L)
+{
+	int index = -2;
 
+	while (index = lua_next(L, -2))
+	{
+		//std::cout << lua_tostring(L, -2) << " " << lua_isstring(L, -1) << std::endl;
+		std::string dataStr = std::string(lua_tostring(L, -2));
+
+		const static std::map<std::string, bool> n{ {"string", true}, { "config", true }, { "io", true }, { "stderr", true }, { "stdout", true }, { "_G", true }, { "preload", true },
+		{ "searchers", true }, { "package", true }, { "utf8", true }, { "debug", true } };
+
+		if (n.find(dataStr) != n.end())
+		{
+			lua_pop(L, 1);
+			continue;
+		}
+
+		if (lua_istable(L, -1))
+		{
+			std::cout << "Table: " << dataStr << std::endl;
+		}
+
+		customParam np;
+
+		np.getFromArgs(L, -1);
+
+		if (np.getType() != LUA_TFUNCTION)
+		{
+			tableData[dataStr] = np;
+
+			const char *ch = lua_tostring(L, -1);
+
+			std::cout << dataStr << " value " << (ch? ch: "") << std::endl;
+		}
+
+		lua_pop(L, 1);
+	}
+
+	lua_pop(L, 1);
+}
+
+void CLuaH::customParam::loadTable(lua_State *L, int idx)
+{
+	std::cout << "lua_gettable: " << idx << std::endl;
+	lua_pushvalue(L, idx);
+	lua_pushnil(L);
+	loadTableWOPush(L);
+}
+
+void CLuaH::luaScriptGlobals::loadGlobalTable(lua_State * L)
+{
+	lua_pushglobaltable(L);
+	lua_pushnil(L);
+	tableData.loadTableWOPush(L);
+}

@@ -50,6 +50,13 @@ class GPPGame{
 	bool devMode;
 
 public:
+	class MessageTypes
+	{
+		std::string fontName;
+		double minTime;
+
+	};
+
 	CMenu devMenus, uiRenameMenu;
 
 	std::string glanguage;

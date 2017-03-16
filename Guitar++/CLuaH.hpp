@@ -165,8 +165,8 @@ public:
 	std::map < std::string, std::map<std::string, luaScript> >		files; /* std::map<pathForScripts, std::map<scriptName, scriptData>> */
 	std::map <std::string, callBacksStruct>									callbacks;
 
-	// Lua functions custom param wrapper
-	class customParam{
+	struct luaVarData
+	{
 		int type;
 		std::string str;
 		double num;
@@ -174,7 +174,6 @@ public:
 		int function;
 		int64_t inumber;
 
-	public:
 		template<class Archive>
 		void load(Archive &archive)
 		{
@@ -186,79 +185,103 @@ public:
 		{
 			archive(type, str, num, boolean, function, inumber);
 		}
+	};
+	
+	struct luaScriptGlobals;
+
+	// Lua functions custom param wrapper
+	class customParam{
+		friend luaScriptGlobals;
+		luaVarData p;
+		std::map<std::string, customParam> tableData;
+		void loadTableWOPush(lua_State *L);
+		void loadTable(lua_State *L, int idx);
+
+	public:
+		template<class Archive>
+		void load(Archive &archive)
+		{
+			archive(p, tableData);
+		}
+
+		template<class Archive>
+		void save(Archive &archive) const
+		{
+			archive(p, tableData);
+		}
 
 		int getType() const{
-			return type;
+			return p.type;
 		}
 
 		const std::string &getString() const{
-			return str;
+			return p.str;
 		}
 
 		const double getNumber() const{
-			return ((type == (LUA_TNUMBER | 0xF0000000))? inumber : num);
+			return ((p.type == (LUA_TNUMBER | 0xF0000000))? p.inumber : p.num);
 		}
 
 		const bool getBoolean() const{
-			return boolean != 0;
+			return p.boolean != 0;
 		}
 
 		const int getFunctionRef() const{
-			return function;
+			return p.function;
 		}
 
 		void set(const std::string &s){
-			str = s;
-			type = LUA_TSTRING;
+			p.str = s;
+			p.type = LUA_TSTRING;
 		}
 
 		void set(const char *s){
-			str = s;
-			type = LUA_TSTRING;
+			p.str = s;
+			p.type = LUA_TSTRING;
 		}
 
 		void set(double n){
-			num = n;
-			type = LUA_TNUMBER;
+			p.num = n;
+			p.type = LUA_TNUMBER;
 		}
 
 		void set(int n){
-			inumber = num = n;
-			type = LUA_TNUMBER | 0xF0000000;
+			p.inumber = p.num = n;
+			p.type = LUA_TNUMBER | 0xF0000000;
 		}
 
 		void set(bool n){
-			boolean = n;
-			type = LUA_TBOOLEAN;
+			p.boolean = n;
+			p.type = LUA_TBOOLEAN;
 		}
 
 		void pushToLuaStack(lua_State *L) const{
-			switch (type)
+			switch (p.type)
 			{
 			case LUA_TNIL:
 				break;
 
 			case (LUA_TNUMBER | 0xF0000000):
-				lua_pushinteger(L, inumber);
+				lua_pushinteger(L, p.inumber);
 				break;
 
 			case LUA_TNUMBER:
-				lua_pushnumber(L, num);
+				lua_pushnumber(L, p.num);
 				break;
 
 			case LUA_TBOOLEAN:
-				lua_pushboolean(L, boolean);
+				lua_pushboolean(L, p.boolean);
 				break;
 
 			case LUA_TSTRING:
-				lua_pushstring(L, str.c_str());
+				lua_pushstring(L, p.str.c_str());
 				break;
 
 			case LUA_TTABLE:
 				break;
 
 			case LUA_TFUNCTION:
-				lua_pushinteger(L, function);
+				lua_pushinteger(L, p.function);
 				break;
 
 			case LUA_TUSERDATA:
@@ -276,7 +299,7 @@ public:
 		}
 
 		void getFromArgs(lua_State *L, int idx){
-			switch (type = lua_type(L, idx))
+			switch (p.type = lua_type(L, idx))
 			{
 			case LUA_TNIL:
 				break;
@@ -284,24 +307,25 @@ public:
 			case LUA_TNUMBER:
 				if (lua_isinteger(L, idx))
 				{
-					type = (LUA_TNUMBER | 0xF0000000);
-					inumber = num = lua_tointeger(L, idx);
+					p.type = (LUA_TNUMBER | 0xF0000000);
+					p.inumber = p.num = lua_tointeger(L, idx);
 				}
 				else{
-					num = lua_tonumber(L, idx);
+					p.num = lua_tonumber(L, idx);
 				}
 
 				break;
 
 			case LUA_TBOOLEAN:
-				boolean = lua_toboolean(L, idx);
+				p.boolean = lua_toboolean(L, idx);
 				break;
 
 			case LUA_TSTRING:
-				str = lua_tostring(L, idx);
+				p.str = lua_tostring(L, idx);
 				break;
 
 			case LUA_TTABLE:
+				loadTable(L, idx);
 				break;
 
 			case LUA_TFUNCTION:
@@ -323,61 +347,78 @@ public:
 		}
 
 		customParam(){
-			type = LUA_TNIL;
-			num = 0.0;
-			inumber = 0;
-			boolean = NULL;
-			function = NULL;
+			p.type = LUA_TNIL;
+			p.num = 0.0;
+			p.inumber = 0;
+			p.boolean = NULL;
+			p.function = NULL;
+		}
+
+		customParam(const luaVarData &data)
+		{
+			p = data;
 		}
 
 		customParam(const std::string &s){
-			num = 0.0;
-			boolean = NULL;
-			function = NULL;
-			str = s;
-			type = LUA_TSTRING;
-			inumber = 0;
+			p.num = 0.0;
+			p.boolean = NULL;
+			p.function = NULL;
+			p.str = s;
+			p.type = LUA_TSTRING;
+			p.inumber = 0;
 		}
 
 		customParam(const char *s){
-			num = 0.0;
-			boolean = NULL;
-			function = NULL;
-			str = s;
-			type = LUA_TSTRING;
-			inumber = 0;
+			p.num = 0.0;
+			p.boolean = NULL;
+			p.function = NULL;
+			p.str = s;
+			p.type = LUA_TSTRING;
+			p.inumber = 0;
 		}
 
 		customParam(double n){
-			boolean = NULL;
-			function = NULL;
-			num = n;
-			type = LUA_TNUMBER;
-			inumber = 0;
+			p.boolean = NULL;
+			p.function = NULL;
+			p.num = n;
+			p.type = LUA_TNUMBER;
+			p.inumber = 0;
 		}
 
 		customParam(int n){
-			boolean = NULL;
-			function = NULL;
-			num = n;
-			type = (LUA_TNUMBER | 0xF0000000);
-			inumber = n;
+			p.boolean = NULL;
+			p.function = NULL;
+			p.num = n;
+			p.type = (LUA_TNUMBER | 0xF0000000);
+			p.inumber = n;
 		}
 
 		customParam(int64_t n){
-			boolean = NULL;
-			function = NULL;
-			num = n;
-			type = (LUA_TNUMBER | 0xF0000000);
-			inumber = n;
+			p.boolean = NULL;
+			p.function = NULL;
+			p.num = n;
+			p.type = (LUA_TNUMBER | 0xF0000000);
+			p.inumber = n;
 		}
 
 		customParam(bool n){
-			num = 0.0;
-			function = NULL;
-			boolean = n;
-			type = LUA_TBOOLEAN;
-			inumber = 0;
+			p.num = 0.0;
+			p.function = NULL;
+			p.boolean = n;
+			p.type = LUA_TBOOLEAN;
+			p.inumber = 0;
+		}
+	};
+
+	struct luaScriptGlobals
+	{
+		customParam tableData;
+
+		void loadGlobalTable(lua_State *L);
+
+		luaScriptGlobals()
+		{
+
 		}
 	};
 

@@ -473,6 +473,13 @@ int CLuaFunctions::getGameVar(lua_State *L)
 	return p.rtn();
 }
 
+int CLuaFunctions::printGlobals(lua_State *L)
+{
+	CLuaH::luaScriptGlobals c;
+	c.loadGlobalTable(L);
+	return 0;
+}
+
 int CLuaFunctions::setConfigs(lua_State *L)
 {
 	auto cfg = GPPGame::GuitarPP().getWindowConfig();
@@ -1309,7 +1316,7 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 	lua_register(L, "getSoundVolume", getSoundVolume);
 	lua_register(L, "setSoundAttribute", setSoundAttribute);
 	lua_register(L, "getBassError", getBassError);
-	
+	lua_register(L, "printGlobals", printGlobals);
 
 	auto &funList = LuaF().registerFunctionsAPICBs;
 
