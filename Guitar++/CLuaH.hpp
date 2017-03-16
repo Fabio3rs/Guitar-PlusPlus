@@ -194,10 +194,17 @@ public:
 		friend luaScriptGlobals;
 		luaVarData p;
 		std::map<std::string, customParam> tableData;
-		void loadTableWOPush(lua_State *L);
 		void loadTable(lua_State *L, int idx);
 
 	public:
+		void loadTableWOPush(lua_State *L);
+
+		void clear()
+		{
+			tableData.clear();
+			customParam();
+		}
+
 		template<class Archive>
 		void load(Archive &archive)
 		{
@@ -298,7 +305,8 @@ public:
 			}
 		}
 
-		void getFromArgs(lua_State *L, int idx){
+		void getFromArgs(lua_State *L, int idx)
+		{
 			switch (p.type = lua_type(L, idx))
 			{
 			case LUA_TNIL:
@@ -410,17 +418,7 @@ public:
 		}
 	};
 
-	struct luaScriptGlobals
-	{
-		customParam tableData;
-
-		void loadGlobalTable(lua_State *L);
-
-		luaScriptGlobals()
-		{
-
-		}
-	};
+	static void loadGlobalTable(lua_State *L, customParam &tableData);
 
 	bool registerCustomFunctions;
 
@@ -452,6 +450,8 @@ public:
 	*/
 	luaScript					newScript(const std::string &path, const std::string &f);
 	luaScript					newScriptR(const std::string &memf, const std::string &name);
+	luaScript					newScriptRBuffer(const char *memf, size_t sz, const std::string &name);
+	luaScript					newScriptRBuffer(const std::vector<char> &vec, const std::string &name);
 
 	/*
 	* New script and add it to quere

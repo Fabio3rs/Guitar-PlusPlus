@@ -22,12 +22,12 @@ class CCampaing
 	int numCampaingSaves;
 	int menuNovaCampanhaID, menuContinuarCampanhaID;
 
-	bool loadCampaingF(const std::string &filepath);
-	bool saveCampaingF();
-
 	std::deque <CLuaH::luaScript> campaingScripts;
 
 public:
+	bool loadCampaingF(const std::string &filepath);
+	bool saveCampaingF();
+
 	struct Contract
 	{
 		int64_t day, hour, timeToAccept;
@@ -161,6 +161,25 @@ public:
 		}
 	};
 
+	struct luaScriptSave
+	{
+		std::string name;
+		std::vector<char> byteCode;
+		CLuaH::customParam scriptVars;
+
+		template<class Archive>
+		void load(Archive &archive)
+		{
+			archive(name, byteCode, scriptVars);
+		}
+
+		template<class Archive>
+		void save(Archive &archive) const
+		{
+			archive(name, byteCode, scriptVars);
+		}
+	};
+
 	class CCampaingData
 	{
 		friend class CCampaing;
@@ -178,19 +197,19 @@ public:
 		std::deque <Contract> contractList;
 		std::deque <News> newsList;
 
-		std::map <std::string, CLuaH::customParam> scriptVars;
+		std::deque <luaScriptSave> scripts;
 
 	public:
 		template<class Archive>
 		void load(Archive &archive)
 		{
-			archive(mode, campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scriptVars);
+			archive(mode, campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scripts);
 		}
 
 		template<class Archive>
 		void save(Archive &archive) const
 		{
-			archive(mode, campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scriptVars);
+			archive(mode, campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scripts);
 		}
 		
 		CCampaingData();

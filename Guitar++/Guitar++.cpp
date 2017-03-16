@@ -490,8 +490,6 @@ int main(int argc, char* argv[])
 		}
 
 		GPPGame::GuitarPP().setVSyncMode(1);
-		GPPOBJ asdw;
-		asdw.loadInternalObj("test/The City.obj", "");
 
 		// menu background texture
 
@@ -523,7 +521,22 @@ int main(int argc, char* argv[])
 		RenderData.Text = menu.getTextId();*/
 		//////////////////////////////////////////////
 
+		/*{
+			//CCampaing::campaingMGR().loadedCampaingFilepath = "./data/saves/campaings/campaingZoeira/save";
 
+			std::fstream svfstream("./data/saves/campaings/campaingZoeira/save", std::ios::in | std::ios::binary);
+
+			if (!svfstream.is_open())
+			{
+				CCampaing::campaingMGR().newCampaing();
+			}
+			else
+			{
+				svfstream.close();
+
+				CCampaing::campaingMGR().loadCampaingF("./data/saves/campaings/campaingZoeira/save");
+			}
+		}*/
 		//game.getMainMenu()->backgroundTexture = menu.getGTextureName();
 		game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, false);
 

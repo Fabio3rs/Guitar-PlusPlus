@@ -11,6 +11,13 @@
 #include <dirent.h>
 #include "Lua/lstate.h"
 
+void CLuaH::loadGlobalTable(lua_State *L, customParam &tableData)
+{
+	lua_pushglobaltable(L);
+	lua_pushnil(L);
+	tableData.loadTableWOPush(L);
+}
+
 CLuaH &CLuaH::Lua()
 {
 	static CLuaH L;
@@ -108,6 +115,82 @@ CLuaH::luaScript CLuaH::newScriptR(const std::string &memf, const std::string &n
 	int load_result = luaL_loadbuffer(lData.luaState, memf.c_str(), memf.size(), name.c_str());
 
 	if (load_result != 0){
+		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState) +
+			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
+			std::string(") failed to load with result ") + std::to_string(load_result);
+
+		catchErrorString(lData);
+	}
+	return lData;
+}
+
+CLuaH::luaScript CLuaH::newScriptRBuffer(const char *memf, size_t sz, const std::string & name)
+{
+	static const std::string barra("/");
+
+	if (sz == 0)
+	{
+		luaScript lData;
+
+		lData.luaState = nullptr;
+
+		CLog::log() << ("Fail to load CLuaH::newScriptRBuffer - " + name);
+		return lData;
+	}
+
+	luaScript lData;
+	lData.luaState = luaL_newstate();
+	luaL_openlibs(lData.luaState);
+	lData.filePath = "*";
+	lData.fileName = "";
+
+	if (registerCustomFunctions)
+	{
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+	}
+
+	int load_result = luaL_loadbuffer(lData.luaState, memf, sz, name.c_str());
+
+	if (load_result != 0) {
+		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState) +
+			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
+			std::string(") failed to load with result ") + std::to_string(load_result);
+
+		catchErrorString(lData);
+	}
+	return lData;
+}
+
+CLuaH::luaScript CLuaH::newScriptRBuffer(const std::vector<char> &vec, const std::string & name)
+{
+	static const std::string barra("/");
+
+	if (vec.size() == 0)
+	{
+		luaScript lData;
+
+		lData.luaState = nullptr;
+
+		CLog::log() << ("Fail to load CLuaH::newScriptRBuffer - " + name);
+		return lData;
+	}
+
+	luaScript lData;
+	lData.luaState = luaL_newstate();
+	luaL_openlibs(lData.luaState);
+	lData.filePath = "*";
+	lData.fileName = "";
+
+	if (registerCustomFunctions)
+	{
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+	}
+
+	int load_result = luaL_loadbuffer(lData.luaState, &vec[0], vec.size(), name.c_str());
+
+	if (load_result != 0) {
 		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState) +
 			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
 			std::string(") failed to load with result ") + std::to_string(load_result);
@@ -730,11 +813,4 @@ void CLuaH::customParam::loadTable(lua_State *L, int idx)
 	lua_pushvalue(L, idx);
 	lua_pushnil(L);
 	loadTableWOPush(L);
-}
-
-void CLuaH::luaScriptGlobals::loadGlobalTable(lua_State * L)
-{
-	lua_pushglobaltable(L);
-	lua_pushnil(L);
-	tableData.loadTableWOPush(L);
 }

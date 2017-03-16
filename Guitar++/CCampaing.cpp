@@ -30,7 +30,13 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 
 		std::string scriptsPath = campaingScriptsDirectory + "/" + campaingNow.mode;
 
-		CLuaH::Lua().loadFilesDequeStorage(scriptsPath, campaingScripts);
+		campaingScripts.clear();
+
+		for (int i = 0, size = campaingNow.scripts.size(); i < size; i++)
+		{
+			campaingScripts.push_back(std::move(CLuaH::Lua().newScriptRBuffer(campaingNow.scripts[i].byteCode, campaingNow.scripts[i].name)));
+		}
+
 		CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
 	}
 	catch (const std::exception &e)
@@ -57,6 +63,12 @@ bool CCampaing::saveCampaingF()
 		if (!svfstream.is_open())
 		{
 			return false;
+		}
+
+		for (int i = 0, size = campaingNow.scripts.size(); i < size; i++)
+		{
+			campaingNow.scripts[i].scriptVars.clear();
+			CLuaH::loadGlobalTable(campaingScripts[i].luaState, campaingNow.scripts[i].scriptVars);
 		}
 
 		cereal::BinaryOutputArchive oarchive(svfstream); // Create an output archive
@@ -112,9 +124,22 @@ int CCampaing::newCampaing()
 
 	std::string scriptsPath = campaingScriptsDirectory + "/" + campaingNow.mode;
 	CLuaH::Lua().loadFilesDequeStorage(scriptsPath, campaingScripts);
+	CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
+
+	campaingNow.scripts.clear();
+
+	for (int i = 0, size = campaingScripts.size(); i < size; i++)
+	{
+		luaScriptSave nluascriptsave;
+
+		nluascriptsave.byteCode = campaingScripts[i].dumpBytecode();
+		nluascriptsave.name = campaingScripts[i].fileName;
+		nluascriptsave.scriptVars.clear();
+
+		campaingNow.scripts.push_back(nluascriptsave);
+	}
 
 	saveCampaingF();
-
 
 	return 0;
 }
@@ -323,5 +348,6 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings")
 	numCampaingSaves = 0;
 	menuNovaCampanhaID = menuContinuarCampanhaID = 0;
 	campaingLoaded = false;
+	loadedCampaingFilepath = "./data/saves/campaings/campaingZoeira/save";
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerLuaFunctions);
 }

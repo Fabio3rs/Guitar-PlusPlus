@@ -475,8 +475,8 @@ int CLuaFunctions::getGameVar(lua_State *L)
 
 int CLuaFunctions::printGlobals(lua_State *L)
 {
-	CLuaH::luaScriptGlobals c;
-	c.loadGlobalTable(L);
+	CLuaH::customParam c;
+	CLuaH::loadGlobalTable(L, c);
 	return 0;
 }
 
