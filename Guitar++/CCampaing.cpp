@@ -154,13 +154,13 @@ int CCampaing::newCampaing()
 		nluascriptsave.name = campaingScripts[i].fileName;
 		nluascriptsave.scriptVars.clear();
 
-		std::cout << "Dumping scripts bytecode " << std::to_string(nluascriptsave.byteCode.size()) << std::endl;
+		if (nluascriptsave.byteCode.size() == 0)
+			CLog::log() << std::string("Script bytecode ") + std::to_string(nluascriptsave.byteCode.size()) + " " + campaingScripts[i].fileName;
 
 		campaingNow.scripts.push_back(nluascriptsave);
 	}
 
 	CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
-
 	CLuaH::Lua().runEventFromDeque("campaingInit", campaingScripts);
 
 	saveCampaingF();

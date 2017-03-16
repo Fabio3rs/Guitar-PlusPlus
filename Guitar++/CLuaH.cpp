@@ -785,7 +785,7 @@ void CLuaH::customParam::loadTableWOPush(lua_State *L)
 
 		if (lua_istable(L, -1))
 		{
-			std::cout << "Table: " << dataStr << std::endl;
+			//std::cout << "Table: " << dataStr << std::endl;
 		}
 
 		customParam np;
@@ -798,7 +798,7 @@ void CLuaH::customParam::loadTableWOPush(lua_State *L)
 
 			const char *ch = lua_tostring(L, -1);
 
-			std::cout << dataStr << " value " << (ch? ch: "") << std::endl;
+			//std::cout << dataStr << " value " << (ch? ch: "") << std::endl;
 		}
 
 		lua_pop(L, 1);
