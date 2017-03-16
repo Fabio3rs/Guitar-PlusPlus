@@ -521,7 +521,7 @@ int main(int argc, char* argv[])
 		RenderData.Text = menu.getTextId();*/
 		//////////////////////////////////////////////
 
-		/*{
+		{
 			//CCampaing::campaingMGR().loadedCampaingFilepath = "./data/saves/campaings/campaingZoeira/save";
 
 			std::fstream svfstream("./data/saves/campaings/campaingZoeira/save", std::ios::in | std::ios::binary);
@@ -536,7 +536,7 @@ int main(int argc, char* argv[])
 
 				CCampaing::campaingMGR().loadCampaingF("./data/saves/campaings/campaingZoeira/save");
 			}
-		}*/
+		}
 		//game.getMainMenu()->backgroundTexture = menu.getGTextureName();
 		game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, false);
 

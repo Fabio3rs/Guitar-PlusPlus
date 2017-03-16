@@ -34,7 +34,22 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 
 		for (int i = 0, size = campaingNow.scripts.size(); i < size; i++)
 		{
-			campaingScripts.push_back(std::move(CLuaH::Lua().newScriptRBuffer(campaingNow.scripts[i].byteCode, campaingNow.scripts[i].name)));
+			auto &lscript = CLuaH::Lua().newScriptRBuffer(campaingNow.scripts[i].byteCode, campaingNow.scripts[i].name);
+
+			if (lscript.luaState == nullptr)
+			{
+				CLog::log() << std::string("Lua script load failed") + std::to_string(campaingNow.scripts[i].byteCode.size());
+				continue;
+			}
+
+			campaingScripts.push_back(std::move(lscript));
+			auto &tdata = campaingNow.scripts[i].scriptVars.getTableData();
+
+			for (auto &t : tdata)
+			{
+				t.second.pushToLuaStack(campaingScripts[i].luaState);
+				lua_setglobal(campaingScripts[i].luaState, t.first.c_str());
+			}
 		}
 
 		CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
@@ -124,7 +139,6 @@ int CCampaing::newCampaing()
 
 	std::string scriptsPath = campaingScriptsDirectory + "/" + campaingNow.mode;
 	CLuaH::Lua().loadFilesDequeStorage(scriptsPath, campaingScripts);
-	CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
 
 	campaingNow.scripts.clear();
 
@@ -136,8 +150,12 @@ int CCampaing::newCampaing()
 		nluascriptsave.name = campaingScripts[i].fileName;
 		nluascriptsave.scriptVars.clear();
 
+		std::cout << "Dumping scripts bytecode " << std::to_string(nluascriptsave.byteCode.size()) << std::endl;
+
 		campaingNow.scripts.push_back(nluascriptsave);
 	}
+
+	CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
 
 	saveCampaingF();
 

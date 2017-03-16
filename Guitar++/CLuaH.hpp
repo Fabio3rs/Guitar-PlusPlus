@@ -217,6 +217,11 @@ public:
 			archive(p, tableData);
 		}
 
+		std::map<std::string, customParam> &getTableData()
+		{
+			return tableData;
+		}
+
 		int getType() const{
 			return p.type;
 		}
@@ -285,6 +290,16 @@ public:
 				break;
 
 			case LUA_TTABLE:
+			{
+				lua_newtable(L);
+
+				for (auto &t : tableData)
+				{
+					lua_pushstring(L, t.first.c_str());
+					t.second.pushToLuaStack(L);
+					lua_settable(L, -3);
+				}
+			}
 				break;
 
 			case LUA_TFUNCTION:
