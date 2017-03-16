@@ -50,9 +50,13 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 				t.second.pushToLuaStack(campaingScripts[i].luaState);
 				lua_setglobal(campaingScripts[i].luaState, t.first.c_str());
 			}
+
+			CLuaFunctions::LuaF().registerFunctions(campaingScripts[i].luaState);
+			CLuaFunctions::LuaF().registerGlobals(campaingScripts[i].luaState);
 		}
 
 		CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
+		CLuaH::Lua().runEventFromDeque("campaingLoad", campaingScripts);
 	}
 	catch (const std::exception &e)
 	{
@@ -156,6 +160,8 @@ int CCampaing::newCampaing()
 	}
 
 	CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
+
+	CLuaH::Lua().runEventFromDeque("campaingInit", campaingScripts);
 
 	saveCampaingF();
 
