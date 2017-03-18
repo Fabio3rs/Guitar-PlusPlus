@@ -125,6 +125,8 @@ int CCampaing::registerLuaFunctions(lua_State *L)
 	lua_register(L, "getBandReputationPoints", getBandReputationPoints);
 	lua_register(L, "isCampaingLoaded", isCampaingLoaded);
 	lua_register(L, "getLoadedCampaingPath", getLoadedCampaingPath);
+	lua_register(L, "keepCampaingMenuStack", keepCampaingMenuStack);
+	lua_register(L, "exitCampaingScreen", exitCampaingScreen);
 
 	return 0;
 }
@@ -172,14 +174,6 @@ int CCampaing::continueCampaing(const std::string &path)
 {
 	campaingScripts.clear();
 
-
-
-
-	return 0;
-}
-
-int CCampaing::campaingMenu()
-{
 
 
 
@@ -347,6 +341,24 @@ int CCampaing::getLoadedCampaingPath(lua_State *L)
 	return p.rtn();
 }
 
+int CCampaing::keepCampaingMenuStack(lua_State * L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	p >> campaingMGR().keepMenuStack;
+
+	return p.rtn();
+}
+
+int CCampaing::exitCampaingScreen(lua_State * L)
+{
+	CLuaFunctions::LuaParams p(L);
+
+	campaingMGR().continueInDrawScreen = false;
+
+	return p.rtn();
+}
+
 int CCampaing::campaingLoop()
 {
 	auto &mgr = campaingMGR();
@@ -366,7 +378,35 @@ int CCampaing::campaingDrawScreen()
 	auto &engine = CEngine::engine();
 	auto &GuitarPP = GPPGame::GuitarPP();
 
+	callOnDctor<void(void)> exitguard([]()
+	{
+		auto &mgr = campaingMGR();
+
+		mgr.campaingFunctionGotoID = 0;
+		mgr.continueInDrawScreen = 0;
+	});
+
+	std::deque <CMenu*> menusStack;
+
 	bool windowOpened = true;
+
+	auto preFun = [&]()
+	{
+		CLuaH::Lua().runEventFromDeque("campaingMenuPreFun", mgr.campaingScripts);
+		return 0;
+	};
+
+	auto midFun = [&]()
+	{
+		CLuaH::Lua().runEventFromDeque("campaingMenuMidFun", mgr.campaingScripts);
+		return 0;
+	};
+
+	auto posFun = [&]()
+	{
+		CLuaH::Lua().runEventFromDeque("campaingMenuPosFun", mgr.campaingScripts);
+		return 0;
+	};
 
 	while ((windowOpened = engine.windowOpened()) && mgr.continueInDrawScreen)
 	{
@@ -387,6 +427,12 @@ int CCampaing::campaingDrawScreen()
 			break;
 
 		case 1:
+			menusStack = GuitarPP.openMenus(&(mgr.campaingMenu), preFun, midFun, posFun, false, std::move(menusStack));
+
+			if (!mgr.keepMenuStack)
+			{
+				menusStack.clear();
+			}
 			break;
 
 		default:
@@ -420,6 +466,7 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings")
 	numCampaingSaves = 0;
 	menuNovaCampanhaID = menuContinuarCampanhaID = 0;
 	campaingFunctionGotoID = 0;
+	keepMenuStack = false;
 	campaingLoaded = false;
 	continueInDrawScreen = false;
 	loadedCampaingFilepath = "./data/saves/campaings/campaingZoeira/save";

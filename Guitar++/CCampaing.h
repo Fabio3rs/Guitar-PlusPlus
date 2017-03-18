@@ -24,7 +24,7 @@ class CCampaing
 
 	std::deque <CLuaH::luaScript> campaingScripts;
 
-	bool continueInDrawScreen;
+	bool continueInDrawScreen, keepMenuStack;
 
 	int campaingFunctionGotoID;
 
@@ -242,7 +242,6 @@ public:
 	int newCampaing();
 	int continueCampaing(const std::string &path);
 
-	int campaingMenu();
 	int campaingMainMenu(CMenu &menu);
 
 	void loadCampaingModes();
@@ -256,6 +255,8 @@ protected:
 	static int getBandReputationPoints(lua_State *L);
 	static int isCampaingLoaded(lua_State *L);
 	static int getLoadedCampaingPath(lua_State *L);
+	static int keepCampaingMenuStack(lua_State *L);
+	static int exitCampaingScreen(lua_State *L);
 
 	static int campaingLoop();
 	static int campaingDrawScreen();

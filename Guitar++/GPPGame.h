@@ -218,7 +218,7 @@ public:
 
 	void setVSyncMode(int mode);
 
-	void openMenus(CMenu *startMenu, std::function<int(void)> preFun = nullptr, std::function<int(void)> midFun = nullptr, std::function<int(void)> posFun = nullptr, bool dev = false);
+	std::deque <CMenu*> openMenus(CMenu *startMenu, std::function<int(void)> preFun = nullptr, std::function<int(void)> midFun = nullptr, std::function<int(void)> posFun = nullptr, bool dev = false, std::deque < CMenu* > stackTest = std::deque < CMenu* >());
 
 	inline CMenu *getActualMenu()
 	{

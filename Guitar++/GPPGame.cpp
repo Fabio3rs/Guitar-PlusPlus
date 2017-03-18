@@ -2895,19 +2895,30 @@ std::string GPPGame::getRunningModule()
 	return runningModule;
 }
 
-void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::function<int(void)> midFun, std::function<int(void)> posFun, bool dev)
+std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::function<int(void)> midFun, std::function<int(void)> posFun, bool dev, std::deque < CMenu* > stackTest)
 {
+	callOnDctor<void(void)> exitguard([]()
+	{
+		GPPGame::GuitarPP().currentMenu = nullptr;
+	});
+
 	auto &engine = CEngine::engine();
 	auto &lua = CLuaH::Lua();
 	double waitForTime = 0.0;
 	
-	std::deque < CMenu* > menusStack;
+	std::deque < CMenu* > menusStack = stackTest;
 	//static std::deque < CMenu* > devMenusStack;
 
-	menusStack.push_back(startMenu);
+	if (menusStack.size() == 0)
+	{
+		menusStack.push_back(startMenu);
 
-	currentMenu = startMenu;
-
+		currentMenu = startMenu;
+	}
+	else
+	{
+		currentMenu = menusStack.back();
+	}
 	//auto vertexbuffer = engine.vboSET(vertices.size() * sizeof(glm::vec3), &vertices[0]);
 	//auto uvbuffer = engine.vboSET(uvs.size() * sizeof(glm::vec2), &uvs[0]);
 
@@ -2974,9 +2985,18 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 	bool back = false;
 	bool updateRender = true;
 
+	bool menuExit = false;
+
 	while (menusStack.size() != 0 && engine.windowOpened())
 	{
 		clearScreen();
+
+		if (menuExit)
+		{
+			currentMenu = nullptr;
+			return menusStack;
+		}
+
 		updateRender = (engine.getTime() - waitForTime) >= 0.0;
 
 		engine.activate3DRender(false);
@@ -2990,7 +3010,22 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 		}
 
 		if (preFun)
-			preFun();
+		{
+			int preFunResult = preFun();
+
+			switch (preFunResult)
+			{
+			case 0:
+				break;
+
+			case 1:
+				menuExit = true;
+				break;
+
+			default:
+				break;
+			}
+		}
 
 		if (dev)
 		{
@@ -3170,7 +3205,22 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 		}
 
 		if (midFun)
-			midFun();
+		{
+			int midFunResult = midFun();
+
+			switch (midFunResult)
+			{
+			case 0:
+				break;
+
+			case 1:
+				menuExit = true;
+				break;
+
+			default:
+				break;
+			}
+		}
 
 		menu.render();
 
@@ -3268,7 +3318,22 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 
 
 		if (posFun)
-			posFun();
+		{
+			int posFunResult = posFun();
+
+			switch (posFunResult)
+			{
+			case 0:
+				break;
+
+			case 1:
+				menuExit = true;
+				break;
+
+			default:
+				break;
+			}
+		}
 
 		//engine.bindTextOnSlot(0, 0);
 
@@ -3300,6 +3365,8 @@ void GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::
 	menusStack.clear();
 
 	currentMenu = nullptr;
+
+	return std::deque<CMenu*>();
 }
 
 void GPPGame::teste(const std::string &name)

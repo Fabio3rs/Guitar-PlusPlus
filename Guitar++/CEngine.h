@@ -153,6 +153,25 @@
 
 enum windowsNum{closed, opened, preUpdate, posUpdate};
 
+template<class T>
+class callOnDctor
+{
+	std::function<T> f;
+public:
+	inline callOnDctor(std::function<T> fun) : f(fun)
+	{
+
+	}
+
+	callOnDctor() = delete;
+
+	inline ~callOnDctor()
+	{
+		if (f)
+			f();
+	}
+};
+
 struct lightData{
 	float ambientLight[4], diffuseLight[4], specularLight[4], position[4], direction[4], angle;
 
