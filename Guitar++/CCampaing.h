@@ -24,6 +24,12 @@ class CCampaing
 
 	std::deque <CLuaH::luaScript> campaingScripts;
 
+	bool continueInDrawScreen;
+
+	int campaingFunctionGotoID;
+
+	CMenu campaingMenu;
+
 public:
 	bool loadCampaingF(const std::string &filepath);
 	bool saveCampaingF();
@@ -251,6 +257,8 @@ protected:
 	static int isCampaingLoaded(lua_State *L);
 	static int getLoadedCampaingPath(lua_State *L);
 
+	static int campaingLoop();
+	static int campaingDrawScreen();
 
 private:
 	static int openCampaingMenuCallback(CMenu &menu);

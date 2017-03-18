@@ -347,6 +347,54 @@ int CCampaing::getLoadedCampaingPath(lua_State *L)
 	return p.rtn();
 }
 
+int CCampaing::campaingLoop()
+{
+	auto &mgr = campaingMGR();
+	auto &engine = CEngine::engine();
+	auto &GuitarPP = GPPGame::GuitarPP();
+
+	bool windowOpened = true;
+
+	
+
+	return 0;
+}
+
+int CCampaing::campaingDrawScreen()
+{
+	auto &mgr = campaingMGR();
+	auto &engine = CEngine::engine();
+	auto &GuitarPP = GPPGame::GuitarPP();
+
+	bool windowOpened = true;
+
+	while ((windowOpened = engine.windowOpened()) && mgr.continueInDrawScreen)
+	{
+		GuitarPP.clearScreen();
+
+		if (engine.getKey(GLFW_KEY_ESCAPE))
+		{
+			break;
+		}
+
+		CLuaH::Lua().runEventFromDeque("campaingDrawScreenUpdate", mgr.campaingScripts);
+
+		GuitarPP.renderFrame();
+
+		switch (mgr.campaingFunctionGotoID)
+		{
+		case 0:
+			break;
+
+		case 1:
+			break;
+
+		default:
+			break;
+		}
+	}
+}
+
 int CCampaing::openCampaingMenuCallback(CMenu &menu)
 {
 	campaingMGR().numCampaingSaves = listCampaingSaves().size();
@@ -371,7 +419,9 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings")
 {
 	numCampaingSaves = 0;
 	menuNovaCampanhaID = menuContinuarCampanhaID = 0;
+	campaingFunctionGotoID = 0;
 	campaingLoaded = false;
+	continueInDrawScreen = false;
 	loadedCampaingFilepath = "./data/saves/campaings/campaingZoeira/save";
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerLuaFunctions);
 }

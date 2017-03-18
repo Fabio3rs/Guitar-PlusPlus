@@ -196,6 +196,7 @@ public:
 	static void startMarathonModule(const std::string &name);
 	static void serverModule(const std::string &name);
 	static void continueCampaing(const std::string &name);
+	static void campaingPlayModule(const std::string &name);
 	static void benchmark(const std::string &name);
 
 	void loadAllThemes();
