@@ -417,15 +417,15 @@ void CEngine::setCamera(double eyex,
 	glLoadIdentity();
 
 	gluPerspective(45.0, (double)windowWidth / (double)windowHeight, 0.005, perspectiveMaxDist);
-	gluLookAt(engine().eyex,
-		engine().eyey,
-		engine().eyez,
-		engine().centerx,
-		engine().centery,
-		engine().centerz,
-		engine().upx,
-		engine().upy,
-		engine().upz); /* positive Y up vector */
+	gluLookAt(eyex,
+		eyey,
+		eyez,
+		centerx,
+		centery,
+		centerz,
+		upx,
+		upy,
+		upz); /* positive Y up vector */
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -1325,7 +1325,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
 	glfwSetInputMode((GLFWwindow*)window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 	//setVSyncMode(0);
 	
-	CEngine::engine().activateLighting(false);
+	activateLighting(false);
 }
 
 void CEngine::setLight(const lightData &l, int id, bool setAmbient)

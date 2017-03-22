@@ -172,7 +172,7 @@ int CCampaing::newCampaing()
 
 int CCampaing::continueCampaing(const std::string &path)
 {
-	campaingScripts.clear();
+	//campaingScripts.clear();
 
 
 
