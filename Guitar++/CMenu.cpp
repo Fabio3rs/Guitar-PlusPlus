@@ -878,8 +878,12 @@ void CMenu::update()
 			barPosX1 = opt.x + textSize + opt.size;
 			barPosX2 = barPosX1 + opt.deslizantBarSize;
 
-			if (isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize, opt.size)){
-				if (mBTNClick){
+			if (isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize, opt.size))
+			{
+				if (mBTNClick)
+				{
+					opt.status |= 1;
+
 					double subX = (CEngine::engine().mouseX - barPosX1);
 
 					double optListSized = opt.optList.size();
@@ -896,6 +900,10 @@ void CMenu::update()
 					}
 					if (params.size() <= 3) params.push_back(CLuaH::customParam(2.0));
 				}
+			}
+			else
+			{
+				opt.status |= 2;
 			}
 			break;
 

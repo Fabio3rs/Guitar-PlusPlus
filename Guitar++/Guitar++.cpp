@@ -469,13 +469,16 @@ int main(int argc, char* argv[])
 							{
 								try
 								{
-									opt.listID = (opt.optList.size() - 1) * CEngine::getMainVolume();
+									if (opt.status == 0)
+									{
+										opt.listID = (opt.optList.size() - 1) * CEngine::getMainVolume();
 
-									if (opt.listID < 0)
-										opt.listID = 0;
+										if (opt.listID < 0)
+											opt.listID = 0;
 
-									if (opt.listID >= opt.optList.size())
-										opt.listID = opt.optList.size() - 1;
+										if (opt.listID >= opt.optList.size())
+											opt.listID = opt.optList.size() - 1;
+									}
 								}
 								catch (...)
 								{
@@ -487,15 +490,18 @@ int main(int argc, char* argv[])
 
 							opt.posUpdateCppCallback = [](CMenu::menuOpt &opt)
 							{
-								auto &selectedVolume = opt.optList[opt.listID];
-
-								try
+								if (opt.status != 0)
 								{
-									CEngine::setMainVolume(std::stof(selectedVolume));
-								}
-								catch (...)
-								{
+									auto &selectedVolume = opt.optList[opt.listID];
 
+									try
+									{
+										CEngine::setMainVolume(std::stof(selectedVolume));
+									}
+									catch (...)
+									{
+
+									}
 								}
 
 								return 0;
