@@ -2057,7 +2057,7 @@ void CGamePlay::renderFretBoardShadow(CPlayer &player, double x1, double x2, dou
 
 	fretboardLData.texture = FretBoardStruct.Text = 0;
 
-	for (int i = -2; i < 8; i++)
+	for (int i = -2; i < 10; i++)
 	{
 		FretBoardStruct.z1 = (x2 - x1) * (-size) * i - cCalc;
 		FretBoardStruct.z2 = FretBoardStruct.z1;
@@ -2070,6 +2070,16 @@ void CGamePlay::renderFretBoardShadow(CPlayer &player, double x1, double x2, dou
 		if (FretBoardStruct.alphaBottom <= 0.0 && FretBoardStruct.alphaTop <= 0.0)
 		{
 			continue;
+		}
+
+		if (FretBoardStruct.alphaBottom < 0.0)
+		{
+			FretBoardStruct.alphaBottom = 0.0;
+		}
+
+		if (FretBoardStruct.alphaTop < 0.0)
+		{
+			FretBoardStruct.alphaTop = 0.0;
 		}
 
 		//CFonts::fonts().draw3DTextInScreen("TESTE", CFonts::fonts().getCenterPos(sizeof("TESTE") - 1, 0.2, x1 + (x2 - x1) / 2.0), -0.4992, FretBoardStruct.z1, 0.2, 0.0, -0.2);

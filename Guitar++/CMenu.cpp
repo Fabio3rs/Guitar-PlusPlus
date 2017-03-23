@@ -617,17 +617,25 @@ void CMenu::update()
 		mBTNClick = true;
 	}
 
-	if (uiMenu && mBTNClick && mouseOnThisMenu)
 	{
 		bool ontop = isThisOnTop();
 
-		if (!ontop && isMouseOnThisMenu())
+		if (uiMenu && mBTNClick && mouseOnThisMenu)
 		{
-			putOnTop();
+			if (!ontop && isMouseOnThisMenu())
+			{
+				putOnTop();
+			}
+		}
+
+		if (mouseOnThisMenu)
+		{
+
 		}
 	}
 
-	if (CEngine::engine().getKey(GLFW_KEY_ENTER) || mBTNClick){
+	if (CEngine::engine().getKey(GLFW_KEY_ENTER) || mBTNClick)
+	{
 		enterOpt = status = true;
 	}
 
