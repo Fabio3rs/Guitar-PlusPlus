@@ -193,7 +193,7 @@ public:
 		std::deque<CPlayer> campaingPlayers;
 		std::string bandName;
 
-		double money;
+		double money, playedTime;
 		int64_t reputationPoints;
 
 		std::deque <Show> playedSongs;
@@ -209,13 +209,13 @@ public:
 		template<class Archive>
 		void load(Archive &archive)
 		{
-			archive(mode, campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scripts);
+			archive(mode, campaingPlayers, bandName, money, playedTime, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scripts);
 		}
 
 		template<class Archive>
 		void save(Archive &archive) const
 		{
-			archive(mode, campaingPlayers, bandName, money, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scripts);
+			archive(mode, campaingPlayers, bandName, money, playedTime, reputationPoints, playedSongs, showsSchedule, guitars, emailList, contractList, newsList, scripts);
 		}
 		
 		CCampaingData();

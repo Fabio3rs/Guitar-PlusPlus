@@ -7,6 +7,7 @@
 CCampaing::CCampaingData::CCampaingData()
 {
 	money = 0.0;
+	playedTime = 0.0;
 	reputationPoints = 0;
 	mode = "default";
 }
