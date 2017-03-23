@@ -562,6 +562,8 @@ public:
 	};
 
 	/**/
+	static float getMainVolume();
+	static bool setMainVolume(float v);
 	bool loadSoundStream(const char *fileName, int &handle, bool decode = false);
 	bool loadMusicStream(const char *fileName, int &handle);
 	bool playSoundStream(int handle);

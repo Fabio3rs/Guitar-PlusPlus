@@ -1360,7 +1360,7 @@ void GPPGame::startModule(const std::string &name)
 
 					for (auto &t : l.ambientLight)
 					{
-						t = 0.1;
+						t = 0.2;
 					}
 
 					for (auto &t : l.direction)
@@ -1375,7 +1375,7 @@ void GPPGame::startModule(const std::string &name)
 
 					for (auto &t : l.specularLight)
 					{
-						t = 0.2;
+						t = 0.5;
 					}
 
 					for (auto &t : l.diffuseLight)
@@ -1391,7 +1391,7 @@ void GPPGame::startModule(const std::string &name)
 
 					CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
 
-					l.angle = 180.0;
+					l.angle = 100.0;
 					l.direction[0] = 3.0;
 					l.direction[1] = -0.5;
 					l.direction[2] = -1.5;

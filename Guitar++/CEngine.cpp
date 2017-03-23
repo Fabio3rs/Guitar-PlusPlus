@@ -347,6 +347,16 @@ bool CEngine::loadMusicStream(const char *fileName, int &handle)
 	return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE) && handle != 0;
 }
 
+float CEngine::getMainVolume()
+{
+	return BASS_GetVolume();
+}
+
+bool CEngine::setMainVolume(float v)
+{
+	return BASS_SetVolume(v);
+}
+
 bool CEngine::loadSoundStream(const char *fileName, int &handle, bool decode)
 {
 	int flags = BASS_STREAM_PRESCAN | BASS_ASYNCFILE;

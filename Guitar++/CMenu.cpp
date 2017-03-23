@@ -881,7 +881,10 @@ void CMenu::update()
 			if (isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize, opt.size)){
 				if (mBTNClick){
 					double subX = (CEngine::engine().mouseX - barPosX1);
-					opt.listID = (int)(((double)opt.optList.size() / opt.deslizantBarSize) * subX);
+
+					double optListSized = opt.optList.size();
+
+					opt.listID = (int)((optListSized / opt.deslizantBarSize) * subX);
 
 					desselectAllTextClick(opt);
 
@@ -939,6 +942,9 @@ void CMenu::update()
 			break;
 		}
 
+		if (opt.posUpdateCppCallback)
+			opt.posUpdateCppCallback(opt);
+		
 		if (params.size() <= 3) params.push_back(CLuaH::customParam(-1.0));
 		CLuaH::Lua().runEventWithParams(opt.optionName, params);
 		++i;

@@ -143,6 +143,7 @@ int main(int argc, char* argv[])
 		auto &gmenu = game.newNamedMenu("playOptions");
 		auto &cmpopts = game.newNamedMenu("mainCampaingOptions");
 		auto &optionsmenu = game.newNamedMenu("optionsmenu");
+		auto &audiomenu = game.newNamedMenu("audiomenu");
 
 		int startOP, configOP, extrasOp, ajudaOp, quitOp, singlePlayOp;
 
@@ -404,6 +405,8 @@ int main(int argc, char* argv[])
 							opt.status = 0;
 							opt.type = CMenu::menusOPT::textbtn;
 
+							opt.menusXRef.push_back(audiomenu.getName());
+
 							optionsmenu.addOpt(opt);
 						}
 
@@ -439,6 +442,84 @@ int main(int argc, char* argv[])
 					break;
 
 				case 3:
+					{
+						{
+							CMenu::menuOpt opt;
+
+							opt.text = "Volume principal";
+							opt.y = 0.3;
+							opt.size = 0.075;
+							opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+							opt.group = 1;
+							opt.status = 0;
+							opt.type = CMenu::menusOPT::deslizant_Select_list;
+							opt.deslizantBarSize = 0.5;
+
+							opt.optList = { "0.0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0" };
+
+							opt.listID = (opt.optList.size() - 1) * CEngine::getMainVolume();
+
+							if (opt.listID < 0)
+								opt.listID = 0;
+
+							if (opt.listID >= opt.optList.size())
+								opt.listID = opt.optList.size() - 1;
+
+							opt.updateCppCallback = [](CMenu::menuOpt &opt)
+							{
+								try
+								{
+									opt.listID = (opt.optList.size() - 1) * CEngine::getMainVolume();
+
+									if (opt.listID < 0)
+										opt.listID = 0;
+
+									if (opt.listID >= opt.optList.size())
+										opt.listID = opt.optList.size() - 1;
+								}
+								catch (...)
+								{
+
+								}
+
+								return 0;
+							};
+
+							opt.posUpdateCppCallback = [](CMenu::menuOpt &opt)
+							{
+								auto &selectedVolume = opt.optList[opt.listID];
+
+								try
+								{
+									CEngine::setMainVolume(std::stof(selectedVolume));
+								}
+								catch (...)
+								{
+
+								}
+
+								return 0;
+							};
+
+							audiomenu.addOpt(opt);
+						}
+
+						{
+							CMenu::menuOpt opt;
+
+							opt.text = "Voltar";
+							opt.y = -0.4;
+							opt.size = 0.075;
+							opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+							opt.group = 1;
+							opt.status = 0;
+							opt.type = CMenu::menusOPT::textbtn;
+							opt.goback = true;
+
+							audiomenu.addOpt(opt);
+						}
+					}
+
 					game.setMainMenu(mainMenu);
 					lua.runEvent("mainMenuSetted");
 					break;
