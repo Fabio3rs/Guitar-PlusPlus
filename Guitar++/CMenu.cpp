@@ -634,7 +634,7 @@ void CMenu::update()
 		}
 	}
 
-	if (CEngine::engine().getKey(GLFW_KEY_ENTER) || mBTNClick)
+	if ((CEngine::engine().getKey(GLFW_KEY_ENTER) || mBTNClick) && lastEnterOptBtn)
 	{
 		enterOpt = status = true;
 	}
@@ -854,7 +854,8 @@ void CMenu::update()
 		case textbtn:
 			textSize = textSizeInScreen(opt.text, opt.size);
 
-			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05)){
+			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05))
+			{
 				desselectAllFromGroup(opt.group);
 				opt.status = (enterOpt && opt.enableEnter)? 1 | 2 : 1;
 
@@ -878,32 +879,38 @@ void CMenu::update()
 			barPosX1 = opt.x + textSize + opt.size;
 			barPosX2 = barPosX1 + opt.deslizantBarSize;
 
-			if (isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize, opt.size))
+			if (enterOpt && isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize, opt.size))
+			{
+				opt.status |= 1;
+			}
+
+			if ((opt.status & 1) != 0)
 			{
 				if (mBTNClick)
 				{
-					opt.status |= 1;
-
 					double subX = (CEngine::engine().mouseX - barPosX1);
 
-					double optListSized = opt.optList.size();
-
-					opt.listID = (int)((optListSized / opt.deslizantBarSize) * subX);
-
 					desselectAllTextClick(opt);
+					opt.status |= 1;
 
-					if (opt.listID >= opt.optList.size()){
-						opt.listID = opt.optList.size() - 1;
+					if (subX >= 0.0)
+					{
+						double optListSized = opt.optList.size();
+
+						opt.listID = (int)((optListSized / opt.deslizantBarSize) * subX);
+
+						if (opt.listID >= opt.optList.size())
+						{
+							opt.listID = opt.optList.size() - 1;
+						}
+						else if (opt.listID < 0)
+						{
+							opt.listID = 0;
+						}
 					}
-					else if(opt.listID < 0){
-						opt.listID = 0;
-					}
+
 					if (params.size() <= 3) params.push_back(CLuaH::customParam(2.0));
 				}
-			}
-			else
-			{
-				opt.status |= 2;
 			}
 			break;
 
@@ -915,7 +922,7 @@ void CMenu::update()
 
 			if (isMouseOver2DQuad(opt.x, opt.y, opt.deslizantBarSize, opt.size))
 			{
-				if (mBTNClick && !opt.btnClickStat)
+				if (enterOpt && !opt.btnClickStat)
 				{
 					desselectAllClick();
 					opt.devStatus |= 1;
@@ -957,6 +964,7 @@ void CMenu::update()
 		CLuaH::Lua().runEventWithParams(opt.optionName, params);
 		++i;
 	}
+
 	CLuaH::Lua().runEventWithParams(std::string("pos") + menuName + std::string("update"), menucallback);
 
 	bool erase = false;
@@ -1012,6 +1020,8 @@ void CMenu::update()
 			}
 		}
 	}
+
+	lastEnterOptBtn = mBTNClick;
 }
 
 void CMenu::updateDev()
@@ -1255,6 +1265,7 @@ int CMenu::getDevSelectedMenuOpt()
 
 CMenu::CMenu()
 {
+	lastEnterOptBtn = false;
 	status = 0;
 	thisUiID = -1;
 
@@ -1282,7 +1293,9 @@ CMenu::CMenu()
 	mouseAY = CEngine::engine().mouseY;
 }
 
-CMenu::CMenu(const std::string &name){
+CMenu::CMenu(const std::string &name)
+{
+	lastEnterOptBtn = false;
 	status = 0;
 	thisUiID = -1;
 

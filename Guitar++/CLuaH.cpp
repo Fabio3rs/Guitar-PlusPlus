@@ -257,10 +257,10 @@ void CLuaH::catchErrorString(const luaScript &L){
 	CLog::log() << errorStr;
 }
 
-int CLuaH::runScript(luaScript &lua){
-	static const std::string barra("/");
-
-	if (lua.luaState){
+int CLuaH::runScript(luaScript &lua)
+{
+	if (lua.luaState)
+	{
 		lua.luaState->script = &lua;
 		auto pcallr = lua_pcall(lua.luaState, 0, LUA_MULTRET, 0);
 		return pcallr;
@@ -277,9 +277,8 @@ int CLuaH::runScript(const std::string &path, const std::string &f)
 /*
 * Run only one script with args (already in Lua Stack)
 */
-int CLuaH::runScriptWithArgs(luaScript &lua, int args){
-	static const std::string barra("/");
-
+int CLuaH::runScriptWithArgs(luaScript &lua, int args)
+{
 	if (lua.luaState)
 	{
 		lua.luaState->script = &lua;
@@ -292,25 +291,34 @@ int CLuaH::runScriptWithArgs(luaScript &lua, int args){
 
 void CLuaH::runEvent(const std::string &name)
 {
-	static const std::string barra("/");
-
 	for (auto &pathScripts : Lua().files)
 	{
 		for (auto &scripts : pathScripts.second)
 		{
 			int luaindex = 0;
 
-			if (scripts.second.callbacksAdded && (luaindex = scripts.second.callbacks[name]) != 0){
-				lua_rawgeti(scripts.second.luaState, LUA_REGISTRYINDEX, luaindex);
-				if (runScript(scripts.second) != 0)
-					catchErrorString(scripts.second);
+			if (scripts.second.callbacksAdded)
+			{
+				auto it = scripts.second.callbacks.find(name);
+
+				if (it != scripts.second.callbacks.end())
+				{
+					luaindex = it->second;
+
+					if (luaindex != 0)
+					{
+						lua_rawgeti(scripts.second.luaState, LUA_REGISTRYINDEX, luaindex);
+						if (runScript(scripts.second) != 0)
+							catchErrorString(scripts.second);
+					}
+				}
 			}
 		}
 	}
 }
 
-void CLuaH::runHookEvent(uintptr_t address){
-	static const std::string barra("/");
+void CLuaH::runHookEvent(uintptr_t address)
+{
 	for (auto &pathScripts : Lua().files)
 	{
 		for (auto &scripts : pathScripts.second)
@@ -326,23 +334,34 @@ void CLuaH::runHookEvent(uintptr_t address){
 	}
 }
 
-void CLuaH::runEventFromDeque(const std::string & name, std::deque<CLuaH::luaScript>& storage)
+void CLuaH::runEventFromDeque(const std::string &name, std::deque<CLuaH::luaScript> &storage)
 {
 	for (auto &scripts : storage)
 	{
 		int luaindex = 0;
 
-		if (scripts.callbacksAdded && (luaindex = scripts.callbacks[name]) != 0) {
-			lua_rawgeti(scripts.luaState, LUA_REGISTRYINDEX, luaindex);
-			if (runScript(scripts) != 0)
-				catchErrorString(scripts);
+		if (scripts.callbacksAdded)
+		{
+			auto it = scripts.callbacks.find(name);
+
+			if (it != scripts.callbacks.end())
+			{
+				luaindex = it->second;
+
+				if (luaindex != 0)
+				{
+					lua_rawgeti(scripts.luaState, LUA_REGISTRYINDEX, luaindex);
+					if (runScript(scripts) != 0)
+						catchErrorString(scripts);
+				}
+			}
 		}
 	}
 }
 
 
-void CLuaH::runCheatEvent(const std::string &name){
-	static const std::string barra("/");
+void CLuaH::runCheatEvent(const std::string &name)
+{
 	if (name.size() < 1)
 	{
 		return;
@@ -397,8 +416,8 @@ void CLuaH::runCheatEvent(const std::string &name){
 /*
 * Run a especific with parameteres (calls him specifics callbacks)
 */
-void CLuaH::runEventWithParams(const std::string &name, const multiCallBackParams_t &params){
-	static const std::string barra("/");
+void CLuaH::runEventWithParams(const std::string &name, const multiCallBackParams_t &params)
+{
 	for (auto &pathScripts : Lua().files)
 	{
 		for (auto &scripts : pathScripts.second)

@@ -67,6 +67,8 @@ class CMenu{
 	void putOnTop();
 	bool isThisOnTop();
 
+	bool lastEnterOptBtn;
+
 public:
 	bool isInterfaceOver();
 

@@ -467,9 +467,9 @@ int main(int argc, char* argv[])
 
 							opt.updateCppCallback = [](CMenu::menuOpt &opt)
 							{
-								try
+								if (opt.status == 0)
 								{
-									if (opt.status == 0)
+									try
 									{
 										opt.listID = (opt.optList.size() - 1) * CEngine::getMainVolume();
 
@@ -479,10 +479,10 @@ int main(int argc, char* argv[])
 										if (opt.listID >= opt.optList.size())
 											opt.listID = opt.optList.size() - 1;
 									}
-								}
-								catch (...)
-								{
+									catch (...)
+									{
 
+									}
 								}
 
 								return 0;
