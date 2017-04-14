@@ -342,6 +342,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 	typedef std::map < std::string, std::map<std::string, std::deque<std::string>> > parsedChart;
 	chartFileName = chartFile;
 	plusPos = 0;
+	double chartOffset = 0.0;
 
 	parsedChart feedBackChartMap;
 
@@ -479,7 +480,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		return result;
 	};
 
-	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty){
+	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM, &chartOffset](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty){
 		for (auto &scopeData : chartMap[difficulty]){
 			char c[16] = { 0 };
 			int i = 0, j = 0;
@@ -522,6 +523,8 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 			{
 				nt.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
 				nt.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt.time;
+
+				nt.time += chartOffset;
 				continue;
 			}
 
@@ -539,6 +542,8 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 			{
 				nt.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
 				nt.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt.time;
+
+				nt.time += chartOffset;
 			}
 
 			lnotet = nt.time;
@@ -565,6 +570,13 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		songName = chk(Song["Name"], 0);
 		songArtist = chk(Song["Artist"], 0);
 		songCharter = chk(Song["Charter"], 0);
+		try {
+			chartOffset = std::stod(Song["Offset"][0]);
+		}
+		catch (...)
+		{
+			chartOffset = 0;
+		}
 
 		std::cout << chartResolutionProp << std::endl;
 	};
@@ -592,6 +604,11 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		Note newNote;
 		newNote.time = getNoteTime(BPMs, p, (int64_t)BP.offset);
 		newNote.lTime = BP.BPM / 1000.0;
+
+		if (newNote.time != 0.0)
+		{
+			newNote.time += chartOffset;
+		}
 
 		BPM.push_back(newNote);
 
