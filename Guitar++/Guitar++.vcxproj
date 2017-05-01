@@ -93,6 +93,7 @@
     <ClCompile Include="CEngine.cpp" />
     <ClCompile Include="CFonts.cpp" />
     <ClCompile Include="CGamePlay.cpp" />
+    <ClCompile Include="CGPPFileMGR.cpp" />
     <ClCompile Include="CGuitars.cpp" />
     <ClCompile Include="CLanguageManager.cpp" />
     <ClCompile Include="CLog.cpp" />
@@ -106,7 +107,6 @@
     <ClCompile Include="CShader.cpp" />
     <ClCompile Include="CText.cpp" />
     <ClCompile Include="exception.cpp" />
-    <ClCompile Include="GGPPFileMGR.cpp" />
     <ClCompile Include="GPPGame.cpp" />
     <ClCompile Include="GPPOBJ.cpp" />
     <ClCompile Include="Guitar++.cpp" />

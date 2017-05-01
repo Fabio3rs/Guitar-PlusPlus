@@ -201,10 +201,10 @@
     <ClCompile Include="CGuitars.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GGPPFileMGR.cpp">
+    <ClCompile Include="CCampaing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CCampaing.cpp">
+    <ClCompile Include="CGPPFileMGR.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

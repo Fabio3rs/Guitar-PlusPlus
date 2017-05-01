@@ -235,12 +235,12 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			BPMnowbuff = 0;
 		}
 
-		double BPS = 30.0 / Player.Notes.BPM[BPMnowbuff].lTime;
+		double BPS = 60.0 / Player.Notes.BPM[BPMnowbuff].lTime;
 
 		//int Multi = time / BPS;
 		double tCalc = 0.0;
 		double minPosition = 0.0;
-		double mtimem1 = mscRunnTime - 2.0;
+		double mtimem1 = mtime;
 
 		if (mtimem1 >= 0.0){
 			int nbuff = BPMnowbuff + 1;
@@ -319,7 +319,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 						++localBPMBuffer;
 
-						BPS = 30.0 / Player.Notes.BPM[nbuff].lTime;
+						BPS = 60.0 / Player.Notes.BPM[nbuff].lTime;
 					}
 				}
 			}
@@ -3228,7 +3228,7 @@ CGamePlay::CGamePlay() : engine(CEngine::engine())
 
 	BPMTextID = GPPGame::GuitarPP().loadTexture("data/sprites", BPMLineText).getTextId();
 
-	showBPMLines = false;
+	showBPMLines = true;
 
 	for (auto &al : hoposLight.ambientLight)
 	{
