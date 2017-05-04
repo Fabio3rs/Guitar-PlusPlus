@@ -207,6 +207,9 @@
     <ClCompile Include="CGPPFileMGR.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CChart.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GPPGame.h">
@@ -367,6 +370,9 @@
     </ClInclude>
     <ClInclude Include="Lua\lzio.h">
       <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="CChart.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

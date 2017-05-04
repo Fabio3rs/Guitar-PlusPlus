@@ -68,6 +68,8 @@ class CGPPFileMGR
 {
 
 public:
+	static CGPPFileMGR &mgr();
+
 	GPPPackage loadPackage(const std::string &file);
 
 	template<class T>
@@ -78,6 +80,8 @@ public:
 		file.seekg(0, std::ios::beg);
 		return result;
 	}
+
+	GPPPackage newPackageFromDirectory(const std::string &packName, const std::string &dir);
 
 private:
 	CGPPFileMGR();

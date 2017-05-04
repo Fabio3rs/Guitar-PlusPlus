@@ -8,14 +8,20 @@
 void gppDecrypt(unsigned char *ch, size_t s)
 {
 	size_t sdz = s / 2;
+	size_t s1 = s;
 
-	if (sdz > 0)
-		sdz -= 1;
+	if (s1 > 0)
+		s1 -= 1;
 
 	for (size_t i = 0; i < sdz; i++)
 	{
-		std::swap(ch[i], ch[sdz - i]);
-		ch[i] ^= 0x77;
+		size_t r = s1 - i;
+		if (r != i)
+		{
+			ch[i] ^= 0x77;
+			ch[r] ^= 0x77;
+			std::swap(ch[i], ch[r]);
+		}
 	}
 }
 

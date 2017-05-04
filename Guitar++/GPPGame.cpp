@@ -10,6 +10,7 @@
 #include "CFonts.h"
 #include "CCharter.h"
 #include "CMultiplayer.h"
+#include "CGPPFileMGR.h"
 
 std::mutex GPPGame::playersMutex;
 

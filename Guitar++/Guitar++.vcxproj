@@ -88,6 +88,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CCampaing.cpp" />
+    <ClCompile Include="CChart.cpp" />
     <ClCompile Include="CCharter.cpp" />
     <ClCompile Include="CControls.cpp" />
     <ClCompile Include="CEngine.cpp" />
@@ -150,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CCampaing.h" />
+    <ClInclude Include="CChart.h" />
     <ClInclude Include="CCharter.h" />
     <ClInclude Include="CControls.h" />
     <ClInclude Include="CEngine.h" />
