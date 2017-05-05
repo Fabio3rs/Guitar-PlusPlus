@@ -4,6 +4,7 @@
 
 #include <string>
 #include <deque>
+#include <sstream>
 #include "CPlayer.h"
 
 class CChart
@@ -35,9 +36,13 @@ class CChart
 
 	double chartResolutionProp;
 
+	bool parseFeebackChart(std::istream &chartStream);
+
 public:
 	bool open(const std::string &chartFile);
 	bool openFromMemory(const char *chart);
+
+	void fillPlayerData(CPlayer &player, const std::string &instrument);
 
 	CChart();
 };

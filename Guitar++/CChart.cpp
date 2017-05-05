@@ -14,10 +14,9 @@ static std::string trim(const std::string &str)
 	return str.substr(first, last - first + 1);
 }
 
-bool CChart::open(const std::string &chartFile)
+bool CChart::parseFeebackChart(std::istream &chartStream)
 {
 	typedef std::map < std::string, std::map<std::string, std::deque<std::string>> > parsedChart;
-	chartFileName = chartFile;
 	double chartOffset = 0.0;
 
 	parsedChart feedBackChartMap;
@@ -38,9 +37,9 @@ bool CChart::open(const std::string &chartFile)
 	noteContainer Nts;
 	BPMContainer BPMs;
 
-	auto parseFeedBackChart = [](parsedChart &data, std::string chartFile)
+	auto parseFeedBackChart = [&chartStream](parsedChart &data)
 	{
-		std::ifstream chart(chartFile);
+		auto &chart = chartStream;
 		char temp[1024];
 
 		std::string myScope = "nothing";
@@ -259,21 +258,21 @@ bool CChart::open(const std::string &chartFile)
 	};
 
 
-	parseFeedBackChart(feedBackChartMap, chartFile);
+	parseFeedBackChart(feedBackChartMap);
 
 	fillChartInfo(feedBackChartMap);
 
 	BPMRead(BPMs, feedBackChartMap);
 	noteRead(Nts, BPMs, feedBackChartMap, "[ExpertSingle]"); // Default: "[ExpertSingle]"
 
-													   /*
-													   int bpdqpos = 0;
-													   for (auto &bpdq : BPMs)
-													   {
-													   std::cout << "BPM " << bpdq.BPM / 1000.0 << "  offset " << bpdq.offset << "   " << getNoteTime(BPMs, bpdqpos, bpdq.offset) << std::endl;
-													   bpdqpos++;
-													   }
-													   */
+															 /*
+															 int bpdqpos = 0;
+															 for (auto &bpdq : BPMs)
+															 {
+															 std::cout << "BPM " << bpdq.BPM / 1000.0 << "  offset " << bpdq.offset << "   " << getNoteTime(BPMs, bpdqpos, bpdq.offset) << std::endl;
+															 bpdqpos++;
+															 }
+															 */
 	int p = 0;
 	for (auto &BP : BPMs) {
 		Note newNote;
@@ -443,6 +442,23 @@ bool CChart::open(const std::string &chartFile)
 	};
 
 	return true;
+}
+
+bool CChart::open(const std::string &chartFile)
+{
+	std::ifstream chart(chartFile);
+	return parseFeebackChart(chart);
+}
+
+bool CChart::openFromMemory(const char *chart)
+{
+	std::stringstream schart(chart);
+	return parseFeebackChart(schart);
+}
+
+void CChart::fillPlayerData(CPlayer & player, const std::string & instrument)
+{
+
 }
 
 CChart::CChart()
