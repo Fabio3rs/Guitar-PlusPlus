@@ -168,6 +168,18 @@ public:
 				return time > b.time;
 			}
 
+			template<class Archive>
+			void load(Archive & archive)
+			{
+				archive(time, lTime, type);
+			}
+
+			template<class Archive>
+			void save(Archive & archive) const
+			{
+				archive(time, lTime, type);
+			}
+
 			Note(){
 				time = 0.0;
 				lTime = 0.0;
@@ -188,6 +200,18 @@ public:
 
 			inline bool operator >(const Note &b) const{
 				return time > b.time;
+			}
+
+			template<class Archive>
+			void load(Archive & archive)
+			{
+				archive(time, lTime, type, firstNote, lastNote);
+			}
+
+			template<class Archive>
+			void save(Archive & archive) const
+			{
+				archive(time, lTime, type, firstNote, lastNote);
 			}
 
 			plusNote(){

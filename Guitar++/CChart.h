@@ -23,6 +23,18 @@ class CChart
 
 		instrumentNotes();
 
+		template<class Archive>
+		void load(Archive & archive)
+		{
+			archive(present, gNotes, gPlus);
+		}
+
+		template<class Archive>
+		void save(Archive & archive) const
+		{
+			archive(present, gNotes, gPlus);
+		}
+
 	private:
 		void deducePlusLastNotes();
 	};
@@ -37,6 +49,18 @@ class CChart
 	double chartResolutionProp;
 
 	bool parseFeebackChart(std::istream &chartStream);
+
+	template<class Archive>
+	void load(Archive & archive)
+	{
+		archive(instruments, chartFileName, songName, songArtist, songCharter, chartOffset, BPM, chartResolutionProp);
+	}
+
+	template<class Archive>
+	void save(Archive & archive) const
+	{
+		archive(instruments, chartFileName, songName, songArtist, songCharter, chartOffset, BPM, chartResolutionProp);
+	}
 
 public:
 	bool open(const std::string &chartFile);
