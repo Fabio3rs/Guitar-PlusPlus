@@ -608,7 +608,7 @@ long CEngine::readStream(GLFWstream *stream, void *data, long size){
 		}
 
 		// Perform data read
-		memcpy(data, (unsigned char*)stream->data + stream->position, size);
+		memcpy(data, stream->data.get() + stream->position, size);
 		stream->position += size;
 		return size;
 	}

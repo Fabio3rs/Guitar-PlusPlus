@@ -240,7 +240,7 @@ public:
 
 	typedef struct {
 		FILE*   file;
-		void*   data;
+		std::shared_ptr<unsigned char>   data;
 		long    position;
 		long    size;
 	} GLFWstream;
