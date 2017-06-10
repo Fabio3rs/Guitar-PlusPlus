@@ -214,7 +214,8 @@ static void ReadTGA_RLE( unsigned char *buf, int size, int bpp,
 int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
 {
     _tga_header_t h;
-    unsigned char *cmap, *pix, tmp, *src, *dst;
+    unsigned char *cmap, tmp, *src, *dst;
+	std::shared_ptr<unsigned char> pix;
     int cmapsize, pixsize, pixsize2;
     int bpp, bpp2, k, m, n, swapx, swapy;
 
@@ -272,7 +273,7 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     pixsize2 = h.width * h.height * bpp2;
 
     // Allocate memory for pixel data
-    pix = (unsigned char *) malloc( pixsize2 );
+    pix = std::shared_ptr<unsigned char>(new unsigned char[pixsize2]);
     if( pix == NULL )
     {
         if( cmap )
@@ -285,11 +286,11 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     // Read pixel data from file
     if( h.imagetype >= _TGA_IMAGETYPE_CMAP_RLE )
     {
-        ReadTGA_RLE( pix, pixsize, bpp, s );
+        ReadTGA_RLE( pix.get(), pixsize, bpp, s );
     }
     else
     {
-		CEngine::engine().readStream(s, pix, pixsize);
+		CEngine::engine().readStream(s, pix.get(), pixsize);
     }
 
     // If the image origin is not what we want, re-arrange the pixels
@@ -319,8 +320,8 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     if( (swapy && !(flags & GLFW_ORIGIN_UL_BIT)) ||
         (!swapy && (flags & GLFW_ORIGIN_UL_BIT)) )
     {
-        src = pix;
-        dst = &pix[ (h.height-1)*h.width*bpp ];
+        src = pix.get();
+        dst = &pix.get()[ (h.height-1)*h.width*bpp ];
         for( n = 0; n < h.height/2; n ++ )
         {
             for( m = 0; m < h.width ; m ++ )
@@ -337,8 +338,8 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     }
     if( swapx )
     {
-        src = pix;
-        dst = &pix[ (h.width-1)*bpp ];
+        src = pix.get();
+        dst = &pix.get()[ (h.width-1)*bpp ];
         for( n = 0; n < h.height; n ++ )
         {
             for( m = 0; m < h.width/2 ; m ++ )
@@ -374,10 +375,10 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         // Convert pixel data to RGB/RGBA data
         for( m = h.width * h.height - 1; m >= 0; m -- )
         {
-            n = pix[ m ];
+            n = pix.get()[ m ];
             for( k = 0; k < bpp2; k ++ )
             {
-                pix[ m*bpp2 + k ] = cmap[ n*bpp2 + k ];
+                pix.get()[ m*bpp2 + k ] = cmap[ n*bpp2 + k ];
             }
         }
 
@@ -389,8 +390,8 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         // Convert image pixel format (BGR -> RGB or BGRA -> RGBA)
         if( bpp2 == 3 || bpp2 == 4 )
         {
-            src = pix;
-            dst = &pix[ 2 ];
+            src = pix.get();
+            dst = &pix.get()[ 2 ];
             for( n = 0; n < h.height * h.width; n ++ )
             {
                 tmp  = *src;

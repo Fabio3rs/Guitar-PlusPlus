@@ -150,7 +150,7 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 	};
 #pragma pack(pop)
 
-	RGBA *imgRGBA = (RGBA*)text.getImageData().Data;
+	RGBA *imgRGBA = (RGBA*)text.getImageData().Data.get();
 
 	//static std::fstream fs("test.txt", std::ios::binary | std::ios::out | std::ios::trunc);
 

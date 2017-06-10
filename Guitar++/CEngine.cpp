@@ -754,7 +754,7 @@ static int HalveImage(GLubyte *src, int *width, int *height,
 int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 	GLint   UnpackAlignment/*, GenMipMap*/;
 	int     level, format, AutoGen, newsize, n;
-	unsigned char *data, *dataptr;
+	std::shared_ptr<unsigned char> data;
 
 	// TODO: Use GL_MAX_TEXTURE_SIZE or GL_PROXY_TEXTURE_2D to determine
 	//       whether the image size is valid.
@@ -769,26 +769,29 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 
 		// Allocate memory for new RGBA image data
 		newsize = img->Width * img->Height * img->BytesPerPixel;
-		data = (unsigned char *)malloc(newsize);
+		data = std::shared_ptr<unsigned char>(new unsigned char[newsize]);
 
 		if (data == NULL)
 		{
-			free(img->Data);
+			img->Data = nullptr;
 			return GL_FALSE;
 		}
 
-		// Convert Alpha map to RGBA
-		dataptr = data;
-		for (n = 0; n < (img->Width*img->Height); ++n)
 		{
-			*dataptr++ = 255;
-			*dataptr++ = 255;
-			*dataptr++ = 255;
-			*dataptr++ = img->Data[n];
+			// Convert Alpha map to RGBA
+
+			unsigned char *dataptr = data.get();
+			for (n = 0; n < (img->Width*img->Height); ++n)
+			{
+				*dataptr++ = 255;
+				*dataptr++ = 255;
+				*dataptr++ = 255;
+				*dataptr++ = img->Data.get()[n];
+			}
 		}
 
 		// Free memory for old image data (not needed anymore)
-		free(img->Data);
+		img->Data = nullptr;
 
 		// Set pointer to new image data
 		img->Data = data;
@@ -824,9 +827,9 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 	if (img->keepData)
 	{
 		newsize = img->Width * img->Height * img->BytesPerPixel;
-		img->tmpData = (unsigned char *)malloc(newsize);
+		img->tmpData = std::shared_ptr<unsigned char>(new unsigned char[newsize]);
 
-		memcpy(img->tmpData, img->Data, newsize);
+		memcpy(img->tmpData.get(), img->Data.get(), newsize);
 	}
 
 	// Upload to texture memeory
@@ -836,12 +839,12 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 		// Upload this mipmap level
 		glTexImage2D(GL_TEXTURE_2D, level, format,
 			img->Width, img->Height, 0, format,
-			GL_UNSIGNED_BYTE, (void*)img->Data);
+			GL_UNSIGNED_BYTE, (void*)img->Data.get());
 
 		// Build next mipmap level manually, if required
 		if ((flags & GLFW_BUILD_MIPMAPS_BIT) && !AutoGen)
 		{
-			level = HalveImage(img->Data, &img->Width,
+			level = HalveImage(img->Data.get(), &img->Width,
 				&img->Height, img->BytesPerPixel) ?
 				level + 1 : 0;
 		}
@@ -862,11 +865,7 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 
 void CEngine::freeImage(GLFWimage *img){
 	// Free memory
-	if (img->Data != NULL)
-	{
-		free(img->Data);
-		img->Data = NULL;
-	}
+	img->Data = nullptr;
 
 	// Clear all fields
 	img->Width = 0;

@@ -222,8 +222,8 @@ public:
 		int Width, Height;
 		int Format;
 		int BytesPerPixel;
-		unsigned char *Data;
-		unsigned char *tmpData;
+		std::shared_ptr<unsigned char> Data;
+		std::shared_ptr<unsigned char> tmpData;
 		bool bRevPixels;
 		bool keepData;
 
