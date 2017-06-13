@@ -16,27 +16,23 @@
 #include <ctime>
 #include <deque>
 #include <memory>
+#include <utility>
 
-class CLogException : std::exception{
-	std::string Str;
+class CLogException : public std::exception{
+	std::string str;
 	
 public:
-	const char *what(){
-		return Str.c_str();
+	const char *what() const noexcept {
+		return str.c_str();
 	}
 	
-	CLogException(const char *exceptionString) : std::exception(){
-		Str = exceptionString;
-	}
+	CLogException(const char *except) noexcept : std::exception(), str(except) { }
 	
-	~CLogException() throw(){
-		Str.clear();
-	}
+	~CLogException() noexcept { }
 };
 
 class CLog{
 	std::string		FileName;
-	std::string		LogContents;
 	std::fstream	LogFile;
 
 	class argToString
@@ -54,16 +50,16 @@ class CLog{
 		argToString(const T &value) : str(std::to_string(value)) { }
 	};
 
-public:
 	bool Finished;
-	
+
+public:
 	~CLog();
 	void AddToLog(const std::string &Text);
 
 	template<class... Types>
 	void multiRegister(const std::string &format, Types&&... args)
 	{
-		const std::deque < argToString > a = { args... };
+		const std::deque < argToString > a = { std::forward<Types>(args)... };
 		std::string printbuf, numbuf;
 
 		bool ignoreNext = false;
@@ -162,7 +158,7 @@ public:
 
 	void FinishLog();
 	void SaveBuffer();
-	inline void operator << (const std::string &Text){AddToLog(Text);}
+	void operator << (const std::string &Text) { AddToLog(Text); }
 	std::string GetDateAndTime();
 
 	static CLog &log();

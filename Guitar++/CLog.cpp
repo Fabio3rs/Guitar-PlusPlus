@@ -10,7 +10,7 @@
 
 int InstallExceptionCatcher(void(*cb)(const char* buffer));
 
-CLog &CLog::log(void){
+CLog &CLog::log(){
 	static CLog Log("Guitar++.log");
 	return Log;
 }
@@ -23,12 +23,14 @@ CLog::CLog(const std::string &NameOfFile){
 	
 	if(!LogFile.good()) throw CLogException("Impossivel criar ou abrir o arquivo de log");
 
+	std::string LogContents;
 	LogContents += "*****************************************************************************\n";
 	LogContents += std::string("* Guitar++ compilation date/time: ") + __DATE__ + " " + __TIME__;
 	LogContents += "\n*****************************************************************************\n";
 	LogContents += "*****************************************************************************\n* Log started at: ";
 	LogContents += GetDateAndTime();
 	LogContents += "\n*****************************************************************************\n\n";
+	LogFile.write(LogContents.c_str(), LogContents.size());
 
 #ifdef _WIN32
 	InstallExceptionCatcher([](const char *buffer)
@@ -45,7 +47,8 @@ CLog::~CLog(){
 	FinishLog();
 }
 
-std::string CLog::GetDateAndTime(){
+std::string CLog::GetDateAndTime()
+{
 	std::time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	std::string str = std::string(ctime(&tt));
 	if (str[str.size() - 1] == '\n')
@@ -55,34 +58,30 @@ std::string CLog::GetDateAndTime(){
 	return str;
 }
 
-void CLog::AddToLog(const std::string &Text){
+void CLog::AddToLog(const std::string &Text)
+{
 	std::string Temp;
 	Temp += GetDateAndTime();
 	Temp += ": ";
 	Temp += Text;
 	Temp += "\n";
-	LogContents += Temp;
+	LogFile.write(Temp.c_str(), Temp.size());
 	//LogFile << Temp;
 }
 
-void CLog::FinishLog(){
-	if(Finished) return;
+void CLog::FinishLog()
+{
+	std::string LogContents;
 	LogContents += "\n*****************************************************************************\n* Log Finished at: ";
 	LogContents += GetDateAndTime();
 	LogContents += "\n*****************************************************************************\n";
 	LogFile.clear();
 	LogFile.write(LogContents.c_str(), LogContents.size());
+	LogFile.flush();
 	Finished = true;
 }
 
-void CLog::SaveBuffer(){
-	if(Finished) return;
-	std::string LogContentBackup = LogContents;
-	LogContents += "\n*****************************************************************************\n* Log Finished at: ";
-	LogContents += GetDateAndTime();
-	LogContents += "\n*****************************************************************************\n";
-	//LogFile.clear();
-	LogFile.write(LogContents.c_str(), LogContents.size());
-	LogContents = LogContentBackup;
+void CLog::SaveBuffer()
+{
 	LogFile.flush();
 }
