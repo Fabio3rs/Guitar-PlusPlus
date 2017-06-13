@@ -10,9 +10,6 @@
 
 int InstallExceptionCatcher(void(*cb)(const char* buffer));
 
-//char *CLog::TimeStringBuffer = new char[0x400];
-char *CLog::multiRegisterBuffer = new char[0x2000];
-
 CLog &CLog::log(void){
 	static CLog Log("Guitar++.log");
 	return Log;
@@ -66,14 +63,6 @@ void CLog::AddToLog(const std::string &Text){
 	Temp += "\n";
 	LogContents += Temp;
 	//LogFile << Temp;
-}
-
-void CLog::multiRegister(const char *format, ...){
-	va_list va;
-	va_start(va, format);
-	*multiRegisterBuffer = 0;
-	vsprintf(multiRegisterBuffer, format, va);
-	AddToLog(multiRegisterBuffer);
 }
 
 void CLog::FinishLog(){

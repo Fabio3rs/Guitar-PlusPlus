@@ -14,6 +14,8 @@
 #include <cstdlib>
 #include <cstdarg>
 #include <ctime>
+#include <deque>
+#include <memory>
 
 class CLogException : std::exception{
 	std::string Str;
@@ -37,15 +39,127 @@ class CLog{
 	std::string		LogContents;
 	std::fstream	LogFile;
 
-public:
-	//static char *TimeStringBuffer;
-	static char *multiRegisterBuffer;
+	class argToString
+	{
+		std::string str;
 
+	public:
+		const std::string &getStr() const { return str; }
+
+		argToString(const char *str) : str(str) { }
+
+		argToString(const std::string &str) : str(str) { }
+
+		template<class T>
+		argToString(const T &value) : str(std::to_string(value)) { }
+	};
+
+public:
 	bool Finished;
 	
 	~CLog();
 	void AddToLog(const std::string &Text);
-	void multiRegister(const char *format, ...);
+
+	template<class... Types>
+	void multiRegister(const std::string &format, Types&&... args)
+	{
+		const std::deque < argToString > a = { args... };
+		std::string printbuf, numbuf;
+
+		bool ignoreNext = false;
+
+		for (int i = 0, size = format.size(); i < size; i++)
+		{
+			auto ch = format[i];
+			int ti = i + 1;
+
+			switch (ch)
+			{
+			case '\\':
+				if (ignoreNext)
+				{
+					printbuf.insert(printbuf.end(), 1, ch);
+					ignoreNext = false;
+					break;
+				}
+
+				ignoreNext = true;
+				break;
+
+			case '%':
+				if (ignoreNext)
+				{
+					printbuf.insert(printbuf.end(), 1, ch);
+					ignoreNext = false;
+					break;
+				}
+
+				numbuf = "";
+
+				{
+					bool stringEnd = true;
+					while (ti < size)
+					{
+						if (format[ti] < '0' || format[ti] > '9')
+						{
+							i = ti - 1;
+							if (numbuf.size() > 0)
+							{
+								int argId = std::stoi(numbuf);
+
+								if (argId < a.size())
+								{
+									printbuf += a[argId].getStr();
+								}
+								else
+								{
+									printbuf += "%";
+									printbuf += numbuf;
+								}
+
+								stringEnd = false;
+
+								break;
+							}
+						}
+						else
+						{
+							numbuf.insert(numbuf.end(), 1, format[ti]);
+						}
+
+						ti++;
+					}
+
+					if (stringEnd)
+					{
+						i = size;
+						if (numbuf.size() > 0)
+						{
+							int argId = std::stoi(numbuf);
+
+							if (argId < a.size())
+							{
+								printbuf += a[argId].getStr();
+							}
+							else
+							{
+								printbuf += "%";
+								printbuf += numbuf;
+							}
+						}
+					}
+				}
+				break;
+
+			default:
+				printbuf.insert(printbuf.end(), 1, ch);
+				break;
+			}
+		}
+
+		AddToLog(printbuf);
+	}
+
 	void FinishLog();
 	void SaveBuffer();
 	inline void operator << (const std::string &Text){AddToLog(Text);}
