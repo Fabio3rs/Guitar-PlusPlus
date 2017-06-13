@@ -148,6 +148,7 @@ public:
 				break;
 
 			default:
+				ignoreNext = false;
 				printbuf.insert(printbuf.end(), 1, ch);
 				break;
 			}
