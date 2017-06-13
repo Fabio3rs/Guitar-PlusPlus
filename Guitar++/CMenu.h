@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <memory>
 #include <cstdint>
 #include "CLuaH.hpp"
 #include "CEngine.h"
@@ -19,12 +20,11 @@ class CMenu{
 
 	struct uiWindowStruct
 	{
-		CMenu *m;
+		std::unique_ptr<CMenu> m;
 		int pos;
 
 		uiWindowStruct()
 		{
-			m = nullptr;
 			pos = 0;
 		}
 	};
@@ -68,6 +68,7 @@ class CMenu{
 	bool isThisOnTop();
 
 	bool lastEnterOptBtn;
+	bool lastMouseClickStatus;
 
 public:
 	bool isInterfaceOver();
@@ -83,13 +84,7 @@ public:
 
 	static void renderUiList();
 
-	inline uiWindowStruct &getUILast()
-	{
-		if (uiList.size() > 0)
-			return uiList.back();
-
-		return uiWindowStruct();
-	}
+	uiWindowStruct &getUILast();
 
 	double x, y;
 

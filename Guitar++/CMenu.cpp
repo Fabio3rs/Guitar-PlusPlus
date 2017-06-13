@@ -39,6 +39,15 @@ void CMenu::menuOpt::update()
 	}
 }
 
+CMenu::uiWindowStruct &CMenu::getUILast()
+{
+	if (uiList.size() > 0)
+		return uiList.back();
+
+	static uiWindowStruct result;
+	return result;
+}
+
 int CMenu::addOpt(const menuOpt &opt){
 	options.push_back(opt);
 	options.back().update();
@@ -457,7 +466,7 @@ bool CMenu::isInterfaceOver()
 				break;
 			}
 
-			CMenu *m = uiList[uiOrderList[i].id].m;
+			CMenu *m = uiList[uiOrderList[i].id].m.get();
 			if (m && m->isMouseOnThisMenu())
 			{
 				result = true;
@@ -469,7 +478,7 @@ bool CMenu::isInterfaceOver()
 	{
 		for (int i = uiOrderList.size() - 1; i >= 0; i--)
 		{
-			CMenu *m = uiList[uiOrderList[i].id].m;
+			CMenu *m = uiList[uiOrderList[i].id].m.get();
 			if (m && m->isMouseOnThisMenu())
 			{
 				result = true;
@@ -498,7 +507,7 @@ CMenu::posUiOrder &CMenu::getTopUI()
 {
 	for (int i = uiOrderList.size() - 1; i >= 0; i--)
 	{
-		CMenu *m = uiList[uiOrderList[i].id].m;
+		CMenu *m = uiList[uiOrderList[i].id].m.get();
 		if (m)
 		{
 			return uiOrderList[i];
@@ -617,10 +626,13 @@ void CMenu::update()
 		mBTNClick = true;
 	}
 
+	bool lastMouseClick = lastMouseClickStatus;
+	lastMouseClickStatus = mBTNClick;
+
 	{
 		bool ontop = isThisOnTop();
 
-		if (uiMenu && mBTNClick && mouseOnThisMenu)
+		if (uiMenu && (mBTNClick && !lastMouseClick) && mouseOnThisMenu)
 		{
 			if (!ontop && isMouseOnThisMenu())
 			{
@@ -670,6 +682,13 @@ void CMenu::update()
 		return 0;
 	};
 
+	bool ontop = true;
+
+	if (uiMenu)
+	{
+		ontop = isThisOnTop();
+	}
+
 	int i = 0;
 	for (auto &opt : options)
 	{
@@ -683,7 +702,8 @@ void CMenu::update()
 		params.push_back(CLuaH::customParam(opt.optionName));
 		params.push_back(CLuaH::customParam(opt.optValue));
 
-		if (opt.shortcutKey){
+		if (opt.shortcutKey)
+		{
 			int pressing = CEngine::engine().getKey(opt.shortcutKey);
 			if (opt.pressingShortcutKey && !pressing){
 				desselectAllFromGroup(opt.group);
@@ -698,263 +718,267 @@ void CMenu::update()
 			}
 		}
 
-		switch (opt.type){
-		case button_ok:
 
-			break;
+		if (ontop)
+		{
+			switch (opt.type) {
+			case button_ok:
 
-		case text_input:
-			textSize = textSizeInScreen(opt.preText, opt.size) + 0.1;
+				break;
 
-			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y - (opt.size), textSize, opt.size * 1.10) && enterOpt)
-			{
-				desselectAllTextClick(opt);
+			case text_input:
+				textSize = textSizeInScreen(opt.preText, opt.size) + 0.1;
 
-				int textChars = CFonts::utf8Size(opt.preText);
-
-				// return (charnums * size / 1.5) + (size / 2.0);
-
-				double xtest = (mouseAX - x) - opt.x;
-				xtest -= (opt.size / 2.0);
-				xtest /= opt.size / 1.5;
-
-				if (xtest < 0)
-					xtest = 0;
-
-				if (xtest > textChars)
-					xtest = textChars;
-
-				desselectAllFromGroup(opt.group);
-				opt.status = 4;
-				opt.strEditPoint = xtest;
-
-				CControls::controls().update();
-
-				if (params.size() <= 3) params.push_back(CLuaH::customParam((double)opt.status));
-
-				if (opt.group >= 0)
+				if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y - (opt.size), textSize, opt.size * 1.10) && enterOpt)
 				{
-					groupInfo[opt.group].selectedOpt = i;
-				}
-			}
+					desselectAllTextClick(opt);
 
-			if ((opt.status & 4))
-			{
-				CControls::controls().update();
-				int ch = 0;
+					int textChars = CFonts::utf8Size(opt.preText);
 
-				for (int glfwkey = GLFW_KEY_A; glfwkey <= GLFW_KEY_Z; glfwkey++)
-				{
-					int chtmp = kprocess(CControls::controls().keys[glfwkey], glfwkey);
+					// return (charnums * size / 1.5) + (size / 2.0);
 
-					if (chtmp != 0)
-						ch = chtmp;
-				}
+					double xtest = (mouseAX - x) - opt.x;
+					xtest -= (opt.size / 2.0);
+					xtest /= opt.size / 1.5;
 
-				{
-					int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_SPACE], GLFW_KEY_SPACE);
+					if (xtest < 0)
+						xtest = 0;
 
-					if (chtmp != 0)
-						ch = chtmp;
-				}
+					if (xtest > textChars)
+						xtest = textChars;
 
-				{
-					int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_BACKSPACE], GLFW_KEY_BACKSPACE);
+					desselectAllFromGroup(opt.group);
+					opt.status = 4;
+					opt.strEditPoint = xtest;
 
-					if (chtmp != 0)
-						ch = chtmp;
-				}
+					CControls::controls().update();
 
-				{
-					int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_LEFT], GLFW_KEY_LEFT);
+					if (params.size() <= 3) params.push_back(CLuaH::customParam((double)opt.status));
 
-					if (chtmp != 0)
+					if (opt.group >= 0)
 					{
-						--opt.strEditPoint;
-
-						if (opt.strEditPoint < 0)
-							opt.strEditPoint = 0;
+						groupInfo[opt.group].selectedOpt = i;
 					}
 				}
 
+				if ((opt.status & 4))
 				{
-					int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_RIGHT], GLFW_KEY_RIGHT);
+					CControls::controls().update();
+					int ch = 0;
 
-					if (chtmp != 0)
+					for (int glfwkey = GLFW_KEY_A; glfwkey <= GLFW_KEY_Z; glfwkey++)
 					{
-						++opt.strEditPoint;
+						int chtmp = kprocess(CControls::controls().keys[glfwkey], glfwkey);
 
-						int textChars = CFonts::utf8Size(opt.preText);
-
-						if (opt.strEditPoint > textChars)
-							opt.strEditPoint = textChars;
-					}
-				}
-				
-				static int capsLock = 0;
-				static int aCaps = 0;
-
-				int capsNow = CControls::controls().keys[GLFW_KEY_CAPS_LOCK].pressed;
-
-				if (aCaps != capsNow)
-				{
-					capsLock ^= capsNow;
-				}
-				aCaps = capsNow;
-
-				bool caps = capsLock;
-
-				if (CControls::controls().keys[GLFW_KEY_RIGHT_SHIFT].pressed || CControls::controls().keys[GLFW_KEY_LEFT_SHIFT].pressed)
-				{
-					caps = !caps;
-				}
-
-				if (!caps)
-				{
-					ch = tolower(ch);
-				}
-
-				if (ch != 0)
-				{
-					if (opt.externalPreTextRef)
-					{
-						opt.preText = *opt.externalPreTextRef;
+						if (chtmp != 0)
+							ch = chtmp;
 					}
 
-					if (ch != GLFW_KEY_BACKSPACE)
 					{
-						if (opt.preText.size() < opt.preTextMaxSize)
+						int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_SPACE], GLFW_KEY_SPACE);
+
+						if (chtmp != 0)
+							ch = chtmp;
+					}
+
+					{
+						int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_BACKSPACE], GLFW_KEY_BACKSPACE);
+
+						if (chtmp != 0)
+							ch = chtmp;
+					}
+
+					{
+						int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_LEFT], GLFW_KEY_LEFT);
+
+						if (chtmp != 0)
 						{
-							std::string tmp;
-							tmp.insert(0, 1, ch);
-							opt.strEditPoint = CFonts::utf8InsertAt(opt.preText, tmp, opt.strEditPoint);
-						}
-					}
-					else
-					{
-						if (opt.preText.size() > 0)
-						{
-							//CFonts::utf8RemoveLast(opt.preText);
-							CFonts::utf8RemoveAtRange(opt.preText, opt.strEditPoint - 1, 1);
 							--opt.strEditPoint;
 
 							if (opt.strEditPoint < 0)
 								opt.strEditPoint = 0;
 						}
 					}
-				}
 
-				if (opt.externalPreTextRef)
-				{
-					*opt.externalPreTextRef = opt.preText;
-				}
-			}
-			break;
-
-		case textbtn:
-			textSize = textSizeInScreen(opt.text, opt.size);
-
-			if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05))
-			{
-				desselectAllFromGroup(opt.group);
-				opt.status = (enterOpt && opt.enableEnter)? 1 | 2 : 1;
-
-				if (enterOpt)
-					desselectAllTextClick(opt);
-
-				if (params.size() <= 3) params.push_back(CLuaH::customParam((double)opt.status));
-
-				if (opt.group >= 0)
-				{
-					groupInfo[opt.group].selectedOpt = i;
-				}
-			}
-			else{
-				opt.status = opt.status & 1;
-			}
-			break;
-
-		case deslizant_Select_list:
-			textSize = textSizeInScreen(opt.text, opt.size);
-			barPosX1 = opt.x + textSize + opt.size;
-			barPosX2 = barPosX1 + opt.deslizantBarSize;
-
-			if (enterOpt && isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize, opt.size))
-			{
-				opt.status |= 1;
-			}
-
-			if ((opt.status & 1) != 0)
-			{
-				if (mBTNClick)
-				{
-					double subX = (CEngine::engine().mouseX - barPosX1);
-
-					desselectAllTextClick(opt);
-					opt.status |= 1;
-
-					if (subX >= 0.0)
 					{
-						double optListSized = opt.optList.size();
+						int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_RIGHT], GLFW_KEY_RIGHT);
 
-						opt.listID = (int)((optListSized / opt.deslizantBarSize) * subX);
+						if (chtmp != 0)
+						{
+							++opt.strEditPoint;
 
-						if (opt.listID >= opt.optList.size())
-						{
-							opt.listID = opt.optList.size() - 1;
-						}
-						else if (opt.listID < 0)
-						{
-							opt.listID = 0;
+							int textChars = CFonts::utf8Size(opt.preText);
+
+							if (opt.strEditPoint > textChars)
+								opt.strEditPoint = textChars;
 						}
 					}
 
-					if (params.size() <= 3) params.push_back(CLuaH::customParam(2.0));
+					static int capsLock = 0;
+					static int aCaps = 0;
+
+					int capsNow = CControls::controls().keys[GLFW_KEY_CAPS_LOCK].pressed;
+
+					if (aCaps != capsNow)
+					{
+						capsLock ^= capsNow;
+					}
+					aCaps = capsNow;
+
+					bool caps = capsLock;
+
+					if (CControls::controls().keys[GLFW_KEY_RIGHT_SHIFT].pressed || CControls::controls().keys[GLFW_KEY_LEFT_SHIFT].pressed)
+					{
+						caps = !caps;
+					}
+
+					if (!caps)
+					{
+						ch = tolower(ch);
+					}
+
+					if (ch != 0)
+					{
+						if (opt.externalPreTextRef)
+						{
+							opt.preText = *opt.externalPreTextRef;
+						}
+
+						if (ch != GLFW_KEY_BACKSPACE)
+						{
+							if (opt.preText.size() < opt.preTextMaxSize)
+							{
+								std::string tmp;
+								tmp.insert(0, 1, ch);
+								opt.strEditPoint = CFonts::utf8InsertAt(opt.preText, tmp, opt.strEditPoint);
+							}
+						}
+						else
+						{
+							if (opt.preText.size() > 0)
+							{
+								//CFonts::utf8RemoveLast(opt.preText);
+								CFonts::utf8RemoveAtRange(opt.preText, opt.strEditPoint - 1, 1);
+								--opt.strEditPoint;
+
+								if (opt.strEditPoint < 0)
+									opt.strEditPoint = 0;
+							}
+						}
+					}
+
+					if (opt.externalPreTextRef)
+					{
+						*opt.externalPreTextRef = opt.preText;
+					}
 				}
-			}
-			break;
+				break;
 
-		case drag_bar:
-			if (!mBTNClick)
-			{
-				opt.btnClickStat = false;
-			}
+			case textbtn:
+				textSize = textSizeInScreen(opt.text, opt.size);
 
-			if (isMouseOver2DQuad(opt.x, opt.y, opt.deslizantBarSize, opt.size))
-			{
-				if (enterOpt && !opt.btnClickStat)
+				if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize, opt.size * 1.05))
 				{
-					desselectAllClick();
-					opt.devStatus |= 1;
-					opt.devStatus |= 2;
-					opt.btnClickStat = true;
-				}
-			}
+					desselectAllFromGroup(opt.group);
+					opt.status = (enterOpt && opt.enableEnter) ? 1 | 2 : 1;
 
-			if (!opt.btnClickStat)
-			{
-				if ((opt.devStatus & 1) != 0)
+					if (enterOpt)
+						desselectAllTextClick(opt);
+
+					if (params.size() <= 3) params.push_back(CLuaH::customParam((double)opt.status));
+
+					if (opt.group >= 0)
+					{
+						groupInfo[opt.group].selectedOpt = i;
+					}
+				}
+				else {
+					opt.status = opt.status & 1;
+				}
+				break;
+
+			case deslizant_Select_list:
+				textSize = textSizeInScreen(opt.text, opt.size);
+				barPosX1 = opt.x + textSize + opt.size;
+				barPosX2 = barPosX1 + opt.deslizantBarSize;
+
+				if (enterOpt && isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize, opt.size))
 				{
-					opt.devStatus &= ~1;
+					opt.status |= 1;
 				}
-			}
-			else
-			{
-				if ((opt.devStatus & 1) != 0)
+
+				if ((opt.status & 1) != 0)
 				{
-					//std::cout << (opt.devStatus & 1) << std::endl;
-					x += mxd;
-					y += myd;
+					if (mBTNClick)
+					{
+						double subX = (CEngine::engine().mouseX - barPosX1);
+
+						desselectAllTextClick(opt);
+						opt.status |= 1;
+
+						if (subX >= 0.0)
+						{
+							double optListSized = opt.optList.size();
+
+							opt.listID = (int)((optListSized / opt.deslizantBarSize) * subX);
+
+							if (opt.listID >= opt.optList.size())
+							{
+								opt.listID = opt.optList.size() - 1;
+							}
+							else if (opt.listID < 0)
+							{
+								opt.listID = 0;
+							}
+						}
+
+						if (params.size() <= 3) params.push_back(CLuaH::customParam(2.0));
+					}
 				}
+				break;
+
+			case drag_bar:
+				if (!mBTNClick)
+				{
+					opt.btnClickStat = false;
+				}
+
+				if (isMouseOver2DQuad(opt.x, opt.y, opt.deslizantBarSize, opt.size))
+				{
+					if (enterOpt && !opt.btnClickStat)
+					{
+						desselectAllClick();
+						opt.devStatus |= 1;
+						opt.devStatus |= 2;
+						opt.btnClickStat = true;
+					}
+				}
+
+				if (!opt.btnClickStat)
+				{
+					if ((opt.devStatus & 1) != 0)
+					{
+						opt.devStatus &= ~1;
+					}
+				}
+				else
+				{
+					if ((opt.devStatus & 1) != 0)
+					{
+						//std::cout << (opt.devStatus & 1) << std::endl;
+						x += mxd;
+						y += myd;
+					}
+				}
+
+				break;
+
+			case static_text:
+				break;
+
+			default:
+				break;
 			}
-
-			break;
-
-		case static_text:
-			break;
-
-		default:
-			break;
 		}
 
 		if (opt.posUpdateCppCallback)
@@ -1006,7 +1030,6 @@ void CMenu::update()
 			if (erase)
 			{
 				uiw.m->resetData();
-				delete uiw.m;
 				uiw.m = nullptr;
 				uiw.pos = 0;
 
@@ -1163,7 +1186,7 @@ bool CMenu::isThisOnTop()
 {
 	for (int i = uiOrderList.size() - 1; i >= 0; i--)
 	{
-		CMenu *m = uiList[uiOrderList[i].id].m;
+		CMenu *m = uiList[uiOrderList[i].id].m.get();
 		if (m)
 		{
 			if (uiOrderList[i].id == thisUiID)
@@ -1193,7 +1216,7 @@ int CMenu::allocOrGetUiFreeSpace()
 	if (result == -1)
 	{
 		uiWindowStruct w;
-		uiList.push_back(w);
+		uiList.push_back(std::move(w));
 
 		result = uiList.size() - 1;
 	}
@@ -1242,7 +1265,8 @@ int CMenu::pushUserInterface(const CMenu &m)
 {
 	int index = allocOrGetUiFreeSpace();
 
-	uiList[index].m = new CMenu(m);
+	uiList[index].m = nullptr;
+	uiList[index].m = std::unique_ptr<CMenu>(new CMenu(m));
 	uiList[index].m->uiMenu = true;
 	uiList[index].m->thisUiID = index;
 	uiList[index].pos = 100;
@@ -1265,6 +1289,7 @@ int CMenu::getDevSelectedMenuOpt()
 
 CMenu::CMenu()
 {
+	lastMouseClickStatus = false;
 	lastEnterOptBtn = false;
 	status = 0;
 	thisUiID = -1;

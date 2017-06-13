@@ -3679,7 +3679,7 @@ GPPGame::GPPGame() : gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenu
 
 					int r = gpp.devMenus.pushUserInterface(gpp.uiRenameMenu);
 
-					CMenu *instM = gpp.devMenus.getUiAt(r).m;
+					CMenu *instM = gpp.devMenus.getUiAt(r).m.get();
 
 					if (instM)
 					{
