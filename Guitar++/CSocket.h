@@ -121,7 +121,7 @@ public:
 class CServerSock : CSock{
 public:
 	struct ServerThreads;
-	typedef void (*serverReceiveData_fun)(CServerSock::ServerThreads*, char *data, size_t size);
+	typedef void (*serverReceiveData_fun)(CServerSock::ServerThreads*, std::shared_ptr<char> data, size_t size);
 
 private:
 	struct addrinfo *ptr, hints;
@@ -185,24 +185,36 @@ public:
 	}
 
 	struct ServerThreads{
-		std::thread *pThread;
+		std::unique_ptr<std::thread> pThread;
 		CServerSock *ServerPtr;
 		SOCKET ClientSocket;
 		//KeyPair ServerKeys;
 		//KeyPair ClientKeys;
 		std::string user, password;
-		bool logged;
-		bool clientKeySetted, running;
+		bool clientKeySetted, running, logged;
 		
 		serverReceiveData_fun fun;
 		
+		ServerThreads(ServerThreads &&thr)
+		{
+			pThread = nullptr;
+			pThread = (std::move(thr.pThread));
+			ServerPtr = std::move(ServerPtr);
+			ClientSocket = std::move(ClientSocket);
+			user = std::move(user);
+			password = std::move(password);
+			clientKeySetted = std::move(clientKeySetted);
+			running = std::move(running);
+			fun = std::move(fun);
+			logged = std::move(logged);
+		}
+
 		ServerThreads()/* : ServerKeys(genRSAKeys()), ClientKeys(ServerKeys)*/{
 			clientKeySetted = false;
+			logged = false;
 			running = true;
-			pThread = nullptr;
 			ClientSocket = NULL;
 			fun = (serverReceiveData_fun)nullptr;
-			logged = false;
 		}
 
 		~ServerThreads(){
@@ -215,20 +227,16 @@ public:
 	static void clientSockMGRThread(void *pClientSockStruct){
 		//std::cout << "Entering the client thread...\n";
 		ServerThreads *pThisThreadInfo = (ServerThreads*)pClientSockStruct;
-		char *buffer = nullptr;
+		std::shared_ptr<char> buffer = nullptr;
 		try{
-			char *p = new char[receiveBufferSize];
-
-			if(p){
-				buffer = p;
-			}
+			buffer = std::shared_ptr<char>(new char[receiveBufferSize]);
 
 			int bytesReceived;
 		
 			pThisThreadInfo->ServerPtr->sendToClient(pThisThreadInfo->ClientSocket, "OK Signal", sizeof("OK Signal"));
 
 			while (pThisThreadInfo->running && pThisThreadInfo->ServerPtr->continueOthersThreads){
-				bytesReceived = recv(pThisThreadInfo->ClientSocket, buffer, receiveBufferSize, 0);
+				bytesReceived = recv(pThisThreadInfo->ClientSocket, buffer.get(), receiveBufferSize, 0);
 				
 				//std::cout << "received " << bytesReceived << "bytes\n";
 
@@ -251,7 +259,6 @@ public:
 		closesocket(pThisThreadInfo->ClientSocket);
 		std::cout << "Client disconnected.\n";
 
-		if(buffer) delete[] buffer;
 		pThisThreadInfo->running = false;
 	}
 	
@@ -268,15 +275,16 @@ public:
 				break;
 			}else{
 				std::cout << "new client connected\n";
-				ServerThreads &NewThread = *new ServerThreads;
+				ServerThreads thr;
+				pThisServerInst->Threads.push_back(std::move(thr));
+				auto &NewThread = pThisServerInst->Threads.back();
 				NewThread.ClientSocket = ClientSocket;
 				NewThread.fun = pThisServerInst->ClientResponseFun;
 				NewThread.ServerPtr = pThisServerInst;
-				pThisServerInst->Threads.push_back(NewThread);
 				
 				// std::cout << "Starting new thread...\n";
-				std::thread *thread = new std::thread(clientSockMGRThread, &NewThread);
-				pThisServerInst->Threads.back().pThread = thread;
+				NewThread.pThread = nullptr;
+				NewThread.pThread = std::unique_ptr<std::thread>(new std::thread(clientSockMGRThread, &NewThread));
 			}
 		}
 		// std::cout << "Exiting thread...\n";

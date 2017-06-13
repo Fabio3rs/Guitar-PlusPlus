@@ -3,9 +3,10 @@
 
 CMultiplayer *mpmgr = nullptr;
 
-void CMultiplayer::callbackFun(CServerSock::ServerThreads *th, char *data, size_t size)
+void CMultiplayer::callbackFun(CServerSock::ServerThreads *th, std::shared_ptr<char> dataptr, size_t size)
 {
 	//std::cout << "connect " << th->ClientSocket << "  " << data << std::endl;
+	char *data = dataptr.get();
 
 	if (strcmp(data, "connect") == 0 && !th->logged)
 	{
