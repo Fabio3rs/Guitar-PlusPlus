@@ -113,7 +113,7 @@ CEngine::chdata CEngine::getChannelData(int handle)
 	int b0 = 0;
 	float peak = -10;
 
-	int r = BASS_ChannelGetData(handle, result.data, BASS_DATA_FFT_INDIVIDUAL);
+	int r = BASS_ChannelGetData(handle, result.data.data(), BASS_DATA_FFT_INDIVIDUAL);
 
 
 	std::cout << r << "   " << BASS_ChannelGetLevel(handle) << std::endl;

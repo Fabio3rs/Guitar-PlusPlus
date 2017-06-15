@@ -762,9 +762,18 @@ const char *CLuaH::getGlobalVarAsString(luaScript &l, const char *varname)
 	return lua_tostring(l.luaState, -1);
 }
 
-CLuaH::luaScript::~luaScript(){
-	if (luaState != nullptr){
-		CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
+CLuaH::luaScript::~luaScript()
+{
+	if (luaState != nullptr)
+	{
+		try
+		{
+			CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
+		}
+		catch (...)
+		{
+
+		}
 
 		lua_close(luaState);
 		luaState = nullptr;

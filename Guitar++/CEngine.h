@@ -376,7 +376,7 @@ private:
 
 	double lrC, lgC, lbC, laC;
 
-	double lastRenderAt[3];
+	std::array<double, 3> lastRenderAt;
 
 public:
 	double volumeMaster;
@@ -558,7 +558,7 @@ public:
 
 	struct chdata
 	{
-		float data[4];
+		std::array<float, 4> data;
 	};
 
 	/**/
