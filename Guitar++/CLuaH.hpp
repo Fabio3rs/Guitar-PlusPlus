@@ -162,7 +162,7 @@ public:
 		std::string name;
 	};
 
-	std::map < std::string, std::map<std::string, luaScript> >		files; /* std::map<pathForScripts, std::map<scriptName, scriptData>> */
+	std::map < std::string, std::map<std::string, luaScript> >				files; /* std::map<pathForScripts, std::map<scriptName, scriptData>> */
 	std::map <std::string, callBacksStruct>									callbacks;
 
 	struct luaVarData

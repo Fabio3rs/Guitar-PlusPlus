@@ -92,7 +92,7 @@ public:
 	void setHyperSpeed(double s);
 	void setMusicSpeed(double s);
 
-	inline double getgSpeed()
+	inline double getgSpeed() const
 	{
 		return gSpeed;
 	}

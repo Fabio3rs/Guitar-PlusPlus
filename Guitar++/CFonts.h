@@ -63,12 +63,12 @@ public:
 		public:
 			void internalProcessTexture(int ch);
 
-			inline double getAlign()
+			inline double getAlign() const
 			{
 				return align;
 			}
 
-			inline double getSize()
+			inline double getSize() const
 			{
 				return size;
 			}
