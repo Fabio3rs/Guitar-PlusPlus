@@ -109,7 +109,7 @@ public:
 	bool showBPMLines;
 
 	std::deque < CPlayer > players;
-	std::deque < std::string > chartInstruments;
+	std::vector < std::string > chartInstruments;
 
 	std::string backgroundTexture;
 

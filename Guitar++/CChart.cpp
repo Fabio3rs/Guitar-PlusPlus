@@ -33,7 +33,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 	};
 
 	typedef std::deque<Note> noteContainer;
-	typedef std::deque<SyncTrackBPM> BPMContainer;
+	typedef std::vector<SyncTrackBPM> BPMContainer;
 	noteContainer Nts;
 	BPMContainer BPMs;
 
@@ -92,7 +92,8 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 	};
 
 	auto BPMRead = [](BPMContainer &BPMs, parsedChart &chartMap) {
-		for (auto &SyncTrack : chartMap["[SyncTrack]"]) {
+		for (auto &SyncTrack : chartMap["[SyncTrack]"])
+		{
 			char c[16] = { 0 };
 			int i = 0;
 			for (auto &inst : SyncTrack.second) {
