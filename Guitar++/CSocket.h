@@ -28,11 +28,12 @@ class SocketError : std::exception{
 	std::string error;
 	
 public:
-	const char *what(){
+	const char *what() const noexcept{
 		return error.c_str();
 	}
 	
-	SocketError(const char *msg) : std::exception(){
+	SocketError(const char *msg) : std::exception()
+	{
 		error = msg;
 	}
 };
@@ -109,7 +110,7 @@ public:
 		// std::cout << iResult << " bytes sended\n";
 	}
 	
-	CClientSock(const char *server, const char *port) : CSock(){
+	CClientSock(const char *server, const char *port) : CClientSock(){
 		init(server, port);
 	}
 
@@ -224,9 +225,9 @@ public:
 	
 	std::deque<ServerThreads> Threads;
 	
-	static void clientSockMGRThread(void *pClientSockStruct){
+	static void clientSockMGRThread(ServerThreads *pThisThreadInfo)
+	{
 		//std::cout << "Entering the client thread...\n";
-		ServerThreads *pThisThreadInfo = (ServerThreads*)pClientSockStruct;
 		std::unique_ptr<char[]> buffer = nullptr;
 		try{
 			buffer = std::make_unique<char[]>(receiveBufferSize);
@@ -263,9 +264,9 @@ public:
 		pThisThreadInfo->running = false;
 	}
 	
-	static void mainServerThreadFunction(void *pServerInst){
+	static void mainServerThreadFunction(CServerSock *pThisServerInst)
+	{
 		// std::cout << "Entering the thread...\n";
-		CServerSock *pThisServerInst = (CServerSock*)pServerInst;
 		
 		while (pThisServerInst->continueMainThread){
 			SOCKET ClientSocket = accept(pThisServerInst->ListenSocket, NULL, NULL);
@@ -284,7 +285,6 @@ public:
 				NewThread.ServerPtr = pThisServerInst;
 				
 				// std::cout << "Starting new thread...\n";
-				NewThread.pThread = nullptr;
 				NewThread.pThread = std::make_unique<std::thread>(clientSockMGRThread, &NewThread);
 			}
 		}

@@ -214,7 +214,8 @@ static void ReadTGA_RLE( unsigned char *buf, int size, int bpp,
 int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
 {
     _tga_header_t h;
-    unsigned char *cmap, tmp, *src, *dst;
+    unsigned char tmp, *src, *dst;
+	std::unique_ptr<unsigned char[]> cmap;
 	std::unique_ptr<unsigned char[]> pix;
     int cmapsize, pixsize, pixsize2;
     int bpp, bpp2, k, m, n, swapx, swapy;
@@ -238,18 +239,22 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         }
 
         // Allocate memory for colormap
-        cmap = (unsigned char *) malloc( cmapsize );
-        if( cmap == NULL )
+		try
+		{
+			cmap = std::make_unique<unsigned char[]>(cmapsize);
+		}
+		catch (...)
+		{
+			return 0;
+		}
+
+        if( cmap == nullptr )
         {
             return 0;
         }
 
         // Read colormap from file
-		CEngine::engine().readStream(s, cmap, cmapsize);
-    }
-    else
-    {
-        cmap = NULL;
+		CEngine::engine().readStream(s, cmap.get(), cmapsize);
     }
 
     // Size of pixel data
@@ -273,13 +278,15 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     pixsize2 = h.width * h.height * bpp2;
 
     // Allocate memory for pixel data
-    pix = std::make_unique<unsigned char[]>(pixsize2);
-    if( pix == NULL )
+	try {
+		pix = std::make_unique<unsigned char[]>(pixsize2);
+	}
+	catch (...)
+	{
+		return 0;
+	}
+    if( pix == nullptr)
     {
-        if( cmap )
-        {
-            free( cmap );
-        }
         return 0;
     }
 
@@ -383,7 +390,7 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         }
 
         // Free memory for colormap (it's not needed anymore)
-        free( cmap );
+		cmap = nullptr;
     }
     else
     {
