@@ -120,6 +120,19 @@ public:
 			textName = texture;
 		}
 
+		gppTexture &operator = (gppTexture &&m)
+		{
+			text = std::move(m.text);
+			textPath = std::move(m.textPath);
+			textName = std::move(m.textName);
+			imgData = std::move(m.imgData);
+			associatedToScript = std::move(m.associatedToScript);
+
+			return *this;
+		};
+
+		gppTexture(gppTexture&&) = default;
+
 		gppTexture(){
 			text = 0;
 		}

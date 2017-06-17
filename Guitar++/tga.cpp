@@ -215,7 +215,7 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
 {
     _tga_header_t h;
     unsigned char *cmap, tmp, *src, *dst;
-	std::shared_ptr<unsigned char> pix;
+	std::unique_ptr<unsigned char[]> pix;
     int cmapsize, pixsize, pixsize2;
     int bpp, bpp2, k, m, n, swapx, swapy;
 
@@ -273,7 +273,7 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     pixsize2 = h.width * h.height * bpp2;
 
     // Allocate memory for pixel data
-    pix = std::shared_ptr<unsigned char>(new unsigned char[pixsize2]);
+    pix = std::make_unique<unsigned char[]>(pixsize2);
     if( pix == NULL )
     {
         if( cmap )
@@ -408,7 +408,7 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     img->Width         = h.width;
     img->Height        = h.height;
     img->BytesPerPixel = bpp2;
-    img->Data          = pix;
+    img->Data          = std::move(pix);
 
     return 1;
 }

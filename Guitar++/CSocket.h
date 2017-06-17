@@ -121,7 +121,7 @@ public:
 class CServerSock : CSock{
 public:
 	struct ServerThreads;
-	typedef void (*serverReceiveData_fun)(CServerSock::ServerThreads*, std::shared_ptr<char> data, size_t size);
+	typedef void (*serverReceiveData_fun)(CServerSock::ServerThreads*, std::unique_ptr<char[]> &data, size_t size);
 
 private:
 	struct addrinfo *ptr, hints;
@@ -227,9 +227,9 @@ public:
 	static void clientSockMGRThread(void *pClientSockStruct){
 		//std::cout << "Entering the client thread...\n";
 		ServerThreads *pThisThreadInfo = (ServerThreads*)pClientSockStruct;
-		std::shared_ptr<char> buffer = nullptr;
+		std::unique_ptr<char[]> buffer = nullptr;
 		try{
-			buffer = std::shared_ptr<char>(new char[receiveBufferSize]);
+			buffer = std::make_unique<char[]>(receiveBufferSize);
 
 			int bytesReceived;
 		
@@ -245,7 +245,8 @@ public:
 					break;
 				}
 				
-				if (pThisThreadInfo->fun != nullptr && bytesReceived != 0){
+				if (pThisThreadInfo->fun != nullptr && bytesReceived != 0)
+				{
 					pThisThreadInfo->fun(pThisThreadInfo, buffer, bytesReceived);
 				}
 			}
@@ -284,7 +285,7 @@ public:
 				
 				// std::cout << "Starting new thread...\n";
 				NewThread.pThread = nullptr;
-				NewThread.pThread = std::unique_ptr<std::thread>(new std::thread(clientSockMGRThread, &NewThread));
+				NewThread.pThread = std::make_unique<std::thread>(clientSockMGRThread, &NewThread);
 			}
 		}
 		// std::cout << "Exiting thread...\n";

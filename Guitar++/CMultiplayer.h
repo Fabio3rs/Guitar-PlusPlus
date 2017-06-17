@@ -44,7 +44,7 @@ class CMultiplayer
 
 	pair clidentpair;
 
-	static void callbackFun(CServerSock::ServerThreads *th, std::shared_ptr<char> data, size_t size);
+	static void callbackFun(CServerSock::ServerThreads *th, std::unique_ptr<char[]> &data, size_t size);
 
 	std::vector < playersData > pData;
 

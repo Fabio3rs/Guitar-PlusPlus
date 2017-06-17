@@ -754,7 +754,7 @@ static int HalveImage(GLubyte *src, int *width, int *height,
 int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 	GLint   UnpackAlignment/*, GenMipMap*/;
 	int     level, format, AutoGen, newsize, n;
-	std::shared_ptr<unsigned char> data;
+	std::unique_ptr<unsigned char[]> data;
 
 	// TODO: Use GL_MAX_TEXTURE_SIZE or GL_PROXY_TEXTURE_2D to determine
 	//       whether the image size is valid.
@@ -769,7 +769,7 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 
 		// Allocate memory for new RGBA image data
 		newsize = img->Width * img->Height * img->BytesPerPixel;
-		data = std::shared_ptr<unsigned char>(new unsigned char[newsize]);
+		data = std::make_unique<unsigned char[]>(newsize);
 
 		if (data == NULL)
 		{
@@ -794,7 +794,7 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 		img->Data = nullptr;
 
 		// Set pointer to new image data
-		img->Data = data;
+		img->Data = std::move(data);
 	}
 
 	// Set unpack alignment to one byte
@@ -827,7 +827,7 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 	if (img->keepData)
 	{
 		newsize = img->Width * img->Height * img->BytesPerPixel;
-		img->tmpData = std::shared_ptr<unsigned char>(new unsigned char[newsize]);
+		img->tmpData = std::make_unique<unsigned char[]>(newsize);
 
 		memcpy(img->tmpData.get(), img->Data.get(), newsize);
 	}
@@ -889,8 +889,8 @@ void CEngine::RenderMulti3DQuad(const std::deque<RenderDoubleStruct> &quad3DData
 	if (i <= 0)
 		return;
 
-	std::unique_ptr<GLdouble[]> vertexArray(new GLdouble[18 * i]);
-	std::unique_ptr<GLdouble[]> textureArray(new GLdouble[12 * i]);
+	std::unique_ptr<GLdouble[]> vertexArray(std::make_unique<GLdouble[]>(18 * i));
+	std::unique_ptr<GLdouble[]> textureArray(std::make_unique<GLdouble[]>(12 * i));
 
 	for (int j = 0; j < i; j++){
 		/*GLdouble vA[] = { quad3DData[i].x1, quad3DData[i].y1, quad3DData[i].z1,
@@ -982,24 +982,19 @@ int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg)
 	if (eimg)
 	{
 		bool keepData = eimg->keepData;
-		*eimg = img;
 		eimg->keepData = keepData;
 
 		if (eimg->keepData)
 		{
-			eimg->Data = eimg->tmpData;
+			*eimg = std::move(img);
+			eimg->Data = std::move(eimg->tmpData);
 			eimg->tmpData = nullptr;
-
-			freeImage(&img);
 
 			return GL_TRUE;
 		}
 
 		eimg->Data = nullptr;
 	}
-
-	// Data buffer is not needed anymore
-	freeImage(&img);
 
 	return GL_TRUE;
 }

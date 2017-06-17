@@ -222,8 +222,8 @@ public:
 		int Width, Height;
 		int Format;
 		int BytesPerPixel;
-		std::shared_ptr<unsigned char> Data;
-		std::shared_ptr<unsigned char> tmpData;
+		std::unique_ptr<unsigned char[]> Data;
+		std::unique_ptr<unsigned char[]> tmpData;
 		bool bRevPixels;
 		bool keepData;
 
@@ -240,7 +240,7 @@ public:
 
 	typedef struct {
 		FILE*   file;
-		std::shared_ptr<unsigned char>   data;
+		std::unique_ptr<unsigned char[]>   data;
 		long    position;
 		long    size;
 	} GLFWstream;
@@ -333,7 +333,7 @@ private:
 				this->lineWeight = lineWeight;
 
 				if (polysNum > this->polysNum){
-					verticesBuffer = std::unique_ptr< double[] >(new double[polysNum * 12]);
+					verticesBuffer = std::make_unique<double[]>(polysNum * 12);
 					this->polysNum = polysNum;
 				}
 				return true;
@@ -349,7 +349,7 @@ private:
 				this->lineWeight = lineWeight;
 
 				if (polysNum > this->polysNum){
-					verticesBuffer = std::unique_ptr< double[] >(new double[polysNum * 12]);
+					verticesBuffer = std::make_unique<double[]>(polysNum * 12);
 					this->polysNum = polysNum;
 				}
 				return true;
@@ -359,7 +359,7 @@ private:
 
 		void allocAll(int polysNum)
 		{
-			verticesBuffer = std::unique_ptr< double[] >(new double[polysNum * 12]);
+			verticesBuffer = std::make_unique<double[]>(polysNum * 12);
 			this->polysNum = polysNum;
 		}
 

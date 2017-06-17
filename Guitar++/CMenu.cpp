@@ -1266,7 +1266,7 @@ int CMenu::pushUserInterface(const CMenu &m)
 	int index = allocOrGetUiFreeSpace();
 
 	uiList[index].m = nullptr;
-	uiList[index].m = std::unique_ptr<CMenu>(new CMenu(m));
+	uiList[index].m = std::make_unique<CMenu>(m);
 	uiList[index].m->uiMenu = true;
 	uiList[index].m->thisUiID = index;
 	uiList[index].pos = 100;

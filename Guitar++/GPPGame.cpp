@@ -2767,7 +2767,7 @@ const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const s
 		return gTextures[(path + "/" + texture)];
 	}
 
-	gTextures[(path + "/" + texture)] = gppTexture(path, texture);
+	gTextures[(path + "/" + texture)] = std::move(gppTexture(path, texture));
 	return gTextures[(path + "/" + texture)];
 }
 

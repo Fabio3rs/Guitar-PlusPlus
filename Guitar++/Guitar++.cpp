@@ -74,11 +74,11 @@ int main(int argc, char* argv[])
 		// Run all scripts in quere
 		lua.runScripts();
 
-		{
+		/*{
 			auto tnddawnpackage = CGPPFileMGR::mgr().newPackageFromDirectory("2nd Dawn", "./data/songs/2nd Dawn");
 
 			std::cout << "2nd Dawn Package items" << tnddawnpackage.items.size() << std::endl;
-		}
+		}*/
 
 		// Window
 		game.createWindow();
