@@ -55,7 +55,7 @@ public:
 			int pos;
 			int line;
 			double align, size;
-			fontTexture *textureLst;
+			const fontTexture *textureLst;
 			unsigned int textID;
 
 			void setTextID(const fontTexture &texture);
@@ -90,11 +90,11 @@ public:
 			}
 
 			inline void setText(const fontTexture &texture){
-				textureLst = const_cast<fontTexture*>(&texture);
+				textureLst = &texture;
 				setTextID(texture);
 			}
 
-			inline fontTexture *getText() const{
+			inline const fontTexture *getText() const{
 				return textureLst;
 			}
 
