@@ -1,8 +1,6 @@
 ﻿#ifndef _CRT_SECURE_NO_WARNINGS
 #define  _CRT_SECURE_NO_WARNINGS
 #endif
-#include <bass.h>
-#include <bass_fx.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "CEngine.h"
@@ -19,15 +17,40 @@
 #include <GL/glu.h>
 #include "internal.h"
 #include <cmath>
-#include <GL/GL.h>
+#include <bass.h>
+#include <bass_fx.h>
 
 static const double perspectiveMaxDist = 500000.0;
 
-/*
-#include <assimp/Importer.hpp>      // C++ importer interface
-#include <assimp/scene.h>           // Output data structure
-#include <assimp/postprocess.h>     // Post processing flags
-*/
+//========================================================================
+// GLFW - An OpenGL framework
+// Platform:    Any
+// API version: 2.7
+// WWW:         http://www.glfw.org/
+//------------------------------------------------------------------------
+// Copyright (c) 2002-2006 Marcus Geelnard
+// Copyright (c) 2006-2010 Camilla Berglund <elmindreda@elmindreda.org>
+//
+// This software is provided 'as-is', without any express or implied
+// warranty. In no event will the authors be held liable for any damages
+// arising from the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not
+//    claim that you wrote the original software. If you use this software
+//    in a product, an acknowledgment in the product documentation would
+//    be appreciated but is not required.
+//
+// 2. Altered source versions must be plainly marked as such, and must not
+//    be misrepresented as being the original software.
+//
+// 3. This notice may not be removed or altered from any source
+//    distribution.
+//
+//========================================================================
 
 void CALLBACK GetBPM_ProgressCallback(DWORD chan, float percent, void *user)
 {
@@ -773,7 +796,7 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 
 		if (data == NULL)
 		{
-			img->Data = nullptr;
+			img->Data.reset();
 			return GL_FALSE;
 		}
 
@@ -791,7 +814,7 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 		}
 
 		// Free memory for old image data (not needed anymore)
-		img->Data = nullptr;
+		img->Data.reset();
 
 		// Set pointer to new image data
 		img->Data = std::move(data);
@@ -865,7 +888,7 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 
 void CEngine::freeImage(GLFWimage *img){
 	// Free memory
-	img->Data = nullptr;
+	img->Data.reset();
 
 	// Clear all fields
 	img->Width = 0;
@@ -988,12 +1011,12 @@ int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg)
 		{
 			*eimg = std::move(img);
 			eimg->Data = std::move(eimg->tmpData);
-			eimg->tmpData = nullptr;
+			eimg->tmpData.reset();
 
 			return GL_TRUE;
 		}
 
-		eimg->Data = nullptr;
+		eimg->Data.reset();
 	}
 
 	return GL_TRUE;
@@ -2008,19 +2031,18 @@ CEngine::CEngine()
 {
 	openWindowCalled = false;
 	volumeMaster = 1.0;
-	AASamples = 0;
 	lastRenderAt[0] = 0.0;
 	lastRenderAt[1] = 0.0;
 	lastRenderAt[2] = 0.0;
+	AASamples = 0;
 
 	window = nullptr;
-
-	lrC = lgC = lbC = laC = 1.0;
 
 	mouseX = mouseY = 0.0;
 	glMajor = 1;
 	glMinor = 1;
 	lastUsedTexture = 0;
+
 
 	glfwSetErrorCallback(GLFWerrorfun);
 
@@ -2035,9 +2057,7 @@ CEngine::CEngine()
 	FPS = 0;
 	tmpFPS = 0;
 
-	//std::cout << "BASS Init\n";
 	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
-	//std::cout << "BASS Init result " << result << std::endl;
 	lastUpdatedNoise = 0.0;
 	updateNoiseInterval = 0.2;
 
@@ -2053,51 +2073,9 @@ CEngine::CEngine()
 	}*/
 }
 
-CEngine::CEngine(std::function <void(int, const std::string &e)> errfun)
+CEngine::CEngine(std::function <void(int, const std::string &e)> errfun) : CEngine()
 {
-	openWindowCalled = false;
-	volumeMaster = 1.0;
-	lastRenderAt[0] = 0.0;
-	lastRenderAt[1] = 0.0;
-	lastRenderAt[2] = 0.0;
-	AASamples = 0;
-
-	window = nullptr;
-
-	mouseX = mouseY = 0.0;
-	glMajor = 1;
-	glMinor = 1;
-	lastUsedTexture = 0;
-
 	errorCallbackFun = errfun;
-
-	glfwSetErrorCallback(GLFWerrorfun);
-
-	if (!glfwInit())
-	{
-		throw std::logic_error("Fail to initialize GLFW");
-	}
-
-	lastFrameTime = glfwGetTime();
-	lastFPSSwapTime = glfwGetTime();
-	DeltaTime = 0.0;
-	FPS = 0;
-	tmpFPS = 0;
-
-	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
-	lastUpdatedNoise = 0.0;
-	updateNoiseInterval = 0.2;
-
-	setCamera(0.0, 0.0, 2.3, /* look from camera XYZ */
-		0, 0, 0, /* look at the origin */
-		0, 1, 0);
-
-	wcallfunc = nullptr;
-	/*
-	if(!bitArray){
-	bitArray = new unsigned int[10000];
-	memset(bitArray, 0, sizeof(unsigned int) * 10000);
-	}*/
 }
 
 CEngine::~CEngine(){
@@ -2121,10 +2099,9 @@ void CEngine::staticDrawBuffer::destroy(bool deletePtr)
 		glDeleteBuffers(1, &bufferID);
 	}
 
-	if (deletePtr && pointer != nullptr)
-		delete[] pointer;
+	//if (deletePtr && pointer != nullptr)
+	//	delete pointer;
 
-	pointer = nullptr;
 	count = 0;
 	vertexL = uvL = normalsL = texture = 0;
 	bufferID = ~0;

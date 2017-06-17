@@ -390,7 +390,7 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         }
 
         // Free memory for colormap (it's not needed anymore)
-		cmap = nullptr;
+		cmap.reset();
     }
     else
     {

@@ -208,13 +208,14 @@ class CEngine {
 	std::array<double, 16> projMatrix;
 
 public:
-	inline const double *getProjMatrix() { return projMatrix.data();  }
+	inline const double *getProjMatrix() const { return projMatrix.data();  }
 
 	void setWindowCallbackFunction(customwcallback f){
 		wcallfunc = f;
 	}
 
-	customwcallback getWindowCallbackFunction(){
+	customwcallback getWindowCallbackFunction() const
+	{
 		return wcallfunc;
 	}
 
@@ -230,8 +231,6 @@ public:
 		GLFWimageC()
 		{
 			keepData = false;
-			Data = nullptr;
-			tmpData = nullptr;
 			bRevPixels = false;
 		}
 	};
@@ -583,9 +582,9 @@ public:
 	void setScale(double x, double y, double z);
 
 	double getTime();
-	inline double getDeltaTime() const{return DeltaTime;}
+	inline double getDeltaTime() const{ return DeltaTime; }
 	int getMouseButton(int btn);
-	inline const int &getFPS() const{ return FPS; }
+	inline const int getFPS() const{ return FPS; }
 
 	unsigned int vboSET(size_t size, void *buffer);
 	void attribVBOBuff(int id, int size, unsigned int buffer);
