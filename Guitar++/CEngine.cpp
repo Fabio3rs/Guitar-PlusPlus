@@ -1874,6 +1874,20 @@ void CEngine::RenderCustomVerticesFloat(staticDrawBuffer &buffer, bool autoBindZ
 	if (autoBindZero) bindVBOBuffer(0);
 }
 
+void CEngine::renderCustomConstVerticesFloat(const staticDrawBuffer & buffer, bool autoBindZero)
+{
+	bindVBOBuffer(buffer.bufferID);
+	if (buffer.texture) bindTexture(buffer.texture);
+
+	glNormalPointer(GL_FLOAT, 0, (void*)buffer.normalsL);
+
+	glTexCoordPointer(2, GL_FLOAT, 0, (void*)buffer.uvL);
+	glVertexPointer(3, GL_FLOAT, 0, (void*)buffer.vertexL);
+
+	glDrawArrays(GL_TRIANGLES, 0, buffer.count);
+	if (autoBindZero) bindVBOBuffer(0);
+}
+
 void CEngine::RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr, void *normals, int count, unsigned int texture)
 {
 	if (texture) bindTexture(texture);

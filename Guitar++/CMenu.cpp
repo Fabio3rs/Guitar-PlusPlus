@@ -23,10 +23,10 @@ void CMenu::menuOpt::update()
 	{
 		auto &lngmgr = CLanguageManager::langMGR();
 		auto &game = GPPGame::GuitarPP();
-		std::string txt = lngmgr.getText(game.glanguage, langEntryKey);
+		const std::string txt = lngmgr.getText(game.glanguage, langEntryKey);
 
 		if (txt.size() > 0)
-			text = txt;
+			text = std::move(txt);
 		else
 		{
 			CLog::log() << "On CMenu::menuOpt::update():\n				<<" + text + ">>	 language entry key <<" + langEntryKey + ">> is null or not exists.";

@@ -108,7 +108,7 @@ std::string CLanguageManager::getTextDirectFromFile(const std::string &lang, con
 	return "TODO";
 }
 
-std::string CLanguageManager::getText(const std::string &lang, const std::string &entry)
+std::string &CLanguageManager::getText(const std::string &lang, const std::string &entry)
 {
 	return langs[lang].entries[entry];
 }

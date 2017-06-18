@@ -38,7 +38,7 @@ public:
 	std::string usingLang;
 
 	std::string getLanguageName(const std::string &lang);
-	std::string getText(const std::string &lang, const std::string &entry);
+	std::string &getText(const std::string &lang, const std::string &entry);
 	std::string getTextDirectFromFile(const std::string &lang, const std::string &entry);
 
 	static CLanguageManager &langMGR();

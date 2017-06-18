@@ -1171,7 +1171,7 @@ CPlayer::CPlayer(const char *name)
 	BPMNowBuffer = 0;
 
 	plusThunterStrikeStart = plusPower = plusParticleEffectPosition = maxPlusPower = plusLoadF = plusLoadB = plusLoadInterval = 0.0;
-	plusCircleBuffer = plusLoadBuffer = publicApprovBuffer = correctNotesBuffer = multiplierBuffer = -1uL;
+	plusCircleBuffer = plusLoadBuffer = publicApprovBuffer = correctNotesBuffer = multiplierBuffer = ~0uL;
 
 	correctNotes = 0;
 

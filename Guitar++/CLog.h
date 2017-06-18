@@ -103,7 +103,7 @@ public:
 							{
 								int argId = std::stoi(numbuf);
 
-								if (argId < a.size())
+								if (argId >= 0 && argId < a.size())
 								{
 									printbuf += a[argId].getStr();
 								}
@@ -133,7 +133,7 @@ public:
 						{
 							int argId = std::stoi(numbuf);
 
-							if (argId < a.size())
+							if (argId >= 0 && argId < a.size())
 							{
 								printbuf += a[argId].getStr();
 							}

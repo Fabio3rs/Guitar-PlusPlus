@@ -295,6 +295,14 @@ void GPPOBJ::draw(unsigned int texture, bool autoBindZeroVBO)
 	}
 }
 
+void GPPOBJ::onlyDraw(bool autoBindZeroVBO) const
+{
+	for (auto &modelPart : multiData)
+	{
+		CEngine::engine().renderCustomConstVerticesFloat(modelPart.vbodata, autoBindZeroVBO);
+	}
+}
+
 void GPPOBJ::load(const std::string &path, const std::string &file)
 {
 	lastPath = path;

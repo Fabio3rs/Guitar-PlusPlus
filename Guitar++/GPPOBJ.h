@@ -84,6 +84,7 @@ public:
 	bool keepModelDataLoaded;
 
 	void draw(unsigned int texture, bool autoBindZeroVBO = true);
+	void onlyDraw(bool autoBindZeroVBO = true) const;
 	void load(const std::string &path, const std::string &file);
 
 	gppVec3f boxTestForMtl(const std::string &mtl);
