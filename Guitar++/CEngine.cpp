@@ -364,9 +364,6 @@ bool CEngine::loadMusicStream(const char *fileName, int &handle)
 {
 	handle = BASS_MusicLoad(false, fileName, (QWORD)MAKELONG(0, 0), 0, BASS_STREAM_PRESCAN | BASS_ASYNCFILE, 0);
 
-
-	std::cout << BASS_ErrorGetCode() << std::endl;
-
 	return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE) && handle != 0;
 }
 
