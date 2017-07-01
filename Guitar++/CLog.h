@@ -42,12 +42,12 @@ class CLog{
 	public:
 		const std::string &getStr() const { return str; }
 
-		argToString(const char *str) : str(str) { }
+		constexpr argToString(const char *str) : str(str) { }
 
-		argToString(const std::string &str) : str(str) { }
+		constexpr argToString(const std::string &str) : str(str) { }
 
 		template<class T>
-		argToString(const T &value) : str(std::to_string(value)) { }
+		constexpr argToString(const T &value) : str(std::to_string(value)) { }
 	};
 
 	bool Finished;
