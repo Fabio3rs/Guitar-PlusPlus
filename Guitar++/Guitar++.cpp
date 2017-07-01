@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
 		}
 
 		CLog::log().multiRegister("%0 %1 %2 %3 %4 %5, teste AAA INT: %6, DOUBLE: %7, FLOAT: %8, Crash test-> %900, IGNORE test \\%1", "This", "is", "a", "multi", "register", "test", 10, 20.0, 30.0f);
+		CLog::log().multiRegister("%0 %1 %2 %3 %4 %5, teste AAA INT: %6, DOUBLE: %7, FLOAT: %8, Crash test-> %900, IGNORE test \\%1", "This", "is", "a", "multi", "register", "test", 20, 30.0, 40.0f);
 
 		auto &lngmgr = CLanguageManager::langMGR();
 		//int variaveldopato = 0;

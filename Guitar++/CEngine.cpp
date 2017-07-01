@@ -1485,7 +1485,7 @@ void CEngine::colorRGBToArray(int32_t rgb, double *arr)
 	arr[3] = 1.0;
 }
 
-void CEngine::colorRGBToArrayf(int32_t rgb, float * arr)
+void CEngine::colorRGBToArrayf(int32_t rgb, float *arr)
 {
 	uint8_t colorArray[4] = { 0, 0, 0, 0 };
 	memcpy(colorArray, &rgb, sizeof(colorArray));
@@ -1871,7 +1871,7 @@ void CEngine::RenderCustomVerticesFloat(staticDrawBuffer &buffer, bool autoBindZ
 	if (autoBindZero) bindVBOBuffer(0);
 }
 
-void CEngine::renderCustomConstVerticesFloat(const staticDrawBuffer & buffer, bool autoBindZero)
+void CEngine::renderCustomConstVerticesFloat(const staticDrawBuffer &buffer, bool autoBindZero)
 {
 	bindVBOBuffer(buffer.bufferID);
 	if (buffer.texture) bindTexture(buffer.texture);

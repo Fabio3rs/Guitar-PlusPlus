@@ -37,7 +37,7 @@ class CLog{
 
 	class argToString
 	{
-		std::string str;
+		const std::string str;
 
 	public:
 		const std::string &getStr() const { return str; }
@@ -57,9 +57,9 @@ public:
 	void AddToLog(const std::string &Text);
 
 	template<class... Types>
-	void multiRegister(const std::string &format, Types&&... args)
+	constexpr void multiRegister(const std::string &format, Types&&... args)
 	{
-		const std::deque < argToString > a = { std::forward<Types>(args)... };
+		const std::array < argToString, std::tuple_size<std::tuple<Types...>>::value > a = { std::forward<Types>(args)... };
 		std::string printbuf, numbuf;
 
 		bool ignoreNext = false;

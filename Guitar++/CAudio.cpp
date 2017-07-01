@@ -34,7 +34,7 @@ audiostream CAudio::load(const std::string &path)
 	audiostream astream;
 
 
-	return audiostream();
+	return astream;
 }
 
 bool CAudio::init()
