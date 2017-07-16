@@ -10,6 +10,7 @@
 class CChart
 {
 	typedef CPlayer::NotesData::Note Note;
+	typedef CPlayer::NotesData::NoteInt NoteInt;
 	typedef CPlayer::NotesData::plusNote plusNote;
 
 	struct instrumentNotes

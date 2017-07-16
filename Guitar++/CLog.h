@@ -131,7 +131,7 @@ public:
 						i = size;
 						if (numbuf.size() > 0)
 						{
-							int argId = std::stoi(numbuf);
+							size_t argId = std::stoul(numbuf);
 
 							if (argId >= 0 && argId < a.size())
 							{

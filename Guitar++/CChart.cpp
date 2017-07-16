@@ -94,10 +94,10 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 	auto BPMRead = [](BPMContainer &BPMs, parsedChart &chartMap) {
 		for (auto &SyncTrack : chartMap["[SyncTrack]"])
 		{
-			char c[16] = { 0 };
+			char c[32] = { 0 };
 			int i = 0;
 			for (auto &inst : SyncTrack.second) {
-				if (sscanf(inst.c_str(), "%15s %d", c, &i) == 2) {
+				if (sscanf(inst.c_str(), "%31s %d", c, &i) == 2) {
 					if (std::string(c) == "B") {
 						SyncTrackBPM bp;
 						bp.BPM = i;
@@ -110,6 +110,13 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 		}
 
 		std::sort(BPMs.begin(), BPMs.end());
+
+		if (BPMs.size() == 0)
+		{
+			SyncTrackBPM bp;
+			bp.BPM = 120000;
+			bp.offset = 0.0;
+		}
 	};
 
 	auto pureBPMToCalcBPM = [this](double BPM) {
@@ -157,35 +164,41 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 		return result;
 	};
 
-	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM, &chartOffset](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty) {
-		for (auto &scopeData : chartMap[difficulty]) {
-			char c[16] = { 0 };
+	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM, &chartOffset](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty)
+	{
+		std::vector<NoteInt> ntsI;
+		for (auto &scopeData : chartMap[difficulty])
+		{
+			char c[32] = { 0 };
 			int i = 0, j = 0;
-			for (auto &inst : scopeData.second) {
-				if (sscanf(inst.c_str(), "%15s %d %d", c, &i, &j) == 3)
+			for (auto &inst : scopeData.second)
+			{
+				if (sscanf(inst.c_str(), "%31s %d %d", c, &i, &j) == 3)
 				{
-					if (std::string(c) == "N") {
-						Note nt;
-						nt.time = std::stod(scopeData.first);
+					if (std::string(c) == "N")
+					{
+						NoteInt nt;
+						nt.time = std::stoll(scopeData.first);
 						nt.lTime = j;
 						nt.type = i;
 
-						NTS.push_back(nt);
+						ntsI.push_back(nt);
 					}
 
-					if (std::string(c) == "S" && i == 2) {
-						Note nt;
-						nt.time = std::stod(scopeData.first);
+					if (std::string(c) == "S" && i == 2)
+					{
+						NoteInt nt;
+						nt.time = std::stoll(scopeData.first);
 						nt.lTime = j;
 						nt.type = -1;
 
-						NTS.push_back(nt);
+						ntsI.push_back(nt);
 					}
 				}
 			}
 		}
 
-		std::sort(NTS.begin(), NTS.end());
+		std::sort(ntsI.begin(), ntsI.end());
 
 		uint64_t loffset = ~((uint64_t)0uLL);
 		double lnotet = -1.0;
@@ -193,38 +206,44 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 
 
 		size_t BPM = 0;
-		for (auto &nt : NTS)
+		for (auto &nt : ntsI)
 		{
-			uint64_t loffsettmp = nt.time;
-			if (nt.type == -1)
-			{
-				nt.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
-				nt.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt.time;
+			NTS.push_back({});
 
-				nt.time += chartOffset;
+			auto &nt0 = NTS.back();
+			nt0 = nt;
+
+			uint64_t loffsettmp = nt.time;
+			if (nt0.type == -1)
+			{
+				nt0.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
+				nt0.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt0.time;
+
+				nt0.time += chartOffset;
 				continue;
 			}
 
-			if (BPM < (BPMs.size() - 1)) {
+			if (BPM < (BPMs.size() - 1))
+			{
 				if (BPMs[BPM + 1].offset < nt.time)
 					++BPM;
 			}
 
 			if (loffset == nt.time)
 			{
-				nt.time = lnotet;
-				nt.lTime = llngnotet;
+				nt0.time = lnotet;
+				nt0.lTime = llngnotet;
 			}
 			else
 			{
-				nt.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
-				nt.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt.time;
+				nt0.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
+				nt0.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt0.time;
 
-				nt.time += chartOffset;
+				nt0.time += chartOffset;
 			}
 
-			lnotet = nt.time;
-			llngnotet = nt.lTime;
+			lnotet = nt0.time;
+			llngnotet = nt0.lTime;
 			loffset = loffsettmp;
 		}
 	};

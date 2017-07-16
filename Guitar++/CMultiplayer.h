@@ -34,7 +34,7 @@ class CMultiplayer
 
 	struct pair
 	{
-		int32_t f, s;
+		size_t f, s;
 
 		pair()
 		{

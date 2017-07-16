@@ -301,7 +301,7 @@ private:
 		std::atomic<bool> loadSong;
 		std::atomic<bool> sendToModulePlayers;
 		std::atomic<bool> listEnd;
-		std::atomic<int> songID;
+		std::atomic<size_t> songID;
 
 		std::deque<std::string> songsList;
 

@@ -141,7 +141,7 @@ public:
 
 	public:
 		size_t notePos, plusPos;
-		int64_t lastNotePicked;
+		size_t lastNotePicked;
 		std::string instrument;
 
 		std::string songName, songArtist, songCharter;
@@ -154,11 +154,10 @@ public:
 		double fretsNotePickedTime[5];
 		bool inLongNote[5];
 		int longNoteComb;
-		int64_t longNoteID[5];
+		size_t longNoteID[5];
 
 		struct NoteInt {
-			int64_t time;
-			int64_t lTime;
+			uint64_t time, lTime;
 
 			int type;
 
@@ -184,8 +183,8 @@ public:
 
 			NoteInt()
 			{
-				time = 0.0;
-				lTime = 0.0;
+				time = 0uLL;
+				lTime = 0uLL;
 				type = 0;
 			}
 		};
@@ -220,14 +219,14 @@ public:
 			{
 				time = static_cast<double>(n.time);
 				lTime = static_cast<double>(n.lTime);
-				type = static_cast<double>(n.type);
+				type = n.type;
 			}
 
 			Note(const NoteInt &n)
 			{
 				time = static_cast<double>(n.time);
 				lTime = static_cast<double>(n.lTime);
-				type = static_cast<double>(n.type);
+				type = n.type;
 			}
 
 			Note()
@@ -335,7 +334,7 @@ public:
 	double fretsPressedTime[5];
 	int64_t notesSlide[5];
 
-	int64_t strklinent;
+	size_t strklinent;
 	double strklinenttime;
 
 	bool palhetaKeyLast;
@@ -356,7 +355,7 @@ public:
 	void processError();
 	void releaseSong();
 
-	void doNote(int64_t i);
+	void doNote(size_t i);
 
 	std::deque <lineData> tailsData;
 

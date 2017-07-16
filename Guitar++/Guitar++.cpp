@@ -466,7 +466,7 @@ int main(int argc, char* argv[])
 
 							opt.optList = { "0.0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0" };
 
-							opt.listID = (opt.optList.size() - 1) * CEngine::getMainVolume();
+							opt.listID = static_cast<int>((opt.optList.size() - 1) * CEngine::getMainVolume());
 
 							if (opt.listID < 0)
 								opt.listID = 0;
@@ -480,7 +480,7 @@ int main(int argc, char* argv[])
 								{
 									try
 									{
-										opt.listID = (opt.optList.size() - 1) * CEngine::getMainVolume();
+										opt.listID = static_cast<int>((opt.optList.size() - 1) * CEngine::getMainVolume());
 
 										if (opt.listID < 0)
 											opt.listID = 0;
@@ -567,7 +567,7 @@ int main(int argc, char* argv[])
 			}
 
 
-			double t = (CEngine::engine().getTime() - ltime) * 3.14 / 3.0, t2;
+			double t = (CEngine::engine().getTime() - ltime) * 3.14 / 3.0;
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t));
 			CEngine::engine().Render2DQuad(lgrdata);

@@ -141,7 +141,7 @@ void GPPGame::charterModule(const std::string &name)
 						CEngine::engine().playSoundStream(p.instrumentSound);
 					}
 
-					CEngine::engine().setSoundVolume(gp.players.back().songAudioID, 0.8);
+					CEngine::engine().setSoundVolume(gp.players.back().songAudioID, 0.8f);
 
 					playSound = false;
 				}
@@ -1361,46 +1361,46 @@ void GPPGame::startModule(const std::string &name)
 
 					for (auto &t : l.ambientLight)
 					{
-						t = 0.2;
+						t = 0.2f;
 					}
 
 					for (auto &t : l.direction)
 					{
-						t = 2.5;
+						t = 2.5f;
 					}
 
 					for (auto &t : l.position)
 					{
-						t = 0.0;
+						t = 0.0f;
 					}
 
 					for (auto &t : l.specularLight)
 					{
-						t = 0.5;
+						t = 0.5f;
 					}
 
 					for (auto &t : l.diffuseLight)
 					{
-						t = 0.2;
+						t = 0.2f;
 					}
 
-					l.specularLight[1] = 1.0;
-					l.specularLight[2] = 1.0;
-					l.diffuseLight[0] = 1.0;
-					l.diffuseLight[1] = 1.0;
-					l.ambientLight[4] = 0.1;
+					l.specularLight[1] = 1.0f;
+					l.specularLight[2] = 1.0f;
+					l.diffuseLight[0] = 1.0f;
+					l.diffuseLight[1] = 1.0f;
+					l.ambientLight[4] = 0.1f;
 
 					CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
 
-					l.angle = 100.0;
-					l.direction[0] = 3.0;
-					l.direction[1] = -0.5;
-					l.direction[2] = -1.5;
+					l.angle = 100.0f;
+					l.direction[0] = 3.0f;
+					l.direction[1] = -0.5f;
+					l.direction[2] = -1.5f;
 
-					l.position[0] = 3.0;
-					l.position[1] = 2.7;
-					l.position[2] = -1.5;
-					l.position[3] = 1.0;
+					l.position[0] = 3.0f;
+					l.position[1] = 2.7f;
+					l.position[2] = -1.5f;
+					l.position[3] = 1.0f;
 
 					engine.activateLight(0, false);
 					engine.activateLight(1, true);
@@ -1914,46 +1914,46 @@ void GPPGame::startMarathonModule(const std::string &name)
 
 					for (auto &t : l.ambientLight)
 					{
-						t = 0.1;
+						t = 0.1f;
 					}
 
 					for (auto &t : l.direction)
 					{
-						t = 2.5;
+						t = 2.5f;
 					}
 
 					for (auto &t : l.position)
 					{
-						t = 0.0;
+						t = 0.0f;
 					}
 
 					for (auto &t : l.specularLight)
 					{
-						t = 0.2;
+						t = 0.2f;
 					}
 
 					for (auto &t : l.diffuseLight)
 					{
-						t = 0.2;
+						t = 0.2f;
 					}
 
-					l.specularLight[1] = 1.0;
-					l.specularLight[2] = 1.0;
-					l.diffuseLight[0] = 1.0;
-					l.diffuseLight[1] = 1.0;
-					l.ambientLight[4] = 0.1;
+					l.specularLight[1] = 1.0f;
+					l.specularLight[2] = 1.0f;
+					l.diffuseLight[0] = 1.0f;
+					l.diffuseLight[1] = 1.0f;
+					l.ambientLight[4] = 0.1f;
 
 					CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
 
 					l.angle = 180.0;
-					l.direction[0] = 3.0;
-					l.direction[1] = -0.5;
-					l.direction[2] = -1.5;
+					l.direction[0] = 3.0f;
+					l.direction[1] = -0.5f;
+					l.direction[2] = -1.5f;
 
-					l.position[0] = 3.0;
-					l.position[1] = 2.7;
-					l.position[2] = -1.5;
-					l.position[3] = 1.0;
+					l.position[0] = 3.0f;
+					l.position[1] = 2.7f;
+					l.position[2] = -1.5f;
+					l.position[3] = 1.0f;
 
 					engine.activateLight(0, false);
 					engine.activateLight(1, true);
@@ -2550,46 +2550,46 @@ void GPPGame::campaingPlayModule(const std::string &name)
 
 					for (auto &t : l.ambientLight)
 					{
-						t = 0.1;
+						t = 0.1f;
 					}
 
 					for (auto &t : l.direction)
 					{
-						t = 2.5;
+						t = 2.5f;
 					}
 
 					for (auto &t : l.position)
 					{
-						t = 0.0;
+						t = 0.0f;
 					}
 
 					for (auto &t : l.specularLight)
 					{
-						t = 0.2;
+						t = 0.2f;
 					}
 
 					for (auto &t : l.diffuseLight)
 					{
-						t = 0.2;
+						t = 0.2f;
 					}
 
-					l.specularLight[1] = 1.0;
-					l.specularLight[2] = 1.0;
-					l.diffuseLight[0] = 1.0;
-					l.diffuseLight[1] = 1.0;
-					l.ambientLight[4] = 0.1;
+					l.specularLight[1] = 1.0f;
+					l.specularLight[2] = 1.0f;
+					l.diffuseLight[0] = 1.0f;
+					l.diffuseLight[1] = 1.0f;
+					l.ambientLight[4] = 0.1f;
 
 					CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
 
-					l.angle = 180.0;
-					l.direction[0] = 3.0;
-					l.direction[1] = -0.5;
-					l.direction[2] = -1.5;
+					l.angle = 180.0f;
+					l.direction[0] = 3.0f;
+					l.direction[1] = -0.5f;
+					l.direction[2] = -1.5f;
 
-					l.position[0] = 3.0;
-					l.position[1] = 2.7;
-					l.position[2] = -1.5;
-					l.position[3] = 1.0;
+					l.position[0] = 3.0f;
+					l.position[1] = 2.7f;
+					l.position[2] = -1.5f;
+					l.position[3] = 1.0f;
 
 					engine.activateLight(0, false);
 					engine.activateLight(1, true);
@@ -3076,46 +3076,46 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 
 			for (auto &t : l.ambientLight)
 			{
-				t = 0.1;
+				t = 0.1f;
 			}
 
 			for (auto &t : l.direction)
 			{
-				t = 2.5;
+				t = 2.5f;
 			}
 
 			for (auto &t : l.position)
 			{
-				t = 0.0;
+				t = 0.0f;
 			}
 
 			for (auto &t : l.specularLight)
 			{
-				t = 1.0;
+				t = 1.0f;
 			}
 
 			for (auto &t : l.diffuseLight)
 			{
-				t = 0.2;
+				t = 0.2f;
 			}
 
-			l.specularLight[1] = 1.0;
-			l.specularLight[2] = 1.0;
-			l.diffuseLight[0] = 1.0;
-			l.diffuseLight[1] = 1.0;
-			l.ambientLight[4] = 0.1;
+			l.specularLight[1] = 1.0f;
+			l.specularLight[2] = 1.0f;
+			l.diffuseLight[0] = 1.0f;
+			l.diffuseLight[1] = 1.0f;
+			l.ambientLight[4] = 0.1f;
 
 			CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
 
-			l.angle = 180.0;
-			l.direction[0] = 3.0;
-			l.direction[1] = -0.5;
-			l.direction[2] = -1.5;
+			l.angle = 180.0f;
+			l.direction[0] = 3.0f;
+			l.direction[1] = -0.5f;
+			l.direction[2] = -1.5f;
 
-			l.position[0] = 3.0;
-			l.position[1] = 2.7;
-			l.position[2] = -1.5;
-			l.position[3] = 1.0;
+			l.position[0] = 3.0f;
+			l.position[1] = 2.7f;
+			l.position[2] = -1.5f;
+			l.position[3] = 1.0f;
 
 			engine.activateLight(0, false);
 			engine.activateLight(1, true);

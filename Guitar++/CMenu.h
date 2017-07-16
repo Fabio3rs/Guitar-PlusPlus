@@ -122,11 +122,11 @@ public:
 
 		std::string text, preText, langEntryKey;
 		std::string *externalPreTextRef;
-		int preTextMaxSize;
+		size_t preTextMaxSize;
 		int status;
 		int devStatus;
 		double optValue, deslizantBarSize;
-		int listID;
+		size_t listID;
 
 		bool btnClickStat;
 

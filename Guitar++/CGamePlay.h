@@ -85,7 +85,7 @@ public:
 	};
 
 	std::deque <lyricLine> songlyrics;
-	int songlyricsIndex;
+	size_t songlyricsIndex;
 
 	void renderLyrics();
 

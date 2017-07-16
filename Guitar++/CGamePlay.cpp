@@ -18,7 +18,6 @@ const int CGamePlay::notesFlagsConst[5] = { gpppowi(2, 0), gpppowi(2, 1), gpppow
 void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
-	double posX1, notaSize, X3, X4, Y3, Y4;
 	const double pos = -0.492;
 	double rtime = getRunningMusicTime(Player) - position;
 
@@ -229,7 +228,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 	if (Player.Notes.BPM.size() > 0)
 	{
 		double mtime = (time - 2.5);
-		int BPMnowbuff = getBPMAtI(Player, (mtime > 0.0) ? mtime : 0.0);
+		size_t BPMnowbuff = getBPMAtI(Player, (mtime > 0.0) ? mtime : 0.0);
 
 		if (BPMnowbuff >= Player.Notes.BPM.size())
 		{
@@ -249,7 +248,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		double mtimem1 = mtime;
 
 		if (mtimem1 >= 0.0){
-			int nbuff = BPMnowbuff + 1;
+			size_t nbuff = BPMnowbuff + 1;
 			if (Player.Notes.BPM.size() > nbuff)
 			{
 				if ((mtimem1 > (Player.Notes.BPM[nbuff].time)))
@@ -313,7 +312,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			while (contloop)
 			{
 				contloop = false;
-				int nbuff = localBPMBuffer + 1;
+				size_t nbuff = localBPMBuffer + 1;
 
 				if (Player.Notes.BPM.size() > nbuff)
 				{
@@ -855,7 +854,7 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, in
 		{
 			gppVec3f vec3data;
 			vec3data.x = TempStruct3D.x1;
-			vec3data.y = -0.462;
+			vec3data.y = -0.462f;
 			vec3data.z = TempStruct3D.z1;
 
 
@@ -986,7 +985,7 @@ void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlay
 			{
 				gppVec3f vec3data;
 				vec3data.x = xdata[i];
-				vec3data.y = -0.47;
+				vec3data.y = -0.47f;
 				vec3data.z = TempStruct3D.z1;
 
 				hopostp.push_front(vec3data);
@@ -1445,10 +1444,10 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		}
 	};
 
-	auto getLastNotePickedTimeDiff = [&](int64_t i)
+	auto getLastNotePickedTimeDiff = [&](size_t i)
 	{
 		double result = 0;
-		if (player.Notes.lastNotePicked == -1)
+		if (player.Notes.lastNotePicked == ~(static_cast<size_t>(0)))
 		{
 			return player.Notes.gNotes[i].time;
 		}
@@ -1936,7 +1935,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 			for (int ji = 0; ji < 5; ji++)
 			{
-				int64_t id = player.notesSlide[ji];
+				size_t id = player.notesSlide[ji];
 
 				if (id != -1)
 				{
@@ -1995,7 +1994,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				player.muteInstrument();
 				for (int ji = 0; ji < 5; ji++)
 				{
-					int64_t id = player.notesSlide[ji];
+					size_t id = player.notesSlide[ji];
 
 					if (id != -1)
 					{
@@ -2491,38 +2490,38 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		for (auto &t : l.direction)
 		{
-			t = 2.5;
+			t = 2.5f;
 		}
 
 		for (auto &t : l.position)
 		{
-			t = 0.0;
+			t = 0.0f;
 		}
 
 		for (auto &t : l.specularLight)
 		{
-			t = 1.0;
+			t = 1.0f;
 		}
 
 		for (auto &t : l.diffuseLight)
 		{
-			t = 0.2;
+			t = 0.2f;
 		}
 
-		l.specularLight[2] = 1.0;
-		l.specularLight[3] = 1.0 - difftime;
-		l.diffuseLight[2] = 1.0;
-		l.diffuseLight[3] = 1.0 - difftime;
+		l.specularLight[2] = 1.0f;
+		l.specularLight[3] = 1.0f - difftime;
+		l.diffuseLight[2] = 1.0f;
+		l.diffuseLight[3] = 1.0f - difftime;
 		l.ambientLight[4] = difftime;
 
-		l.angle = 100.0;
-		l.direction[0] = 0.0;
-		l.direction[1] = -0.5;
-		l.direction[2] = -5.0;
+		l.angle = 100.0f;
+		l.direction[0] = 0.0f;
+		l.direction[1] = -0.5f;
+		l.direction[2] = -5.0f;
 
-		l.position[3] = 1.0;
-		l.position[1] = 0.0;
-		l.position[2] = 2.5;
+		l.position[3] = 1.0f;
+		l.position[1] = 0.0f;
+		l.position[2] = 2.5f;
 
 		engine.activateLight(0, false);
 		engine.activateLight(1, true);
@@ -2538,43 +2537,43 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		for (auto &t : l.ambientLight)
 		{
-			t = 0.1;
+			t = 0.1f;
 		}
 
 		for (auto &t : l.direction)
 		{
-			t = 2.5;
+			t = 2.5f;
 		}
 
 		for (auto &t : l.position)
 		{
-			t = 0.0;
+			t = 0.0f;
 		}
 
 		for (auto &t : l.specularLight)
 		{
-			t = 1.0;
+			t = 1.0f;
 		}
 
 		for (auto &t : l.diffuseLight)
 		{
-			t = 0.2;
+			t = 0.2f;
 		}
 
-		l.specularLight[2] = 1.0;
-		l.specularLight[3] = 1.0;
-		l.diffuseLight[2] = 1.0;
-		l.diffuseLight[3] = 1.0;
-		l.ambientLight[4] = 0.1;
+		l.specularLight[2] = 1.0f;
+		l.specularLight[3] = 1.0f;
+		l.diffuseLight[2] = 1.0f;
+		l.diffuseLight[3] = 1.0f;
+		l.ambientLight[4] = 0.1f;
 
-		l.angle = 100.0;
-		l.direction[0] = 0.0;
-		l.direction[1] = -0.5;
-		l.direction[2] = -5.0;
+		l.angle = 100.0f;
+		l.direction[0] = 0.0f;
+		l.direction[1] = -0.5f;
+		l.direction[2] = -5.0f;
 
-		l.position[3] = 1.0;
-		l.position[1] = 0.0;
-		l.position[2] = 2.5;
+		l.position[3] = 1.0f;
+		l.position[1] = 0.0f;
+		l.position[2] = 2.5f;
 
 		engine.activateLight(0, false);
 		engine.activateLight(1, true);

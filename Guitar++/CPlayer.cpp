@@ -418,10 +418,10 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 	auto BPMRead = [](BPMContainer &BPMs, parsedChart &chartMap){
 		for (auto &SyncTrack : chartMap["[SyncTrack]"]){
-			char c[16] = {0};
+			char c[32] = {0};
 			int i = 0;
 			for (auto &inst : SyncTrack.second){
-				if (sscanf(inst.c_str(), "%15s %d", c, &i) == 2){
+				if (sscanf(inst.c_str(), "%31s %d", c, &i) == 2){
 					if (std::string(c) == "B"){
 						SyncTrackBPM bp;
 						bp.BPM = i;
@@ -434,15 +434,22 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		}
 
 		std::sort(BPMs.begin(), BPMs.end());
+
+		if (BPMs.size() == 0)
+		{
+			SyncTrackBPM bp;
+			bp.BPM = 120000;
+			bp.offset = 0.0;
+		}
 	};
 
 	auto pureBPMToCalcBPM = [this](double BPM){
 		return (BPM / 1000.0 * 3.2) * chartResolutionProp;
 	};
 
-	auto getNoteTime = [&pureBPMToCalcBPM](const BPMContainer &BPMs, int64_t pos, int64_t off){
+	auto getNoteTime = [&pureBPMToCalcBPM](const BPMContainer &BPMs, size_t pos, int64_t off){
 		double timeT = 0.0;
-		int i = 0;
+		size_t i = 0;
 
 		if (pos > (BPMs.size() - 1))
 		{
@@ -522,7 +529,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		double llngnotet = -1.0;
 
 		
-		int BPM = 0;
+		size_t BPM = 0;
 		for (auto &nt : ntsI)
 		{
 			NTS.push_back({});
@@ -566,7 +573,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 	auto fillChartInfo = [&](parsedChart &chartMap)
 	{
-		auto chk = [](std::deque<std::string> &s, int i)
+		auto chk = [](std::deque<std::string> &s, size_t i)
 		{
 			std::string result;
 
@@ -579,9 +586,9 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		auto &Song = chartMap["[Song]"];
 		
 		chartResolutionProp = std::stod(Song["Resolution"][0]) / 192.0;
-		songName = chk(Song["Name"], 0);
-		songArtist = chk(Song["Artist"], 0);
-		songCharter = chk(Song["Charter"], 0);
+		songName = chk(Song["Name"], 0u);
+		songArtist = chk(Song["Artist"], 0u);
+		songCharter = chk(Song["Charter"], 0u);
 		try {
 			chartOffset = std::stod(Song["Offset"][0]);
 		}
@@ -779,7 +786,7 @@ void CPlayer::NotesData::deducePlusLastNotes()
 {
 	size_t plusPosTemp = 0;
 
-	for (int64_t i = 0, size = gNotes.size(); i < size; ++i)
+	for (size_t i = 0, size = gNotes.size(); i < size; ++i)
 	{
 		const auto &note = gNotes[i];
 
@@ -1050,7 +1057,7 @@ int64_t CPlayer::getCombo()
 
 int64_t CPlayer::getPoints()
 {
-	return points;
+	return static_cast<int64_t>(points);
 }
 
 bool CPlayer::isSongChartFinished()
@@ -1113,7 +1120,7 @@ int CPlayer::getFretsPressedFlags()
 	return result;
 }
 
-void CPlayer::doNote(int64_t i)
+void CPlayer::doNote(size_t i)
 {
 	if (!(Notes.gNotes[i].type & notesFlags::nf_picked))
 	{
@@ -1191,7 +1198,7 @@ CPlayer::CPlayer(const char *name)
 	maxPublicAprov = 120.0;
 	publicAprov = maxPublicAprov / 2.0;
 
-	strklinent = -1;
+	strklinent = ~(static_cast<size_t>(0));
 
 	playerCamera.eyex = 0.0;
 	playerCamera.eyey = 0.5;

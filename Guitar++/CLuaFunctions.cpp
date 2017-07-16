@@ -879,7 +879,7 @@ int CLuaFunctions::setSoundAttribute(lua_State * L)
 	if (p.getNumParams() == 3 && lua_isnumber(L, 1) && lua_isnumber(L, 2) && lua_isnumber(L, 3))
 	{
 		int handle = 0;
-		int64_t flags = 0;
+		int flags = 0;
 		double value = 0;
 
 		p >> handle;
