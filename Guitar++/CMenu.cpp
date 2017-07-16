@@ -749,7 +749,7 @@ void CMenu::update()
 
 					desselectAllFromGroup(opt.group);
 					opt.status = 4;
-					opt.strEditPoint = xtest;
+					opt.strEditPoint = static_cast<int>(xtest);
 
 					CControls::controls().update();
 

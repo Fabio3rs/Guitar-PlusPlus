@@ -8,7 +8,12 @@
 //unsigned int MatrixID;
 //unsigned int TextureID;
 
-const int CGamePlay::notesFlagsConst[5] = { pow(2, 0), pow(2, 1), pow(2, 2), pow(2, 3), pow(2, 4) };
+int gpppowi(int b, int e)
+{
+	return static_cast<int>(pow(b, e));
+}
+
+const int CGamePlay::notesFlagsConst[5] = { gpppowi(2, 0), gpppowi(2, 1), gpppowi(2, 2), gpppowi(2, 3), gpppowi(2, 4) };
 
 void CGamePlay::drawBPMLine(double position, unsigned int Texture, CPlayer &Player)
 {
@@ -134,11 +139,12 @@ std::deque<CPlayer::NotesData::Note>::iterator CGamePlay::getBPMAtIt(CPlayer &pl
 	return result;
 }
 
-int CGamePlay::getBPMAtI(CPlayer &player, double time)
+size_t CGamePlay::getBPMAtI(CPlayer &player, double time)
 {
-	double result = 120.0, resultI = 0;
+	double result = 120.0;
+	size_t resultI = 0;
 
-	for (int i = 0, size = player.Notes.BPM.size(); i < size; i++)
+	for (size_t i = 0, size = player.Notes.BPM.size(); i < size; i++)
 	{
 		auto &BPMn = player.Notes.BPM[i];
 
@@ -1339,7 +1345,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	double musicTime = getRunningMusicTime(player);
 
-	double minendtime = 0.0, minendtimei = notes.notePos;
+	double minendtime = 0.0;
+	auto minendtimei = notes.notePos;
 	//bool minendtimeslide = false;
 
 	auto getHighestFlag = [](int flags)
@@ -2428,40 +2435,40 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	*/
 	for (auto &t : l0.ambientLight)
 	{
-		t = 0.2;
+		t = 0.2f;
 	}
 
 	for (auto &t : l0.direction)
 	{
-		t = 2.5;
+		t = 2.5f;
 	}
 
 	for (auto &t : l0.position)
 	{
-		t = 0.0;
+		t = 0.0f;
 	}
 
 	for (auto &t : l0.specularLight)
 	{
-		t = 1.0;
+		t = 1.0f;
 	}
 
 	for (auto &t : l0.diffuseLight)
 	{
-		t = 1.0;
+		t = 1.0f;
 	}
 
-	l0.specularLight[3] = 1.0;
-	l0.diffuseLight[3] = 0.3;
+	l0.specularLight[3] = 1.0f;
+	l0.diffuseLight[3] = 0.3f;
 
-	l0.angle = 120.0;
-	l0.direction[0] = 0.0;
-	l0.direction[1] = -0.5;
-	l0.direction[2] = -5.0;
+	l0.angle = 120.0f;
+	l0.direction[0] = 0.0f;
+	l0.direction[1] = -0.5f;
+	l0.direction[2] = -5.0f;
 
-	l0.position[3] = 1.0;
-	l0.position[1] = 0.0;
-	l0.position[2] = 2.5;
+	l0.position[3] = 1.0f;
+	l0.position[1] = 0.0f;
+	l0.position[2] = 2.5f;
 
 	auto &lua = CLuaH::Lua();
 

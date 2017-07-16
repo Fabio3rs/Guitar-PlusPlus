@@ -1257,37 +1257,37 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
 
 	for (auto &t : l.ambientLight)
 	{
-		t = 0.3;
+		t = 0.3f;
 	}
 
 	for (auto &t : l.direction)
 	{
-		t = 2.5;
+		t = 2.5f;
 	}
 
 	for (auto &t : l.position)
 	{
-		t = 0.0;
+		t = 0.0f;
 	}
 
 	for (auto &t : l.specularLight)
 	{
-		t = 1.0;
+		t = 1.0f;
 	}
 
 	for (auto &t : l.diffuseLight)
 	{
-		t = 1.0;
+		t = 1.0f;
 	}
 
-	l.angle = 100.0;
-	l.direction[0] = 0.0;
-	l.direction[1] = -0.5;
-	l.direction[2] = -5.0;
+	l.angle = 100.0f;
+	l.direction[0] = 0.0f;
+	l.direction[1] = -0.5f;
+	l.direction[2] = -5.0f;
 
-	l.position[3] = 1.0;
-	l.position[1] = 0.0;
-	l.position[2] = 2.5;
+	l.position[3] = 1.0f;
+	l.position[1] = 0.0f;
+	l.position[2] = 2.5f;
 	//l.position[1] = -0.2;
 
 
@@ -1323,7 +1323,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
 	glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 	glEnable(GL_RESCALE_NORMAL);
 
-	float glMaterialff[] = {128.0, 0.0, 1.0, 1.0};
+	float glMaterialff[] = {128.0f, 0.0f, 1.0f, 1.0f};
 	glMaterialfv(GL_FRONT, GL_SHININESS, glMaterialff);
 
 	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 0);

@@ -156,8 +156,44 @@ public:
 		int longNoteComb;
 		int64_t longNoteID[5];
 
+		struct NoteInt {
+			int64_t time;
+			int64_t lTime;
+
+			int type;
+
+			inline bool operator <(const NoteInt &b) const {
+				return time < b.time;
+			}
+
+			inline bool operator >(const NoteInt &b) const {
+				return time > b.time;
+			}
+
+			template<class Archive>
+			void load(Archive & archive)
+			{
+				archive(time, lTime, type);
+			}
+
+			template<class Archive>
+			void save(Archive & archive) const
+			{
+				archive(time, lTime, type);
+			}
+
+			NoteInt()
+			{
+				time = 0.0;
+				lTime = 0.0;
+				type = 0;
+			}
+		};
+		
 		struct Note{
-			double time, lTime/*, unmodifiedTime*/;
+			double time;
+			double lTime;
+
 			int type;
 
 			inline bool operator <(const Note &b) const{
@@ -180,10 +216,24 @@ public:
 				archive(time, lTime, type);
 			}
 
-			Note(){
+			Note(NoteInt &&n)
+			{
+				time = static_cast<double>(n.time);
+				lTime = static_cast<double>(n.lTime);
+				type = static_cast<double>(n.type);
+			}
+
+			Note(const NoteInt &n)
+			{
+				time = static_cast<double>(n.time);
+				lTime = static_cast<double>(n.lTime);
+				type = static_cast<double>(n.type);
+			}
+
+			Note()
+			{
 				time = 0.0;
 				lTime = 0.0;
-				//unmodifiedTime = 0.0;
 				type = 0;
 			}
 		};
@@ -194,11 +244,11 @@ public:
 
 			int64_t firstNote, lastNote;
 
-			inline bool operator <(const Note &b) const{
+			inline bool operator <(const plusNote &b) const{
 				return time < b.time;
 			}
 
-			inline bool operator >(const Note &b) const{
+			inline bool operator >(const plusNote &b) const{
 				return time > b.time;
 			}
 

@@ -158,14 +158,14 @@ public:
 			if (v.svcontent.size() != 0)
 			{
 				var = "";
-				for (size_t i = 0; i < v.svcontent.size(); i++)
+				for (size_t i = 0u; i < v.svcontent.size(); i++)
 				{
 					var.push_back((char)v.svcontent[i]);
 				}
 				v.size = v.svcontent.size();
 			}
 			else{
-				for (int i = 0; i < v.size; ++i)
+				for (size_t i = 0u; i < v.size; ++i)
 				{
 					v.svcontent.push_back((int8_t)var[i]);
 				}

@@ -334,8 +334,9 @@ bool CPlayer::loadSong(const std::string &path){
 
 #include <iostream>
 
-int CPlayer::getLevel(){
-	return log(experience);
+int CPlayer::getLevel()
+{
+	return static_cast<int>(log(experience));
 }
 
 bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
@@ -480,51 +481,62 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		return result;
 	};
 
-	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM, &chartOffset](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty){
-		for (auto &scopeData : chartMap[difficulty]){
-			char c[16] = { 0 };
+	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM, &chartOffset](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty)
+	{
+		std::vector<NoteInt> ntsI;
+		for (auto &scopeData : chartMap[difficulty])
+		{
+			char c[32] = { 0 };
 			int i = 0, j = 0;
-			for (auto &inst : scopeData.second){
-				if (sscanf(inst.c_str(), "%15s %d %d", c, &i, &j) == 3)
+			for (auto &inst : scopeData.second)
+			{
+				if (sscanf(inst.c_str(), "%31s %d %d", c, &i, &j) == 3)
 				{
-					if (std::string(c) == "N"){
-						Note nt;
-						nt.time = std::stod(scopeData.first);
+					if (std::string(c) == "N")
+					{
+						NoteInt nt;
+						nt.time = std::stoll(scopeData.first);
 						nt.lTime = j;
 						nt.type = i;
 
-						NTS.push_back(nt);
+						ntsI.push_back(nt);
 					}
 
-					if (std::string(c) == "S" && i == 2){
-						Note nt;
-						nt.time = std::stod(scopeData.first);
+					if (std::string(c) == "S" && i == 2)
+					{
+						NoteInt nt;
+						nt.time = std::stoll(scopeData.first);
 						nt.lTime = j;
 						nt.type = -1;
 
-						NTS.push_back(nt);
+						ntsI.push_back(nt);
 					}
 				}
 			}
 		}
 
-		std::sort(NTS.begin(), NTS.end());
+		std::sort(ntsI.begin(), ntsI.end());
 
-		uint64_t loffset = -1uL;
+		uint64_t loffset = ~((uint64_t)0uLL);
 		double lnotet = -1.0;
 		double llngnotet = -1.0;
 
-
+		
 		int BPM = 0;
-		for (auto &nt : NTS)
+		for (auto &nt : ntsI)
 		{
-			uint64_t loffsettmp = nt.time;
-			if (nt.type == -1)
-			{
-				nt.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
-				nt.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt.time;
+			NTS.push_back({});
 
-				nt.time += chartOffset;
+			auto &nt0 = NTS.back();
+			nt0 = nt;
+
+			uint64_t loffsettmp = nt.time;
+			if (nt0.type == -1)
+			{
+				nt0.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
+				nt0.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt0.time;
+
+				nt0.time += chartOffset;
 				continue;
 			}
 
@@ -535,19 +547,19 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 			if (loffset == nt.time)
 			{
-				nt.time = lnotet;
-				nt.lTime = llngnotet;
+				nt0.time = lnotet;
+				nt0.lTime = llngnotet;
 			}
 			else
 			{
-				nt.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
-				nt.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt.time;
+				nt0.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
+				nt0.lTime = getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime), loffsettmp + nt.lTime) - nt0.time;
 
-				nt.time += chartOffset;
+				nt0.time += chartOffset;
 			}
 
-			lnotet = nt.time;
-			llngnotet = nt.lTime;
+			lnotet = nt0.time;
+			llngnotet = nt0.lTime;
 			loffset = loffsettmp;
 		}
 	};

@@ -15,7 +15,7 @@ void PrintTable(lua_State *L)
         if(lua_isstring(L, -1))
           printf("%s = %s\n", lua_tostring(L, -2), lua_tostring(L, -1));
         else if(lua_isnumber(L, -1))
-          printf("%s = %d\n", lua_tostring(L, -2), lua_tonumber(L, -1));
+          printf("%s = %ld\n", lua_tostring(L, -2), lua_tonumber(L, -1));
         else if(lua_istable(L, -1))
           PrintTable(L);
 

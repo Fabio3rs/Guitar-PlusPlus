@@ -72,7 +72,7 @@ public:
 				uint64_t i = 1;
 				for (auto &k : keys)
 				{
-					k = sqrt12 * 1.0 / (i * 2.0 + 3.0) * pow(3.0, i) * pow(s.size() + 1, rand() % 255);
+					k = static_cast<uint64_t>(sqrt12 * 1.0 / (static_cast<double>(i) * 2.0 + 3.0) * pow(3.0, static_cast<double>(i)) * pow(s.size() + 1, rand() % 255));
 
 					k ^= rand();
 					k <<= 16;
@@ -257,8 +257,8 @@ public:
 			p.type = LUA_TNUMBER;
 		}
 
-		void set(int n){
-			p.inumber = p.num = n;
+		void set(int64_t n){
+			p.inumber = n;
 			p.type = LUA_TNUMBER | 0xF0000000;
 		}
 
@@ -331,7 +331,7 @@ public:
 				if (lua_isinteger(L, idx))
 				{
 					p.type = (LUA_TNUMBER | 0xF0000000);
-					p.inumber = p.num = lua_tointeger(L, idx);
+					p.inumber = lua_tointeger(L, idx);
 				}
 				else{
 					p.num = lua_tonumber(L, idx);
@@ -419,7 +419,7 @@ public:
 		customParam(int64_t n){
 			p.boolean = NULL;
 			p.function = NULL;
-			p.num = n;
+			p.num = 0.0;
 			p.type = (LUA_TNUMBER | 0xF0000000);
 			p.inumber = n;
 		}

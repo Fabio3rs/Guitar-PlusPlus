@@ -116,9 +116,9 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 		return (BPM / 1000.0 * 3.2) * chartResolutionProp;
 	};
 
-	auto getNoteTime = [&pureBPMToCalcBPM](const BPMContainer &BPMs, int64_t pos, int64_t off) {
+	auto getNoteTime = [&pureBPMToCalcBPM](const BPMContainer &BPMs, size_t pos, int64_t off) {
 		double timeT = 0.0;
-		int i = 0;
+		size_t i = 0;
 
 		if (pos > (BPMs.size() - 1))
 		{
@@ -139,8 +139,8 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 	};
 
 	auto getRefBPM = [](const BPMContainer &BPMs, int64_t tick) {
-		int result = 0;
-		int irbp = 0;
+		size_t result = 0;
+		size_t irbp = 0;
 
 		for (auto &b : BPMs)
 		{
@@ -187,12 +187,12 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 
 		std::sort(NTS.begin(), NTS.end());
 
-		uint64_t loffset = -1uL;
+		uint64_t loffset = ~((uint64_t)0uLL);
 		double lnotet = -1.0;
 		double llngnotet = -1.0;
 
 
-		int BPM = 0;
+		size_t BPM = 0;
 		for (auto &nt : NTS)
 		{
 			uint64_t loffsettmp = nt.time;
@@ -231,7 +231,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 
 	auto fillChartInfo = [&](parsedChart &chartMap)
 	{
-		auto chk = [](std::deque<std::string> &s, int i)
+		auto chk = [](std::deque<std::string> &s, size_t i)
 		{
 			std::string result;
 
@@ -244,9 +244,9 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 		auto &Song = chartMap["[Song]"];
 
 		chartResolutionProp = std::stod(Song["Resolution"][0]) / 192.0;
-		songName = chk(Song["Name"], 0);
-		songArtist = chk(Song["Artist"], 0);
-		songCharter = chk(Song["Charter"], 0);
+		songName = chk(Song["Name"], 0u);
+		songArtist = chk(Song["Artist"], 0u);
+		songCharter = chk(Song["Charter"], 0u);
 		try {
 			chartOffset = std::stod(Song["Offset"][0]);
 		}
@@ -478,7 +478,7 @@ void CChart::instrumentNotes::deducePlusLastNotes()
 {
 	size_t plusPosTemp = 0;
 
-	for (int64_t i = 0, size = gNotes.size(); i < size; ++i)
+	for (size_t i = 0, size = gNotes.size(); i < size; ++i)
 	{
 		const auto &note = gNotes[i];
 

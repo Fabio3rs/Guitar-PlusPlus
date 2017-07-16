@@ -249,7 +249,7 @@ void CLuaFunctions::GameVariables::setVar(const std::string &name, int64_t value
 		break;
 
 	case doublevar:
-		*(double*)v.ptr = value;
+		*(double*)v.ptr = static_cast<double>(value);
 		break;
 
 	case booleanvar:
@@ -269,11 +269,11 @@ void CLuaFunctions::GameVariables::setVar(const std::string &name, double value)
 	switch (v.t)
 	{
 	case integerv:
-		*(int*)v.ptr = value;
+		*(int*)v.ptr = static_cast<int>(value);
 		break;
 
 	case integer64:
-		*(int64_t*)v.ptr = value;
+		*(int64_t*)v.ptr = static_cast<int64_t>(value);
 		break;
 
 	case doublevar:

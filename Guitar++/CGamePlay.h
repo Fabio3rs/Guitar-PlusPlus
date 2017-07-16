@@ -51,7 +51,7 @@ class CGamePlay{
 	void addTailToBuffer(CPlayer::NotesData::Note &note, double pos1, double pos2, double runningTime, CPlayer &player);
 	void renderTailsBuffer(CPlayer &player);
 	double getBPMAt(CPlayer &player, double time);
-	int getBPMAtI(CPlayer &player, double time);
+	size_t getBPMAtI(CPlayer &player, double time);
 	CPlayer::NotesData::Note getBPMAtStruct(CPlayer &player, double time);
 	std::deque<CPlayer::NotesData::Note>::iterator getBPMAtIt(CPlayer &player, double time);
 
