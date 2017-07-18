@@ -4,8 +4,11 @@
 
 #include <cctype>
 #include <iostream>
+#include <memory>
+#include "CGPPFileMGR.h"
 
-void CText::Parse(){
+void CText::Parse()
+{
 	if(fileName.length() == 0){
 		return;
 	}
@@ -22,24 +25,17 @@ void CText::Parse(){
 
 	tables.clear();
 	
-	char *content = nullptr;
-	
-	file.seekg(0, std::ios::end);
-	fileSize = file.tellg();
-	file.seekg(0, std::ios::beg);
+	fileSize = CGPPFileMGR::fileSize(file);
 
-	if(fileSize == -1L || fileSize == 0){
+	if(fileSize == -1L || fileSize == 0)
+	{
 		return;
 	}
 	
-	content = new char[fileSize + 16];
-	memset(content, 0, fileSize + 16);
+	std::unique_ptr<char[]> content(std::make_unique<char[]>(fileSize + 16));
+	memset(content.get(), 0, fileSize + 16);
 	
-	if(!content){
-		throw std::logic_error("Alloc space fail");
-	}
-	
-	file.read(content, fileSize);
+	file.read(content.get(), fileSize);
 	
 	content[fileSize] = '\n';
 	content[fileSize + 1] = '\n';
@@ -100,8 +96,6 @@ void CText::Parse(){
 		while(content[i] != '\n' && content[i] != '\r' && content[i] != 0) i++;
 		i--;
 	}
-
-	delete[] content;
 }
 
 void CText::open(const char *name, bool autoParse){
@@ -130,10 +124,11 @@ void CText::save(){
 	}
 }
 
-CText::CText(const char *name, const std::string &pushIfEmpty, bool autoParse) {
+CText::CText(const char *name, const std::string &pushIfEmpty, bool autoParse)
+{
 	fileName = name;
 
-	fileSize = -1uL;
+	fileSize = ~((size_t)0);
 
 	push = pushIfEmpty;
 
@@ -144,9 +139,7 @@ CText::CText(const char *name, const std::string &pushIfEmpty, bool autoParse) {
 				if(!is_open())
 					file.open(fileName, std::ios::in | std::ios::out | std::ios::binary);
 
-				file.seekg(0, std::ios::end);
-				fileSize = file.tellg();
-				file.seekg(0, std::ios::beg);
+				fileSize = CGPPFileMGR::fileSize(file);
 			}
 
 			if (!checkFile || (checkFile && fileSize == 0)) {

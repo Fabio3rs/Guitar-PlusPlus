@@ -113,8 +113,9 @@ CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator>>(double &param)
 
 CLuaFunctions::LuaParams &CLuaFunctions::LuaParams::operator>>(int &param)
 {
-	if (stck <= num_params){
-		param = lua_tointeger(L, stck);
+	if (stck <= num_params)
+	{
+		param = static_cast<int>(lua_tointeger(L, stck));
 		++stck;
 	}
 	else
@@ -241,7 +242,7 @@ void CLuaFunctions::GameVariables::setVar(const std::string &name, int64_t value
 	switch (v.t)
 	{
 	case integerv:
-		*(int*)v.ptr = value;
+		*(int*)v.ptr = static_cast<int>(value);
 		break;
 
 	case integer64:

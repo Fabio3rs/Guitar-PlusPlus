@@ -11,6 +11,7 @@
 #include <cereal/types/map.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/deque.hpp>
+#include <limits>
 
 class GPPPackage
 {
@@ -73,12 +74,14 @@ public:
 	GPPPackage loadPackage(const std::string &file);
 
 	template<class T>
-	inline static size_t fileSize(T &file)
+	inline static std::streamsize fileSize(T &file)
 	{
-		file.seekg(0, std::ios::end);
-		size_t result = file.tellg();
 		file.seekg(0, std::ios::beg);
-		return result;
+		file.ignore(std::numeric_limits<std::streamsize>::max());
+		std::streamsize offset = file.gcount();
+		file.seekg(0, std::ios::beg);
+		file.clear();
+		return offset;
 	}
 
 	GPPPackage newPackageFromDirectory(const std::string &packName, const std::string &dir);

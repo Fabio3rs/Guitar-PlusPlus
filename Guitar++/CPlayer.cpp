@@ -1169,7 +1169,8 @@ CPlayer::CPlayer(const char *name)
 	bRenderP = bUpdateP = true;
 	plname = name;
 	songAudioID = -1;
-	points = combo = 0;
+	points = 0.0;
+	combo = 0;
 	startTime = CEngine::engine().getTime();
 	plusEnabled = false;
 	musicRunningTime = 0.0;
@@ -1182,7 +1183,7 @@ CPlayer::CPlayer(const char *name)
 	memset(notesSlide, -1, sizeof(notesSlide));
 	memset(lastFretsPressed, 0, sizeof(lastFretsPressed));
 	memset(fretsPressed, 0, sizeof(fretsPressed));
-	memset(fretsPressedTime, 0.0, sizeof(fretsPressedTime));
+	memset(fretsPressedTime, 0, sizeof(fretsPressedTime));
 	
 	instrumentSound = 0;
 	strklinenttime = -5.0;

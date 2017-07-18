@@ -1421,7 +1421,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	}
 
 
-	auto doPlus = [&](int64_t i)
+	auto doPlus = [&](size_t i)
 	{
 		if (notes.plusPos < notes.gPlus.size())
 		{
@@ -1468,7 +1468,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		}
 	};
 
-	auto doNoteFunc = [&](CPlayer::NotesData::Note &note, int64_t i)
+	auto doNoteFunc = [&](CPlayer::NotesData::Note &note, size_t i)
 	{
 		if (!noteDoedThisFrame && !bIsACharterGP)
 		{
@@ -1533,7 +1533,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	};
 
 	bool firstNoteToDoSetted = false;
-	int64_t firstNoteToDo = 0;
+	size_t firstNoteToDo = 0;
 	bool strklinbotsetted = false;
 
 	bool errorThisFrame = false, hopostrmm = false, strumdelayed = false;
