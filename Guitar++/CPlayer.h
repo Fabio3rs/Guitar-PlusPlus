@@ -65,6 +65,9 @@ struct fretsPosition{
 		return (state + 1) * 5 + id;
 	}
 
+	fretsPosition(const fretsPosition&) = default;
+	fretsPosition(fretsPosition&&) = default;
+
 	fretsPosition()
 	{
 		lineFretSize = 1.0 / 4.0;
@@ -241,7 +244,7 @@ public:
 			double time, lTime/*, unmodifiedTime*/;
 			int type;
 
-			int64_t firstNote, lastNote;
+			size_t firstNote, lastNote;
 
 			inline bool operator <(const plusNote &b) const{
 				return time < b.time;

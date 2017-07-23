@@ -85,7 +85,7 @@ GPPPackage CGPPFileMGR::newPackageFromDirectory(const std::string &packName, con
 
 	oarchive(newPack);
 
-	return std::move(newPack);
+	return newPack;
 }
 
 CGPPFileMGR::CGPPFileMGR()

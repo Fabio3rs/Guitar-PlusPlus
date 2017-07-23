@@ -3246,14 +3246,14 @@ CGamePlay::CGamePlay() : engine(CEngine::engine())
 		al = 1.0;
 	}
 
-	hoposLight.diffuseLight[4] = 0.2f;
+	hoposLight.diffuseLight[3] = 0.2f;
 
 	for (auto &al : hoposLight.specularLight)
 	{
 		al = 1.0;
 	}
 
-	hoposLight.specularLight[4] = 0.2f;
+	hoposLight.specularLight[3] = 0.2f;
 
 	plusNoteLight = hoposLight;
 

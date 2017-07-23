@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 		auto &lua = CLuaH::Lua();
 
 		// Configuration file
-		auto &script = lua.newScript(".", "Config.lua");
+		auto script = lua.newScript(".", "Config.lua");
 
 		if (script.luaState)
 		{

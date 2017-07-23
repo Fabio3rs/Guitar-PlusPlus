@@ -35,7 +35,7 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 
 		for (int i = 0, size = campaingNow.scripts.size(); i < size; i++)
 		{
-			auto &lscript = CLuaH::Lua().newScriptRBuffer(campaingNow.scripts[i].byteCode, campaingNow.scripts[i].name);
+			auto lscript = CLuaH::Lua().newScriptRBuffer(campaingNow.scripts[i].byteCode, campaingNow.scripts[i].name);
 
 			if (lscript.luaState == nullptr)
 			{
@@ -265,7 +265,7 @@ void CCampaing::loadCampaingModes()
 					}
 				}
 
-				auto infoScript = lua.newScript(rpath, "info.lua");
+				auto infoScript = lua.newScript(rpath, std::string("info.lua"));
 
 				if (infoScript.luaState != nullptr)
 				{
@@ -362,11 +362,11 @@ int CCampaing::exitCampaingScreen(lua_State * L)
 
 int CCampaing::campaingLoop()
 {
-	auto &mgr = campaingMGR();
+	/*auto &mgr = campaingMGR();
 	auto &engine = CEngine::engine();
 	auto &GuitarPP = GPPGame::GuitarPP();
-
-	bool windowOpened = true;
+	*/
+	//bool windowOpened = true;
 
 	
 
@@ -440,6 +440,8 @@ int CCampaing::campaingDrawScreen()
 			break;
 		}
 	}
+
+	return 0;
 }
 
 int CCampaing::openCampaingMenuCallback(CMenu &menu)

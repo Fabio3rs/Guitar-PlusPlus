@@ -1125,7 +1125,7 @@ int CLuaFunctions::newMenuOption(lua_State *L)
 		p >> opt.group;
 		p >> opt.type;
 
-		if (opt.type == -1)
+		if (opt.type == CMenu::menusOPT::none)
 		{
 			opt.type = CMenu::menusOPT::textbtn;
 			opt.goback = true;

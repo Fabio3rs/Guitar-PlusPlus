@@ -926,7 +926,7 @@ void CMenu::update()
 							{
 								opt.listID = opt.optList.size() - 1;
 							}
-							else if (opt.listID < 0)
+							else if (opt.listID == (~(size_t)(0u)))
 							{
 								opt.listID = 0;
 							}

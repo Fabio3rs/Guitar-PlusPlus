@@ -90,7 +90,7 @@ public:
 
 	bool devMenuNOUpdateOthers;
 
-	enum menusOPT{button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui, drag_bar, static_text};
+	enum menusOPT { none = -1, button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui, drag_bar, static_text };
 	std::string mTitle;
 
 	CLuaH::luaScript *lScript;
@@ -228,8 +228,12 @@ public:
 	int status;
 
 	CMenu();
+	//CMenu(const CMenu&) = default;
+	//CMenu(CMenu&&) = default;
 	CMenu(const std::string &name);
 
+	//CMenu &operator=(const CMenu&) = delete;
+	//CMenu &operator=(CMenu&&) = default;
 	/*static inline CMenu *getMenuByName(const std::string &n)
 	{
 		return Menus[n];

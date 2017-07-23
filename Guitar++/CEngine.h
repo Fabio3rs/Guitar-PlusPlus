@@ -362,7 +362,10 @@ private:
 			this->polysNum = polysNum;
 		}
 
-		inline CCircleStream(){
+		CCircleStream(const CCircleStream&) = default;
+
+		inline CCircleStream()
+		{
 			GlBuffer = -1;
 			x = y = percent = radius = lineWeight = 0;
 			polysNum = 0;

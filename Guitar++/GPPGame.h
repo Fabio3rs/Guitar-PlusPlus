@@ -55,6 +55,10 @@ public:
 		std::string fontName;
 		double minTime;
 
+		MessageTypes()
+		{
+			minTime = 0.0;
+		}
 	};
 
 	CMenu devMenus, uiRenameMenu;
@@ -79,7 +83,7 @@ public:
 		std::map < CLuaH::luaScript*, bool > associatedToScript;
 
 		// DO NOT DUPLICATE THE TEXTURE INSTANCE!!!!!!!
-		gppTexture(gppTexture&) = delete;
+		gppTexture(const gppTexture&) = delete;
 
 	public:
 		unsigned int getTextId() const{
@@ -133,7 +137,8 @@ public:
 
 		gppTexture(gppTexture&&) = default;
 
-		gppTexture(){
+		gppTexture()
+		{
 			text = 0;
 		}
 
@@ -158,7 +163,7 @@ public:
 		bool load();
 		const CLuaH::luaScript *main;
 
-		CTheme(CTheme&) = delete;
+		CTheme(const CTheme&) = delete;
 
 	public:
 		void apply();
@@ -166,6 +171,7 @@ public:
 		inline bool isloaded() const{ return loaded; }
 
 		CTheme(const std::string &theme);
+		CTheme(CTheme&&) = default;
 		CTheme();
 	};
 

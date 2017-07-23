@@ -10,12 +10,12 @@ void PrintTable(lua_State *L)
 
 	int index = 0;
 
-    while(index = lua_next(L, -2) != 0)
+    while((index = lua_next(L, -2) != 0))
     {
         if(lua_isstring(L, -1))
           printf("%s = %s\n", lua_tostring(L, -2), lua_tostring(L, -1));
         else if(lua_isnumber(L, -1))
-          printf("%s = %ld\n", lua_tostring(L, -2), lua_tonumber(L, -1));
+          printf("%s = %f\n", lua_tostring(L, -2), lua_tonumber(L, -1));
         else if(lua_istable(L, -1))
           PrintTable(L);
 
@@ -71,7 +71,7 @@ void CLanguageManager::CLanguage::loadFrom(CLuaH::luaScript &ls)
 
 	int index = -2;
 
-	while (index = lua_next(L, -2))
+	while ((index = lua_next(L, -2)))
 	{
 		//std::cout << lua_tostring(L, -2) << " " << lua_isstring(L, -1) << std::endl;
 

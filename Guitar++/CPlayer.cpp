@@ -359,7 +359,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 	};
 
 	typedef std::deque<Note> noteContainer;
-	typedef std::deque<SyncTrackBPM> BPMContainer;
+	typedef std::vector<SyncTrackBPM> BPMContainer;
 	noteContainer Nts;
 	BPMContainer BPMs;
 
@@ -416,8 +416,11 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		}
 	};
 
-	auto BPMRead = [](BPMContainer &BPMs, parsedChart &chartMap){
-		for (auto &SyncTrack : chartMap["[SyncTrack]"]){
+	auto BPMRead = [](BPMContainer &BPMs, parsedChart &chartMap)
+	{
+
+		for (auto &SyncTrack : chartMap["[SyncTrack]"])
+		{
 			char c[32] = {0};
 			int i = 0;
 			for (auto &inst : SyncTrack.second){
@@ -440,6 +443,8 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 			SyncTrackBPM bp;
 			bp.BPM = 120000;
 			bp.offset = 0.0;
+
+			BPMs.push_back(bp);
 		}
 	};
 

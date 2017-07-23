@@ -42,9 +42,9 @@ class CLog{
 	public:
 		const std::string &getStr() const { return str; }
 
-		constexpr argToString(const char *str) : str(str) { }
+		argToString(const char *str) : str(str) { }
 
-		constexpr argToString(const std::string &str) : str(str) { }
+		argToString(const std::string &str) : str(str) { }
 
 		template<class T>
 		constexpr argToString(const T &value) : str(std::to_string(value)) { }
@@ -57,7 +57,7 @@ public:
 	void AddToLog(const std::string &Text);
 
 	template<class... Types>
-	constexpr void multiRegister(const std::string &format, Types&&... args)
+	void multiRegister(const std::string &format, Types&&... args)
 	{
 		const std::array < argToString, std::tuple_size<std::tuple<Types...>>::value > a = { std::forward<Types>(args)... };
 		std::string printbuf, numbuf;

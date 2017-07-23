@@ -71,7 +71,7 @@ bool CLuaH::loadFilesDequeStorage(const std::string &path, std::deque<CLuaH::lua
 			if ((rrd->d_type & DT_DIR) == 0 && extension_from_filename(rrd->d_name) == "lua")
 			{
 				CLog::log() << ("Loading <<" + path + "/" + rrd->d_name + ">>");
-				storage.push_back(std::move(newScript(path, rrd->d_name)));
+				storage.push_back(newScript(path, rrd->d_name));
 			}
 		}
 		closedir(direntd);
@@ -725,7 +725,23 @@ void CLuaH::luaScript::unload(){
 * 'cause dctor calls lua_close(luaState)
 * copy ctor works like move operator
 */
-CLuaH::luaScript::luaScript(luaScript &L){
+/*CLuaH::luaScript::luaScript(luaScript &L){
+	luaState = L.luaState;
+
+	savedValues = std::move(L.savedValues);
+	filePath = std::move(L.filePath);
+	fileName = std::move(L.fileName);
+	callbacks = std::move(L.callbacks);
+
+	L.luaState = nullptr;
+
+	cheatsAdded = L.cheatsAdded;
+	callbacksAdded = L.callbacksAdded;
+	hooksAdded = L.hooksAdded;
+}*/
+
+CLuaH::luaScript::luaScript(luaScript &&L)
+{
 	luaState = L.luaState;
 
 	savedValues = std::move(L.savedValues);
@@ -797,7 +813,7 @@ void CLuaH::customParam::loadTableWOPush(lua_State *L)
 {
 	int index = -2;
 
-	while (index = lua_next(L, -2))
+	while ((index = lua_next(L, -2)))
 	{
 		//std::cout << lua_tostring(L, -2) << " " << lua_isstring(L, -1) << std::endl;
 		std::string dataStr = std::string(lua_tostring(L, -2));

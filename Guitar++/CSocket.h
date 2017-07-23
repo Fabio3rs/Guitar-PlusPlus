@@ -88,7 +88,7 @@ public:
 			ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype,
 				ptr->ai_protocol);
 			if (ConnectSocket == INVALID_SOCKET) {
-				printf("socket failed with error: %ld\n", WSAGetLastError());
+				printf("socket failed with error: %d\n", WSAGetLastError());
 				WSACleanup();
 				return;
 			}
@@ -198,16 +198,19 @@ public:
 		
 		ServerThreads(ServerThreads &&thr)
 		{
+			if (this == &thr)
+				return;
+
 			pThread = nullptr;
 			pThread = (std::move(thr.pThread));
-			ServerPtr = std::move(ServerPtr);
-			ClientSocket = std::move(ClientSocket);
-			user = std::move(user);
-			password = std::move(password);
-			clientKeySetted = std::move(clientKeySetted);
-			running = std::move(running);
-			fun = std::move(fun);
-			logged = std::move(logged);
+			ServerPtr = std::move(thr.ServerPtr);
+			ClientSocket = std::move(thr.ClientSocket);
+			user = std::move(thr.user);
+			password = std::move(thr.password);
+			clientKeySetted = std::move(thr.clientKeySetted);
+			running = std::move(thr.running);
+			fun = std::move(thr.fun);
+			logged = std::move(thr.logged);
 		}
 
 		ServerThreads()/* : ServerKeys(genRSAKeys()), ClientKeys(ServerKeys)*/{

@@ -1,3 +1,4 @@
+#include "CGPPFileMGR.h"
 #include "GPPGame.h"
 #include "CLuaH.hpp"
 #include "CEngine.h"
@@ -10,7 +11,6 @@
 #include "CFonts.h"
 #include "CCharter.h"
 #include "CMultiplayer.h"
-#include "CGPPFileMGR.h"
 
 std::mutex GPPGame::playersMutex;
 
@@ -768,7 +768,8 @@ void GPPGame::serverModule(const std::string &name)
 	module.players.back().enableBot = GPPGame::GuitarPP().botEnabled;
 
 
-	std::atomic<int> state = 0;
+	std::atomic<int> state;
+	state = 0;
 
 	auto searchPlayerByMPInfo = [&module](void *m)
 	{
@@ -1388,7 +1389,7 @@ void GPPGame::startModule(const std::string &name)
 					l.specularLight[2] = 1.0f;
 					l.diffuseLight[0] = 1.0f;
 					l.diffuseLight[1] = 1.0f;
-					l.ambientLight[4] = 0.1f;
+					l.ambientLight[3] = 0.1f;
 
 					CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
 
@@ -2577,7 +2578,7 @@ void GPPGame::campaingPlayModule(const std::string &name)
 					l.specularLight[2] = 1.0f;
 					l.diffuseLight[0] = 1.0f;
 					l.diffuseLight[1] = 1.0f;
-					l.ambientLight[4] = 0.1f;
+					l.ambientLight[3] = 0.1f;
 
 					CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
 
@@ -2704,7 +2705,7 @@ void GPPGame::eraseGameMenusAutoCreateds()
 CMenu &GPPGame::newMenu()
 {
 	CMenu m;
-	gameMenus[m.getName()] = m;
+	gameMenus[m.getName()] = std::move(m);
 	gameMenus[m.getName()].gameMenu = true;
 	return gameMenus[m.getName()];
 }
@@ -2712,7 +2713,7 @@ CMenu &GPPGame::newMenu()
 CMenu &GPPGame::newNamedMenu(const std::string &name)
 {
 	CMenu m(name);
-	gameMenus[m.getName()] = m;
+	gameMenus[m.getName()] = std::move(m);
 	gameMenus[m.getName()].gameMenu = true;
 	return gameMenus[m.getName()];
 }
@@ -3103,7 +3104,7 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 			l.specularLight[2] = 1.0f;
 			l.diffuseLight[0] = 1.0f;
 			l.diffuseLight[1] = 1.0f;
-			l.ambientLight[4] = 0.1f;
+			l.ambientLight[3] = 0.1f;
 
 			CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
 
@@ -3193,7 +3194,7 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 
 		auto &texture = gTextures[menu.backgroundTexture];
 
-		if (RenderData.Text = texture.getTextId())
+		if ((RenderData.Text = texture.getTextId()))
 		{
 			double prop = (double)texture.getImgWidth() / (double)texture.getImgHeight();
 

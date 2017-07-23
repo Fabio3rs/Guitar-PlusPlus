@@ -31,11 +31,10 @@ public:
 		nullinit(const nullinit<T>&l) : i(l){};
 	};
 
-	struct stringHash
+	/*struct stringHash
 	{
 		std::string str;
 		uint64_t hash64;
-		double gppCalc;
 
 		inline bool operator==(const stringHash &hs) const
 		{
@@ -121,7 +120,7 @@ public:
 			hash64 = 0;
 			gppCalc = 0;
 		}
-	};
+	};*/
 
 	/*
 	* luaScript can't be duplicated
@@ -153,7 +152,8 @@ public:
 
 		std::vector<char> dumpBytecode();
 
-		luaScript(luaScript &L); // Works like move operator
+		luaScript(const luaScript &L) = delete;
+		luaScript(luaScript &&L);
 		luaScript();
 		~luaScript();
 	};
@@ -273,7 +273,7 @@ public:
 			case LUA_TNIL:
 				break;
 
-			case (LUA_TNUMBER | 0xF0000000):
+			case static_cast<int>(static_cast<unsigned int>(LUA_TNUMBER) | 0xF0000000u):
 				lua_pushinteger(L, p.inumber);
 				break;
 

@@ -40,7 +40,7 @@ audiostream CAudio::load(const std::string &path)
 bool CAudio::init()
 {
 	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
-	return false;
+	return result;
 }
 
 CAudio &CAudio::audio()

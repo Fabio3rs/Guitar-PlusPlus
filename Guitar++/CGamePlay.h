@@ -125,6 +125,8 @@ public:
 
 	void resetModule();
 
+	CGamePlay(const CGamePlay&) = default;
+	CGamePlay(CGamePlay&&) = default;
 	CGamePlay();
 };
 
