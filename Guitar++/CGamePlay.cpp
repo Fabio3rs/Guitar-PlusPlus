@@ -2512,7 +2512,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		l.specularLight[3] = 1.0f - difftime;
 		l.diffuseLight[2] = 1.0f;
 		l.diffuseLight[3] = 1.0f - difftime;
-		l.ambientLight[4] = difftime;
+		l.ambientLight[3] = difftime;
 
 		l.angle = 100.0f;
 		l.direction[0] = 0.0f;
@@ -2564,7 +2564,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		l.specularLight[3] = 1.0f;
 		l.diffuseLight[2] = 1.0f;
 		l.diffuseLight[3] = 1.0f;
-		l.ambientLight[4] = 0.1f;
+		l.ambientLight[3] = 0.1f;
 
 		l.angle = 100.0f;
 		l.direction[0] = 0.0f;

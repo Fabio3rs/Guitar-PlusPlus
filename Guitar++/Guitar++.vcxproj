@@ -148,7 +148,6 @@
     <ClCompile Include="Lua\lutf8lib.c" />
     <ClCompile Include="Lua\lvm.c" />
     <ClCompile Include="Lua\lzio.c" />
-    <ClCompile Include="TestShadowMapping.h" />
     <ClCompile Include="tga.cpp" />
   </ItemGroup>
   <ItemGroup>

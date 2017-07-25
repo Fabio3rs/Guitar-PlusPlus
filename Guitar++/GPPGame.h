@@ -67,7 +67,7 @@ public:
 
 	CSaveSystem::CSave mainSave;
 
-	typedef void(*func_t)(const std::string &name);
+	typedef std::function<void(const std::string &name)> func_t;
 
 	bool gppTextureKeepBuffer;
 

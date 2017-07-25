@@ -192,9 +192,6 @@
     <ClCompile Include="CMultiplayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TestShadowMapping.h">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="CShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

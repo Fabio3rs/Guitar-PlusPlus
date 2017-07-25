@@ -1942,7 +1942,7 @@ void GPPGame::startMarathonModule(const std::string &name)
 					l.specularLight[2] = 1.0f;
 					l.diffuseLight[0] = 1.0f;
 					l.diffuseLight[1] = 1.0f;
-					l.ambientLight[4] = 0.1f;
+					l.ambientLight[3] = 0.1f;
 
 					CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
 

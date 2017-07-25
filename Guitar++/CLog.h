@@ -47,7 +47,7 @@ class CLog{
 		argToString(const std::string &str) : str(str) { }
 
 		template<class T>
-		constexpr argToString(const T &value) : str(std::to_string(value)) { }
+		argToString(const T &value) : str(std::to_string(value)) { }
 	};
 
 	bool Finished;
