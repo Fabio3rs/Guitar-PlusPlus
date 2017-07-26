@@ -48,12 +48,12 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 
 			for (auto &t : tdata)
 			{
-				t.second.pushToLuaStack(campaingScripts[i].luaState);
-				lua_setglobal(campaingScripts[i].luaState, t.first.c_str());
+				t.second.pushToLuaStack(campaingScripts[i].luaState.get());
+				lua_setglobal(campaingScripts[i].luaState.get(), t.first.c_str());
 			}
 
-			CLuaFunctions::LuaF().registerFunctions(campaingScripts[i].luaState);
-			CLuaFunctions::LuaF().registerGlobals(campaingScripts[i].luaState);
+			CLuaFunctions::LuaF().registerFunctions(campaingScripts[i].luaState.get());
+			CLuaFunctions::LuaF().registerGlobals(campaingScripts[i].luaState.get());
 		}
 
 		CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
@@ -88,7 +88,7 @@ bool CCampaing::saveCampaingF()
 		for (int i = 0, size = campaingNow.scripts.size(); i < size; i++)
 		{
 			campaingNow.scripts[i].scriptVars.clear();
-			CLuaH::loadGlobalTable(campaingScripts[i].luaState, campaingNow.scripts[i].scriptVars);
+			CLuaH::loadGlobalTable(campaingScripts[i].luaState.get(), campaingNow.scripts[i].scriptVars);
 		}
 
 		cereal::BinaryOutputArchive oarchive(svfstream); // Create an output archive

@@ -101,21 +101,21 @@ CLuaH::luaScript CLuaH::newScriptR(const std::string &memf, const std::string &n
 	}
 
 	luaScript lData;
-	lData.luaState = luaL_newstate();
-	luaL_openlibs(lData.luaState);
+	lData.luaState = luaState{ luaL_newstate() };
+	luaL_openlibs(lData.luaState.get());
 	lData.filePath = "*";
 	lData.fileName = "";
 
 	if (registerCustomFunctions)
 	{
-		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
-		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState.get());
 	}
 
-	int load_result = luaL_loadbuffer(lData.luaState, memf.c_str(), memf.size(), name.c_str());
+	int load_result = luaL_loadbuffer(lData.luaState.get(), memf.c_str(), memf.size(), name.c_str());
 
 	if (load_result != 0){
-		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState) +
+		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState.get()) +
 			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
 			std::string(") failed to load with result ") + std::to_string(load_result);
 
@@ -139,21 +139,21 @@ CLuaH::luaScript CLuaH::newScriptRBuffer(const char *memf, size_t sz, const std:
 	}
 
 	luaScript lData;
-	lData.luaState = luaL_newstate();
-	luaL_openlibs(lData.luaState);
+	lData.luaState = luaState{ luaL_newstate() };
+	luaL_openlibs(lData.luaState.get());
 	lData.filePath = "*";
 	lData.fileName = "";
 
 	if (registerCustomFunctions)
 	{
-		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
-		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState.get());
 	}
 
-	int load_result = luaL_loadbuffer(lData.luaState, memf, sz, name.c_str());
+	int load_result = luaL_loadbuffer(lData.luaState.get(), memf, sz, name.c_str());
 
 	if (load_result != 0) {
-		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState) +
+		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState.get()) +
 			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
 			std::string(") failed to load with result ") + std::to_string(load_result);
 
@@ -177,21 +177,21 @@ CLuaH::luaScript CLuaH::newScriptRBuffer(const std::vector<char> &vec, const std
 	}
 
 	luaScript lData;
-	lData.luaState = luaL_newstate();
-	luaL_openlibs(lData.luaState);
+	lData.luaState = luaState{ luaL_newstate() };
+	luaL_openlibs(lData.luaState.get());
 	lData.filePath = "*";
 	lData.fileName = "";
 
 	if (registerCustomFunctions)
 	{
-		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
-		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState.get());
 	}
 
-	int load_result = luaL_loadbuffer(lData.luaState, &vec[0], vec.size(), name.c_str());
+	int load_result = luaL_loadbuffer(lData.luaState.get(), &vec[0], vec.size(), name.c_str());
 
 	if (load_result != 0) {
-		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState) +
+		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState.get()) +
 			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
 			std::string(") failed to load with result ") + std::to_string(load_result);
 
@@ -217,21 +217,21 @@ CLuaH::luaScript CLuaH::newScript(const std::string &path, const std::string &f)
 	}
 
 	luaScript lData;
-	lData.luaState = luaL_newstate();
-	luaL_openlibs(lData.luaState);
+	lData.luaState = luaState{ luaL_newstate() };
+	luaL_openlibs(lData.luaState.get());
 	lData.filePath = path;
 	lData.fileName = f;
 
 	if (registerCustomFunctions)
 	{
-		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
-		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState.get());
 	}
 
-	int load_result = luaL_loadfile(lData.luaState, std::string(lData.filePath + barra + lData.fileName).c_str());
+	int load_result = luaL_loadfile(lData.luaState.get(), std::string(lData.filePath + barra + lData.fileName).c_str());
 
 	if (load_result != 0){
-		CLog::log() << std::string("luaL_loadfile(") + std::to_string((unsigned int)lData.luaState) +
+		CLog::log() << std::string("luaL_loadfile(") + std::to_string((unsigned int)lData.luaState.get()) +
 			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
 			std::string(") failed to load with result ") + std::to_string(load_result);
 
@@ -249,7 +249,8 @@ void CLuaH::catchErrorString(lua_State *L){
 
 void CLuaH::catchErrorString(const luaScript &L){
 	static const std::string barra("/");
-	const char *s = lua_tostring(L.luaState, -1);
+	lua_State *pState = L.luaState.get();
+	const char *s = lua_tostring(pState, -1);
 	if (s == NULL) s = "Unrecognized Lua error";
 
 	std::string errorStr = std::string(L.filePath + barra + L.fileName) + std::string(" - ") + s;
@@ -262,7 +263,8 @@ int CLuaH::runScript(luaScript &lua)
 	if (lua.luaState)
 	{
 		lua.luaState->script = &lua;
-		auto pcallr = lua_pcall(lua.luaState, 0, LUA_MULTRET, 0);
+		lua_State *pState = lua.luaState.get();
+		auto pcallr = lua_pcall(pState, 0, LUA_MULTRET, 0);
 		return pcallr;
 	}
 
@@ -282,7 +284,8 @@ int CLuaH::runScriptWithArgs(luaScript &lua, int args)
 	if (lua.luaState)
 	{
 		lua.luaState->script = &lua;
-		auto pcallr = lua_pcall(lua.luaState, args, LUA_MULTRET, 0);
+		lua_State *pState = lua.luaState.get();
+		auto pcallr = lua_pcall(pState, args, LUA_MULTRET, 0);
 		return pcallr;
 	}
 
@@ -307,7 +310,9 @@ void CLuaH::runEvent(const std::string &name)
 
 					if (luaindex != 0)
 					{
-						lua_rawgeti(scripts.second.luaState, LUA_REGISTRYINDEX, luaindex);
+						lua_State *pState = scripts.second.luaState.get();
+
+						lua_rawgeti(pState, LUA_REGISTRYINDEX, luaindex);
 						if (runScript(scripts.second) != 0)
 							catchErrorString(scripts.second);
 					}
@@ -326,7 +331,9 @@ void CLuaH::runHookEvent(uintptr_t address)
 			int luaindex = 0;
 
 			if (scripts.second.hooksAdded && (luaindex = scripts.second.hooks[address]) != 0){
-				lua_rawgeti(scripts.second.luaState, LUA_REGISTRYINDEX, luaindex);
+				lua_State *pState = scripts.second.luaState.get();
+
+				lua_rawgeti(pState, LUA_REGISTRYINDEX, luaindex);
 				if (runScript(scripts.second) != 0)
 					catchErrorString(scripts.second);
 			}
@@ -350,7 +357,9 @@ void CLuaH::runEventFromDeque(const std::string &name, std::deque<CLuaH::luaScri
 
 				if (luaindex != 0)
 				{
-					lua_rawgeti(scripts.luaState, LUA_REGISTRYINDEX, luaindex);
+					lua_State *pState = scripts.luaState.get();
+
+					lua_rawgeti(pState, LUA_REGISTRYINDEX, luaindex);
 					if (runScript(scripts) != 0)
 						catchErrorString(scripts);
 				}
@@ -394,7 +403,9 @@ void CLuaH::runCheatEvent(const std::string &name)
 
 						if (canExecuteCallback)
 						{
-							lua_rawgeti(scripts.second.luaState, LUA_REGISTRYINDEX, luaindex);
+							lua_State *pState = scripts.second.luaState.get();
+
+							lua_rawgeti(pState, LUA_REGISTRYINDEX, luaindex);
 							if (runScript(scripts.second) != 0)
 							{
 								catchErrorString(scripts.second);
@@ -423,10 +434,12 @@ void CLuaH::runEventWithParams(const std::string &name, const multiCallBackParam
 		for (auto &scripts : pathScripts.second)
 		{
 			if (scripts.second.callbacksAdded && scripts.second.callbacks[name] != 0){
-				lua_rawgeti(scripts.second.luaState, LUA_REGISTRYINDEX, scripts.second.callbacks[name]);
+				lua_State *pState = scripts.second.luaState.get();
+
+				lua_rawgeti(pState, LUA_REGISTRYINDEX, scripts.second.callbacks[name]);
 
 				for (auto &p : params){
-					p.pushToLuaStack(scripts.second.luaState);
+					p.pushToLuaStack(pState);
 				}
 
 				if (runScriptWithArgs(scripts.second, params.size()) != 0){
@@ -498,11 +511,13 @@ void CLuaH::runEventWithParamsFromDeque(const std::string & name, const multiCal
 	for (auto &scripts : storage)
 	{
 		if (scripts.callbacksAdded && scripts.callbacks[name] != 0) {
-			lua_rawgeti(scripts.luaState, LUA_REGISTRYINDEX, scripts.callbacks[name]);
+			lua_State *pState = scripts.luaState.get();
+
+			lua_rawgeti(pState, LUA_REGISTRYINDEX, scripts.callbacks[name]);
 
 			for (auto &p : params)
 			{
-				p.pushToLuaStack(scripts.luaState);
+				p.pushToLuaStack(pState);
 			}
 
 			if (runScriptWithArgs(scripts, params.size()) != 0) {
@@ -601,7 +616,8 @@ void CLuaH::runScripts(){
 void CLuaH::runInternalEvent(luaScript &L, const std::string &name)
 {
 	if (L.callbacksAdded && L.callbacks[name] != 0){
-		lua_rawgeti(L.luaState, LUA_REGISTRYINDEX, L.callbacks[name]);
+		lua_State *pState = L.luaState.get();
+		lua_rawgeti(pState, LUA_REGISTRYINDEX, L.callbacks[name]);
 		if (runScript(L) != 0)
 			catchErrorString(L);
 	}
@@ -611,11 +627,12 @@ void CLuaH::runInternalEventWithParams(luaScript &L, const std::string &name, co
 {
 	if (L.callbacksAdded && L.callbacks[name] != 0)
 	{
-		lua_rawgeti(L.luaState, LUA_REGISTRYINDEX, L.callbacks[name]);
+		lua_State *pState = L.luaState.get();
+		lua_rawgeti(pState, LUA_REGISTRYINDEX, L.callbacks[name]);
 
 		for (auto &p : params)
 		{
-			p.pushToLuaStack(L.luaState);
+			p.pushToLuaStack(pState);
 		}
 
 		if (runScriptWithArgs(L, params.size()) != 0)
@@ -632,7 +649,7 @@ CLuaH::luaScript::luaScript(){
 }
 
 CLuaH::luaScript &CLuaH::luaScript::operator=(luaScript &&script){
-	luaState = script.luaState;
+	luaState = std::move(script.luaState);
 
 	savedValues = std::move(script.savedValues);
 	filePath = std::move(script.filePath);
@@ -660,15 +677,15 @@ CLuaH::luaScript CLuaH::luaScript::clone()
 {
 	bytes.clear();
 	luaScript lData;
-	lData.luaState = luaL_newstate();
-	luaL_openlibs(lData.luaState);
+	lData.luaState = CLuaH::luaState{ luaL_newstate() };
+	luaL_openlibs(lData.luaState.get());
 	lData.customPtr = customPtr;
-	CLuaFunctions::LuaF().registerFunctions(lData.luaState);
-	CLuaFunctions::LuaF().registerGlobals(lData.luaState);
+	CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
+	CLuaFunctions::LuaF().registerGlobals(lData.luaState.get());
 
-	lua_dump(luaState, luaWriter, nullptr, 0);
+	lua_dump(luaState.get(), luaWriter, nullptr, 0);
 
-	luaL_loadbuffer(lData.luaState, &bytes[0], bytes.size(), "Clone");
+	luaL_loadbuffer(lData.luaState.get(), &bytes[0], bytes.size(), "Clone");
 
 	return lData;
 }
@@ -689,11 +706,14 @@ std::vector<char> CLuaH::luaScript::dumpBytecode()
 		return 0;
 	};
 
-	int dump_result = lua_dump(luaState, luaWriterLambda, &result, 0);
+
+	lua_State *L = luaState.get();
+
+	int dump_result = lua_dump(L, luaWriterLambda, &result, 0);
 
 	if (dump_result != 0)
 	{
-		CLog::log() << std::string("lua_dump(") + std::to_string((unsigned int)luaState) +
+		CLog::log() << std::string("lua_dump(") + std::to_string((unsigned int)L) +
 			std::string(", ") + std::string(filePath + "/" + fileName) +
 			std::string(") failed to load with result ") + std::to_string(dump_result);
 
@@ -703,11 +723,12 @@ std::vector<char> CLuaH::luaScript::dumpBytecode()
 	return result;
 }
 
-void CLuaH::luaScript::unload(){
-	if (luaState != nullptr){
+void CLuaH::luaScript::unload()
+{
+	if (luaState != nullptr)
+	{
 		CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
 
-		lua_close(luaState);
 		luaState = nullptr;
 	}
 
@@ -742,7 +763,7 @@ void CLuaH::luaScript::unload(){
 
 CLuaH::luaScript::luaScript(luaScript &&L)
 {
-	luaState = L.luaState;
+	luaState = std::move(L.luaState);
 
 	savedValues = std::move(L.savedValues);
 	filePath = std::move(L.filePath);
@@ -763,24 +784,26 @@ CLuaH::luaScript &CLuaH::getLuaStateScript(lua_State *L)
 
 std::string CLuaH::getGlobalVarAsString(luaScript &l, const std::string &varname)
 {
-	lua_getglobal(l.luaState, varname.c_str());
+	lua_State *L = l.luaState.get();
+	lua_getglobal(L, varname.c_str());
 
-	return lua_tostring(l.luaState, -1);
+	return lua_tostring(L, -1);
 }
 
 const char *CLuaH::getGlobalVarAsString(luaScript &l, const char *varname)
 {
-	lua_getglobal(l.luaState, varname);
+	lua_State *L = l.luaState.get();
+	lua_getglobal(L, varname);
 
-	if (lua_isnil(l.luaState, -1))
+	if (lua_isnil(L, -1))
 		return "";
 
-	return lua_tostring(l.luaState, -1);
+	return lua_tostring(L, -1);
 }
 
 CLuaH::luaScript::~luaScript()
 {
-	if (luaState != nullptr)
+	if (luaState)
 	{
 		try
 		{
@@ -790,9 +813,6 @@ CLuaH::luaScript::~luaScript()
 		{
 
 		}
-
-		lua_close(luaState);
-		luaState = nullptr;
 	}
 }
 

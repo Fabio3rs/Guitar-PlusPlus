@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <memory>
 
 class CLuaH
 {
@@ -126,9 +127,19 @@ public:
 	* luaScript can't be duplicated
 	* 'cause dctor calls lua_close(luaState)
 	*/
+	struct CloseLuaState
+	{
+		void operator() (lua_State* lua) const noexcept
+		{
+			lua_close(lua);
+		}
+	};
+
+	using luaState = std::unique_ptr<lua_State, CloseLuaState>;
+
 	struct luaScript
 	{
-		lua_State											*luaState;
+		luaState											luaState;
 		bool												runAgain;
 
 		void												*customPtr;

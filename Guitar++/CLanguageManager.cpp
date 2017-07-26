@@ -64,7 +64,7 @@ void CLanguageManager::CLanguage::loadFrom(CLuaH::luaScript &ls)
 	if (tmpName.size() > 0)
 		name = tmpName;
 
-	lua_State *L = ls.luaState;
+	lua_State *L = ls.luaState.get();
 
 	lua_pushglobaltable(L);
 	lua_pushnil(L);
