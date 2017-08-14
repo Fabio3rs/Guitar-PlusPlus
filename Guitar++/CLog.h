@@ -53,7 +53,7 @@ class CLog{
 	bool Finished;
 
 public:
-	~CLog();
+	~CLog() noexcept;
 	void AddToLog(const std::string &Text);
 
 	template<class... Types>

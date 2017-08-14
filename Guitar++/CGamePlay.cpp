@@ -228,7 +228,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 	if (Player.Notes.BPM.size() > 0)
 	{
 		double mtime = (time - 2.5);
-		size_t BPMnowbuff = getBPMAtI(Player, (mtime > 0.0) ? mtime : 0.0);
+		int BPMnowbuff = Player.BPMNowBuffer/*getBPMAtI(Player, (mtime > 0.0) ? mtime : 0.0)*/;
 
 		if (BPMnowbuff >= Player.Notes.BPM.size())
 		{
@@ -248,10 +248,10 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		double mtimem1 = mtime;
 
 		if (mtimem1 >= 0.0){
-			size_t nbuff = BPMnowbuff + 1;
+			int nbuff = BPMnowbuff + 1;
 			if (Player.Notes.BPM.size() > nbuff)
 			{
-				if ((mtimem1 > (Player.Notes.BPM[nbuff].time)))
+				if (((mtimem1 + 3.0) > (Player.Notes.BPM[nbuff].time)))
 				{
 					BPMnowbuff = nbuff;
 				}
@@ -309,7 +309,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			if ((blinetime - mscRunnTime) > -3.0)
 				calcQuad(blinetime, mscRunnTime, Player);
 
-			while (contloop)
+			/*while (contloop)
 			{
 				contloop = false;
 				size_t nbuff = localBPMBuffer + 1;
@@ -327,7 +327,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 						BPS = 60.0 / Player.Notes.BPM[nbuff].lTime;
 					}
 				}
-			}
+			}*/
 
 			tCalc += BPS;
 
@@ -337,7 +337,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			}
 		}
 
-		Player.BPMNowBuffer = BPMnowbuff;
+	//	Player.BPMNowBuffer = BPMnowbuff;
 	}
 
 	std::deque<CPlayer::NotesData::Note>::iterator nullit;

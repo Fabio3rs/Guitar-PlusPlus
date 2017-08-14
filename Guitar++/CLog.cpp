@@ -43,7 +43,7 @@ CLog::CLog(const std::string &NameOfFile){
 #endif
 }
 
-CLog::~CLog(){
+CLog::~CLog() noexcept {
 	FinishLog();
 }
 

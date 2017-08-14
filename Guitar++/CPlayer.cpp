@@ -735,6 +735,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 				if (gNotes[gNotes.size() - 1].time == Nts[i].time)
 				{
 					gNotes[gNotes.size() - 1].type |= noteTap;
+					gNotes[gNotes.size() - 1].type |= nf_not_hopo;
 				}
 			}
 		}

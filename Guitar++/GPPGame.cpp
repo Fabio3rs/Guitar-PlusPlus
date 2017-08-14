@@ -3670,7 +3670,7 @@ GPPGame::GPPGame() : gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenu
 		{
 			auto &gpp = GPPGame::GuitarPP();
 
-			if (gpp.devMenus.devEditMenu && gpp.devMenus.getUIListSize() < 5)
+			if (gpp.devMenus.devEditMenu && gpp.devMenus.getUIListSize() == 0)
 			{
 				int op = gpp.devMenus.devEditMenu->getDevSelectedMenuOpt();
 
@@ -3703,8 +3703,15 @@ GPPGame::GPPGame() : gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenu
 }
 
 
-GPPGame::~GPPGame()
+GPPGame::~GPPGame() noexcept
 {
-	mainSave.saves();
+	try
+	{
+		mainSave.saves();
+	}
+	catch (...)
+	{
+
+	}
 }
 

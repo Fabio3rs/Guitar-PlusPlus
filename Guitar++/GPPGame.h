@@ -329,7 +329,7 @@ private:
 	gameWindow		windowCFGs; // Actual config
 
 	GPPGame();
-	~GPPGame();
+	~GPPGame() noexcept;
 
 	void setRunningModule(const std::string m);
 

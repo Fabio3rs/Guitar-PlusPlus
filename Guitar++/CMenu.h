@@ -126,7 +126,7 @@ public:
 		int status;
 		int devStatus;
 		double optValue, deslizantBarSize;
-		size_t listID;
+		int listID;
 
 		bool btnClickStat;
 
