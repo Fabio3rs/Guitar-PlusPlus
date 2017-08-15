@@ -493,7 +493,49 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		return result;
 	};
 
-	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM, &chartOffset](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty)
+	auto hopoTest = [this](Note &note)
+	{
+		size_t size = gNotes.size(), i;
+		i = size - 1;
+		if (size > 0) {
+			size_t BPMsize = BPM.size(), BPMi;
+			BPMi = BPMsize - 1;
+
+			double BPMStepCalc = 60.0 / 120.0;
+
+			if (BPMsize > 0) {
+				BPMStepCalc = 60.0 / BPM[BPMi].lTime;
+			}
+
+			for (auto &b : BPM)
+			{
+				if (b.time > note.time)
+					break;
+
+				BPMStepCalc = 60.0 / b.lTime;
+			}
+
+			BPMStepCalc /= 2.05;
+
+			if ((note.time - gNotes[i].time) >= BPMStepCalc)
+			{
+				note.type |= nf_not_hopo;
+			}
+
+			int type1 = note.type & notesEnumWithOpenNotes, type2 = gNotes[i].type & notesEnumWithOpenNotes;
+
+			if (type1 == type2)
+			{
+				note.type |= nf_not_hopo;
+			}
+		}
+		else
+		{
+			note.type |= nf_not_hopo;
+		}
+	};
+
+	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM, &chartOffset, &hopoTest](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty)
 	{
 		std::vector<NoteInt> ntsI;
 		for (auto &scopeData : chartMap[difficulty])
@@ -511,7 +553,75 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 						nt.lTime = j;
 						nt.type = i;
 
-						ntsI.push_back(nt);
+						if (nt.type >= 0 && nt.type < 5)
+						{
+							nt.type = (int)pow(2, nt.type);
+
+							if (nt.lTime > 0) nt.type |= nf_slide;
+
+							if (ntsI.size() > 0)
+							{
+								auto &last = ntsI[ntsI.size() - 1];
+
+								if (last.time == nt.time)
+								{
+									last.type |= nt.type;
+									last.type |= nf_not_hopo;
+								}
+								else
+								{
+									auto noteType0 = last.type & notesEnumWithOpenNotes;
+									auto noteType1 = nt.type & notesEnumWithOpenNotes;
+
+									if (noteType0 == noteType1)
+									{
+										last.type |= nf_not_hopo;
+									}
+
+									ntsI.push_back(nt);
+								}
+							}
+							else
+							{
+								ntsI.push_back(nt);
+							}
+						}
+						else if (nt.type == 6)
+						{
+							if (ntsI.size() > 0)
+							{
+								auto &last = ntsI[ntsI.size() - 1];
+								if (last.time == nt.time)
+								{
+									last.type |= noteTap;
+									last.type |= nf_not_hopo;
+								}
+							}
+						}
+						else if (nt.type == 7)
+						{
+							nt.type = nf_open;
+
+							nt.lTime = 0;
+
+							if (ntsI.size() > 0)
+							{
+								auto &last = ntsI[ntsI.size() - 1];
+								if (last.time == nt.time)
+								{
+									last.type = nt.type;
+									last.type |= nf_not_hopo;
+								}
+								else
+								{
+									ntsI.push_back(nt);
+								}
+							}
+							else
+							{
+								ntsI.push_back(nt);
+							}
+						}
 					}
 
 					if (std::string(c) == "S" && i == 2)
@@ -533,7 +643,6 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		double lnotet = -1.0;
 		double llngnotet = -1.0;
 
-		
 		size_t BPM = 0;
 		for (auto &nt : ntsI)
 		{
@@ -639,47 +748,6 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		++p;
 	}
 
-	auto hopoTest = [this](Note &note){
-		size_t size = gNotes.size(), i;
-		i = size - 1;
-		if (size > 0){
-			size_t BPMsize = BPM.size(), BPMi;
-			BPMi = BPMsize - 1;
-
-			double BPMStepCalc = 60.0 / 120.0;
-
-			if (BPMsize > 0){
-				BPMStepCalc = 60.0 / BPM[BPMi].lTime;
-			}
-
-			for (auto &b : BPM)
-			{
-				if (b.time > note.time)
-					break;
-
-				BPMStepCalc = 60.0 / b.lTime;
-			}
-
-			BPMStepCalc /= 2.05;
-
-			if ((note.time - gNotes[i].time) >= BPMStepCalc)
-			{
-				note.type |= nf_not_hopo;
-			}
-
-			int type1 = note.type & notesEnumWithOpenNotes, type2 = gNotes[i].type & notesEnumWithOpenNotes;
-
-			if (type1 == type2)
-			{
-				note.type |= nf_not_hopo;
-			}
-		}
-		else
-		{
-			note.type |= nf_not_hopo;
-		}
-	};
-
 	auto roundTo = [](double num, double dec)
 	{
 		double v = pow(10.0, dec);
@@ -689,89 +757,12 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		return num;
 	};
 
-	for (size_t i = 0, size = Nts.size(); i < size; i++){
-		if (isnan(Nts[i].time) || isnan(Nts[i].lTime)){
+	for (size_t i = 0, size = Nts.size(); i < size; i++) {
+		if (isnan(Nts[i].time) || isnan(Nts[i].lTime)) {
 			continue;
 		}
 
-		if (Nts[i].type >= 0 && Nts[i].type < 5 && Nts[i].time > 0.0)
-		{
-			if (gNotes.size() == 0){
-				Note newNote;
-				newNote.time = Nts[i].time;
-				//newNote.unmodifiedTime = Nts[i].time;
-				newNote.lTime = Nts[i].lTime;
-				newNote.type = (int)pow(2, Nts[i].type);
-
-				if (newNote.lTime > 0.0) newNote.type |= nf_slide;
-
-				hopoTest(newNote);
-
-				gNotes.push_back(newNote);
-			}
-			else{
-				if (gNotes[gNotes.size() - 1].time == Nts[i].time){
-					gNotes[gNotes.size() - 1].type |= (int)pow(2, Nts[i].type);
-					gNotes[gNotes.size() - 1].type |= nf_not_hopo;
-				}
-				else{
-					Note newNote;
-					newNote.time = Nts[i].time;
-					//newNote.unmodifiedTime = Nts[i].time;
-					newNote.lTime = Nts[i].lTime;
-					newNote.type = (int)pow(2, Nts[i].type);
-					if (newNote.lTime > 0.0) newNote.type |= nf_slide;
-
-					hopoTest(newNote);
-
-					gNotes.push_back(newNote);
-				}
-			}
-		}
-		else if (Nts[i].type == 6)
-		{
-			if (gNotes.size() > 0)
-			{
-				if (gNotes[gNotes.size() - 1].time == Nts[i].time)
-				{
-					gNotes[gNotes.size() - 1].type |= noteTap;
-					gNotes[gNotes.size() - 1].type |= nf_not_hopo;
-				}
-			}
-		}
-		else if (Nts[i].type == 7)
-		{
-			if (gNotes.size() == 0)
-			{
-				Note newNote;
-				newNote.time = Nts[i].time;
-				newNote.lTime = 0;
-				newNote.type = nf_open;
-
-				hopoTest(newNote);
-
-				gNotes.push_back(newNote);
-			}
-			else
-			{
-				if (gNotes[gNotes.size() - 1].time == Nts[i].time)
-				{
-					gNotes[gNotes.size() - 1].type |= nf_not_hopo;
-				}
-				else
-				{
-					Note newNote;
-					newNote.time = Nts[i].time;
-					newNote.lTime = 0;
-					newNote.type = nf_open;
-
-					hopoTest(newNote);
-
-					gNotes.push_back(newNote);
-				}
-			}
-		}
-		else if (Nts[i].type == -1)
+		if (Nts[i].type == -1)
 		{
 			plusNote plusT;
 
@@ -781,8 +772,18 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 			gPlus.push_back(plusT);
 		}
-	}
+		else
+		{
+			Note newNote;
+			newNote.time = Nts[i].time;
+			newNote.lTime = Nts[i].lTime;
+			newNote.type = Nts[i].type;
 
+			hopoTest(newNote);
+
+			gNotes.push_back(newNote);
+		}
+	}
 	deducePlusLastNotes();
 
 	return true;
