@@ -535,7 +535,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		}
 	};
 
-	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM, &chartOffset, &hopoTest](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty)
+	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM, &chartOffset](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty)
 	{
 		std::vector<NoteInt> ntsI;
 		for (auto &scopeData : chartMap[difficulty])
@@ -570,13 +570,13 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 								}
 								else
 								{
-									auto noteType0 = last.type & notesEnumWithOpenNotes;
+									/*auto noteType0 = last.type & notesEnumWithOpenNotes;
 									auto noteType1 = nt.type & notesEnumWithOpenNotes;
 
 									if (noteType0 == noteType1)
 									{
-										last.type |= nf_not_hopo;
-									}
+										nt.type |= nf_not_hopo;
+									}*/
 
 									ntsI.push_back(nt);
 								}
