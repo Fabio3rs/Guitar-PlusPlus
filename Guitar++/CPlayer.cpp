@@ -801,7 +801,7 @@ void CPlayer::NotesData::deducePlusLastNotes()
 		{
 			auto &plusNote = gPlus[plusPosTemp];
 
-			if (note.time >= plusNote.time && note.time < (plusNote.time + plusNote.lTime))
+			if (note.time >= (plusNote.time - 0.0001) && note.time < (plusNote.time + plusNote.lTime))
 			{
 				if (plusNote.firstNote == -1)
 				{

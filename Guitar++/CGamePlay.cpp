@@ -1376,11 +1376,11 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	{
 		auto &plusp = player.Notes.gPlus[player.Notes.plusPos];
 
-		int64_t tplusnotes = (plusp.lastNote - plusp.firstNote);
+		int64_t tplusnotes = (plusp.lastNote - plusp.firstNote) + 1;
 
-		if ((plusp.time + plusp.lTime) >(musicTime + 0.01) && plusp.time <= musicTime && tplusnotes > 0)
+		if ((plusp.time + plusp.lTime) > (musicTime + 0.01) && plusp.time <= musicTime && tplusnotes > 0)
 		{
-			player.plusLoadF = ((double)(notes.lastNotePicked - plusp.firstNote) / (double)tplusnotes);
+			player.plusLoadF = ((double)(1 + notes.lastNotePicked - plusp.firstNote) / (double)tplusnotes);
 		}
 		else
 		{
@@ -1408,7 +1408,9 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	{
 		if (gNotes[notes.notePos].type & /*(int)pow(2, ji)*/notesFlagsConst[ji])
 		{
-			if (player.notesSlide[ji] != -1)
+			const size_t npos = ~(static_cast<size_t>(0));
+
+			if (player.notesSlide[ji] != npos)
 			{
 				inslide = true;
 			}
@@ -2139,7 +2141,7 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 	fretboardLData.texture = FretBoardStruct.Text = Text;
 
-	for (int i = -2; i < 8; i++)
+	for (int i = -2; i < 9; i++)
 	{
 		FretBoardStruct.z1 = (x2 - x1) * (-size) * i - cCalc;
 		FretBoardStruct.z2 = FretBoardStruct.z1;
@@ -2149,7 +2151,21 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 		FretBoardStruct.alphaBottom = pos2Alpha(-FretBoardStruct.z3 / 5.5);
 		FretBoardStruct.alphaTop = pos2Alpha(-FretBoardStruct.z2 / 5.5);
 
-		if (FretBoardStruct.alphaBottom <= 0.0 && FretBoardStruct.alphaTop <= 0.0)
+		bool cont = false, cont2 = false;
+
+		if (FretBoardStruct.alphaBottom < 0.0)
+		{
+			FretBoardStruct.alphaBottom = 0.0;
+			cont = true;
+		}
+
+		if (FretBoardStruct.alphaTop < 0.0)
+		{
+			FretBoardStruct.alphaTop = 0.0;
+			cont2 = true;
+		}
+
+		if (cont && cont2)
 		{
 			continue;
 		}
