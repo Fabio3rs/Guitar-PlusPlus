@@ -710,8 +710,6 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		{
 			chartOffset = 0;
 		}
-
-		std::cout << chartResolutionProp << std::endl;
 	};
 
 

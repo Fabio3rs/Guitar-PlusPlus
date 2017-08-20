@@ -137,6 +137,8 @@ public:
 
 	using luaState = std::unique_ptr<lua_State, CloseLuaState>;
 
+	static luaState											make_luaState();
+	
 	struct luaScript
 	{
 		luaState											luaState;

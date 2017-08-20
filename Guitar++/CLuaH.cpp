@@ -11,6 +11,11 @@
 #include <dirent.h>
 #include "Lua/lstate.h"
 
+CLuaH::luaState CLuaH::make_luaState()
+{
+	return luaState(luaL_newstate());
+}
+
 void CLuaH::loadGlobalTable(lua_State *L, customParam &tableData)
 {
 	lua_pushglobaltable(L);
@@ -101,7 +106,7 @@ CLuaH::luaScript CLuaH::newScriptR(const std::string &memf, const std::string &n
 	}
 
 	luaScript lData;
-	lData.luaState = luaState{ luaL_newstate() };
+	lData.luaState = make_luaState();
 	luaL_openlibs(lData.luaState.get());
 	lData.filePath = "*";
 	lData.fileName = "";
@@ -139,7 +144,7 @@ CLuaH::luaScript CLuaH::newScriptRBuffer(const char *memf, size_t sz, const std:
 	}
 
 	luaScript lData;
-	lData.luaState = luaState{ luaL_newstate() };
+	lData.luaState = make_luaState();
 	luaL_openlibs(lData.luaState.get());
 	lData.filePath = "*";
 	lData.fileName = "";
@@ -177,7 +182,7 @@ CLuaH::luaScript CLuaH::newScriptRBuffer(const std::vector<char> &vec, const std
 	}
 
 	luaScript lData;
-	lData.luaState = luaState{ luaL_newstate() };
+	lData.luaState = make_luaState();
 	luaL_openlibs(lData.luaState.get());
 	lData.filePath = "*";
 	lData.fileName = "";
@@ -217,7 +222,7 @@ CLuaH::luaScript CLuaH::newScript(const std::string &path, const std::string &f)
 	}
 
 	luaScript lData;
-	lData.luaState = luaState{ luaL_newstate() };
+	lData.luaState = make_luaState();
 	luaL_openlibs(lData.luaState.get());
 	lData.filePath = path;
 	lData.fileName = f;
@@ -677,7 +682,7 @@ CLuaH::luaScript CLuaH::luaScript::clone()
 {
 	bytes.clear();
 	luaScript lData;
-	lData.luaState = CLuaH::luaState{ luaL_newstate() };
+	lData.luaState = make_luaState();
 	luaL_openlibs(lData.luaState.get());
 	lData.customPtr = customPtr;
 	CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
