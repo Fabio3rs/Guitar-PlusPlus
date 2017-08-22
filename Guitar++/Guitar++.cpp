@@ -23,7 +23,7 @@
 #include "CGuitars.h"
 #include "CCampaing.h"
 #include "CGPPFileMGR.h"
-
+#include "CChart.h"
 
 int main(int argc, char* argv[])
 {
@@ -630,6 +630,44 @@ int main(int argc, char* argv[])
 				CCampaing::campaingMGR().loadCampaingF("./data/saves/campaings/campaingZoeira/save");
 			}
 		}
+
+		{
+			CChart chartTest;
+			bool chartOpened = chartTest.open("./data/songs/Soulless3/Soulless3.chart");
+			CLog::log().multiRegister("chartTest.open(\"./data/songs/Soulless3/Soulless3.chart\") -> %0", chartOpened);
+			CLog::log().SaveBuffer();
+
+			try {
+				/*std::fstream out("./data/songs/Soulless3/Soulless3.gpp", std::ios::out | std::ios::binary | std::ios::trunc);
+
+				if (out.is_open())
+				{
+					cereal::BinaryOutputArchive oarchive(out); // Create an output archive
+
+					oarchive(chartTest);
+				}
+
+				out.close();*/
+				chartTest.compileGppChart("./data/songs/Soulless3/Soulless3.gpp");
+
+				CLog::log() << "Save ok " "./data/songs/Soulless3/Soulless3.gpp";
+				CLog::log().SaveBuffer();
+			}
+			catch (const std::exception &e)
+			{
+				CLog::log().multiRegister("Exception at compileGppChart -> %0", e);
+				CLog::log().SaveBuffer();
+			}
+			catch (...)
+			{
+				CLog::log() << "Unknow exception at compileGppChart";
+				CLog::log().SaveBuffer();
+			}
+
+			CLog::log() << "CChart test ok";
+			CLog::log().SaveBuffer();
+		}
+
 		//game.getMainMenu()->backgroundTexture = menu.getGTextureName();
 		game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, false);
 

@@ -3529,7 +3529,7 @@ int GPPGame::getGamePlayPlusState(lua_State *L)
 	return p.rtn();
 }
 
-GPPGame::GPPGame() : gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
+GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
 {
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerFunctions);
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerGlobals);
@@ -3540,8 +3540,6 @@ GPPGame::GPPGame() : gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenu
 	devMenus.gameMenu = true;
 	uiRenameMenu.gameMenu = true;
 	gamePlayPlusEnabled = false;
-
-	glanguage = "PT-BR";
 
 	hyperSpeed = 1.0;
 

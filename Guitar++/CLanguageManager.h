@@ -26,6 +26,7 @@ class CLanguageManager
 	};
 
 	CLanguageManager();
+	CLanguageManager(const CLanguageManager&) = delete;
 
 	std::map < std::string, CLanguage > langs;
 

@@ -1,5 +1,8 @@
 #include "CChart.h"
 
+const int CChart::notesEnum = nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
+const int CChart::notesEnumWithOpenNotes = nf_green | nf_red | nf_yellow | nf_blue | nf_orange | nf_open;
+
 static std::string trim(const std::string &str)
 {
 	size_t first = str.find_first_not_of(' ');
@@ -34,7 +37,6 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 
 	typedef std::deque<Note> noteContainer;
 	typedef std::vector<SyncTrackBPM> BPMContainer;
-	noteContainer Nts;
 	BPMContainer BPMs;
 
 	auto parseFeedBackChart = [&chartStream](parsedChart &data)
@@ -120,7 +122,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 	};
 
 	auto pureBPMToCalcBPM = [this](double BPM) {
-		return (BPM / 1000.0 * 3.2) * chartResolutionProp;
+		return (BPM / 1000.0 * 3.2) * chartData.chartResolutionProp;
 	};
 
 	auto getNoteTime = [&pureBPMToCalcBPM](const BPMContainer &BPMs, size_t pos, int64_t off) {
@@ -182,7 +184,75 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 						nt.lTime = j;
 						nt.type = i;
 
-						ntsI.push_back(nt);
+						if (nt.type >= 0 && nt.type < 5)
+						{
+							nt.type = (int)pow(2, nt.type);
+
+							if (nt.lTime > 0) nt.type |= nf_slide;
+
+							if (ntsI.size() > 0)
+							{
+								auto &last = ntsI[ntsI.size() - 1];
+
+								if (last.time == nt.time)
+								{
+									last.type |= nt.type;
+									last.type |= nf_not_hopo;
+								}
+								else
+								{
+									/*auto noteType0 = last.type & notesEnumWithOpenNotes;
+									auto noteType1 = nt.type & notesEnumWithOpenNotes;
+
+									if (noteType0 == noteType1)
+									{
+									nt.type |= nf_not_hopo;
+									}*/
+
+									ntsI.push_back(nt);
+								}
+							}
+							else
+							{
+								ntsI.push_back(nt);
+							}
+						}
+						else if (nt.type == 6)
+						{
+							if (ntsI.size() > 0)
+							{
+								auto &last = ntsI[ntsI.size() - 1];
+								if (last.time == nt.time)
+								{
+									last.type |= noteTap;
+									last.type |= nf_not_hopo;
+								}
+							}
+						}
+						else if (nt.type == 7)
+						{
+							nt.type = nf_open;
+
+							nt.lTime = 0;
+
+							if (ntsI.size() > 0)
+							{
+								auto &last = ntsI[ntsI.size() - 1];
+								if (last.time == nt.time)
+								{
+									last.type = nt.type;
+									last.type |= nf_not_hopo;
+								}
+								else
+								{
+									ntsI.push_back(nt);
+								}
+							}
+							else
+							{
+								ntsI.push_back(nt);
+							}
+						}
 					}
 
 					if (std::string(c) == "S" && i == 2)
@@ -204,7 +274,6 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 		double lnotet = -1.0;
 		double llngnotet = -1.0;
 
-
 		size_t BPM = 0;
 		for (auto &nt : ntsI)
 		{
@@ -223,8 +292,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 				continue;
 			}
 
-			if (BPM < (BPMs.size() - 1))
-			{
+			if (BPM < (BPMs.size() - 1)) {
 				if (BPMs[BPM + 1].offset < nt.time)
 					++BPM;
 			}
@@ -262,10 +330,10 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 
 		auto &Song = chartMap["[Song]"];
 
-		chartResolutionProp = std::stod(Song["Resolution"][0]) / 192.0;
-		songName = chk(Song["Name"], 0u);
-		songArtist = chk(Song["Artist"], 0u);
-		songCharter = chk(Song["Charter"], 0u);
+		chartData.chartResolutionProp = std::stod(Song["Resolution"][0]) / 192.0;
+		chartData.songName = chk(Song["Name"], 0u);
+		chartData.songArtist = chk(Song["Artist"], 0u);
+		chartData.songCharter = chk(Song["Charter"], 0u);
 		try {
 			chartOffset = std::stod(Song["Offset"][0]);
 		}
@@ -274,15 +342,18 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 			chartOffset = 0;
 		}
 
-		std::cout << chartResolutionProp << std::endl;
+		std::cout << chartData.chartResolutionProp << std::endl;
 	};
 
 
 	parseFeedBackChart(feedBackChartMap);
-
 	fillChartInfo(feedBackChartMap);
-
 	BPMRead(BPMs, feedBackChartMap);
+
+
+
+	noteContainer Nts;
+
 	noteRead(Nts, BPMs, feedBackChartMap, "[ExpertSingle]"); // Default: "[ExpertSingle]"
 
 															 /*
@@ -352,7 +423,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 					note.type |= nf_not_hopo;
 				}
 
-				int type1 = note.type & CPlayer::notesEnumWithOpenNotes, type2 = gNotes[i].type & CPlayer::notesEnumWithOpenNotes;
+				int type1 = note.type & notesEnumWithOpenNotes, type2 = gNotes[i].type & notesEnumWithOpenNotes;
 
 				if (type1 == type2)
 				{
@@ -370,83 +441,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 				continue;
 			}
 
-			if (Nts[i].type >= 0 && Nts[i].type < 5 && Nts[i].time > 0.0)
-			{
-				if (gNotes.size() == 0) {
-					Note newNote;
-					newNote.time = Nts[i].time;
-					//newNote.unmodifiedTime = Nts[i].time;
-					newNote.lTime = Nts[i].lTime;
-					newNote.type = (int)pow(2, Nts[i].type);
-
-					if (newNote.lTime > 0.0) newNote.type |= nf_slide;
-
-					hopoTest(newNote);
-
-					gNotes.push_back(newNote);
-				}
-				else {
-					if (gNotes[gNotes.size() - 1].time == Nts[i].time) {
-						gNotes[gNotes.size() - 1].type |= (int)pow(2, Nts[i].type);
-						gNotes[gNotes.size() - 1].type |= nf_not_hopo;
-					}
-					else {
-						Note newNote;
-						newNote.time = Nts[i].time;
-						//newNote.unmodifiedTime = Nts[i].time;
-						newNote.lTime = Nts[i].lTime;
-						newNote.type = (int)pow(2, Nts[i].type);
-						if (newNote.lTime > 0.0) newNote.type |= nf_slide;
-
-						hopoTest(newNote);
-
-						gNotes.push_back(newNote);
-					}
-				}
-			}
-			else if (Nts[i].type == 6)
-			{
-				if (gNotes.size() > 0)
-				{
-					if (gNotes[gNotes.size() - 1].time == Nts[i].time)
-					{
-						gNotes[gNotes.size() - 1].type |= noteTap;
-					}
-				}
-			}
-			else if (Nts[i].type == 7)
-			{
-				if (gNotes.size() == 0)
-				{
-					Note newNote;
-					newNote.time = Nts[i].time;
-					newNote.lTime = 0;
-					newNote.type = nf_open;
-
-					hopoTest(newNote);
-
-					gNotes.push_back(newNote);
-				}
-				else
-				{
-					if (gNotes[gNotes.size() - 1].time == Nts[i].time)
-					{
-						gNotes[gNotes.size() - 1].type |= nf_not_hopo;
-					}
-					else
-					{
-						Note newNote;
-						newNote.time = Nts[i].time;
-						newNote.lTime = 0;
-						newNote.type = nf_open;
-
-						hopoTest(newNote);
-
-						gNotes.push_back(newNote);
-					}
-				}
-			}
-			else if (Nts[i].type == -1)
+			if (Nts[i].type == -1)
 			{
 				plusNote plusT;
 
@@ -456,10 +451,43 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 
 				gPlus.push_back(plusT);
 			}
+			else
+			{
+				Note newNote;
+				newNote.time = Nts[i].time;
+				newNote.lTime = Nts[i].lTime;
+				newNote.type = Nts[i].type;
+
+				hopoTest(newNote);
+
+				gNotes.push_back(newNote);
+			}
 		}
 
 		in.deducePlusLastNotes();
 	};
+
+	posProcess(Nts, instruments["[ExpertSingle]"]);
+
+	return true;
+}
+
+bool CChart::compileGppChart(const std::string &fileName) const
+{
+	std::fstream out(fileName, std::ios::out | std::ios::binary | std::ios::trunc);
+
+	if (!out.is_open())
+	{
+		return false;
+	}
+
+	{
+		cereal::BinaryOutputArchive oarchive(out); // Create an output archive
+
+		oarchive(*this);
+	}
+
+	out.close();
 
 	return true;
 }
@@ -467,7 +495,10 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 bool CChart::open(const std::string &chartFile)
 {
 	std::ifstream chart(chartFile);
-	return parseFeebackChart(chart);
+	if (chart.is_open())
+		return parseFeebackChart(chart);
+
+	return false;
 }
 
 bool CChart::openFromMemory(const char *chart)
@@ -483,8 +514,8 @@ void CChart::fillPlayerData(CPlayer & player, const std::string & instrument)
 
 CChart::CChart()
 {
-	chartResolutionProp = 1.0;
-	chartOffset = 0.0;
+	chartData.chartResolutionProp = 1.0;
+	chartData.chartOffset = 0.0;
 
 }
 

@@ -35,10 +35,8 @@ CLog::CLog(const std::string &NameOfFile){
 #ifdef _WIN32
 	InstallExceptionCatcher([](const char *buffer)
 	{
-		CLuaH::Lua().runEvent("emergencyLogSave");
 		log() << buffer;
 		log().SaveBuffer();
-		CLuaH::Lua().runEvent("emergencyExit");
 	});
 #endif
 }

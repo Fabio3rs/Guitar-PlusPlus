@@ -30,6 +30,7 @@ void CMenu::menuOpt::update()
 		else
 		{
 			CLog::log() << "On CMenu::menuOpt::update():\n				<<" + text + ">>	 language entry key <<" + langEntryKey + ">> is null or not exists.";
+			CLog::log().multiRegister("game.glanguage <<%0>>, <<%1>> ", game.glanguage, langEntryKey);
 
 			if (text.size() == 0)
 			{

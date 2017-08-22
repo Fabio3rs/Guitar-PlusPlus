@@ -44,6 +44,8 @@ class CLog{
 
 		argToString(const char *str) : str(str) { }
 
+		argToString(const std::exception &e) : str(e.what()) { }
+
 		argToString(const std::string &str) : str(str) { }
 
 		template<class T>

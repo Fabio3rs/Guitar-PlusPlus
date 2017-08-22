@@ -363,8 +363,12 @@ void CFonts::drawAllBuffers()
 	for (auto &b : textPerTextureBuffer)
 	{
 		b.second.texture = b.first;
-		engine.drawTrianglesWithAlpha(b.second);
-		b.second.clear();
+
+		if (b.second.tArray.size() > 0 && b.second.vArray.size() > 0)
+		{
+			engine.drawTrianglesWithAlpha(b.second);
+			b.second.clear();
+		}
 	}
 }
 
