@@ -188,13 +188,15 @@ int CGuitars::changeGuitarData(lua_State *L)
 	return p.rtn();
 }
 
-int CGuitars::registerFunctions(lua_State *L)
+int CGuitars::registerFunctions(CLuaH::luaState &Lstate)
 {
+	lua_State *L = Lstate.get();
+
 	lua_register(L, "changeGuitarData", changeGuitarData);
 	return 0;
 }
 
-int CGuitars::registerGlobals(lua_State *L)
+int CGuitars::registerGlobals(CLuaH::luaState &L)
 {
 
 	return 0;

@@ -3465,22 +3465,25 @@ void GPPGame::logError(int code, const std::string &e)
 std::string GPPGame::ip = "127.0.0.1";
 std::string GPPGame::port = "7777";
 
-int GPPGame::registerFunctions(lua_State *L)
+int GPPGame::registerFunctions(CLuaH::luaState &Lstate)
 {
+	lua_State *L = Lstate.get();
+	
 	lua_register(L, "loadSingleTexture", loadSingleTexture);
 	lua_register(L, "getGameplayRunningTime", getGameplayRunningTime);
 	lua_register(L, "getDeltaTime", getDeltaTime);
 	lua_register(L, "getGamePlayPlusState", getGamePlayPlusState);
+
 	return 0;
 }
 
-int GPPGame::registerGlobals(lua_State *L)
+int GPPGame::registerGlobals(CLuaH::luaState &L)
 {
 
 	return 0;
 }
 
-int GPPGame::loadSingleTexture(lua_State * L)
+int GPPGame::loadSingleTexture(lua_State *L)
 {
 	CLuaFunctions::LuaParams p(L);
 
@@ -3499,7 +3502,7 @@ int GPPGame::loadSingleTexture(lua_State * L)
 	return p.rtn();
 }
 
-int GPPGame::getGameplayRunningTime(lua_State * L)
+int GPPGame::getGameplayRunningTime(lua_State *L)
 {
 	CLuaFunctions::LuaParams p(L);
 
@@ -3508,7 +3511,7 @@ int GPPGame::getGameplayRunningTime(lua_State * L)
 	return p.rtn();
 }
 
-int GPPGame::getDeltaTime(lua_State * L)
+int GPPGame::getDeltaTime(lua_State *L)
 {
 	CLuaFunctions::LuaParams p(L);
 
@@ -3517,7 +3520,7 @@ int GPPGame::getDeltaTime(lua_State * L)
 	return p.rtn();
 }
 
-int GPPGame::getGamePlayPlusState(lua_State * L)
+int GPPGame::getGamePlayPlusState(lua_State *L)
 {
 	CLuaFunctions::LuaParams p(L);
 

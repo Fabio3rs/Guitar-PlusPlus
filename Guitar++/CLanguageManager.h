@@ -31,8 +31,8 @@ class CLanguageManager
 
 protected:
 	static int translateString(lua_State *L);
-	static int registerFunctions(lua_State *L);
-	static int registerGlobals(lua_State *L);
+	static int registerFunctions(CLuaH::luaState &Lstate);
+	static int registerGlobals(CLuaH::luaState &L);
 
 public:
 	std::string usingLang;

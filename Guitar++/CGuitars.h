@@ -56,8 +56,8 @@ public:
 	void unload();
 
 protected:
-	static int registerFunctions(lua_State *L);
-	static int registerGlobals(lua_State *L);
+	static int registerFunctions(CLuaH::luaState &L);
+	static int registerGlobals(CLuaH::luaState &L);
 
 	static int changeGuitarData(lua_State *L);
 

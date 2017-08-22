@@ -52,8 +52,8 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 				lua_setglobal(campaingScripts[i].luaState.get(), t.first.c_str());
 			}
 
-			CLuaFunctions::LuaF().registerFunctions(campaingScripts[i].luaState.get());
-			CLuaFunctions::LuaF().registerGlobals(campaingScripts[i].luaState.get());
+			CLuaFunctions::LuaF().registerFunctions(campaingScripts[i].luaState);
+			CLuaFunctions::LuaF().registerGlobals(campaingScripts[i].luaState);
 		}
 
 		CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
@@ -117,8 +117,10 @@ int CCampaing::getCampaingList(lua_State *L)
 	return p.rtn();
 }
 
-int CCampaing::registerLuaFunctions(lua_State *L)
+int CCampaing::registerLuaFunctions(CLuaH::luaState &Lstate)
 {
+	lua_State *L = Lstate.get();
+
 	lua_register(L, "getCampaingList", getCampaingList);
 	lua_register(L, "getBandName", getBandName);
 	lua_register(L, "getCampaingMode", getCampaingMode);

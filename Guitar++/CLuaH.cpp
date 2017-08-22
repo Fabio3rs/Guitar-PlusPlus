@@ -113,8 +113,8 @@ CLuaH::luaScript CLuaH::newScriptR(const std::string &memf, const std::string &n
 
 	if (registerCustomFunctions)
 	{
-		CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
-		CLuaFunctions::LuaF().registerGlobals(lData.luaState.get());
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
 	}
 
 	int load_result = luaL_loadbuffer(lData.luaState.get(), memf.c_str(), memf.size(), name.c_str());
@@ -151,8 +151,8 @@ CLuaH::luaScript CLuaH::newScriptRBuffer(const char *memf, size_t sz, const std:
 
 	if (registerCustomFunctions)
 	{
-		CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
-		CLuaFunctions::LuaF().registerGlobals(lData.luaState.get());
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
 	}
 
 	int load_result = luaL_loadbuffer(lData.luaState.get(), memf, sz, name.c_str());
@@ -189,8 +189,8 @@ CLuaH::luaScript CLuaH::newScriptRBuffer(const std::vector<char> &vec, const std
 
 	if (registerCustomFunctions)
 	{
-		CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
-		CLuaFunctions::LuaF().registerGlobals(lData.luaState.get());
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
 	}
 
 	int load_result = luaL_loadbuffer(lData.luaState.get(), &vec[0], vec.size(), name.c_str());
@@ -229,8 +229,8 @@ CLuaH::luaScript CLuaH::newScript(const std::string &path, const std::string &f)
 
 	if (registerCustomFunctions)
 	{
-		CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
-		CLuaFunctions::LuaF().registerGlobals(lData.luaState.get());
+		CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+		CLuaFunctions::LuaF().registerGlobals(lData.luaState);
 	}
 
 	int load_result = luaL_loadfile(lData.luaState.get(), std::string(lData.filePath + barra + lData.fileName).c_str());
@@ -685,8 +685,8 @@ CLuaH::luaScript CLuaH::luaScript::clone()
 	lData.luaState = make_luaState();
 	luaL_openlibs(lData.luaState.get());
 	lData.customPtr = customPtr;
-	CLuaFunctions::LuaF().registerFunctions(lData.luaState.get());
-	CLuaFunctions::LuaF().registerGlobals(lData.luaState.get());
+	CLuaFunctions::LuaF().registerFunctions(lData.luaState);
+	CLuaFunctions::LuaF().registerGlobals(lData.luaState);
 
 	lua_dump(luaState.get(), luaWriter, nullptr, 0);
 

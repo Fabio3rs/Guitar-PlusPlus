@@ -12,8 +12,8 @@
 #include <algorithm>
 
 class CLuaFunctions{
-	std::deque < std::function<int(lua_State*)> > registerFunctionsAPICBs;
-	std::deque < std::function<int(lua_State*)> > registerGlobalsAPICBs;
+	std::deque < std::function<int(CLuaH::luaState &)> > registerFunctionsAPICBs;
+	std::deque < std::function<int(CLuaH::luaState &)> > registerGlobalsAPICBs;
 	std::deque < std::function<void(void)> > frameUpdateAPICBs;
 
 public:
@@ -223,15 +223,15 @@ public:
 	/*
 	* Register custom functions lua state
 	*/
-	void registerFunctions(lua_State *L);
+	void registerFunctions(CLuaH::luaState &Lstate);
 
 	/*
 	* Register default game globals
 	*/
-	void registerGlobals(lua_State *L);
+	void registerGlobals(CLuaH::luaState &L);
 
-	void registerLuaFuncsAPI(std::function<int(lua_State*)> fun);
-	void registerLuaGlobalsAPI(std::function<int(lua_State*)> fun);
+	void registerLuaFuncsAPI(std::function<int(CLuaH::luaState &)> fun);
+	void registerLuaGlobalsAPI(std::function<int(CLuaH::luaState &)> fun);
 	void registerFrameUpdateAPI(std::function<void(void)> fun);
 
 private:

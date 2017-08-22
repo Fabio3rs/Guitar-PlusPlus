@@ -235,7 +235,7 @@ public:
 
 	static int getCampaingList(lua_State *L);
 
-	static int registerLuaFunctions(lua_State *L);
+	static int registerLuaFunctions(CLuaH::luaState &Lstate);
 
 	static CCampaing &campaingMGR();
 

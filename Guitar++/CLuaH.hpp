@@ -280,7 +280,7 @@ public:
 			p.type = LUA_TBOOLEAN;
 		}
 
-		void pushToLuaStack(lua_State *L) const{
+		void pushToLuaStack(lua_State *L) const {
 			switch (p.type)
 			{
 			case LUA_TNIL:
@@ -333,6 +333,11 @@ public:
 			}
 		}
 
+		void pushToLuaStack(CLuaH::luaState &L) const
+		{
+			pushToLuaStack(L.get());
+		}
+
 		void getFromArgs(lua_State *L, int idx)
 		{
 			switch (p.type = lua_type(L, idx))
@@ -380,6 +385,11 @@ public:
 			default:
 				break;
 			}
+		}
+
+		void getFromArgs(CLuaH::luaState &L, int idx)
+		{
+			getFromArgs(L.get(), idx);
 		}
 
 		customParam(){

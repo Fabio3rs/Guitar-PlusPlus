@@ -4,12 +4,12 @@
 #include <iostream>
 #include "CLog.h"
 
-void CLuaFunctions::registerLuaFuncsAPI(std::function<int(lua_State*)> fun)
+void CLuaFunctions::registerLuaFuncsAPI(std::function<int(CLuaH::luaState &)> fun)
 {
 	registerFunctionsAPICBs.push_back(fun);
 }
 
-void CLuaFunctions::registerLuaGlobalsAPI(std::function<int(lua_State*)> fun)
+void CLuaFunctions::registerLuaGlobalsAPI(std::function<int(CLuaH::luaState &)> fun)
 {
 	registerGlobalsAPICBs.push_back(fun);
 }
@@ -1284,8 +1284,10 @@ int CLuaFunctions::getGameCallback(lua_State *L)
 	return p.rtn();
 }
 
-void CLuaFunctions::registerFunctions(lua_State *L)
+void CLuaFunctions::registerFunctions(CLuaH::luaState &Lstate)
 {
+	lua_State *L = Lstate.get();
+
 	lua_register(L, "setConfigs", setConfigs);
 	lua_register(L, "doNotRunAgain", doNotRunAgain);
 	lua_register(L, "setCallBackToEvent", setCallBackToEvent);
@@ -1323,7 +1325,7 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 
 	for (auto &fun : funList)
 	{
-		fun(L);
+		fun(Lstate);
 	}
 }
 
@@ -1331,7 +1333,13 @@ void CLuaFunctions::registerFunctions(lua_State *L)
 template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const T &value)
 {
 	CLuaH::customParam(value).pushToLuaStack(L);
-	lua_setglobal(L, name.c_str());
+	lua_setglobal(L.get(), name.c_str());
+}
+
+template<class T> void setLuaGlobal(CLuaH::luaState &L, const std::string &name, const T &value)
+{
+	CLuaH::customParam(value).pushToLuaStack(L);
+	lua_setglobal(L.get(), name.c_str());
 }
 
 #include <bass.h>
@@ -1340,7 +1348,7 @@ template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const
 /*
 * Register default game globals
 */
-void CLuaFunctions::registerGlobals(lua_State *L)
+void CLuaFunctions::registerGlobals(CLuaH::luaState &L)
 {
 	setLuaGlobal(L, "TESTE", "abcde");
 	setLuaGlobal(L, "VSYNC_OFF", 0);

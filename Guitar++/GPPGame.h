@@ -287,8 +287,8 @@ public:
 	void initialLoad2();
 
 protected:
-	static int registerFunctions(lua_State *L);
-	static int registerGlobals(lua_State *L);
+	static int registerFunctions(CLuaH::luaState &Lstate);
+	static int registerGlobals(CLuaH::luaState &L);
 
 	static int loadSingleTexture(lua_State *L);
 	static int getGameplayRunningTime(lua_State *L);
