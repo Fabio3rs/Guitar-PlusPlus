@@ -24,6 +24,7 @@
 #include <cereal/types/map.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/string.hpp>
+#include "CFonts.h"
 
 class CCharter;
 
@@ -311,6 +312,8 @@ private:
 	int64_t combo;
 
 public:
+	CFonts::textAlert lvlUpAlert, notesStreakAlert;
+
 	int songAudioID;
 	int instrumentSound;
 

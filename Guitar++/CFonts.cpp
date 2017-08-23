@@ -370,6 +370,37 @@ void CFonts::drawAllBuffers()
 			b.second.clear();
 		}
 	}
+
+	if (textAlerts.size() > 0)
+	{
+		bool callbackResult = false;
+
+		{
+			auto &t = textAlerts.front();
+			callbackResult = t.callback(t);
+		}
+
+		if (!callbackResult)
+		{
+			textAlerts.pop_front();
+
+			if (textAlerts.size() > 0)
+			{
+				auto &t = textAlerts.front();
+				t.startTime = engine.getTime();
+			}
+		}
+	}
+}
+
+void CFonts::addTextAlert(const textAlert &t)
+{
+	textAlerts.push_back(t);
+}
+
+void CFonts::addTextAlert(textAlert &&t)
+{
+	textAlerts.push_back(std::move(t));
 }
 
 size_t CFonts::utf8Size(const std::string &s)
@@ -701,11 +732,13 @@ double CFonts::getCenterPos(const std::string &text, double size, double posX1, 
 	const double sizeDiv2_0 = size / 2.0, sizeDiv12_0 = size / 12.0, sizeDiv10_0 = size / 10.0, sizeDiv20_0 = size / 20.0;
 	double CharPos = sizeDiv2_0;
 
+	const std::string st = text + " ";
+
 	auto &engine = CEngine::engine();
 
-	auto it = text.begin();
+	auto it = st.begin();
 
-	for (auto ch = utf8::next(it, text.end()); it != text.end(); ch = utf8::next(it, text.end()))
+	for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
 	{
 		auto &chData = fontToUse.chars[ch];
 

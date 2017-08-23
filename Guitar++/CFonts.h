@@ -20,6 +20,19 @@ class CFonts{
 	std::map < unsigned int, CEngine::dTriangleWithAlpha > textPerTextureBuffer;
 
 public:
+	struct textAlert {
+		int status;
+		double startTime;
+		std::string msg;
+		std::function<bool(textAlert&)> callback;
+
+		textAlert()
+		{
+			status = 0;
+			startTime = 0.0;
+		}
+	};
+
 	class Font{
 		class fontTexture{
 			friend Font;
@@ -138,10 +151,14 @@ public:
 
 	void								drawAllBuffers();
 
+	void								addTextAlert(const textAlert &t);
+	void								addTextAlert(textAlert &&t);
+
 	static CFonts &fonts();
 
 private:
-	std::map <std::string, Font> fontsReg;
+	std::map <std::string, Font>		fontsReg;
+	std::deque<textAlert>				textAlerts;
 
 	CFonts(const CFonts&) = delete;
 	CFonts();

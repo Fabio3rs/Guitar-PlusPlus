@@ -1048,7 +1048,8 @@ void CPlayer::addPointsByNoteDoed()
 
 void CPlayer::addPointsByDoingLongNote()
 {
-	points += comboToMultiplier() * 200.0 * CEngine::engine().getDeltaTime();
+	points += comboToMultiplier() * 50.0 * CEngine::engine().getDeltaTime();
+	experience += 50.0 * comboToMultiplier() / 100.0;
 }
 
 void CPlayer::processError()
@@ -1164,13 +1165,15 @@ void CPlayer::doNote(size_t i)
 
 		Notes.lastNotePicked = i;
 
-		points += comboToMultiplier() * 200.0;
+		points += comboToMultiplier() * 50.0;
 
 		publicAprov++;
 
 		aError = false;
 
 		unmuteInstrument();
+
+		experience += 50.0 * comboToMultiplier() / 100.0;
 
 		if (publicAprov > maxPublicAprov)
 		{
@@ -1247,4 +1250,6 @@ CPlayer::CPlayer(const char *name)
 	playerCamera.upz = 0;
 
 	targetCamera = playerCamera;
+
+	experience = 100.0;
 }

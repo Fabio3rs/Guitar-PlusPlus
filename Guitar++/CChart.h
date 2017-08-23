@@ -54,7 +54,7 @@ class CChart
 
 	std::map<std::string, instrumentNotes> instruments;
 
-	struct {
+	struct chartData_t {
 		std::string chartFileName, songName, songArtist, songCharter;
 		double chartOffset, chartResolutionProp;
 		std::string gameCompiledDateTime;
@@ -98,8 +98,6 @@ public:
 
 	bool open(const std::string &chartFile);
 	bool openFromMemory(const char *chart);
-
-	void fillPlayerData(CPlayer &player, const std::string &instrument);
 
 	CChart();
 	~CChart() noexcept

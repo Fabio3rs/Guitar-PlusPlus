@@ -3016,6 +3016,8 @@ std::string GPPGame::selectSong()
 
 		opt.updateCppCallback = [&menuMusics](CMenu &menu, CMenu::menuOpt &opt)
 		{
+			static double offset = 0.0;
+
 			if (selectingSong)
 			{
 				int upkey = CEngine::engine().getKey(GLFW_KEY_UP), downkey = CEngine::engine().getKey(GLFW_KEY_DOWN);
@@ -3023,7 +3025,6 @@ std::string GPPGame::selectSong()
 				if ((upkey || downkey) && upkey != downkey)
 				{
 					static double movetime = CEngine::engine().getTime();
-					static double offset = 0.0;
 
 					if ((CEngine::engine().getTime() - movetime) > 0.1)
 					{
@@ -3052,6 +3053,10 @@ std::string GPPGame::selectSong()
 						}
 					}
 				}
+			}
+			else
+			{
+				offset = 0;
 			}
 			return 0;
 		};
@@ -3097,6 +3102,9 @@ std::string GPPGame::selectSong()
 	openMenus(&selectSongMenu);
 
 	selectingSong = false;
+
+	auto &voltarOptInst = selectSongMenu.options[voltarOpt];
+	voltarOptInst.updateCppCallback(selectSongMenu, voltarOptInst);
 
 	if ((selectSongMenu.options[voltarOpt].status & 3) == 3) {
 		return std::string();

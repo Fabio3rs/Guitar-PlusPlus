@@ -650,7 +650,7 @@ int main(int argc, char* argv[])
 				out.close();*/
 				chartTest.compileGppChart("./data/songs/Soulless3/Soulless3.gpp");
 
-				CLog::log() << "Save ok " "./data/songs/Soulless3/Soulless3.gpp";
+				CLog::log() << "Save ok ./data/songs/Soulless3/Soulless3.gpp";
 				CLog::log().SaveBuffer();
 			}
 			catch (const std::exception &e)

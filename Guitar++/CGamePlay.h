@@ -54,6 +54,9 @@ class CGamePlay{
 	size_t getBPMAtI(CPlayer &player, double time);
 	CPlayer::NotesData::Note getBPMAtStruct(CPlayer &player, double time);
 	std::deque<CPlayer::NotesData::Note>::iterator getBPMAtIt(CPlayer &player, double time);
+	void alertLVLUP(CPlayer &player);
+	void alertNotesStreak(CPlayer &player);
+	static bool alertTest(CFonts::textAlert &t);
 
 	std::deque <gppVec3f> hopostp;
 	CEngine::dTriangleWithAlpha BPMl, fretboardLData;

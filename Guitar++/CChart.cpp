@@ -364,6 +364,11 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 															 bpdqpos++;
 															 }
 															 */
+
+	noteContainer Nts2;
+
+	noteRead(Nts2, BPMs, feedBackChartMap, "[ExpertDoubleBass]");
+
 	int p = 0;
 	for (auto &BP : BPMs) {
 		Note newNote;
@@ -468,6 +473,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 	};
 
 	posProcess(Nts, instruments["[ExpertSingle]"]);
+	posProcess(Nts2, instruments["[ExpertDoubleBass]"]);
 
 	return true;
 }
@@ -551,11 +557,6 @@ bool CChart::openFromMemory(const char *chart)
 {
 	std::stringstream schart(chart);
 	return parseFeebackChart(schart);
-}
-
-void CChart::fillPlayerData(CPlayer & player, const std::string &instrument)
-{
-
 }
 
 CChart::CChart()

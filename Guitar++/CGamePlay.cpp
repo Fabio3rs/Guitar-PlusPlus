@@ -138,6 +138,92 @@ std::deque<CPlayer::NotesData::Note>::iterator CGamePlay::getBPMAtIt(CPlayer &pl
 	return result;
 }
 
+void CGamePlay::alertLVLUP(CPlayer &player)
+{
+	CEngine &engine = CEngine::engine();
+
+	double delta = engine.getTime() - player.lvlUpAlert.startTime;
+
+	double y = 0.6;
+
+	if (delta <= 0.2) {
+		double scale = delta / 0.2;
+
+		engine.setScale(scale, scale, 1.0);
+	}
+	else if (delta >= 0.2 && delta <= 1.5) {
+
+
+	}
+	else if (delta >= 1.5 && delta <= 2.5) {
+		y += (delta - 1.5) / 1.0;
+	}
+
+	std::string lvlUPMsg = "Level UP! ";
+	lvlUPMsg += std::to_string(player.getLevel());
+
+	CFonts::fonts().drawTextInScreen(lvlUPMsg,
+		CFonts::fonts().getCenterPos(lvlUPMsg, 0.1, 0.0), y, 0.1);
+	engine.matrixReset();
+}
+
+void CGamePlay::alertNotesStreak(CPlayer &player)
+{
+	CEngine &engine = CEngine::engine();
+
+	double delta = engine.getTime() - player.notesStreakAlert.startTime;
+
+	double y = 0.6;
+
+	if (delta <= 0.2) {
+		double scale = delta / 0.2;
+
+		engine.setScale(scale, scale, 1.0);
+	}
+	else if (delta >= 0.2 && delta <= 1.5) {
+
+
+	}
+	else if (delta >= 1.5 && delta <= 2.5) {
+		y += (delta - 1.5) / 1.0;
+	}
+
+	std::string notesStreakMsg = std::to_string(player.notesStreakAlert.status);
+	notesStreakMsg += " Notes Streak";
+
+	CFonts::fonts().drawTextInScreen(notesStreakMsg,
+		CFonts::fonts().getCenterPos(notesStreakMsg, 0.1, 0.0), y, 0.1);
+	engine.matrixReset();
+}
+
+bool CGamePlay::alertTest(CFonts::textAlert &t)
+{
+	CEngine &engine = CEngine::engine();
+
+	double delta = engine.getTime() - t.startTime;
+
+	double y = 0.7;
+
+	if (delta <= 0.2) {
+		double scale = delta / 0.2;
+
+		engine.setScale(scale, scale, 1.0);
+	}
+	else if (delta >= 0.2 && delta <= 1.5) {
+
+
+	}
+	else if (delta >= 1.5 && delta <= 2.5) {
+		y += (delta - 1.5) / 1.0;
+	}
+
+	CFonts::fonts().drawTextInScreen(t.msg,
+		CFonts::fonts().getCenterPos(t.msg, 0.1, 0.0), y, 0.1);
+	engine.matrixReset();
+
+	return delta <= 2.3;
+}
+
 size_t CGamePlay::getBPMAtI(CPlayer &player, double time)
 {
 	double result = 120.0;
@@ -1323,6 +1409,8 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	auto &gNotes = player.Notes.gNotes;
 	auto &engine = CEngine::engine();
 
+	int playerLVL = player.getLevel();
+
 	if (player.plusEnabled)
 	{
 		player.plusPower -= CEngine::engine().getDeltaTime() * 0.05;
@@ -2020,6 +2108,52 @@ void CGamePlay::updatePlayer(CPlayer &player)
 		if (cklngNote)
 		{
 			player.addPointsByDoingLongNote();
+		}
+
+		if (noteDoedThisFrame)
+		{
+			int nowLevel = player.getLevel();
+			if (nowLevel != playerLVL)
+			{
+				CFonts::textAlert t;
+
+				t.callback = alertTest;
+				t.msg = "Level Up! " + std::to_string(nowLevel);
+				t.startTime = engine.getTime();
+
+				CFonts::fonts().addTextAlert(std::move(t));
+			}
+
+			int combo = player.getCombo();
+
+			if (combo > 0)
+			{
+				if (combo == 50)
+				{
+					CFonts::textAlert t;
+
+					t.callback = alertTest;
+					t.msg = "50 Note Streak";
+					t.startTime = engine.getTime();
+
+					CFonts::fonts().addTextAlert(std::move(t));
+				}
+				else
+				{
+					int r = combo % 100;
+
+					if (r == 0)
+					{
+						CFonts::textAlert t;
+
+						t.callback = alertTest;
+						t.msg = std::to_string(combo) + " Note Streak";
+						t.startTime = engine.getTime();
+
+						CFonts::fonts().addTextAlert(std::move(t));
+					}
+				}
+			}
 		}
 	}
 
@@ -3138,7 +3272,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string((int)player.comboToMultiplier()), -0.9 + neg, -0.37 + negy, 0.1);
 	}
 	/////////////***************************************
-
 
 	lua.runEventWithParams("posRenderPlayer", m);
 }
