@@ -515,6 +515,29 @@ bool CChart::loadToPlayerData(CPlayer &player, const std::string &instrument) co
 	return false;
 }
 
+bool CChart::loadToNotesData(CPlayer::NotesData &Notes, const std::string &instrument) const
+{
+	auto it = instruments.find(instrument.size() == 0 ? Notes.instrument : instrument);
+
+	if (it != instruments.end())
+	{
+		auto &instrumentData = *it;
+		Notes.unloadChart();
+		Notes.BPM = BPM;
+		Notes.gNotes = instrumentData.second.gNotes;
+		Notes.gPlus = instrumentData.second.gPlus;
+
+		Notes.songArtist = chartData.songArtist;
+		Notes.songCharter = chartData.songCharter;
+		Notes.songName = chartData.songName;
+		Notes.chartResolutionProp = chartData.chartResolutionProp;
+
+		return true;
+	}
+
+	return false;
+}
+
 bool CChart::open(const std::string &chartFile)
 {
 	std::ifstream chart(chartFile);
@@ -530,7 +553,7 @@ bool CChart::openFromMemory(const char *chart)
 	return parseFeebackChart(schart);
 }
 
-void CChart::fillPlayerData(CPlayer & player, const std::string & instrument)
+void CChart::fillPlayerData(CPlayer & player, const std::string &instrument)
 {
 
 }
@@ -539,7 +562,7 @@ CChart::CChart()
 {
 	chartData.chartResolutionProp = 1.0;
 	chartData.chartOffset = 0.0;
-
+	chartData.gameCompiledDateTime = (__DATE__ " " __TIME__);
 }
 
 CChart::instrumentNotes::instrumentNotes()

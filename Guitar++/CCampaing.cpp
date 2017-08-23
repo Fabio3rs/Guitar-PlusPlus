@@ -453,7 +453,7 @@ int CCampaing::openCampaingMenuCallback(CMenu &menu)
 	return 0;
 }
 
-int CCampaing::cotinueCampaingOptCallback(CMenu::menuOpt &opt)
+int CCampaing::cotinueCampaingOptCallback(CMenu &menu, CMenu::menuOpt &opt)
 {
 	if (campaingMGR().numCampaingSaves <= 0)
 	{

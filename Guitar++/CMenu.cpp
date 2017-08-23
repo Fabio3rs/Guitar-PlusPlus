@@ -695,7 +695,7 @@ void CMenu::update()
 	{
 		//std::string optCallBackTXT = opt.optionName;
 		if (opt.updateCppCallback)
-			opt.updateCppCallback(opt);
+			opt.updateCppCallback(*this, opt);
 
 		CLuaH::multiCallBackParams_t params;
 
@@ -983,7 +983,7 @@ void CMenu::update()
 		}
 
 		if (opt.posUpdateCppCallback)
-			opt.posUpdateCppCallback(opt);
+			opt.posUpdateCppCallback(*this, opt);
 		
 		if (params.size() <= 3) params.push_back(CLuaH::customParam(-1.0));
 		CLuaH::Lua().runEventWithParams(opt.optionName, params);

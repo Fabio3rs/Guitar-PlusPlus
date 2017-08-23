@@ -471,7 +471,7 @@ int main(int argc, char* argv[])
 							if (opt.listID >= opt.optList.size())
 								opt.listID = opt.optList.size() - 1;
 
-							opt.updateCppCallback = [](CMenu::menuOpt &opt)
+							opt.updateCppCallback = [](CMenu &menu, CMenu::menuOpt &opt)
 							{
 								if (opt.status == 0)
 								{
@@ -494,7 +494,7 @@ int main(int argc, char* argv[])
 								return 0;
 							};
 
-							opt.posUpdateCppCallback = [](CMenu::menuOpt &opt)
+							opt.posUpdateCppCallback = [](CMenu &menu, CMenu::menuOpt &opt)
 							{
 								if (opt.status != 0)
 								{

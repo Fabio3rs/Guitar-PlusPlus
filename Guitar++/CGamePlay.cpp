@@ -1404,15 +1404,18 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	bool inslide = false, inslide2 = false;
 
-	for (int ji = 0; ji < 5; ji++)
+	if (gNotes.size() > notes.notePos)
 	{
-		if (gNotes[notes.notePos].type & /*(int)pow(2, ji)*/notesFlagsConst[ji])
+		for (int ji = 0; ji < 5; ji++)
 		{
-			const size_t npos = ~(static_cast<size_t>(0));
-
-			if (player.notesSlide[ji] != npos)
+			if (gNotes[notes.notePos].type & /*(int)pow(2, ji)*/notesFlagsConst[ji])
 			{
-				inslide = true;
+				const size_t npos = ~(static_cast<size_t>(0));
+
+				if (player.notesSlide[ji] != npos)
+				{
+					inslide = true;
+				}
 			}
 		}
 	}

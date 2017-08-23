@@ -141,8 +141,8 @@ public:
 
 		double color[4];
 
-		std::function<int(menuOpt&)> updateCppCallback;
-		std::function<int(menuOpt&)> posUpdateCppCallback;
+		std::function<int(CMenu&, menuOpt&)> updateCppCallback;
+		std::function<int(CMenu&, menuOpt&)> posUpdateCppCallback;
 
 		void update();
 

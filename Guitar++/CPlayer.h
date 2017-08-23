@@ -340,8 +340,8 @@ public:
 	size_t strklinent;
 	double strklinenttime;
 
-	bool palhetaKeyLast;
-	bool palhetaKey;
+	int palhetaKeyLast;
+	int palhetaKey;
 
 	bool usarPalheta;
 

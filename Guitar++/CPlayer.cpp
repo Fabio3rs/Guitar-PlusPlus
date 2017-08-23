@@ -14,6 +14,7 @@
 #include "GPPGame.h"
 #include "CMultiplayer.h"
 #include "CFonts.h"
+#include "CChart.h"
 
 const int CPlayer::notesEnum = nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
 const int CPlayer::notesEnumWithOpenNotes = nf_green | nf_red | nf_yellow | nf_blue | nf_orange | nf_open;
@@ -302,6 +303,8 @@ bool CPlayer::loadSongOnlyChart(const std::string &path){
 bool CPlayer::loadSong(const std::string &path){
 	std::string fullFilePath = (std::string("data/songs/") + path + std::string("/") + smartChartSearch(path));
 
+	CLog::log().multiRegister("Smart chart search result: %0", fullFilePath);
+
 	bool isChartOpen = fullFilePath.find(".chart") != std::string::npos ? Notes.loadFeedbackChart(fullFilePath.c_str()) : Notes.loadChart(fullFilePath.c_str());
 
 	if (songAudioID != -1 && songAudioID)
@@ -316,7 +319,8 @@ bool CPlayer::loadSong(const std::string &path){
 
 	songAudioID = -1;
 
-	if (isChartOpen){
+	if (isChartOpen)
+	{
 		CLog::log() << smartSongSearch(path);
 		Notes.songFullPath = (std::string("data/songs/") + path + std::string("/") + smartSongSearch(path));
 
@@ -824,8 +828,31 @@ void CPlayer::NotesData::deducePlusLastNotes()
 	}
 }
 
-bool CPlayer::NotesData::loadChart(const char *chartFile){
+bool CPlayer::NotesData::loadChart(const char *chartFile)
+{
 	chartFileName = chartFile;
+
+	if (chartFileName.find(".gpp") != std::string::npos)
+	{
+		CChart chart;
+
+		std::fstream chartf(chartFile, std::ios::binary | std::ios::in);
+		
+		try
+		{
+			cereal::BinaryInputArchive oarchive(chartf);
+
+			oarchive(chart);
+
+			chart.loadToNotesData(*this, instrument);
+
+			return true;
+		}
+		catch (const std::exception &e)
+		{
+			CLog::log().multiRegister("Exception %0", e);
+		}
+	}
 
 	CText ACTEXTChart(chartFile, true);
 

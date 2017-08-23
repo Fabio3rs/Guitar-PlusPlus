@@ -57,17 +57,18 @@ class CChart
 	struct {
 		std::string chartFileName, songName, songArtist, songCharter;
 		double chartOffset, chartResolutionProp;
+		std::string gameCompiledDateTime;
 
 		template<class Archive>
 		void load(Archive &archive)
 		{
-			archive(chartFileName, songName, songArtist, songCharter, chartOffset, chartResolutionProp);
+			archive(chartFileName, songName, songArtist, songCharter, chartOffset, chartResolutionProp, gameCompiledDateTime);
 		}
 
 		template<class Archive>
 		void save(Archive &archive) const
 		{
-			archive(chartFileName, songName, songArtist, songCharter, chartOffset, chartResolutionProp);
+			archive(chartFileName, songName, songArtist, songCharter, chartOffset, chartResolutionProp, gameCompiledDateTime);
 		}
 	} chartData;
 
@@ -91,6 +92,7 @@ public:
 	bool compileGppChart(const std::string &fileName) const;
 
 	bool loadToPlayerData(CPlayer &player, const std::string &instrument = "") const;
+	bool loadToNotesData(CPlayer::NotesData &player, const std::string &instrument = "") const;
 
 	static const int notesEnum, notesEnumWithOpenNotes;
 

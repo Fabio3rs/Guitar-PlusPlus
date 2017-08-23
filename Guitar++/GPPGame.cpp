@@ -1117,6 +1117,7 @@ void GPPGame::startModule(const std::string &name)
 	}
 	else
 	{
+		game.setRunningModule("");
 		return;
 	}
 
@@ -2902,7 +2903,10 @@ std::string GPPGame::selectSong()
 {
 	auto &game = GuitarPP();
 	static auto &selectSongMenu = GuitarPP().newNamedMenu("selectSongMenu");
+	static bool selectingSong = false;
+	std::map<int, std::string> menuMusics;
 
+	menuMusics.clear();
 	selectSongMenu.options.clear();
 
 	auto wait = [this](double t) {
@@ -3010,10 +3014,50 @@ std::string GPPGame::selectSong()
 
 		opt.color[0] = opt.color[1] = opt.color[2] = 0.5;
 
+		opt.updateCppCallback = [&menuMusics](CMenu &menu, CMenu::menuOpt &opt)
+		{
+			if (selectingSong)
+			{
+				int upkey = CEngine::engine().getKey(GLFW_KEY_UP), downkey = CEngine::engine().getKey(GLFW_KEY_DOWN);
+
+				if ((upkey || downkey) && upkey != downkey)
+				{
+					static double movetime = CEngine::engine().getTime();
+					static double offset = 0.0;
+
+					if ((CEngine::engine().getTime() - movetime) > 0.1)
+					{
+						double loffset = 0.0;
+
+						if (upkey && offset > -1.0)
+						{
+							loffset -= 0.1;
+							movetime = CEngine::engine().getTime();
+						}
+
+						if (downkey && offset < 1.0)
+						{
+							loffset += 0.1;
+							movetime = CEngine::engine().getTime();
+						}
+
+						offset += loffset;
+
+						for (auto &musicOpt : menuMusics)
+						{
+							if (musicOpt.first < menu.options.size())
+							{
+								menu.options[musicOpt.first].y += loffset;
+							}
+						}
+					}
+				}
+			}
+			return 0;
+		};
+
 		voltarOpt = selectSongMenu.addOpt(opt);
 	}
-
-	std::map<int, std::string> menuMusics;
 
 	auto songs = game.getDirectory("./data/songs", false, true);
 
@@ -3048,7 +3092,11 @@ std::string GPPGame::selectSong()
 		wait(0.1);
 	}
 
+	selectingSong = true;
+
 	openMenus(&selectSongMenu);
+
+	selectingSong = false;
 
 	if ((selectSongMenu.options[voltarOpt].status & 3) == 3) {
 		return std::string();

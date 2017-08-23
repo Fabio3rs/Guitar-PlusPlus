@@ -263,7 +263,7 @@ protected:
 
 private:
 	static int openCampaingMenuCallback(CMenu &menu);
-	static int cotinueCampaingOptCallback(CMenu::menuOpt &opt);
+	static int cotinueCampaingOptCallback(CMenu &menu, CMenu::menuOpt &opt);
 
 	CCampaingData campaingNow;
 
