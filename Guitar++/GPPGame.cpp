@@ -1109,6 +1109,17 @@ void GPPGame::startModule(const std::string &name)
 		throw gameException("A module is already running: " + name);
 	}
 
+	std::string song = game.selectSong();
+	
+	if (song.size() > 0)
+	{
+		game.songToLoad = song;
+	}
+	else
+	{
+		return;
+	}
+
 	module.setHyperSpeed(2.5 * game.hyperSpeed);
 
 	game.setVSyncMode(0);
@@ -2885,6 +2896,172 @@ std::string GPPGame::getCallBackRealName(const std::string &str)
 		}
 	}
 	return "";
+}
+
+std::string GPPGame::selectSong()
+{
+	auto &game = GuitarPP();
+	static auto &selectSongMenu = GuitarPP().newNamedMenu("selectSongMenu");
+
+	selectSongMenu.options.clear();
+
+	auto wait = [this](double t) {
+		auto &engine = CEngine::engine();
+		double start = engine.getTime();
+
+		while (engine.windowOpened() && (engine.getTime() - start) < t) {
+			engine.clearScreen();
+
+			engine.activate3DRender(true);
+			engine.activateLighting(true);
+
+			{
+				CEngine::cameraSET usingCamera;
+				usingCamera.eyex = 3.0;
+				usingCamera.eyey = 1.75;
+				usingCamera.eyez = 2.7;
+				usingCamera.centerx = 3.0;
+				usingCamera.centery = 1.3;
+				usingCamera.centerz = 0;
+				usingCamera.upx = 0;
+				usingCamera.upy = 1;
+				usingCamera.upz = 0;
+
+				engine.setCamera(usingCamera);
+			}
+
+			{
+				lightData l;
+
+				for (auto &t : l.ambientLight)
+				{
+					t = 0.1f;
+				}
+
+				for (auto &t : l.direction)
+				{
+					t = 2.5f;
+				}
+
+				for (auto &t : l.position)
+				{
+					t = 0.0f;
+				}
+
+				for (auto &t : l.specularLight)
+				{
+					t = 1.0f;
+				}
+
+				for (auto &t : l.diffuseLight)
+				{
+					t = 0.2f;
+				}
+
+				l.specularLight[1] = 1.0f;
+				l.specularLight[2] = 1.0f;
+				l.diffuseLight[0] = 1.0f;
+				l.diffuseLight[1] = 1.0f;
+				l.ambientLight[3] = 0.1f;
+
+				CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
+
+				l.angle = 180.0f;
+				l.direction[0] = 3.0f;
+				l.direction[1] = -0.5f;
+				l.direction[2] = -1.5f;
+
+				l.position[0] = 3.0f;
+				l.position[1] = 2.7f;
+				l.position[2] = -1.5f;
+				l.position[3] = 1.0f;
+
+				engine.activateLight(0, false);
+				engine.activateLight(1, true);
+				engine.setLight(l, 1);
+			}
+
+			engine.activateNormals(true);
+			testobj.draw(0);
+			engine.activateNormals(false);
+
+			engine.activateLighting(false);
+			engine.activate3DRender(false);
+
+			engine.renderFrame();
+		}
+	};
+
+	int voltarOpt;
+
+	{
+		CMenu::menuOpt opt;
+
+		opt.text = "Voltar";
+		opt.y = 0.85;
+		opt.x = -0.8;
+		opt.size = 0.1;
+		opt.group = -1;
+		opt.status = 0;
+		opt.type = CMenu::menusOPT::textbtn;
+		opt.goback = true;
+
+		opt.shortcutKey = GLFW_KEY_ESCAPE;
+
+		opt.color[0] = opt.color[1] = opt.color[2] = 0.5;
+
+		voltarOpt = selectSongMenu.addOpt(opt);
+	}
+
+	std::map<int, std::string> menuMusics;
+
+	auto songs = game.getDirectory("./data/songs", false, true);
+
+	for (auto &song : songs)
+	{
+		if (CPlayer::smartChartSearch(song) != "")
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = song;
+			opt.y = 0.8 - menuMusics.size() * 0.1;
+			opt.x = CFonts::fonts().getCenterPos(song, 0.09, 0.0);
+			opt.size = 0.09;
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+			opt.goback = true;
+
+			opt.color[1] = opt.color[2] = CPlayer::smartChartSearch(song) == "" ? 0.0 : 1.0;
+
+			menuMusics[selectSongMenu.addOpt(opt)] = song;
+		}
+	}
+
+	while (CEngine::engine().getMouseButton(0) || CEngine::engine().getKey(GLFW_KEY_ENTER))
+	{
+		if (!CEngine::engine().windowOpened())
+		{
+			return std::string();
+		}
+
+		wait(0.1);
+	}
+
+	openMenus(&selectSongMenu);
+
+	if ((selectSongMenu.options[voltarOpt].status & 3) == 3) {
+		return std::string();
+	}
+	else if (selectSongMenu.groupInfo[1].selectedOpt != 0) {
+		for (auto &musicOpt : menuMusics) {
+			if ((selectSongMenu.options[musicOpt.first].status & 3) == 3) {
+				return musicOpt.second;
+			}
+		}
+	}
+
+	return std::string();
 }
 
 GPPGame::func_t GPPGame::getCallback(const std::string &str)

@@ -133,8 +133,8 @@ public:
 
 	bool remoteControls;
 
-	std::string smartChartSearch(const std::string &path);
-	std::string smartSongSearch(const std::string &path);
+	static std::string smartChartSearch(const std::string &path);
+	static std::string smartSongSearch(const std::string &path);
 
 	class NotesData{
 		friend CCharter;

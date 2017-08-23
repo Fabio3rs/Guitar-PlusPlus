@@ -492,6 +492,29 @@ bool CChart::compileGppChart(const std::string &fileName) const
 	return true;
 }
 
+bool CChart::loadToPlayerData(CPlayer &player, const std::string &instrument) const
+{
+	auto it = instruments.find(instrument.size() == 0? player.Notes.instrument : instrument);
+
+	if (it != instruments.end())
+	{
+		auto &instrumentData = *it;
+		player.Notes.unloadChart();
+		player.Notes.BPM = BPM;
+		player.Notes.gNotes = instrumentData.second.gNotes;
+		player.Notes.gPlus = instrumentData.second.gPlus;
+
+		player.Notes.songArtist = chartData.songArtist;
+		player.Notes.songCharter = chartData.songCharter;
+		player.Notes.songName = chartData.songName;
+		player.Notes.chartResolutionProp = chartData.chartResolutionProp;
+
+		return true;
+	}
+
+	return false;
+}
+
 bool CChart::open(const std::string &chartFile)
 {
 	std::ifstream chart(chartFile);

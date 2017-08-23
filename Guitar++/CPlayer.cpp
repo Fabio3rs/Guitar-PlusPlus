@@ -26,9 +26,12 @@ std::string CPlayer::smartChartSearch(const std::string &path){
 	const std::string fullPath = std::string("data/songs/") + path;
 
 	const std::string chartFormats[] = {
-		path + ".GPPXT",
+		path + ".gpp",
 		path + ".chart",
-		"Chart.GPPXT",
+		"Chart.gpp",
+		"chart.gpp",
+		"Notes.gpp",
+		"notes.gpp",
 		"Chart.chart",
 		"notes.chart",
 		"chart.chart"

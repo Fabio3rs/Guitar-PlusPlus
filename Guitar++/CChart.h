@@ -71,7 +71,7 @@ class CChart
 		}
 	} chartData;
 
-	std::vector<Note> BPM;
+	std::deque<Note> BPM;
 
 	bool parseFeebackChart(std::istream &chartStream);
 
@@ -89,6 +89,8 @@ class CChart
 
 public:
 	bool compileGppChart(const std::string &fileName) const;
+
+	bool loadToPlayerData(CPlayer &player, const std::string &instrument = "") const;
 
 	static const int notesEnum, notesEnumWithOpenNotes;
 
