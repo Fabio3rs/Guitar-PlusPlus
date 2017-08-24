@@ -3087,7 +3087,7 @@ std::string GPPGame::selectSong()
 					opt.type = CMenu::menusOPT::textbtn;
 					opt.goback = true;
 
-					opt.color[1] = opt.color[2] = CPlayer::smartChartSearch(song) == "" ? 0.0 : 1.0;
+					opt.color[1] = opt.color[2] = (CPlayer::smartSongSearch(song).size() == 0)? 0.0 : 1.0;
 
 					menuMusics[selectSongMenu.addOpt(opt)] = song;
 				}
@@ -3102,6 +3102,11 @@ std::string GPPGame::selectSong()
 		{
 			if (!CEngine::engine().windowOpened())
 			{
+				std::lock_guard<std::mutex> m(getDirLoadMutex);
+
+				if (getDirLoad.joinable())
+					getDirLoad.join();
+
 				return std::string();
 			}
 
