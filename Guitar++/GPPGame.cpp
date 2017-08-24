@@ -3064,30 +3064,60 @@ std::string GPPGame::selectSong()
 		voltarOpt = selectSongMenu.addOpt(opt);
 	}
 
-	auto songs = game.getDirectory("./data/songs", false, true);
-
-	for (auto &song : songs)
 	{
-		if (CPlayer::smartChartSearch(song) != "")
+		std::atomic<bool> processingLoadDir = true;
+		std::mutex getDirLoadMutex;
+		std::thread getDirLoad([&]()
 		{
-			CMenu::menuOpt opt;
+			std::lock_guard<std::mutex> m(getDirLoadMutex);
+			auto songs = game.getDirectory("./data/songs", false, true);
 
-			opt.text = song;
-			opt.y = 0.8 - menuMusics.size() * 0.1;
-			opt.x = CFonts::fonts().getCenterPos(song, 0.09, 0.0);
-			opt.size = 0.09;
-			opt.group = 1;
-			opt.status = 0;
-			opt.type = CMenu::menusOPT::textbtn;
-			opt.goback = true;
+			for (auto &song : songs)
+			{
+				if (CPlayer::smartChartSearch(song) != "")
+				{
+					CMenu::menuOpt opt;
 
-			opt.color[1] = opt.color[2] = CPlayer::smartChartSearch(song) == "" ? 0.0 : 1.0;
+					opt.text = song;
+					opt.y = 0.8 - menuMusics.size() * 0.1;
+					opt.x = CFonts::fonts().getCenterPos(song, 0.09, 0.0);
+					opt.size = 0.09;
+					opt.group = 1;
+					opt.status = 0;
+					opt.type = CMenu::menusOPT::textbtn;
+					opt.goback = true;
 
-			menuMusics[selectSongMenu.addOpt(opt)] = song;
+					opt.color[1] = opt.color[2] = CPlayer::smartChartSearch(song) == "" ? 0.0 : 1.0;
+
+					menuMusics[selectSongMenu.addOpt(opt)] = song;
+				}
+			}
+
+			processingLoadDir = false;
+		});
+
+		bool mutexLocked = false;
+
+		while (!(mutexLocked = getDirLoadMutex.try_lock()) || processingLoadDir)
+		{
+			if (!CEngine::engine().windowOpened())
+			{
+				return std::string();
+			}
+
+			wait(0.1);
+		}
+
+		if (mutexLocked)
+		{
+			getDirLoadMutex.unlock();
+
+			if (getDirLoad.joinable())
+				getDirLoad.join();
 		}
 	}
 
-	while (CEngine::engine().getMouseButton(0) || CEngine::engine().getKey(GLFW_KEY_ENTER))
+	while ((CEngine::engine().getMouseButton(0) || CEngine::engine().getKey(GLFW_KEY_ENTER)))
 	{
 		if (!CEngine::engine().windowOpened())
 		{
@@ -3547,6 +3577,13 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 						}
 
 						menusStack.pop_back();
+
+						if (menusStack.size() > 0)
+						{
+							auto &menum = menusStack.back();
+							menum->resetBtns();
+							menum->resetData();
+						}
 					}
 					else{
 						if (m && m->openCallback)
