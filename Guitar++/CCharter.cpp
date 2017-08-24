@@ -50,6 +50,36 @@ void CCharter::eraseNulls(CPlayer &player)
 
 void CCharter::preRender()
 {
+	{
+		auto &player = gpModule.players.back();
+		if (player.BPMNowBuffer > 0)
+		{
+			if (player.BPMNowBuffer < player.Notes.BPM.size())
+			{
+				if (player.Notes.BPM[player.BPMNowBuffer].time > (atMusicTime - 2.0))
+				{
+					--player.BPMNowBuffer;
+
+					if (player.BPMNowBuffer >= 0)
+					{
+						player.Notes.BPMMinPosition = player.Notes.BPM[player.BPMNowBuffer].time;
+					}
+				}
+			}
+			else
+			{
+				player.BPMNowBuffer = 0;
+				player.Notes.BPMMinPosition = player.Notes.BPM[player.BPMNowBuffer].time;
+			}
+		}
+
+		if (player.BPMNowBuffer < 0)
+		{
+			player.BPMNowBuffer = 0;
+			player.Notes.BPMMinPosition = player.Notes.BPM[player.BPMNowBuffer].time;
+		}
+	}
+
 	if (loading)
 	{
 		{
@@ -473,6 +503,21 @@ void CCharter::renderInfo()
 
 void CCharter::renderAll()
 {
+	if (gpModule.players.back().Notes.BPM.size() == 0)
+	{
+		CPlayer::NotesData::Note n;
+		n.time = 0.0;
+		n.lTime = 120.0;
+		n.type = 0;
+
+		gpModule.players.back().Notes.BPM.push_back(n);
+	}
+
+	if (songBPM.size() == 0)
+	{
+		songBPM = gpModule.players.back().Notes.BPM;
+	}
+
 	preRender();
 	render();
 	renderInfo();

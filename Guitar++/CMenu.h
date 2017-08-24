@@ -224,6 +224,7 @@ public:
 	}
 
 	void resetData();
+	void resetBtns();
 
 	int status;
 

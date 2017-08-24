@@ -3222,6 +3222,8 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 
 	bool menuExit = false;
 
+	bool waitReleaseKeys = false;
+
 	while (menusStack.size() != 0 && engine.windowOpened())
 	{
 		clearScreen();
@@ -3232,7 +3234,15 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 			return menusStack;
 		}
 
-		updateRender = (engine.getTime() - waitForTime) >= 0.0;
+		if (waitReleaseKeys)
+		{
+			if (!CEngine::engine().getMouseButton(0) && !CEngine::engine().getKey(GLFW_KEY_ENTER) && !CEngine::engine().getKey(GLFW_KEY_ESCAPE))
+			{
+				waitReleaseKeys = false;
+			}
+		}
+
+		updateRender = ((engine.getTime() - waitForTime) >= 0.0) && (!waitReleaseKeys);
 
 		engine.activate3DRender(false);
 
@@ -3504,6 +3514,8 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 					menusStack.push_back(create_menu(opt.menusXRef));
 					lua.runEvent("menusCustomMultiMenu");
 					lua.runEvent("menusNext");
+					waitForTime = engine.getTime() + 0.5;
+					waitReleaseKeys = true;
 					break;
 				}
 				else if (opt.menusXRef.size() == 1)
@@ -3542,8 +3554,17 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 							m->openCallback(*m);
 						}
 
+						if (m)
+						{
+							m->resetBtns();
+							m->resetData();
+							waitReleaseKeys = true;
+						}
+
 						lua.runEvent("menusNext");
 					}
+
+					waitForTime = engine.getTime() + 0.01;
 					break;
 				}
 			}

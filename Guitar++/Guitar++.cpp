@@ -150,6 +150,9 @@ int main(int argc, char* argv[])
 		auto &cmpopts = game.newNamedMenu("mainCampaingOptions");
 		auto &optionsmenu = game.newNamedMenu("optionsmenu");
 		auto &audiomenu = game.newNamedMenu("audiomenu");
+		auto &extrasmenu = game.newNamedMenu("extrasmenu");
+		auto &chartsmenu = game.newNamedMenu("chartsmenu");
+		auto &chartCompileMenu = game.newNamedMenu("chartCompileMenu");
 
 		int startOP, configOP, extrasOp, ajudaOp, quitOp, singlePlayOp;
 
@@ -225,8 +228,7 @@ int main(int argc, char* argv[])
 							opt.status = 0;
 							opt.type = CMenu::menusOPT::textbtn;
 
-							std::string testecallback = game.addGameCallbacks("gameCharter", GPPGame::charterModule);
-							opt.menusXRef.push_back(testecallback);
+							opt.menusXRef.push_back(extrasmenu.getName());
 
 							extrasOp = mainMenu.addOpt(opt);
 						}
@@ -544,6 +546,107 @@ int main(int argc, char* argv[])
 					break;
 
 				case 5:
+				{
+					{
+						CMenu::menuOpt opt;
+
+						opt.text = "Charts";
+						opt.y = 0.4;
+						opt.x = -proportion + 0.2;
+						opt.size = 0.075;
+						opt.group = 1;
+						opt.status = 0;
+						opt.type = CMenu::menusOPT::textbtn;
+
+						opt.menusXRef.push_back(chartsmenu.getName());
+
+						extrasmenu.addOpt(opt);
+					}
+
+					{
+						CMenu::menuOpt opt;
+
+						opt.text = "Voltar";
+						opt.y = 0.0;
+						opt.size = 0.075;
+						opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+						opt.group = 1;
+						opt.status = 0;
+						opt.type = CMenu::menusOPT::textbtn;
+						opt.goback = true;
+
+						extrasmenu.addOpt(opt);
+					}
+				}
+
+
+				{
+					{
+						CMenu::menuOpt opt;
+
+						opt.text = "Compilador de .chart para .gpp";
+						opt.y = 0.4;
+						opt.x = -proportion + 0.2;
+						opt.size = 0.075;
+						opt.group = 1;
+						opt.status = 0;
+						opt.type = CMenu::menusOPT::textbtn;
+
+						opt.menusXRef.push_back(chartCompileMenu.getName());
+
+						chartsmenu.addOpt(opt);
+					}
+
+					{
+						CMenu::menuOpt opt;
+
+						opt.text = "Criador de charts";
+						opt.y = 0.3;
+						opt.x = -proportion + 0.2;
+						opt.size = 0.075;
+						opt.group = 1;
+						opt.status = 0;
+						opt.type = CMenu::menusOPT::textbtn;
+
+						std::string testecallback = game.addGameCallbacks("gameCharter", GPPGame::charterModule);
+						opt.menusXRef.push_back(testecallback);
+
+						chartsmenu.addOpt(opt);
+					}
+
+					{
+						CMenu::menuOpt opt;
+
+						opt.text = "Voltar";
+						opt.y = 0.0;
+						opt.size = 0.075;
+						opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+						opt.group = 1;
+						opt.status = 0;
+						opt.type = CMenu::menusOPT::textbtn;
+						opt.goback = true;
+
+						chartsmenu.addOpt(opt);
+					}
+				}
+
+
+				{
+					{
+						CMenu::menuOpt opt;
+
+						opt.text = "Voltar";
+						opt.y = 0.85;
+						opt.size = 0.075;
+						opt.x = -1.0;
+						opt.group = 1;
+						opt.status = 0;
+						opt.type = CMenu::menusOPT::textbtn;
+						opt.goback = true;
+
+						chartCompileMenu.addOpt(opt);
+					}
+				}
 					campaingMgr.loadCampaingModes();
 					break;
 

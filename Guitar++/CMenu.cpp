@@ -55,7 +55,7 @@ int CMenu::addOpt(const menuOpt &opt){
 
 	auto genName = [this](int optID)
 	{
-		return menuName + std::string("_") + std::to_string((int)(options[optID].x * 100.0)) + std::to_string((int)(options[optID].y * 100.0)) + std::string("g") + std::to_string((int)(options[optID].group));
+		return menuName + std::string("_") + std::to_string(optID)  + std::to_string((int)(options[optID].group));
 	};
 	
 	options.back().optionName = genName(options.size() - 1);
@@ -67,8 +67,22 @@ int CMenu::addOpt(const menuOpt &opt){
 
 void CMenu::resetData()
 {
-	for (auto &opt : options){
+	for (auto &opt : options)
+	{
 		opt.status = 0;
+	}
+}
+
+void CMenu::resetBtns()
+{
+	lastEnterOptBtn = false;
+	lastMouseClickStatus = false;
+
+	status = 0;
+
+	for (auto &opt : options)
+	{
+		opt.btnClickStat = false;
 	}
 }
 
