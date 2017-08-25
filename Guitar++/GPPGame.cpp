@@ -3098,14 +3098,37 @@ std::string GPPGame::selectSong()
 
 		bool mutexLocked = false;
 
-		while (!(mutexLocked = getDirLoadMutex.try_lock()) || processingLoadDir)
+		auto mutexTryLockTestGuard = [&]()
+		{
+			if (!mutexLocked)
+			{
+				return (mutexLocked = getDirLoadMutex.try_lock());
+			}
+
+			return mutexLocked;
+		};
+
+		while (processingLoadDir || !mutexTryLockTestGuard())
 		{
 			if (!CEngine::engine().windowOpened())
 			{
-				std::lock_guard<std::mutex> m(getDirLoadMutex);
+				if (!mutexLocked)
+				{
+					std::lock_guard<std::mutex> m(getDirLoadMutex);
 
-				if (getDirLoad.joinable())
-					getDirLoad.join();
+					if (getDirLoad.joinable())
+						getDirLoad.join();
+				}
+				else
+				{
+					try {
+						if (getDirLoad.joinable())
+							getDirLoad.join();
+					}
+					catch (...) { }
+
+					getDirLoadMutex.unlock();
+				}
 
 				return std::string();
 			}
