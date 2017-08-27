@@ -1498,6 +1498,11 @@ void CEngine::colorRGBToArrayf(int32_t rgb, float *arr)
 	arr[3] = 1.0f;
 }
 
+void CEngine::setClearColor(const std::array<double, 4>& color)
+{
+	glClearColor(color[0], color[1], color[2], color[3]);
+}
+
 void CEngine::shadowMatrix(float shadowMat[4][4], float groundplane[4], float lightpos[4])
 {
 	enum {

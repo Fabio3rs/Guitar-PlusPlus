@@ -619,6 +619,8 @@ public:
 	static void colorRGBToArray(int32_t rgb, double *arr);
 	static void colorRGBToArrayf(int32_t rgb, float *arr);
 
+	static void setClearColor(const std::array<double, 4> &color);
+
 	void setVSyncMode(int mode);
 
 	~CEngine();

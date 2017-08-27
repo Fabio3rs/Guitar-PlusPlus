@@ -141,7 +141,7 @@ void GPPGame::charterModule(const std::string &name)
 						CEngine::engine().playSoundStream(p.instrumentSound);
 					}
 
-					CEngine::engine().setSoundVolume(gp.players.back().songAudioID, 0.8f);
+					CEngine::engine().setSoundVolume(gp.players.back().songAudioID, game.songVolume);
 
 					playSound = false;
 				}
@@ -709,6 +709,7 @@ void GPPGame::testClient(const std::string &name)
 
 			if (musicstartedg == 1 && module.players.back().musicRunningTime >= 0.0)
 			{
+				CEngine::engine().setSoundVolume(module.players.back().songAudioID, game.songVolume);
 				CEngine::engine().playSoundStream(module.players.back().songAudioID);
 
 				for (auto &p : module.players)
@@ -1075,6 +1076,7 @@ void GPPGame::serverModule(const std::string &name)
 
 			if (musicstartedg == 1)
 			{
+				CEngine::engine().setSoundVolume(module.players.back().songAudioID, game.songVolume);
 				CEngine::engine().playSoundStream(module.players.back().songAudioID);
 
 				for (auto &p : module.players)
@@ -1223,7 +1225,7 @@ void GPPGame::startModule(const std::string &name)
 	}
 
 	bool firstStartFrame = true;
-
+	
 	auto &playerb = module.players.back();
 	std::string songName = playerb.Notes.songName, songArtist = playerb.Notes.songArtist, songCharter = playerb.Notes.songCharter;
 
@@ -1330,7 +1332,7 @@ void GPPGame::startModule(const std::string &name)
 
 
 
-			{
+			if (game.drawGamePlayBackground) {
 
 
 				engine.activate3DRender(true);
@@ -1574,6 +1576,7 @@ void GPPGame::startModule(const std::string &name)
 
 			if (musicstartedg == 1)
 			{
+				CEngine::engine().setSoundVolume(module.players.back().songAudioID, game.songVolume);
 				engine.playSoundStream(module.players.back().songAudioID);
 
 				for (auto &p : module.players)
@@ -2141,6 +2144,7 @@ void GPPGame::startMarathonModule(const std::string &name)
 
 			if (musicstartedg == 1)
 			{
+				CEngine::engine().setSoundVolume(module.players.back().songAudioID, game.songVolume);
 				engine.playSoundStream(module.players.back().songAudioID);
 
 				for (auto &p : module.players)
@@ -2677,6 +2681,7 @@ void GPPGame::campaingPlayModule(const std::string &name)
 
 			if (musicstartedg == 1)
 			{
+				CEngine::engine().setSoundVolume(module.players.back().songAudioID, game.songVolume);
 				engine.playSoundStream(module.players.back().songAudioID);
 
 				for (auto &p : module.players)
@@ -3130,6 +3135,7 @@ std::string GPPGame::selectSong()
 					getDirLoadMutex.unlock();
 				}
 
+				mutexLocked = false;
 				return std::string();
 			}
 
@@ -3176,6 +3182,251 @@ std::string GPPGame::selectSong()
 	}
 
 	return std::string();
+}
+
+void GPPGame::addSongListToMenu(CMenu &selectSongMenu, std::map<int, std::string> &menuMusics)
+{
+	auto &game = GuitarPP();
+	static bool selectingSong = false;
+
+	menuMusics.clear();
+	selectSongMenu.options.clear();
+
+	auto wait = [this](double t) {
+		auto &engine = CEngine::engine();
+		double start = engine.getTime();
+
+		while (engine.windowOpened() && (engine.getTime() - start) < t) {
+			engine.clearScreen();
+
+			engine.activate3DRender(true);
+			engine.activateLighting(true);
+
+			{
+				CEngine::cameraSET usingCamera;
+				usingCamera.eyex = 3.0;
+				usingCamera.eyey = 1.75;
+				usingCamera.eyez = 2.7;
+				usingCamera.centerx = 3.0;
+				usingCamera.centery = 1.3;
+				usingCamera.centerz = 0;
+				usingCamera.upx = 0;
+				usingCamera.upy = 1;
+				usingCamera.upz = 0;
+
+				engine.setCamera(usingCamera);
+			}
+
+			{
+				lightData l;
+
+				for (auto &t : l.ambientLight)
+				{
+					t = 0.1f;
+				}
+
+				for (auto &t : l.direction)
+				{
+					t = 2.5f;
+				}
+
+				for (auto &t : l.position)
+				{
+					t = 0.0f;
+				}
+
+				for (auto &t : l.specularLight)
+				{
+					t = 1.0f;
+				}
+
+				for (auto &t : l.diffuseLight)
+				{
+					t = 0.2f;
+				}
+
+				l.specularLight[1] = 1.0f;
+				l.specularLight[2] = 1.0f;
+				l.diffuseLight[0] = 1.0f;
+				l.diffuseLight[1] = 1.0f;
+				l.ambientLight[3] = 0.1f;
+
+				CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
+
+				l.angle = 180.0f;
+				l.direction[0] = 3.0f;
+				l.direction[1] = -0.5f;
+				l.direction[2] = -1.5f;
+
+				l.position[0] = 3.0f;
+				l.position[1] = 2.7f;
+				l.position[2] = -1.5f;
+				l.position[3] = 1.0f;
+
+				engine.activateLight(0, false);
+				engine.activateLight(1, true);
+				engine.setLight(l, 1);
+			}
+
+			engine.activateNormals(true);
+			testobj.draw(0);
+			engine.activateNormals(false);
+
+			engine.activateLighting(false);
+			engine.activate3DRender(false);
+
+			engine.renderFrame();
+		}
+	};
+
+	int voltarOpt;
+
+	{
+		CMenu::menuOpt opt;
+
+		opt.text = "Voltar";
+		opt.y = 0.85;
+		opt.x = -0.8;
+		opt.size = 0.1;
+		opt.group = -1;
+		opt.status = 0;
+		opt.type = CMenu::menusOPT::textbtn;
+		opt.goback = true;
+
+		opt.shortcutKey = GLFW_KEY_ESCAPE;
+
+		opt.color[0] = opt.color[1] = opt.color[2] = 0.5;
+
+		opt.updateCppCallback = [&menuMusics](CMenu &menu, CMenu::menuOpt &opt)
+		{
+			static double offset = 0.0;
+
+			if (selectingSong)
+			{
+				int upkey = CEngine::engine().getKey(GLFW_KEY_UP), downkey = CEngine::engine().getKey(GLFW_KEY_DOWN);
+
+				if ((upkey || downkey) && upkey != downkey)
+				{
+					static double movetime = CEngine::engine().getTime();
+
+					if ((CEngine::engine().getTime() - movetime) > 0.1)
+					{
+						double loffset = 0.0;
+
+						if (upkey && offset > -1.0)
+						{
+							loffset -= 0.1;
+							movetime = CEngine::engine().getTime();
+						}
+
+						if (downkey && offset < 1.0)
+						{
+							loffset += 0.1;
+							movetime = CEngine::engine().getTime();
+						}
+
+						offset += loffset;
+
+						for (auto &musicOpt : menuMusics)
+						{
+							if (musicOpt.first < menu.options.size())
+							{
+								menu.options[musicOpt.first].y += loffset;
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				offset = 0;
+			}
+			return 0;
+		};
+
+		voltarOpt = selectSongMenu.addOpt(opt);
+	}
+
+	{
+		std::atomic<bool> processingLoadDir = true;
+		std::mutex getDirLoadMutex;
+		std::thread getDirLoad([&]()
+		{
+			std::lock_guard<std::mutex> m(getDirLoadMutex);
+			auto songs = game.getDirectory("./data/songs", false, true);
+
+			for (auto &song : songs)
+			{
+				if (CPlayer::smartChartSearch(song) != "")
+				{
+					CMenu::menuOpt opt;
+
+					opt.text = song;
+					opt.y = 0.8 - menuMusics.size() * 0.1;
+					opt.x = CFonts::fonts().getCenterPos(song, 0.09, 0.0);
+					opt.size = 0.09;
+					opt.group = 1;
+					opt.status = 0;
+					opt.type = CMenu::menusOPT::textbtn;
+
+					opt.color[1] = opt.color[2] = (CPlayer::smartSongSearch(song).size() == 0) ? 0.0 : 1.0;
+
+					menuMusics[selectSongMenu.addOpt(opt)] = song;
+				}
+			}
+
+			processingLoadDir = false;
+		});
+
+		bool mutexLocked = false;
+
+		auto mutexTryLockTestGuard = [&]()
+		{
+			if (!mutexLocked)
+			{
+				return (mutexLocked = getDirLoadMutex.try_lock());
+			}
+
+			return mutexLocked;
+		};
+
+		while (processingLoadDir || !mutexTryLockTestGuard())
+		{
+			if (!CEngine::engine().windowOpened())
+			{
+				if (!mutexLocked)
+				{
+					std::lock_guard<std::mutex> m(getDirLoadMutex);
+
+					if (getDirLoad.joinable())
+						getDirLoad.join();
+				}
+				else
+				{
+					try {
+						if (getDirLoad.joinable())
+							getDirLoad.join();
+					}
+					catch (...) {}
+
+					getDirLoadMutex.unlock();
+				}
+
+				mutexLocked = false;
+				return;
+			}
+
+			wait(0.1);
+		}
+
+		if (mutexLocked)
+		{
+			getDirLoadMutex.unlock();
+
+			if (getDirLoad.joinable())
+				getDirLoad.join();
+		}
+	}
 }
 
 GPPGame::func_t GPPGame::getCallback(const std::string &str)
@@ -3850,6 +4101,10 @@ int GPPGame::getGamePlayPlusState(lua_State *L)
 
 GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
 {
+	songVolume = 0.8f;
+	drawGamePlayBackground = true;
+	showTextsTest = true;
+
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerFunctions);
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerGlobals);
 

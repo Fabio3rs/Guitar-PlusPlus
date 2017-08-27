@@ -69,7 +69,8 @@ public:
 
 	typedef std::function<void(const std::string &name)> func_t;
 
-	bool gppTextureKeepBuffer;
+	bool gppTextureKeepBuffer, drawGamePlayBackground, showTextsTest;
+	float songVolume;
 
 	// Texture instance manager
 	class gppTexture{
@@ -210,6 +211,7 @@ public:
 
 	std::string getCallBackRealName(const std::string &str);
 	std::string selectSong();
+	void addSongListToMenu(CMenu &selectSongMenu, std::map<int, std::string> &menuMusics);
 
 	static void teste(const std::string &name);
 	static void startModule(const std::string &name);

@@ -772,6 +772,14 @@ int main(int argc, char* argv[])
 		}
 
 		//game.getMainMenu()->backgroundTexture = menu.getGTextureName();
+		{
+			std::array<double, 4> colorarray;
+			CEngine::colorRGBToArray(0xFF00FF, colorarray.data());
+			CEngine::setClearColor(colorarray);
+			game.drawGamePlayBackground = false;
+			game.showTextsTest = false;
+		}
+
 		game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, false);
 
 
