@@ -1871,13 +1871,13 @@ void GPPGame::startMarathonModule(const std::string &name)
 							songName = playerb.Notes.songName;
 							songArtist = playerb.Notes.songArtist;
 							songCharter = playerb.Notes.songCharter;
+							module.showBPMLines = bOldShowBPMLines;
 						}
 					}
 				}
 			}
 			else
 			{
-				module.showBPMLines = bOldShowBPMLines;
 				if (!songTimeFixed && (engine.getTime() - startTime) > 0.5)
 				{
 					engine.setSoundTime(module.players.back().songAudioID, module.players.back().musicRunningTime);

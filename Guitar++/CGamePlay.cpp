@@ -268,7 +268,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 		nCalc += 0.55;
 
-		double alpha = pos2Alpha(-nCalc / 6.5);
+		double alpha = pos2Alpha(-nCalc / 5.8);
 
 		if (alpha <= 0.0)
 		{
@@ -277,7 +277,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 		const double pos = -0.492;
 
-		const double size = 0.3;
+		const double size = 0.1;
 
 		static staticCallFunc rendr([&]()
 		{
@@ -286,9 +286,9 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			TempStruct3D.x3 = TempStruct3D.x2;
 			TempStruct3D.x4 = TempStruct3D.x1;
 
-			TempStruct3D.y1 = -0.4999;
+			TempStruct3D.y1 = -0.4995;
 			TempStruct3D.y2 = TempStruct3D.y1;
-			TempStruct3D.y3 = -0.4999;
+			TempStruct3D.y3 = -0.4995;
 			TempStruct3D.y4 = TempStruct3D.y3;
 
 			TempStruct3D.TextureX1 = 0.0f;
@@ -333,7 +333,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			int nbuff = BPMnowbuff + 1;
 			if (Player.Notes.BPM.size() > nbuff)
 			{
-				if (((mscRunnTime - 2.5) > (Player.Notes.BPM[nbuff].time)))
+				if (((mscRunnTime - 1.5) > (Player.Notes.BPM[nbuff].time)))
 				{
 					BPMnowbuff = nbuff;
 					Player.BPMNowBuffer = BPMnowbuff;
@@ -368,7 +368,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 		double chartEnd = Player.Notes.getChartEnd(1.0);
 
-		for (int i = 0; tCalc < 7.0; i++, bpmMultiplier++)
+		for (int i = 0; tCalc < 9.0; i++, bpmMultiplier++)
 		{
 			blinetime = timeToSum + BPS * bpmMultiplier;
 
@@ -736,11 +736,15 @@ double CGamePlay::pos2Alpha(double pos)
 		return 0.0;
 	}
 
-	if (pos < maxPosMaxAlpha){
+	if (pos < maxPosMaxAlpha)
+	{
 		return 1.0;
 	}
 
 	result = (1.0 / dif) * (minPosMinAlpha - pos);
+
+	if (result > 1.0)
+		return 1.0;
 
 	return result;
 }
