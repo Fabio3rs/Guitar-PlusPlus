@@ -160,6 +160,8 @@ public:
 		int longNoteComb;
 		size_t longNoteID[5];
 
+		double getChartEnd(double offset = 2.0);
+
 		struct NoteInt {
 			uint64_t time, lTime;
 

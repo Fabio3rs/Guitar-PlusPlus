@@ -829,6 +829,22 @@ void CPlayer::NotesData::deducePlusLastNotes()
 	}
 }
 
+double CPlayer::NotesData::getChartEnd(double offset)
+{
+	auto size = gNotes.size();
+
+	if (size > 0)
+	{
+		auto &lastNote = gNotes[size - 1];
+
+		double finalTime = lastNote.time + lastNote.lTime;
+		finalTime += offset;
+		return finalTime;
+	}
+
+	return 2.0;
+}
+
 bool CPlayer::NotesData::loadChart(const char *chartFile)
 {
 	chartFileName = chartFile;
@@ -1075,6 +1091,8 @@ void CPlayer::releaseSong()
 	}
 
 	songAudioID = -1;
+
+	BPMNowBuffer = 0;
 }
 
 void CPlayer::breakCombo()

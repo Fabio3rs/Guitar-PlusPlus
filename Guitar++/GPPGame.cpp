@@ -301,6 +301,8 @@ void GPPGame::loadMarathonThread(CGamePlay &module, loadThreadData &l)
 				module.players[i].correctNotes = 0;
 				module.players[i].strklinent = -1;
 
+				module.players[i].BPMNowBuffer = 0;
+
 				tmpPlayers[i].songAudioID = -1;
 				tmpPlayers[i].instrumentSound = -1;
 
@@ -1696,7 +1698,9 @@ void GPPGame::startMarathonModule(const std::string &name)
 
 	double fadeoutdsc = engine.getTime();
 
-	bool interval = false, waitingIntervalLoad = false;
+	bool interval = false, waitingIntervalLoad = false, bOldShowBPMLines = module.showBPMLines;
+
+	double marathonTime = 0.0;
 
 	while (engine.windowOpened())
 	{
@@ -1803,6 +1807,7 @@ void GPPGame::startMarathonModule(const std::string &name)
 					l.processing = true;
 
 					waitingIntervalLoad = true;
+					module.showBPMLines = false;
 				}
 				else
 				{
@@ -1872,6 +1877,7 @@ void GPPGame::startMarathonModule(const std::string &name)
 			}
 			else
 			{
+				module.showBPMLines = bOldShowBPMLines;
 				if (!songTimeFixed && (engine.getTime() - startTime) > 0.5)
 				{
 					engine.setSoundTime(module.players.back().songAudioID, module.players.back().musicRunningTime);
@@ -1896,7 +1902,7 @@ void GPPGame::startMarathonModule(const std::string &name)
 					double centerx = 0.0;
 					double centerz = -650.0;
 
-					double rtime = module.players.back().musicRunningTime / 10.0;
+					double rtime = marathonTime / 10.0;
 					double eyexcam = sin(0) * 1.0 + centerx + sin(rtime) * 1.0;
 					double eyezcam = cos(0) * 1.0 + centerz + cos(rtime) * 1.0;
 
@@ -2160,6 +2166,7 @@ void GPPGame::startMarathonModule(const std::string &name)
 
 
 		game.renderFrame();
+		marathonTime += engine.getDeltaTime();
 	}
 
 

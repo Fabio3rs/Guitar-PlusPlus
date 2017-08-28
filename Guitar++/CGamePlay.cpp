@@ -366,9 +366,16 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		int64_t bpmMultiplier = blinetime;
 		double bpmMultiplierd = bpmMultiplier;
 
+		double chartEnd = Player.Notes.getChartEnd(1.0);
+
 		for (int i = 0; tCalc < 7.0; i++, bpmMultiplier++)
 		{
 			blinetime = timeToSum + BPS * bpmMultiplier;
+
+			if (blinetime > chartEnd)
+			{
+				break;
+			}
 
 			bool contloop = true;
 
