@@ -313,14 +313,16 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 	double BBPM = 0.0;
 	double minTime = 0;
 
-	if (Player.Notes.BPM.size() > 0)
+	const auto bpmBuffSize = Player.Notes.BPM.size();
+
+	if (bpmBuffSize > 0)
 	{
-		const double mtime = (time - 1.0);
+		const double mtime = (time - 1.5);
 		int BPMnowbuff = Player.BPMNowBuffer/*getBPMAtI(Player, (mtime > 0.0) ? mtime : 0.0)*/;
 
-		if (BPMnowbuff >= Player.Notes.BPM.size())
+		if (BPMnowbuff >= bpmBuffSize)
 		{
-			BPMnowbuff = Player.Notes.BPM.size() - 1;
+			BPMnowbuff = bpmBuffSize - 1;
 		}
 
 		if (BPMnowbuff < 0)
@@ -331,7 +333,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		if (mtime >= 0.0)
 		{
 			int nbuff = BPMnowbuff + 1;
-			if (Player.Notes.BPM.size() > nbuff)
+			if (bpmBuffSize > nbuff)
 			{
 				if (((mscRunnTime - 1.5) > (Player.Notes.BPM[nbuff].time)))
 				{
@@ -381,7 +383,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 			{
 				int nbuff = BPMnowbuff + 1;
-				if (Player.Notes.BPM.size() > nbuff)
+				if (bpmBuffSize > nbuff)
 				{
 					if (blinetime >= Player.Notes.BPM[nbuff].time)
 					{
@@ -1010,7 +1012,7 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, in
 		CEngine::engine().matrixReset();
 }
 
-void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlayer & player)
+void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
 	double rtime = getRunningMusicTime(player) - pos;
