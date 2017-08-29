@@ -10,10 +10,12 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include "CChart.h"
 
 class CCharter
 {
 	CGamePlay gpModule;
+	CChart chart;
 	double atMusicTime, divTime;
 	bool bForwardBackwardK, bLeftRightK;
 	bool fretKeys[5];
@@ -22,6 +24,7 @@ class CCharter
 	bool processNewNote;
 	std::atomic<bool> loading, continueLoading, loadThreadEnd;
 	std::atomic<double> readBPMPercent, readBPMAtSeconds;
+	std::string instrument;
 	std::mutex loadBPMMutex;
 	bool backToZero;
 
@@ -38,6 +41,8 @@ class CCharter
 	void internalLoad();
 
 	std::thread loadThread;
+
+	double songTimePassBPMBased(const BPM_t &BPMContainer, double pass, bool forward);
 
 public:
 	void prepareDemoGamePlay(CGamePlay &gp);

@@ -1,6 +1,15 @@
 #include "CCharter.h"
 #include "CFonts.h"
 
+double CCharter::songTimePassBPMBased(const BPM_t &BPMContainer, double pass, bool forward)
+{
+
+
+
+
+	return 0.0;
+}
+
 void CCharter::prepareDemoGamePlay(CGamePlay &gp)
 {
 	workingNote = nullptr;
@@ -174,7 +183,7 @@ void CCharter::preRender()
 			bLeftRightK = false;
 		}
 
-		if (kfor || kback)
+		if (kfor != kback)
 		{
 			if (!bForwardBackwardK)
 			{
@@ -503,6 +512,9 @@ void CCharter::renderInfo()
 
 void CCharter::renderAll()
 {
+	//auto &chartInstrument = chart.getInstrument(instrument);
+	//auto &BPM = chart.getBPMContainer();
+
 	if (gpModule.players.back().Notes.BPM.size() == 0)
 	{
 		CPlayer::NotesData::Note n;
@@ -566,6 +578,7 @@ CCharter::CCharter()
 	loading = false;
 	atMusicTime = 0.0;
 	gpModule.players.push_back(CPlayer("guitar charter"));
+	instrument = "[ExpertSingle]";
 	gpModule.bIsACharterGP = true;
 	divTime = 0.5;
 	readBPMAtSeconds = 0.0;

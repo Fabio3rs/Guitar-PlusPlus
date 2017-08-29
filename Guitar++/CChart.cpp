@@ -35,7 +35,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 		}
 	};
 
-	typedef std::deque<Note> noteContainer;
+	typedef std::deque<Note_t> noteContainer;
 	typedef std::vector<SyncTrackBPM> BPMContainer;
 	BPMContainer BPMs;
 
@@ -168,7 +168,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 
 	auto noteRead = [&pureBPMToCalcBPM, &getNoteTime, &getRefBPM, &chartOffset](noteContainer &NTS, const BPMContainer &BPMs, parsedChart &chartMap, std::string difficulty)
 	{
-		std::vector<NoteInt> ntsI;
+		std::vector<NoteInt_t> ntsI;
 		for (auto &scopeData : chartMap[difficulty])
 		{
 			char c[32] = { 0 };
@@ -179,7 +179,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 				{
 					if (std::string(c) == "N")
 					{
-						NoteInt nt;
+						NoteInt_t nt;
 						nt.time = std::stoll(scopeData.first);
 						nt.lTime = j;
 						nt.type = i;
@@ -257,7 +257,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 
 					if (std::string(c) == "S" && i == 2)
 					{
-						NoteInt nt;
+						NoteInt_t nt;
 						nt.time = std::stoll(scopeData.first);
 						nt.lTime = j;
 						nt.type = -1;
@@ -371,7 +371,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 
 	int p = 0;
 	for (auto &BP : BPMs) {
-		Note newNote;
+		Note_t newNote;
 		newNote.time = getNoteTime(BPMs, p, (int64_t)BP.offset);
 		newNote.lTime = BP.BPM / 1000.0;
 
@@ -399,7 +399,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 		auto &gNotes = in.gNotes;
 		auto &gPlus = in.gPlus;
 
-		auto hopoTest = [this, &gNotes](Note &note)
+		auto hopoTest = [this, &gNotes](Note_t &note)
 		{
 			size_t size = gNotes.size(), i;
 			i = size - 1;
@@ -448,7 +448,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 
 			if (Nts[i].type == -1)
 			{
-				plusNote plusT;
+				plusNote_t plusT;
 
 				plusT.time = Nts[i].time;
 				plusT.lTime = Nts[i].lTime;
@@ -458,7 +458,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 			}
 			else
 			{
-				Note newNote;
+				Note_t newNote;
 				newNote.time = Nts[i].time;
 				newNote.lTime = Nts[i].lTime;
 				newNote.type = Nts[i].type;

@@ -17,12 +17,14 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/deque.hpp>
 
+typedef CPlayer::NotesData::Note Note_t;
+typedef CPlayer::NotesData::NoteInt NoteInt_t;
+typedef CPlayer::NotesData::plusNote plusNote_t;
+typedef std::deque<Note_t> BPM_t;
+
 class CChart
 {
 	friend class cereal::access;
-	typedef CPlayer::NotesData::Note Note;
-	typedef CPlayer::NotesData::NoteInt NoteInt;
-	typedef CPlayer::NotesData::plusNote plusNote;
 
 	struct instrumentNotes
 	{
@@ -31,8 +33,8 @@ class CChart
 
 		bool present;
 
-		std::deque<Note> gNotes;
-		std::deque<plusNote> gPlus;
+		std::deque<Note_t> gNotes;
+		std::deque<plusNote_t> gPlus;
 
 		instrumentNotes();
 
@@ -72,7 +74,7 @@ class CChart
 		}
 	} chartData;
 
-	std::deque<Note> BPM;
+	BPM_t BPM;
 
 	bool parseFeebackChart(std::istream &chartStream);
 
@@ -89,6 +91,16 @@ class CChart
 	}
 
 public:
+	instrumentNotes &getInstrument(const std::string &instrument)
+	{
+		return instruments[instrument];
+	}
+
+	BPM_t &getBPMContainer()
+	{
+		return BPM;
+	}
+
 	bool compileGppChart(const std::string &fileName) const;
 
 	bool loadToPlayerData(CPlayer &player, const std::string &instrument = "") const;
