@@ -739,7 +739,8 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 	}
 	*/
 	int p = 0;
-	for (auto &BP : BPMs){
+	for (auto &BP : BPMs)
+	{
 		Note newNote;
 		newNote.time = getNoteTime(BPMs, p, (int64_t)BP.offset);
 		newNote.lTime = BP.BPM / 1000.0;

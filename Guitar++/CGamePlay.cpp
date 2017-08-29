@@ -266,7 +266,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 		double nCalc = rtime * speedMp;
 
-		nCalc += 0.55;
+		nCalc += 0.75;
 
 		double alpha = pos2Alpha(-nCalc / 5.8);
 
@@ -277,7 +277,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 		const double pos = -0.492;
 
-		const double size = 0.1;
+		const double size = 0.05;
 
 		static staticCallFunc rendr([&]()
 		{
@@ -348,10 +348,8 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		}
 
 		double BPS = 60.0 / Player.Notes.BPM[BPMnowbuff].lTime;
-		
-		int localBPMBuffer = BPMnowbuff;
 
-		double blinetime = mtime - Player.Notes.BPM[localBPMBuffer].time;
+		double blinetime = mtime - Player.Notes.BPM[BPMnowbuff].time;
 
 		if (blinetime >= 0.0)
 		{
@@ -363,7 +361,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		}
 
 		double tCalc = 0.0;
-		double timeToSum = Player.Notes.BPM[localBPMBuffer].time;
+		double timeToSum = Player.Notes.BPM[BPMnowbuff].time;
 
 		int64_t bpmMultiplier = blinetime;
 		double bpmMultiplierd = bpmMultiplier;
@@ -379,8 +377,6 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 				break;
 			}
 
-			bool contloop = true;
-
 			{
 				int nbuff = BPMnowbuff + 1;
 				if (bpmBuffSize > nbuff)
@@ -388,20 +384,16 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 					if (blinetime >= Player.Notes.BPM[nbuff].time)
 					{
 						BPMnowbuff = nbuff;
-						localBPMBuffer = BPMnowbuff;
 
 						bpmMultiplier = 0;
 						auto &BPMNow = Player.Notes.BPM[BPMnowbuff];
-						blinetime = BPMNow.time;
 
-						timeToSum = BPMNow.time;
+						blinetime = timeToSum = BPMNow.time;
 						BPS = 60.0 / BPMNow.lTime;
 					}
 				}
 			}
 
-			//std::cout << mscRunnTime << "    " << blinetime << "    "  << BPMnowbuff << std::endl;
-			//if ((blinetime - mscRunnTime) > -3.0)
 			if (!calcQuad(blinetime, mscRunnTime, Player))
 			{
 				break;
@@ -417,58 +409,55 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 		if (BPMl.vArray.size() > 0)
 			CEngine::engine().drawTrianglesWithAlpha(BPMl);
-	}
 
-	std::deque<CPlayer::NotesData::Note>::iterator nullit;
-
-	if (showBPMVlaues)
-	{
-		if (minTime < 0.0)
-			minTime = 0.0;
-
-		auto it = getBPMAtIt(Player, minTime);
-
-		if (it == nullit)
+		if (showBPMVlaues)
 		{
-			it = Player.Notes.BPM.begin();
-		}
+			std::deque<CPlayer::NotesData::Note>::iterator nullit;
 
-		if (it != Player.Notes.BPM.end())
-		{
-			for (; it != Player.Notes.BPM.end(); it++)
+			if (minTime < 0.0)
+				minTime = 0.0;
+
+			auto it = getBPMAtIt(Player, minTime);
+
+			if (it == nullit)
 			{
-				if ((*it).time < (mscRunnTime + 5.0))
-				{
-					BPMValuesdata.push_back(*it);
-				}
-				else
-				{
-					break;
-				}
-			}
-		}
-
-		if (BPMValuesdata.size() > 0)
-		{
-			double runt = getRunningMusicTime(Player);
-
-			CEngine::engine().activate3DRender(false);
-
-			for (auto &BPMv : BPMValuesdata)
-			{
-				double nCalc = (runt - BPMv.time) * speedMp;
-
-				nCalc += 0.55;
-
-				CFonts::fonts().draw3DTextInScreen(std::to_string(BPMv.lTime), 0.492, -0.5, nCalc, 0.1, 0.1, 0.0);
+				it = Player.Notes.BPM.begin();
 			}
 
-			CEngine::engine().activate3DRender(true);
+			if (it != Player.Notes.BPM.end())
+			{
+				for (; it != Player.Notes.BPM.end(); it++)
+				{
+					if ((*it).time < (mscRunnTime + 5.0))
+					{
+						BPMValuesdata.push_back(*it);
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+
+			if (BPMValuesdata.size() > 0)
+			{
+				double runt = getRunningMusicTime(Player);
+
+				CEngine::engine().activate3DRender(false);
+
+				for (auto &BPMv : BPMValuesdata)
+				{
+					double nCalc = (runt - BPMv.time) * speedMp;
+
+					nCalc += 0.55;
+
+					CFonts::fonts().draw3DTextInScreen(std::to_string(BPMv.lTime), 0.492, -0.5, nCalc, 0.1, 0.1, 0.0);
+				}
+
+				CEngine::engine().activate3DRender(true);
+			}
 		}
 	}
-
-
-	//CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 }
 
 void CGamePlay::renderIndivdualFlame(int id, double pos, unsigned int Texture, int state, double sizeproportion, CPlayer &player)
@@ -3362,7 +3351,7 @@ CGamePlay::CGamePlay() : engine(CEngine::engine())
 {
 	bRenderHUD = true;
 	bIsACharterGP = false;
-	showBPMVlaues = false;
+	showBPMVlaues = true;
 	speedMp = 2.5; // equivalent to Guitar Hero's hyperspeed
 
 	gSpeed = 1.0; // music speed
