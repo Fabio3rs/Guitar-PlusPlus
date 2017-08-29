@@ -317,7 +317,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 	if (bpmBuffSize > 0)
 	{
-		const double mtime = (time - 1.5);
+		const double mtime = (time - 1.0);
 		int BPMnowbuff = Player.BPMNowBuffer/*getBPMAtI(Player, (mtime > 0.0) ? mtime : 0.0)*/;
 
 		if (BPMnowbuff >= bpmBuffSize)
@@ -415,13 +415,11 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			}
 		}
 
-		//Player.BPMNowBuffer = BPMnowbuff;
+		if (BPMl.vArray.size() > 0)
+			CEngine::engine().drawTrianglesWithAlpha(BPMl);
 	}
 
 	std::deque<CPlayer::NotesData::Note>::iterator nullit;
-
-
-	CEngine::engine().drawTrianglesWithAlpha(BPMl);
 
 	if (showBPMVlaues)
 	{
@@ -450,22 +448,23 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 			}
 		}
 
-		double runt = getRunningMusicTime(Player);
-
 		if (BPMValuesdata.size() > 0)
+		{
+			double runt = getRunningMusicTime(Player);
+
 			CEngine::engine().activate3DRender(false);
 
-		for (auto &BPMv : BPMValuesdata)
-		{
-			double nCalc = (runt - BPMv.time) * speedMp;
+			for (auto &BPMv : BPMValuesdata)
+			{
+				double nCalc = (runt - BPMv.time) * speedMp;
 
-			nCalc += 0.55;
+				nCalc += 0.55;
 
-			CFonts::fonts().draw3DTextInScreen(std::to_string(BPMv.lTime), 0.492, -0.5, nCalc, 0.1, 0.1, 0.0);
-		}
+				CFonts::fonts().draw3DTextInScreen(std::to_string(BPMv.lTime), 0.492, -0.5, nCalc, 0.1, 0.1, 0.0);
+			}
 
-		if (BPMValuesdata.size() > 0)
 			CEngine::engine().activate3DRender(true);
+		}
 	}
 
 
