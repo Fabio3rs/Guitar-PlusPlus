@@ -734,23 +734,13 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		{
+		/*{
 			CChart chartTest;
 			bool chartOpened = chartTest.open("./data/songs/Soulless3/Soulless3.chart");
 			CLog::log().multiRegister("chartTest.open(\"./data/songs/Soulless3/Soulless3.chart\") -> %0", chartOpened);
 			CLog::log().SaveBuffer();
 
 			try {
-				/*std::fstream out("./data/songs/Soulless3/Soulless3.gpp", std::ios::out | std::ios::binary | std::ios::trunc);
-
-				if (out.is_open())
-				{
-					cereal::BinaryOutputArchive oarchive(out); // Create an output archive
-
-					oarchive(chartTest);
-				}
-
-				out.close();*/
 				chartTest.compileGppChart("./data/songs/Soulless3/Soulless3.gpp");
 
 				CLog::log() << "Save ok ./data/songs/Soulless3/Soulless3.gpp";
@@ -769,7 +759,7 @@ int main(int argc, char* argv[])
 
 			CLog::log() << "CChart test ok";
 			CLog::log().SaveBuffer();
-		}
+		}*/
 
 		//game.getMainMenu()->backgroundTexture = menu.getGTextureName();
 		/*{

@@ -3351,7 +3351,7 @@ CGamePlay::CGamePlay() : engine(CEngine::engine())
 {
 	bRenderHUD = true;
 	bIsACharterGP = false;
-	showBPMVlaues = true;
+	showBPMVlaues = false;
 	speedMp = 2.5; // equivalent to Guitar Hero's hyperspeed
 
 	gSpeed = 1.0; // music speed
