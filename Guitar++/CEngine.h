@@ -601,6 +601,7 @@ public:
 
 	void activateNormals(bool a);
 	void activate3DRender(bool a);
+	void activateAlphaTest(bool a);
 	void activateStencilTest(bool a);
 	void activateLighting(bool a);
 	void activateLight(int id, bool a);
@@ -612,6 +613,13 @@ public:
 	void endShadowCapture();
 	static void shadowMatrix(float shadowMat[4][4], float groundplane[4], float lightpos[4]);
 	static void findPlane(float plane[4], float v0[3], float v1[3], float v2[3]);
+
+	static std::array<float, 4> planeEquation(const gppVec3f &p1, const gppVec3f &dir)
+	{
+		float a = dir.x, b = dir.y, c = dir.z;
+		float d = -(a * p1.x) - (b * p1.y) - (c * p1.z);
+		return std::array<float, 4>{ a, b, c, d };
+	}
 
 	static void enablePolygonOffset();
 	static void disablePolygonOffset();

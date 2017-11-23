@@ -3992,6 +3992,7 @@ int GPPGame::createWindow()
 	CEngine::engine().AASamples = getWindowConfig().AA;
 
 	CEngine::engine().openWindow(title.c_str(), getWindowConfig().w, getWindowConfig().h, getWindowConfig().fullscreen);
+	CEngine::engine().activateAlphaTest(true);
 
 	if (getWindowConfig().VSyncMode >= 0 && getWindowConfig().VSyncMode <= 2)
 	{

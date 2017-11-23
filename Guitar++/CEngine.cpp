@@ -1333,6 +1333,8 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
 	//Use the color as the ambient and diffuse material
 	glEnable(GL_COLOR_MATERIAL);
 
+	glAlphaFunc(GL_GEQUAL, 0.01);
+
 	//White specular material color, shininess 16
 	/*
 	float white[] = {1.0, 1.0, 1.0, 1.0};
@@ -1402,6 +1404,14 @@ void CEngine::activate3DRender(bool a)
 		glEnable(GL_DEPTH_TEST);
 	else
 		glDisable(GL_DEPTH_TEST);
+}
+
+void CEngine::activateAlphaTest(bool a)
+{
+	if (a)
+		glEnable(GL_ALPHA_TEST);
+	else
+		glDisable(GL_ALPHA_TEST);
 }
 
 void CEngine::activateStencilTest(bool a)

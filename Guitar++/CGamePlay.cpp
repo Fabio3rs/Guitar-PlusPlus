@@ -827,9 +827,9 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 		TempStruct3D.x3 = TempStruct3D.x1 + size;
 		TempStruct3D.x4 = TempStruct3D.x1;
 
-		TempStruct3D.y1 = -0.46;
+		TempStruct3D.y1 = -0.4;
 		TempStruct3D.y2 = TempStruct3D.y1;
-		TempStruct3D.y3 = -0.46;
+		TempStruct3D.y3 = -0.4;
 		TempStruct3D.y4 = TempStruct3D.y3;
 
 		TempStruct3D.z1 = nCalc;
@@ -852,9 +852,9 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 			}
 		}
 
-		auto texts = (Texture == GPPGame::GuitarPP().HOPOSText) ? GPPGame::GuitarPP().hopoTexture3D : GPPGame::GuitarPP().strumsTexture3D;
+		//auto texts = (Texture == GPPGame::GuitarPP().HOPOSText) ? GPPGame::GuitarPP().hopoTexture3D : GPPGame::GuitarPP().strumsTexture3D;
 
-		GPPGame::GuitarPP().noteOBJ.draw(player.plusEnabled ? texts[5] : texts[id], false);
+		GPPGame::GuitarPP().noteOBJ.draw(GPPGame::GuitarPP().strumsTexture3D[id], false);
 	}
 
 	if (rotated)
@@ -898,9 +898,9 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, in
 		TempStruct3D.x3 = TempStruct3D.x1 + size;
 		TempStruct3D.x4 = TempStruct3D.x1;
 
-		TempStruct3D.y1 = -0.46;
+		TempStruct3D.y1 = -0.49;
 		TempStruct3D.y2 = TempStruct3D.y1;
-		TempStruct3D.y3 = -0.46;
+		TempStruct3D.y3 = -0.49;
 		TempStruct3D.y4 = TempStruct3D.y3;
 
 		TempStruct3D.z1 = nCalc;
@@ -2874,20 +2874,13 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}
 	*/
 	
-	auto planeEquation = [](const gppVec3f &p1, const gppVec3f &dir)
-	{
-		float a = dir.x, b = dir.y, c = dir.z;
-		float d = -(a * p1.x) - (b * p1.y) - (c * p1.z);
-		return std::array<float, 4>{ a, b, c, d };
-	};
-
 	static float floorShadow[4][4];
 
 	float matrix[4][4];
 
 	float lightPosition[4] = { 0, 0, 2.5, 1.0 };
 	// A*x + B*y + C*z + D = 0
-	std::array<float, 4> groundPlane = planeEquation({ 0.0f, -0.5f, 0.0f }, { 0, 1, 0 });
+	std::array<float, 4> groundPlane = CEngine::planeEquation({ 0.0f, -0.499f, 0.0f }, { 0, 1, 0 });
 
 	CEngine::shadowMatrix(matrix, groundPlane.data(), l0.position);
 
@@ -2906,6 +2899,47 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	*/
 	CEngine::enableColorsPointer(false);
+
+	{
+
+		engine.activateStencilTest(true);
+		engine.activate3DRender(false);
+
+		engine.startShadowCapture(); // na verdade isso aqui é a delimitação da área de renderização da sombra
+
+		renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], fretboardText);
+
+		engine.endShadowCapture();
+
+		CEngine::pushMatrix();
+
+		//engine.renderDarkCube();
+		CEngine::multiplyMatrix((float*)matrix);
+
+		engine.setColor(0.0, 0.0, 0.0, 0.5);
+
+		if (player.guitar == nullptr)
+		{
+			renderPylmBar();
+		}
+		else
+		{
+			renderPlayerPylmBar(player);
+		}
+
+		for (auto &n : player.buffer)
+		{
+			renderNoteShadow(n, player);
+		}
+
+		CEngine::popMatrix();
+		CEngine::engine().matrixReset();
+
+		engine.activateStencilTest(false);
+
+		engine.activate3DRender(true);
+	}
+
 
 	engine.activateNormals(true);
 	//engine.activateStencilTest(false);
