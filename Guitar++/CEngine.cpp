@@ -430,9 +430,6 @@ void CEngine::setCamera(double eyex,
 	double upy,
 	double upz)
 {
-	if (window == nullptr)
-		return;
-
 	this->eyex = eyex;
 	this->eyey = eyey;
 	this->eyez = eyez;
@@ -443,6 +440,9 @@ void CEngine::setCamera(double eyex,
 	this->upy = upy;
 	this->upz = upz;
 
+	if (window == nullptr)
+		return;
+	
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
