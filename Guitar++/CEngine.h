@@ -20,6 +20,11 @@
 #include <utility>
 #include <functional>
 #include <array>
+#include <iostream>
+
+#include <AL/al.h>
+#include <AL/alc.h>
+#include <AL/efx.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -211,6 +216,10 @@ class CEngine {
 	bool openWindowCalled;
 
 	std::array<double, 16> projMatrix;
+
+	ALCdevice *audioDevice;
+	ALCcontext *audioContext;
+	static ALenum error;
 
 public:
 	inline const double *getProjMatrix() const { return projMatrix.data();  }
@@ -560,6 +569,64 @@ public:
 	{
 		std::array<float, 4> data;
 	};
+
+	struct audioInstance
+	{
+		ALuint buffer = 0, source = 0;
+
+		audioInstance(audioInstance &&a) : audioInstance(a.buffer, a.source)
+		{
+			a.buffer = a.source = 0u;
+		}
+
+		void play()
+		{
+			alSourcePlay(source);
+		}
+
+		void pause()
+		{
+			alSourcePause(source);
+		}
+
+		void stop()
+		{
+			alSourceStop(source);
+		}
+
+		void rewind()
+		{
+			alSourceRewind(source);
+		}
+
+		audioInstance(const audioInstance&) = delete;
+		audioInstance &operator=(const audioInstance&) = delete;
+
+		audioInstance(ALuint b, ALuint s) : audioInstance()
+		{
+			buffer = b;
+			source = s;
+		}
+
+		audioInstance() : buffer(0u), source(0u)
+		{ }
+
+		~audioInstance()
+		{
+			std::cout << "Delete " << buffer << "  " << source << std::endl;
+			if (buffer)
+			{
+				alDeleteBuffers(1, &buffer);
+			}
+
+			if (source)
+			{
+				alDeleteSources(1, &source);
+			}
+		}
+	};
+
+	audioInstance loadWave(const char *filePath);
 
 	/**/
 	static float getMainVolume();

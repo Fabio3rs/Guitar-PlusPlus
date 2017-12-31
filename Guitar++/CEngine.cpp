@@ -13,14 +13,13 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <fstream>
 
 //#include <GL/glu.h>
 #include "internal.h"
 #include <cmath>
 #include <bass.h>
 #include <bass_fx.h>
-
-#include <GLFW/glfw3.h>
 
 static const double perspectiveMaxDist = 500000.0;
 
@@ -54,12 +53,118 @@ static const double perspectiveMaxDist = 500000.0;
 //
 //========================================================================
 
+ALenum CEngine::error = AL_NO_ERROR;
+
+#pragma pack(push, 1)
+struct wavheader {
+	char riff[4];
+	int32_t size;
+	char wave[4];
+	char fmt[4];
+	int32_t lenght;
+	int16_t pcm;
+	int16_t channels;
+	int32_t rate;
+	int32_t bytesr; // (Sample Rate * BitsPerSample * Channels) / 8.
+	int16_t bpsc; // (BitsPerSample * Channels) / 8.1 - 8 bit mono2 - 8 bit stereo/16 bit mono4 - 16 bit stereo
+	int16_t bps; // Bits per sample
+	char data[4]; // "data" chunk header. Marks the beginning of the data section.
+	uint32_t dataSize;
+
+	wavheader()
+	{
+		memcpy(riff, "RIFF", 4);
+		memcpy(wave, "WAVE", 4);
+		memcpy(fmt, "fmt\x20", 4);
+		memcpy(data, "data", 4);
+	}
+};
+
+struct channels {
+	short l;
+	short r;
+};
+
+#pragma pack(pop)
+
+ALenum deduceAlFormat(int channels, int bits)
+{
+	switch (channels)
+	{
+	case 1:
+		switch (bits)
+		{
+		case 8:
+			return AL_FORMAT_MONO8;
+			
+		case 16:
+			return AL_FORMAT_MONO16;
+
+		default:
+			return 0;
+		}
+
+	case 2:
+		switch (bits)
+		{
+		case 8:
+			return AL_FORMAT_STEREO8;
+
+		case 16:
+			return AL_FORMAT_STEREO16;
+
+		default:
+			return 0;
+		}
+
+	default:
+		return 0;
+	}
+
+	return 0;
+}
+
+bool readWave(const char *wavFile, ALuint buffer)
+{
+	std::fstream mywave(wavFile, std::ios::binary | std::ios::in);
+
+	if (!mywave.is_open())
+		return false;
+
+	mywave.seekg(0, std::ios::end);
+	size_t size = mywave.tellg();
+	mywave.seekg(0, std::ios::beg);
+
+	std::unique_ptr<char[]> pointer(std::make_unique<char[]>(size));
+
+	mywave.read(pointer.get(), size);
+
+	wavheader &header = *(wavheader*)pointer.get();
+
+	char *p = pointer.get() + sizeof(wavheader);
+
+	channels *ch = (channels*)p;
+
+	alBufferData(buffer, deduceAlFormat(header.channels, header.lenght), p, header.dataSize, header.rate);
+	
+	ALenum error = AL_NO_ERROR;
+
+	if ((error = alGetError()) != AL_NO_ERROR)
+	{
+		printf("alBufferData buffer 0: %d", error);
+		alDeleteBuffers(1, &buffer);
+		return false;
+	}
+
+	return true;
+}
+/*
 void CALLBACK GetBPM_ProgressCallback(DWORD chan, float percent, void *user)
 {
 	std::cout << percent << "  " << chan << std::endl;
 
 
-}
+}*/
 
 double CEngine::getChannelLength(unsigned int ch)
 {
@@ -337,6 +442,40 @@ bool CEngine::loadMusicStream(const char *fileName, int &handle)
 	handle = BASS_MusicLoad(false, fileName, (QWORD)MAKELONG(0, 0), 0, BASS_STREAM_PRESCAN | BASS_ASYNCFILE, 0);
 
 	return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE) && handle != 0;
+}
+
+CEngine::audioInstance CEngine::loadWave(const char *filePath)
+{
+	ALuint buffers = 0, source = 0;
+
+	alGenBuffers(1, &buffers);
+	if ((error = alGetError()) != AL_NO_ERROR)
+	{
+		return audioInstance();
+	}
+
+	bool readed = readWave(filePath, buffers);
+
+	if (!readed)
+	{
+		return audioInstance();
+	}
+
+	// Generate Sources
+	alGenSources(1, &source);
+	if ((error = alGetError()) != AL_NO_ERROR)
+	{
+		return audioInstance();
+	}
+
+	alSourcei(source, AL_BUFFER, buffers);
+
+	if ((error = alGetError()) != AL_NO_ERROR)
+	{
+		return audioInstance();
+	}
+
+	return audioInstance(buffers, source);
 }
 
 float CEngine::getMainVolume()
@@ -1985,7 +2124,7 @@ void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData){
 	glDisableClientState(GL_COLOR_ARRAY);
 }
 
-CEngine::CEngine()
+CEngine::CEngine() : audioDevice(nullptr), audioContext(nullptr)
 {
 	openWindowCalled = false;
 	volumeMaster = 1.0;
@@ -2014,6 +2153,13 @@ CEngine::CEngine()
 	DeltaTime = 0.0;
 	FPS = 0;
 	tmpFPS = 0;
+
+	audioDevice = alcOpenDevice(nullptr);
+
+	if (audioDevice) {
+		audioContext = alcCreateContext(audioDevice, NULL);
+		alcMakeContextCurrent(audioContext);
+	}
 
 	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
 	lastUpdatedNoise = 0.0;
