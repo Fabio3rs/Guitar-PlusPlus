@@ -21,6 +21,11 @@
 #include <functional>
 #include <array>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
+#include <glm/simd/matrix.h>
+
 #ifndef GLFW_KEY_MENU
 /* The unknown key */
 #define GLFW_KEY_UNKNOWN            -1
@@ -383,28 +388,12 @@ private:
 public:
 	double volumeMaster;
 
-	double eyex,
-		eyey,
-		eyez,
-		centerx,
-		centery,
-		centerz,
-		upx,
-		upy,
-		upz;
-
 	struct cameraSET{
-		double eyex,
-			eyey,
-			eyez,
-			centerx,
-			centery,
-			centerz,
-			upx,
-			upy,
-			upz;
+		glm::vec<3, double> eye;
+		glm::vec<3, double> center;
+		glm::vec<3, double> up;
 
-		inline cameraSET(double eyex,
+		cameraSET(double eyex,
 			double eyey,
 			double eyez,
 			double centerx,
@@ -412,23 +401,41 @@ public:
 			double centerz,
 			double upx,
 			double upy,
-			double upz){
+			double upz)
+		{
 
-			this->eyex = eyex;
-			this->eyey = eyey;
-			this->eyez = eyez;
-			this->centerx = centerx;
-			this->centery = centery;
-			this->centerz = centerz;
-			this->upx = upx;
-			this->upy = upy;
-			this->upz = upz;
+			eye.x = eyex;
+			eye.y = eyey;
+			eye.z = eyez;
+
+			center.x = centerx;
+			center.y = centery;
+			center.z = centerz;
+
+			up.x = upx;
+			up.y = upy;
+			up.z = upz;
 		}
 
-		inline cameraSET(){
-			eyex = eyey = eyez = centerx = centery = centerz = upx = upy = upz = 0.0;
+		cameraSET()
+		{
+			up.x = 0.0;
+			up.y = 0.0;
+			up.z = 0.0;
+
+			center.x = 0.0;
+			center.y = 0.0;
+			center.z = 0.0;
+
+			eye.x = 0.0;
+			eye.y = 0.0;
+			eye.z = 0.0;
+
+			eye = center = up;
 		}
 	};
+
+	cameraSET nowCamera;
 
 	struct staticDrawBuffer
 	{
@@ -511,16 +518,6 @@ public:
 	std::string getKeyboardNoise();
 	int getCRCKeyboardNoise();
 	double updateRandomNoiseInterval(double interval);
-
-	void setCamera(double eyex,
-		double eyey,
-		double eyez,
-		double centerx,
-		double centery,
-		double centerz,
-		double upx,
-		double upy,
-		double upz);
 
 	void setCamera(const cameraSET &cam);
 	void openWindow(const char *name, int w, int h, int fullScreen);

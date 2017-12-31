@@ -1259,15 +1259,15 @@ CPlayer::CPlayer(const char *name)
 
 	strklinent = ~(static_cast<size_t>(0));
 
-	playerCamera.eyex = 0.0;
-	playerCamera.eyey = 0.5;
-	playerCamera.eyez = 2.42;
-	playerCamera.centerx = 0;
-	playerCamera.centery = -0.2;
-	playerCamera.centerz = 0;
-	playerCamera.upx = 0;
-	playerCamera.upy = 1;
-	playerCamera.upz = 0;
+	playerCamera.eye.x = 0.0;
+	playerCamera.eye.y = 0.5;
+	playerCamera.eye.z = 2.42;
+	playerCamera.center.x = 0.0;
+	playerCamera.center.y = -0.2;
+	playerCamera.center.z = 0.0;
+	playerCamera.up.x = 0.0;
+	playerCamera.up.y = 1.0;
+	playerCamera.up.z = 0.0;
 
 	targetCamera = playerCamera;
 

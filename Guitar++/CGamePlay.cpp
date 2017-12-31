@@ -3174,15 +3174,15 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	{
 		CEngine::cameraSET usingCamera;
-		usingCamera.eyex = 0.0;
-		usingCamera.eyey = 0.0;
-		usingCamera.eyez = 2.3;
-		usingCamera.centerx = 0;
-		usingCamera.centery = 0;
-		usingCamera.centerz = 0.0;
-		usingCamera.upx = 0;
-		usingCamera.upy = 1;
-		usingCamera.upz = 0;
+		usingCamera.eye.x = 0.0;
+		usingCamera.eye.y = 0.0;
+		usingCamera.eye.z = 2.3;
+		usingCamera.center.x = 0.0;
+		usingCamera.center.y = 0.0;
+		usingCamera.center.z = 0.0;
+		usingCamera.up.x = 0.0;
+		usingCamera.up.y = 1.0;
+		usingCamera.up.z = 0.0;
 
 		engine.setCamera(usingCamera);
 	}

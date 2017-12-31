@@ -14,16 +14,13 @@
 #include <cmath>
 #include <algorithm>
 
-#include <GL/glu.h>
+//#include <GL/glu.h>
 #include "internal.h"
 #include <cmath>
 #include <bass.h>
 #include <bass_fx.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_access.hpp>
-#include <glm/simd/matrix.h>
+#include <GLFW/glfw3.h>
 
 static const double perspectiveMaxDist = 500000.0;
 
@@ -94,12 +91,12 @@ void CEngine::clearAccmumaltionBuffer()
 
 void CEngine::addToAccumulationBuffer(double d)
 {
-	glAccum(GL_ACCUM, d);
+	glAccum(GL_ACCUM, static_cast<float>(d));
 }
 
 void CEngine::retAccumulationBuffer(double d)
 {
-	glAccum(GL_RETURN, d);
+	glAccum(GL_RETURN, static_cast<float>(d));
 }
 
 CEngine &CEngine::engine(std::function <void(int, const std::string &e)> errfun)
@@ -121,7 +118,7 @@ bool CEngine::pauseSoundStream(int handle){
 
 bool CEngine::setSoundVolume(int handle, float volume)
 {
-	return BASS_ChannelSetAttribute(handle, BASS_ATTRIB_VOL, volume * volumeMaster);
+	return BASS_ChannelSetAttribute(handle, BASS_ATTRIB_VOL, static_cast<float>(volume * volumeMaster));
 }
 
 int CEngine::setSoundFlags(int handle, int flags, int mask)
@@ -384,55 +381,19 @@ double CEngine::getTime(){
 }
 
 void CEngine::setCamera(const cameraSET &cam){
-	setCamera(cam.eyex,
-		cam.eyey,
-		cam.eyez,
-		cam.centerx,
-		cam.centery,
-		cam.centerz,
-		cam.upx,
-		cam.upy,
-		cam.upz);
-}
-
-void CEngine::setCamera(double eyex,
-	double eyey,
-	double eyez,
-	double centerx,
-	double centery,
-	double centerz,
-	double upx,
-	double upy,
-	double upz)
-{
-	this->eyex = eyex;
-	this->eyey = eyey;
-	this->eyez = eyez;
-	this->centerx = centerx;
-	this->centery = centery;
-	this->centerz = centerz;
-	this->upx = upx;
-	this->upy = upy;
-	this->upz = upz;
+	nowCamera = cam;
 
 	if (window == nullptr)
 		return;
-	
+
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	auto matrix = glm::perspective(glm::radians(45.0), (double)windowWidth / (double)windowHeight, 0.005, perspectiveMaxDist);
-	glMultMatrixd(&matrix[0][0]);
+	auto perspectiveM = glm::perspective(glm::radians(45.0), (double)windowWidth / (double)windowHeight, 0.005, perspectiveMaxDist);
 
-	gluLookAt(eyex,
-		eyey,
-		eyez,
-		centerx,
-		centery,
-		centerz,
-		upx,
-		upy,
-		upz); /* positive Y up vector */
+	perspectiveM *= glm::lookAt(nowCamera.eye, nowCamera.center, nowCamera.up);
+
+	glMultMatrixd(&perspectiveM[0][0]);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -455,17 +416,11 @@ static void windowCallBack(GLFWwindow *window, int w, int h){
 	engine.windowWidth = w;
 	engine.windowHeight = h;
 
-	gluPerspective(45.0, (double)w / (double)h, 0.005, perspectiveMaxDist);
+	auto perspectiveM = glm::perspective(glm::radians(45.0), (double)w / (double)h, 0.005, perspectiveMaxDist);
 
-	gluLookAt(engine.eyex,
-		engine.eyey,
-		engine.eyez,
-		engine.centerx,
-		engine.centery,
-		engine.centerz,
-		engine.upx,
-		engine.upy,
-		engine.upz); /* positive Y up vector */
+	perspectiveM *= glm::lookAt(engine.nowCamera.eye, engine.nowCamera.center, engine.nowCamera.up);
+
+	glMultMatrixd(&perspectiveM[0][0]);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -1221,9 +1176,9 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
 
 	glfwMakeContextCurrent((GLFWwindow*)window);
 
-	setCamera(0.0, 0.0, 2.3, /* look from camera XYZ */
+	setCamera({ 0.0, 0.0, 2.3, /* look from camera XYZ */
 		0, 0, 0, /* look at the origin */
-		0, 1, 0);
+		0, 1, 0 });
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -1310,7 +1265,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
 	//Use the color as the ambient and diffuse material
 	glEnable(GL_COLOR_MATERIAL);
 
-	glAlphaFunc(GL_GEQUAL, 0.01);
+	glAlphaFunc(GL_GEQUAL, static_cast<float>(0.01));
 
 	//White specular material color, shininess 16
 	/*
@@ -1648,7 +1603,7 @@ void CEngine::Render2DCircleBufferMax(double x, double y, double perone, double 
 		perone = 1.0;
 	}
 
-	int polysNum = maxPolys * perone;
+	int polysNum = static_cast<int>(floor(maxPolys * perone));
 
 	auto &stream = circlesBuffer[bufferID];
 	bool res = stream.isChangedMX(x, y, radius, lineWeight, maxPolys);
@@ -2064,9 +2019,9 @@ CEngine::CEngine()
 	lastUpdatedNoise = 0.0;
 	updateNoiseInterval = 0.2;
 
-	setCamera(0.0, 0.0, 2.3, /* look from camera XYZ */
+	setCamera({ 0.0, 0.0, 2.3, /* look from camera XYZ */
 		0, 0, 0, /* look at the origin */
-		0, 1, 0);
+		0, 1, 0 });
 
 	wcallfunc = nullptr;
 	/*

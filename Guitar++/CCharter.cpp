@@ -1,5 +1,6 @@
 #include "CCharter.h"
 #include "CFonts.h"
+#include <cstdint>
 
 double CCharter::songTimePassBPMBased(const BPM_t &BPMContainer, double pass, bool forward)
 {
@@ -63,7 +64,7 @@ void CCharter::preRender()
 		auto &player = gpModule.players.back();
 		if (player.BPMNowBuffer > 0)
 		{
-			if (player.BPMNowBuffer < player.Notes.BPM.size())
+			if (static_cast<size_t>(player.BPMNowBuffer) < player.Notes.BPM.size())
 			{
 				if (player.Notes.BPM[player.BPMNowBuffer].time > (atMusicTime - 2.0))
 				{

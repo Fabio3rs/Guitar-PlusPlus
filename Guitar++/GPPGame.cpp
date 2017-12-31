@@ -476,15 +476,15 @@ void GPPGame::testClient(const std::string &name)
 
 	//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
 
-	playerCamera.eyex = 0.65;
-	playerCamera.eyey = 0.2;
-	playerCamera.eyez = 2.3;
-	playerCamera.centerx = 1.3;
-	playerCamera.centery = -0.2;
-	playerCamera.centerz = 0;
-	playerCamera.upx = 0;
-	playerCamera.upy = 1;
-	playerCamera.upz = 0;
+	playerCamera.eye.x = 0.65;
+	playerCamera.eye.y = 0.2;
+	playerCamera.eye.z = 2.3;
+	playerCamera.center.x = 1.3;
+	playerCamera.center.y = -0.2;
+	playerCamera.center.z = 0;
+	playerCamera.up.x = 0;
+	playerCamera.up.y= 1;
+	playerCamera.up.z = 0;
 	}
 
 	{
@@ -494,15 +494,15 @@ void GPPGame::testClient(const std::string &name)
 
 	auto &playerCamera = module.players.back().playerCamera;
 
-	playerCamera.eyex = -0.65;
-	playerCamera.eyey = 0.2;
-	playerCamera.eyez = 2.3;
-	playerCamera.centerx = -1.3;
-	playerCamera.centery = -0.2;
-	playerCamera.centerz = 0;
-	playerCamera.upx = 0;
-	playerCamera.upy = 1;
-	playerCamera.upz = 0;
+	playerCamera.eye.x = -0.65;
+	playerCamera.eye.y = 0.2;
+	playerCamera.eye.z = 2.3;
+	playerCamera.center.x = -1.3;
+	playerCamera.center.y = -0.2;
+	playerCamera.center.z = 0;
+	playerCamera.up.x = 0;
+	playerCamera.up.y= 1;
+	playerCamera.up.z = 0;
 	}
 	*/
 
@@ -759,11 +759,11 @@ void GPPGame::serverModule(const std::string &name)
 	game.setRunningModule(realname);
 
 	module.players.push_back(CPlayer("you"));
-	module.players.back().playerCamera.centerx = -0.6;
-	module.players.back().playerCamera.eyex = -0.4;
+	module.players.back().playerCamera.center.x = -0.6;
+	module.players.back().playerCamera.eye.x = -0.4;
 	module.players.back().playerHudOffsetX = 1.82;
 	module.players.back().playerHudOffsetY = 0.1;
-	module.players.back().playerCamera.eyez = 2.55;
+	module.players.back().playerCamera.eye.z = 2.55;
 
 	module.players.back().multiPlayerInfo.i = 0;
 	module.players.back().multiPlayerInfo.ready = true;
@@ -847,15 +847,15 @@ void GPPGame::serverModule(const std::string &name)
 
 	//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
 
-	playerCamera.eyex = 0.65;
-	playerCamera.eyey = 0.2;
-	playerCamera.eyez = 2.3;
-	playerCamera.centerx = 1.3;
-	playerCamera.centery = -0.2;
-	playerCamera.centerz = 0;
-	playerCamera.upx = 0;
-	playerCamera.upy = 1;
-	playerCamera.upz = 0;
+	playerCamera.eye.x = 0.65;
+	playerCamera.eye.y = 0.2;
+	playerCamera.eye.z = 2.3;
+	playerCamera.center.x = 1.3;
+	playerCamera.center.y = -0.2;
+	playerCamera.center.z = 0;
+	playerCamera.up.x = 0;
+	playerCamera.up.y= 1;
+	playerCamera.up.z = 0;
 	}
 
 	{
@@ -865,15 +865,15 @@ void GPPGame::serverModule(const std::string &name)
 
 	auto &playerCamera = module.players.back().playerCamera;
 
-	playerCamera.eyex = -0.65;
-	playerCamera.eyey = 0.2;
-	playerCamera.eyez = 2.3;
-	playerCamera.centerx = -1.3;
-	playerCamera.centery = -0.2;
-	playerCamera.centerz = 0;
-	playerCamera.upx = 0;
-	playerCamera.upy = 1;
-	playerCamera.upz = 0;
+	playerCamera.eye.x = -0.65;
+	playerCamera.eye.y = 0.2;
+	playerCamera.eye.z = 2.3;
+	playerCamera.center.x = -1.3;
+	playerCamera.center.y = -0.2;
+	playerCamera.center.z = 0;
+	playerCamera.up.x = 0;
+	playerCamera.up.y= 1;
+	playerCamera.up.z = 0;
 	}
 	*/
 
@@ -886,9 +886,9 @@ void GPPGame::serverModule(const std::string &name)
 
 	std::thread load(loadThread, std::ref(module), std::ref(l));
 
-	module.players.back().playerCamera.centerx = 0.6;
-	module.players.back().playerCamera.eyex = 0.4;
-	module.players.back().playerCamera.eyez = 2.55;
+	module.players.back().playerCamera.center.x = 0.6;
+	module.players.back().playerCamera.eye.x = 0.4;
+	module.players.back().playerCamera.eye.z = 2.55;
 	module.players.back().playerHudOffsetX = -0.42;
 	module.players.back().playerHudOffsetY = 0.1;
 	module.players.back().remoteControls = true;
@@ -1137,15 +1137,15 @@ void GPPGame::startModule(const std::string &name)
 
 		//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
 
-		playerCamera.eyex = 0.65;
-		playerCamera.eyey = 0.2;
-		playerCamera.eyez = 2.3;
-		playerCamera.centerx = 1.3;
-		playerCamera.centery = -0.2;
-		playerCamera.centerz = 0;
-		playerCamera.upx = 0;
-		playerCamera.upy = 1;
-		playerCamera.upz = 0;
+		playerCamera.eye.x = 0.65;
+		playerCamera.eye.y = 0.2;
+		playerCamera.eye.z = 2.3;
+		playerCamera.center.x = 1.3;
+		playerCamera.center.y = -0.2;
+		playerCamera.center.z = 0;
+		playerCamera.up.x = 0;
+		playerCamera.up.y= 1;
+		playerCamera.up.z = 0;
 	}
 
 	{
@@ -1155,15 +1155,15 @@ void GPPGame::startModule(const std::string &name)
 
 		auto &playerCamera = module.players.back().playerCamera;
 
-		playerCamera.eyex = -0.65;
-		playerCamera.eyey = 0.2;
-		playerCamera.eyez = 2.3;
-		playerCamera.centerx = -1.3;
-		playerCamera.centery = -0.2;
-		playerCamera.centerz = 0;
-		playerCamera.upx = 0;
-		playerCamera.upy = 1;
-		playerCamera.upz = 0;
+		playerCamera.eye.x = -0.65;
+		playerCamera.eye.y = 0.2;
+		playerCamera.eye.z = 2.3;
+		playerCamera.center.x = -1.3;
+		playerCamera.center.y = -0.2;
+		playerCamera.center.z = 0;
+		playerCamera.up.x = 0;
+		playerCamera.up.y= 1;
+		playerCamera.up.z = 0;
 	}
 	*/
 
@@ -1214,8 +1214,8 @@ void GPPGame::startModule(const std::string &name)
 
 
 	module.players.back().enableBot = game.botEnabled;
-	module.players.back().playerCamera.centery = 1.0;
-	module.players.back().playerCamera.eyez += 2.0;
+	module.players.back().playerCamera.center.y = 1.0;
+	module.players.back().playerCamera.eye.z += 2.0;
 	//CLog::log() << std::to_string(module.players.back().enableBot) + "bot que voa";
 
 	std::cout << "Plus in chart: " << module.players.back().Notes.gPlus.size() << std::endl;
@@ -1293,24 +1293,24 @@ void GPPGame::startModule(const std::string &name)
 
 			for (auto &p : module.players)
 			{
-				if (p.targetCamera.centery < p.playerCamera.centery)
+				if (p.targetCamera.center.y < p.playerCamera.center.y)
 				{
-					p.playerCamera.centery -= engine.getDeltaTime() * 0.5;
+					p.playerCamera.center.y -= engine.getDeltaTime() * 0.5;
 				}
 
-				if (p.targetCamera.centery > p.playerCamera.centery)
+				if (p.targetCamera.center.y > p.playerCamera.center.y)
 				{
-					p.playerCamera.centery = p.targetCamera.centery;
+					p.playerCamera.center.y = p.targetCamera.center.y;
 				}
 
-				if (p.targetCamera.eyez < p.playerCamera.eyez)
+				if (p.targetCamera.eye.z < p.playerCamera.eye.z)
 				{
-					p.playerCamera.eyez -= engine.getDeltaTime() * 0.75;
+					p.playerCamera.eye.z -= engine.getDeltaTime() * 0.75;
 				}
 
-				if (p.targetCamera.eyez > p.playerCamera.eyez)
+				if (p.targetCamera.eye.z > p.playerCamera.eye.z)
 				{
-					p.playerCamera.eyez = p.targetCamera.eyez;
+					p.playerCamera.eye.z = p.targetCamera.eye.z;
 				}
 			}
 
@@ -1351,24 +1351,24 @@ void GPPGame::startModule(const std::string &name)
 					CEngine::cameraSET usingCamera;
 
 					
-					usingCamera.eyex = 3.0 + sin(rtime);
-					usingCamera.eyey = 2.5;
-					usingCamera.eyez = 1.0 + cos(rtime);
-					usingCamera.centerx = 3.0;
-					usingCamera.centery = 0.5;
-					usingCamera.centerz = -5;
-					usingCamera.upx = 0;
-					usingCamera.upy = 1;
-					usingCamera.upz = 0;
-					/*usingCamera.eyex = eyexcam;
-					usingCamera.eyey = 130.0;
-					usingCamera.eyez = eyezcam;
-					usingCamera.centerx = centerx;
-					usingCamera.centery = 130.0;
-					usingCamera.centerz = centerz;
-					usingCamera.upx = 0;
-					usingCamera.upy = 1;
-					usingCamera.upz = 0;*/
+					usingCamera.eye.x = 3.0 + sin(rtime);
+					usingCamera.eye.y = 2.5;
+					usingCamera.eye.z = 1.0 + cos(rtime);
+					usingCamera.center.x = 3.0;
+					usingCamera.center.y = 0.5;
+					usingCamera.center.z = -5;
+					usingCamera.up.x = 0;
+					usingCamera.up.y = 1;
+					usingCamera.up.z = 0;
+					/*usingCamera.eye.x = eyexcam;
+					usingCamera.eye.y = 130.0;
+					usingCamera.eye.z = eyezcam;
+					usingCamera.center.x = centerx;
+					usingCamera.center.y = 130.0;
+					usingCamera.center.z = centerz;
+					usingCamera.up.x = 0;
+					usingCamera.up.y= 1;
+					usingCamera.up.z = 0;*/
 
 					engine.setCamera(usingCamera);
 				}
@@ -1520,15 +1520,15 @@ void GPPGame::startModule(const std::string &name)
 				engine.clear3DBuffer();
 				{
 					CEngine::cameraSET usingCamera;
-					usingCamera.eyex = 0.0;
-					usingCamera.eyey = 0.0;
-					usingCamera.eyez = 2.3;
-					usingCamera.centerx = 0;
-					usingCamera.centery = 0;
-					usingCamera.centerz = 0.0;
-					usingCamera.upx = 0;
-					usingCamera.upy = 1;
-					usingCamera.upz = 0;
+					usingCamera.eye.x = 0.0;
+					usingCamera.eye.y = 0.0;
+					usingCamera.eye.z = 2.3;
+					usingCamera.center.x = 0;
+					usingCamera.center.y = 0;
+					usingCamera.center.z = 0.0;
+					usingCamera.up.x = 0;
+					usingCamera.up.y= 1;
+					usingCamera.up.z = 0;
 
 					engine.setCamera(usingCamera);
 				}
@@ -1688,8 +1688,8 @@ void GPPGame::startMarathonModule(const std::string &name)
 	bool songTimeFixed = false;
 
 	module.players.back().enableBot = game.botEnabled;
-	module.players.back().playerCamera.centery = 1.0;
-	module.players.back().playerCamera.eyez += 2.0;
+	module.players.back().playerCamera.center.y = 1.0;
+	module.players.back().playerCamera.eye.z += 2.0;
 
 	bool firstStartFrame = true;
 
@@ -1776,24 +1776,24 @@ void GPPGame::startMarathonModule(const std::string &name)
 						songChartEnd = p.isSongChartFinished();
 				}
 
-				if (p.targetCamera.centery < p.playerCamera.centery)
+				if (p.targetCamera.center.y < p.playerCamera.center.y)
 				{
-					p.playerCamera.centery -= engine.getDeltaTime() * 0.5;
+					p.playerCamera.center.y -= engine.getDeltaTime() * 0.5;
 				}
 
-				if (p.targetCamera.centery > p.playerCamera.centery)
+				if (p.targetCamera.center.y > p.playerCamera.center.y)
 				{
-					p.playerCamera.centery = p.targetCamera.centery;
+					p.playerCamera.center.y = p.targetCamera.center.y;
 				}
 
-				if (p.targetCamera.eyez < p.playerCamera.eyez)
+				if (p.targetCamera.eye.z < p.playerCamera.eye.z)
 				{
-					p.playerCamera.eyez -= engine.getDeltaTime() * 0.75;
+					p.playerCamera.eye.z -= engine.getDeltaTime() * 0.75;
 				}
 
-				if (p.targetCamera.eyez > p.playerCamera.eyez)
+				if (p.targetCamera.eye.z > p.playerCamera.eye.z)
 				{
-					p.playerCamera.eyez = p.targetCamera.eyez;
+					p.playerCamera.eye.z = p.targetCamera.eye.z;
 				}
 			}
 
@@ -1909,24 +1909,24 @@ void GPPGame::startMarathonModule(const std::string &name)
 					CEngine::cameraSET usingCamera;
 
 
-					usingCamera.eyex = 3.0 + sin(rtime);
-					usingCamera.eyey = 2.5;
-					usingCamera.eyez = 1.0 + cos(rtime);
-					usingCamera.centerx = 3.0;
-					usingCamera.centery = 0.5;
-					usingCamera.centerz = -5;
-					usingCamera.upx = 0;
-					usingCamera.upy = 1;
-					usingCamera.upz = 0;
-					/*usingCamera.eyex = eyexcam;
-					usingCamera.eyey = 130.0;
-					usingCamera.eyez = eyezcam;
-					usingCamera.centerx = centerx;
-					usingCamera.centery = 130.0;
-					usingCamera.centerz = centerz;
-					usingCamera.upx = 0;
-					usingCamera.upy = 1;
-					usingCamera.upz = 0;*/
+					usingCamera.eye.x = 3.0 + sin(rtime);
+					usingCamera.eye.y = 2.5;
+					usingCamera.eye.z = 1.0 + cos(rtime);
+					usingCamera.center.x = 3.0;
+					usingCamera.center.y = 0.5;
+					usingCamera.center.z = -5;
+					usingCamera.up.x = 0;
+					usingCamera.up.y= 1;
+					usingCamera.up.z = 0;
+					/*usingCamera.eye.x = eyexcam;
+					usingCamera.eye.y = 130.0;
+					usingCamera.eye.z = eyezcam;
+					usingCamera.center.x = centerx;
+					usingCamera.center.y = 130.0;
+					usingCamera.center.z = centerz;
+					usingCamera.up.x = 0;
+					usingCamera.up.y= 1;
+					usingCamera.up.z = 0;*/
 
 					engine.setCamera(usingCamera);
 				}
@@ -2078,15 +2078,15 @@ void GPPGame::startMarathonModule(const std::string &name)
 
 				{
 					CEngine::cameraSET usingCamera;
-					usingCamera.eyex = 0.0;
-					usingCamera.eyey = 0.0;
-					usingCamera.eyez = 2.3;
-					usingCamera.centerx = 0;
-					usingCamera.centery = 0;
-					usingCamera.centerz = 0.0;
-					usingCamera.upx = 0;
-					usingCamera.upy = 1;
-					usingCamera.upz = 0;
+					usingCamera.eye.x = 0.0;
+					usingCamera.eye.y = 0.0;
+					usingCamera.eye.z = 2.3;
+					usingCamera.center.x = 0;
+					usingCamera.center.y = 0;
+					usingCamera.center.z = 0.0;
+					usingCamera.up.x = 0;
+					usingCamera.up.y= 1;
+					usingCamera.up.z = 0;
 
 					engine.setCamera(usingCamera);
 				}
@@ -2339,8 +2339,8 @@ void GPPGame::campaingPlayModule(const std::string &name)
 	bool songTimeFixed = false;
 
 	module.players.back().enableBot = game.botEnabled;
-	module.players.back().playerCamera.centery = 1.0;
-	module.players.back().playerCamera.eyez += 2.0;
+	module.players.back().playerCamera.center.y = 1.0;
+	module.players.back().playerCamera.eye.z += 2.0;
 
 	bool firstStartFrame = true;
 
@@ -2425,24 +2425,24 @@ void GPPGame::campaingPlayModule(const std::string &name)
 						songChartEnd = p.isSongChartFinished();
 				}
 
-				if (p.targetCamera.centery < p.playerCamera.centery)
+				if (p.targetCamera.center.y < p.playerCamera.center.y)
 				{
-					p.playerCamera.centery -= engine.getDeltaTime() * 0.5;
+					p.playerCamera.center.y -= engine.getDeltaTime() * 0.5;
 				}
 
-				if (p.targetCamera.centery > p.playerCamera.centery)
+				if (p.targetCamera.center.y > p.playerCamera.center.y)
 				{
-					p.playerCamera.centery = p.targetCamera.centery;
+					p.playerCamera.center.y = p.targetCamera.center.y;
 				}
 
-				if (p.targetCamera.eyez < p.playerCamera.eyez)
+				if (p.targetCamera.eye.z < p.playerCamera.eye.z)
 				{
-					p.playerCamera.eyez -= engine.getDeltaTime() * 0.75;
+					p.playerCamera.eye.z -= engine.getDeltaTime() * 0.75;
 				}
 
-				if (p.targetCamera.eyez > p.playerCamera.eyez)
+				if (p.targetCamera.eye.z > p.playerCamera.eye.z)
 				{
-					p.playerCamera.eyez = p.targetCamera.eyez;
+					p.playerCamera.eye.z = p.targetCamera.eye.z;
 				}
 			}
 
@@ -2556,15 +2556,15 @@ void GPPGame::campaingPlayModule(const std::string &name)
 					CEngine::cameraSET usingCamera;
 
 
-					usingCamera.eyex = 3.0 + sin(rtime);
-					usingCamera.eyey = 2.5;
-					usingCamera.eyez = 1.0 + cos(rtime);
-					usingCamera.centerx = 3.0;
-					usingCamera.centery = 0.5;
-					usingCamera.centerz = -5;
-					usingCamera.upx = 0;
-					usingCamera.upy = 1;
-					usingCamera.upz = 0;
+					usingCamera.eye.x = 3.0 + sin(rtime);
+					usingCamera.eye.y = 2.5;
+					usingCamera.eye.z = 1.0 + cos(rtime);
+					usingCamera.center.x = 3.0;
+					usingCamera.center.y = 0.5;
+					usingCamera.center.z = -5;
+					usingCamera.up.x = 0;
+					usingCamera.up.y = 1;
+					usingCamera.up.z = 0;
 
 					engine.setCamera(usingCamera);
 				}
@@ -2633,15 +2633,15 @@ void GPPGame::campaingPlayModule(const std::string &name)
 
 				{
 					CEngine::cameraSET usingCamera;
-					usingCamera.eyex = 0.0;
-					usingCamera.eyey = 0.0;
-					usingCamera.eyez = 2.3;
-					usingCamera.centerx = 0;
-					usingCamera.centery = 0;
-					usingCamera.centerz = 0.0;
-					usingCamera.upx = 0;
-					usingCamera.upy = 1;
-					usingCamera.upz = 0;
+					usingCamera.eye.x = 0.0;
+					usingCamera.eye.y = 0.0;
+					usingCamera.eye.z = 2.3;
+					usingCamera.center.x = 0;
+					usingCamera.center.y = 0;
+					usingCamera.center.z = 0.0;
+					usingCamera.up.x = 0;
+					usingCamera.up.y = 1;
+					usingCamera.up.z = 0;
 
 					engine.setCamera(usingCamera);
 				}
@@ -2933,15 +2933,15 @@ std::string GPPGame::selectSong()
 
 			{
 				CEngine::cameraSET usingCamera;
-				usingCamera.eyex = 3.0;
-				usingCamera.eyey = 1.75;
-				usingCamera.eyez = 2.7;
-				usingCamera.centerx = 3.0;
-				usingCamera.centery = 1.3;
-				usingCamera.centerz = 0;
-				usingCamera.upx = 0;
-				usingCamera.upy = 1;
-				usingCamera.upz = 0;
+				usingCamera.eye.x = 3.0;
+				usingCamera.eye.y = 1.75;
+				usingCamera.eye.z = 2.7;
+				usingCamera.center.x = 3.0;
+				usingCamera.center.y = 1.3;
+				usingCamera.center.z = 0;
+				usingCamera.up.x = 0;
+				usingCamera.up.y = 1;
+				usingCamera.up.z = 0;
 
 				engine.setCamera(usingCamera);
 			}
@@ -3211,15 +3211,15 @@ void GPPGame::addSongListToMenu(CMenu &selectSongMenu, std::map<int, std::string
 
 			{
 				CEngine::cameraSET usingCamera;
-				usingCamera.eyex = 3.0;
-				usingCamera.eyey = 1.75;
-				usingCamera.eyez = 2.7;
-				usingCamera.centerx = 3.0;
-				usingCamera.centery = 1.3;
-				usingCamera.centerz = 0;
-				usingCamera.upx = 0;
-				usingCamera.upy = 1;
-				usingCamera.upz = 0;
+				usingCamera.eye.x = 3.0;
+				usingCamera.eye.y = 1.75;
+				usingCamera.eye.z = 2.7;
+				usingCamera.center.x = 3.0;
+				usingCamera.center.y = 1.3;
+				usingCamera.center.z = 0;
+				usingCamera.up.x = 0;
+				usingCamera.up.y = 1;
+				usingCamera.up.z = 0;
 
 				engine.setCamera(usingCamera);
 			}
@@ -3618,15 +3618,15 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 
 		{
 			CEngine::cameraSET usingCamera;
-			usingCamera.eyex = 3.0;
-			usingCamera.eyey = 1.75;
-			usingCamera.eyez = 2.7;
-			usingCamera.centerx = 3.0;
-			usingCamera.centery = 1.3;
-			usingCamera.centerz = 0;
-			usingCamera.upx = 0;
-			usingCamera.upy = 1;
-			usingCamera.upz = 0;
+			usingCamera.eye.x = 3.0;
+			usingCamera.eye.y = 1.75;
+			usingCamera.eye.z = 2.7;
+			usingCamera.center.x = 3.0;
+			usingCamera.center.y = 1.3;
+			usingCamera.center.z = 0;
+			usingCamera.up.x = 0;
+			usingCamera.up.y = 1;
+			usingCamera.up.z = 0;
 
 			engine.setCamera(usingCamera);
 		}
@@ -3728,15 +3728,15 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 
 		{
 			CEngine::cameraSET usingCamera;
-			usingCamera.eyex = 0.0;
-			usingCamera.eyey = 0.0;
-			usingCamera.eyez = 2.3;
-			usingCamera.centerx = 0;
-			usingCamera.centery = 0;
-			usingCamera.centerz = 0.0;
-			usingCamera.upx = 0;
-			usingCamera.upy = 1;
-			usingCamera.upz = 0;
+			usingCamera.eye.x = 0.0;
+			usingCamera.eye.y = 0.0;
+			usingCamera.eye.z = 2.3;
+			usingCamera.center.x = 0;
+			usingCamera.center.y = 0;
+			usingCamera.center.z = 0.0;
+			usingCamera.up.x = 0;
+			usingCamera.up.y = 1;
+			usingCamera.up.z = 0;
 
 			engine.setCamera(usingCamera);
 		}
