@@ -20,6 +20,11 @@
 #include <bass.h>
 #include <bass_fx.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
+#include <glm/simd/matrix.h>
+
 static const double perspectiveMaxDist = 500000.0;
 
 //========================================================================
@@ -219,36 +224,21 @@ void sub_50E0C1F8(double *a1)
 	*(double *)(a1 + 120) = 1.0;
 }
 
-/*void CEngine::gluPerspective(double fovy, double aspect, double zNear, double zFar)
+template<class T>
+class GLTypes
 {
-	double v4;
-	double v5;
-	const GLdouble *v6;
-	double v7;
-	GLdouble v8;
-	double v9;
-	double v10;
-	double v11;
-	double v12;
-	double v13;
-	double v14;
+	static const int gltypeid;
+};
 
-	v8 = fovy * 0.5 * 3.141592653589793 / 180.0;
-	v7 = zFar - zNear;
-	v4 = sin(v8);
-	if (v7 != 0.0 && 0.0 != v4 && aspect != 0.0)
-	{
-		v5 = cos(v8) / v4;
-		sub_50E0C1F8(&v9); // matrix set?
-		v9 = v5 / aspect;
-		v10 = v5;
-		v11 = -((zNear + zFar) / v7);
-		v12 = -1.0;
-		v13 = zFar * (zNear * -2.0) / v7;
-		v14 = 0.0;
-		glMultMatrixd(&v7);
-	}
-}*/
+const int GLTypes<float>::gltypeid = GL_FLOAT;
+const int GLTypes<double>::gltypeid = GL_DOUBLE;
+const int GLTypes<int>::gltypeid = GL_INT;
+
+template<class T>
+int GLType(const T &sample)
+{
+	return GLTypes<T>::gltypeid;
+}
 
 
 void CEngine::pushMatrix()
@@ -266,26 +256,11 @@ void CEngine::multiplyMatrix(float *matrix)
 	glMultMatrixf(matrix);
 }
 
-void CEngine::matrixReset(){
-	//glLoadIdentity();
-
+void CEngine::matrixReset()
+{
 	lastRenderAt[0] = 0.0;
 	lastRenderAt[1] = 0.0;
 	lastRenderAt[2] = 0.0;
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-
-	gluPerspective(45.0, (double)windowWidth / (double)windowHeight, 0.005, perspectiveMaxDist);
-	gluLookAt(eyex,
-		eyey,
-		eyez,
-		centerx,
-		centery,
-		centerz,
-		upx,
-		upy,
-		upz); 
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -446,7 +421,9 @@ void CEngine::setCamera(double eyex,
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 
-	gluPerspective(45.0, (double)windowWidth / (double)windowHeight, 0.005, perspectiveMaxDist);
+	auto matrix = glm::perspective(glm::radians(45.0), (double)windowWidth / (double)windowHeight, 0.005, perspectiveMaxDist);
+	glMultMatrixd(&matrix[0][0]);
+
 	gluLookAt(eyex,
 		eyey,
 		eyez,
