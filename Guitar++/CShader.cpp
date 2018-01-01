@@ -7,170 +7,264 @@
 #include "CLog.h"
 #include "CLuaFunctions.hpp"
 
-CShader &CShader::inst()
+namespace ShaderProject
 {
-	static CShader shaders;
-	return shaders;
-}
-
-CShader::shaderEvent::shaderEvent(const char *name){
-	if (!inst().enableShaders)
-		return;
-
-	shaderProg = glCreateProgram();
-	eventName = name;
-}
-
-CShader::shaderInst::shaderInst(const char *fName, int shaderType){
-	if (!inst().enableShaders)
-		return;
-
-	std::fstream shaderFile(fName);
-	fileName = fName;
-	
-	if(!shaderFile.good()) std::logic_error("Can't load shader's file");
-	
-	shaderSize = fileSize(shaderFile);
-	
-	shaderContent = new char[shaderSize + 32];
-	memset(shaderContent, 0, shaderSize + 32);
-	shaderFile.read(shaderContent, shaderSize);
-	//*(short*)&shaderContent[shaderSize] = 0;
-	
-	type = shaderType? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER;
-	
-	compile();
-}
-
-void CShader::shaderInst::compile()
-{
-	if (!inst().enableShaders)
-		return;
-	int length = shaderSize;
-
-	const GLchar **ch = (const char**)&shaderContent;
-
-	glID = glCreateShader(type);
-	glShaderSource(glID, 1, ch, 0);
-	glCompileShader(glID);
-	GLint compiled;
-	glGetShaderiv(glID, GL_COMPILE_STATUS, &compiled);
-	if (!compiled) {
-		glGetShaderiv(glID, GL_INFO_LOG_LENGTH, &length);
-		char shaderErrorDetail[1024] = {0, 0};
-		glGetShaderInfoLog(glID, length, &length, shaderErrorDetail);
-
-		CLog::log() << shaderErrorDetail;
-		std::cout << shaderErrorDetail << std::endl;
-	}
-}
-
-int CShader::addEvent(const char *name){
-	if (!inst().enableShaders)
-		return -1;
-
-	shaderEvent newEvent(name);
-	events.push_back(newEvent);
-	return events.size() - 1;
-}
-
-void CShader::addShaderToEvent(const char *shaderEvent, int shaderID){
-	if (!inst().enableShaders)
-		return;
-
-	int ID = -1;
-	for(int i = 0, size = events.size(); i < size; i++){
-		if (events[i].eventName == shaderEvent){
-			ID = i;
-			break;
-		}
-	}
-	
-	if(ID != -1){
-		glAttachShader(events[ID].shaderProg, shadersList[shaderID].glID);
-	}
-	usingProgram = false;
-	glUseProgram(0);
-}
-
-void CShader::processEvent(int id){
-	if (!enableShaders)
-		return;
-
-	int shaderProg = events[id].shaderProg;
-
-	glUseProgram(shaderProg);
-
-	if (shaderProg != 0)
-		usingProgram = true;
-}
-
-int CShader::newShader(const char *shaderFile, int type, int eventToLink){
-	if (!inst().enableShaders)
-		return 0;
-
-	shadersList.push_back(shaderInst(shaderFile, type));
-	glAttachShader(events[eventToLink].shaderProg, shadersList.back().glID);
-	usingProgram = false;
-	glUseProgram(0);
-	return shadersList.size() - 1;
-}
-
-void CShader::desactivateShader()
-{
-	if (!inst().enableShaders)
-		return;
-
-	usingProgram = false;
-	glUseProgram(0);
-}
-
-int CShader::newShader(const char *shaderFile, int type, const char *name){
-	if (!inst().enableShaders)
-		return 0;
-
-	int ID = -1;
-	for(int i = 0, size = events.size(); i < size; i++){
-		if(events[i].eventName == name){
-			ID = i;
-			break;
-		}
-	}
-	
-	if(ID != -1){
-		return newShader(shaderFile, type, ID);
-	}
-	
-	glUseProgram(0);
-	return -1;
-}
-
-void CShader::linkAllShaders(){
-	if (!inst().enableShaders)
-		return;
-
-	for(int i = 0, size = events.size(); i < size; i++)
+	CShader &CShader::inst()
 	{
-		glLinkProgram(events[i].shaderProg);
+		static CShader shaders;
+		return shaders;
 	}
-}
 
-CShader::CShader()
-{
-	enableShaders = false;
-	usingProgram = false;
-	CLuaFunctions::GameVariables::gv().pushVar("enableShaders", enableShaders);
-	
-	GLenum err = glewInit();
-	if (GLEW_OK != err){
-	   /*Problem: glewInit failed, something is seriously wrong. */
-		MessageBoxA(0, (char*)glewGetErrorString(err), "Error: %s\n", 0);
+	CShader::shaderEvent::shaderEvent(const char *name) : shaderProg(make_program()) {
+		if (!inst().enableShaders)
+			return;
+
+		eventName = name;
 	}
-	//glUseProgram(0);
-	/*
-	GLint maxPatchVertices = 0;
-	glGetIntegerv(GL_MAX_PATCH_VERTICES, &maxPatchVertices);
 
-	glPatchParameteri(GL_PATCHES, maxPatchVertices);
-	glPatchParameteri(GL_PATCH_VERTICES, maxPatchVertices);*/
+	CShader::shaderInst::shaderInst(const char *fName, shaderTypes shaderType) {
+		if (!inst().enableShaders)
+			return;
+
+		std::fstream shaderFile(fName);
+		fileName = fName;
+
+		if (!shaderFile.good()) std::logic_error("Can't load shader's file");
+
+		shaderSize = fileSize(shaderFile);
+
+		shaderContent = new char[shaderSize + 32];
+		memset(shaderContent, 0, shaderSize + 32);
+		shaderFile.read(shaderContent, shaderSize);
+		//*(short*)&shaderContent[shaderSize] = 0;
+
+		type = shaderType;
+
+		compile();
+	}
+
+	void CShader::shaderInst::compile()
+	{
+		if (!inst().enableShaders)
+			return;
+
+		glID = CShader::compileShader(shaderContent, shaderSize, type);
+	}
+
+	int CShader::addEvent(const char *name) {
+		if (!inst().enableShaders)
+			return -1;
+
+		events.push_back(shaderEvent(name));
+		return events.size() - 1;
+	}
+
+	void CShader::addShaderToEvent(const char *shaderEvent, int shaderID) {
+		if (!inst().enableShaders)
+			return;
+
+		int ID = -1;
+		for (int i = 0, size = events.size(); i < size; i++) {
+			if (events[i].eventName == shaderEvent) {
+				ID = i;
+				break;
+			}
+		}
+
+		if (ID != -1) {
+			attachShaderToProgram(events[ID].shaderProg, shadersList[shaderID].glID);
+		}
+		usingProgram = false;
+		glUseProgram(0);
+	}
+
+	void CShader::processEvent(int id) {
+		if (!enableShaders)
+			return;
+
+		auto &shaderProg = events[id].shaderProg;
+
+		bindProgram(shaderProg);
+
+		if (shaderProg.get() != 0)
+			usingProgram = true;
+	}
+
+	int CShader::newShader(const char *shaderFile, shaderTypes type, int eventToLink) {
+		if (!inst().enableShaders)
+			return 0;
+
+		shadersList.push_back(shaderInst(shaderFile, type));
+		attachShaderToProgram(events[eventToLink].shaderProg, shadersList.back().glID);
+		usingProgram = false;
+		glUseProgram(0);
+		return shadersList.size() - 1;
+	}
+
+	int CShader::newShader(const char *shaderFile, shaderTypes type, const char *name) {
+		if (!inst().enableShaders)
+			return 0;
+
+		int ID = -1;
+		for (int i = 0, size = events.size(); i < size; i++) {
+			if (events[i].eventName == name) {
+				ID = i;
+				break;
+			}
+		}
+
+		if (ID != -1) {
+			return newShader(shaderFile, type, ID);
+		}
+
+		glUseProgram(0);
+		return -1;
+	}
+
+	void CShader::desactivateShader()
+	{
+		if (!inst().enableShaders)
+			return;
+
+		usingProgram = false;
+		glUseProgram(0);
+	}
+
+	void CShader::bindProgram(const ProgramObject &programID)
+	{
+		bindProgram(programID.get());
+	}
+
+	void CShader::bindProgram(unsigned int programID)
+	{
+		glUseProgram(programID);
+	}
+
+	ProgramObject CShader::createShaderProgram()
+	{
+		return make_program();
+	}
+
+	ShaderObject CShader::compileShader(const char *shaderSource, int length, shaderTypes type)
+	{
+		const GLchar**ch = (const char**)&shaderSource;
+		ShaderObject glID(make_shader(type));
+
+		glShaderSource(glID.get(), 1, ch, 0);
+		glCompileShader(glID.get());
+
+		GLint compiled;
+		glGetShaderiv(glID.get(), GL_COMPILE_STATUS, &compiled);
+		if (!compiled) {
+			char shaderErrorDetail[2048] = { 0, 0 };
+			glGetShaderiv(glID.get(), GL_INFO_LOG_LENGTH, &length);
+			glGetShaderInfoLog(glID.get(), sizeof(shaderErrorDetail) - 1, &length, shaderErrorDetail);
+
+			std::cout << shaderErrorDetail << std::endl;
+		}
+
+		return glID;
+	}
+
+	void CShader::attachShaderToProgram(const ProgramObject &programID, const ShaderObject &shaderID)
+	{
+		glAttachShader(programID.get(), shaderID.get());
+	}
+
+	void CShader::linkShaderProgram(const ProgramObject & programID)
+	{
+		glLinkProgram(programID.get());
+	}
+
+	int CShader::getProgramUniform(const ProgramObject &program, const char *string)
+	{
+		return glGetUniformLocation(program.get(), string);
+	}
+
+	void CShader::setFloatUniform(int uniform, float val)
+	{
+		glUniform1f(uniform, val);
+	}
+
+	void CShader::vertexAttribPointerFloat(unsigned int index, int elements, bool normalized, int stride, const void * pointer)
+	{
+		glVertexAttribPointer(index, elements, GL_FLOAT, normalized, stride, pointer);
+	}
+
+	void CShader::vertexAttribPointerDouble(unsigned int index, int elements, bool normalized, int stride, const void * pointer)
+	{
+		glVertexAttribPointer(index, elements, GL_DOUBLE, normalized, stride, pointer);
+	}
+
+	void CShader::bindVertexArray(const VertexObject &vertexArray)
+	{
+		bindVertexArray(vertexArray.get());
+	}
+
+	void CShader::bindVertexArray(unsigned int vertexArray)
+	{
+		glBindVertexArray(vertexArray);
+	}
+
+	void CShader::linkAllShaders() {
+		if (!inst().enableShaders)
+			return;
+
+		for (int i = 0, size = events.size(); i < size; i++)
+		{
+			linkShaderProgram(events[i].shaderProg);
+		}
+	}
+
+	CShader::CShader()
+	{
+		enableShaders = false;
+		usingProgram = false;
+		CLuaFunctions::GameVariables::gv().pushVar("enableShaders", enableShaders);
+
+		GLenum err = glewInit();
+		if (GLEW_OK != err) {
+			/*Problem: glewInit failed, something is seriously wrong. */
+			MessageBoxA(0, (char*)glewGetErrorString(err), "Error: %s\n", 0);
+		}
+		//glUseProgram(0);
+		/*
+		GLint maxPatchVertices = 0;
+		glGetIntegerv(GL_MAX_PATCH_VERTICES, &maxPatchVertices);
+
+		glPatchParameteri(GL_PATCHES, maxPatchVertices);
+		glPatchParameteri(GL_PATCH_VERTICES, maxPatchVertices);*/
+	}
+
+	ProgramObject ShaderProject::make_program()
+	{
+		return ProgramObject(glCreateProgram(), [](unsigned int programID) {
+			if (programID) { glUseProgram(0); glDeleteProgram(programID); }
+		});
+	}
+
+	ShaderObject ShaderProject::make_shader(shaderTypes type)
+	{
+		return ShaderObject(glCreateShader((type == shaderTypes::VERTEX) ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER), [](unsigned int shaderID)
+		{
+			if (shaderID)
+			{
+				glDeleteShader(shaderID);
+
+			}
+		});
+	}
+
+	VertexObject ShaderProject::make_vertexObject(VertexObject type)
+	{
+		auto genVertexArrays = []() { unsigned int result = 0; glGenVertexArrays(1, &result); return result; };
+		return VertexObject(genVertexArrays(), [](unsigned int vertexArrayId)
+		{
+			if (vertexArrayId)
+			{
+				glDeleteVertexArrays(1, &vertexArrayId);
+			}
+		});
+	}
+
 }

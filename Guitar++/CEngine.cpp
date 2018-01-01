@@ -281,11 +281,12 @@ int CEngine::getBassError()
 	return BASS_ErrorGetCode();
 }
 
-std::deque<CEngine::Resolution> CEngine::getPossibleVideoModes()
+std::vector<CEngine::Resolution> CEngine::getPossibleVideoModes()
 {
 	int count = 0;
 	const GLFWvidmode* modes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &count);
-	std::deque<CEngine::Resolution> result;
+	std::vector<CEngine::Resolution> result;
+	result.reserve(count);
 
 	for (int i = 0; i < count; i++){
 		Resolution newRes;

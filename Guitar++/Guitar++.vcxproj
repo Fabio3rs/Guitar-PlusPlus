@@ -89,7 +89,6 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CAudio.cpp" />
     <ClCompile Include="CCampaing.cpp" />
     <ClCompile Include="CChart.cpp" />
     <ClCompile Include="CCharter.cpp" />
@@ -152,7 +151,6 @@
     <ClCompile Include="tga.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CAudio.h" />
     <ClInclude Include="CCampaing.h" />
     <ClInclude Include="CChart.h" />
     <ClInclude Include="CCharter.h" />

@@ -186,7 +186,7 @@ struct lightData{
 	float ambientLight[4], diffuseLight[4], specularLight[4], position[4], direction[4], angle;
 
 };
-
+/*
 struct gppVec3f
 {
 	float x, y, z;
@@ -195,7 +195,10 @@ struct gppVec3f
 struct gppVec2f
 {
 	float x, y;
-};
+};*/
+
+typedef glm::vec<3, float> gppVec3f;
+typedef glm::vec<2, float> gppVec2f;
 
 typedef void(*customwcallback)(int w, int h, windowsNum state);
 
@@ -519,7 +522,7 @@ public:
 		int 	refreshRate;
 	};
 
-	std::deque<Resolution> getPossibleVideoModes();
+	std::vector<Resolution> getPossibleVideoModes();
 
 	int noiseCRC32;
 
