@@ -520,8 +520,14 @@ double CEngine::getTime(){
 	return glfwGetTime();
 }
 
-void CEngine::setCamera(const cameraSET &cam){
-	nowCamera = cam;
+void CEngine::setCamera(const cameraSET &cam)
+{
+	if (cam != nowCamera)
+	{
+		nowCamera = cam;
+
+		lookAtMatrix = glm::lookAt(nowCamera.eye, nowCamera.center, nowCamera.up);
+	}
 
 	if (window == nullptr)
 		return;
@@ -531,7 +537,7 @@ void CEngine::setCamera(const cameraSET &cam){
 
 	auto perspectiveM = glm::perspective(glm::radians(45.0), (double)windowWidth / (double)windowHeight, 0.005, perspectiveMaxDist);
 
-	perspectiveM *= glm::lookAt(nowCamera.eye, nowCamera.center, nowCamera.up);
+	perspectiveM *= lookAtMatrix;
 
 	glMultMatrixd(&perspectiveM[0][0]);
 
@@ -558,7 +564,7 @@ static void windowCallBack(GLFWwindow *window, int w, int h){
 
 	auto perspectiveM = glm::perspective(glm::radians(45.0), (double)w / (double)h, 0.005, perspectiveMaxDist);
 
-	perspectiveM *= glm::lookAt(engine.nowCamera.eye, engine.nowCamera.center, engine.nowCamera.up);
+	perspectiveM *= engine.getLookAtMatrix();
 
 	glMultMatrixd(&perspectiveM[0][0]);
 
@@ -2165,6 +2171,8 @@ CEngine::CEngine() : audioDevice(nullptr), audioContext(nullptr)
 	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
 	lastUpdatedNoise = 0.0;
 	updateNoiseInterval = 0.2;
+
+	lookAtMatrix = glm::lookAt(nowCamera.eye, nowCamera.center, nowCamera.up);
 
 	setCamera({ 0.0, 0.0, 2.3, /* look from camera XYZ */
 		0, 0, 0, /* look at the origin */

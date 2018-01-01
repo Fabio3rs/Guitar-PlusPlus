@@ -396,13 +396,27 @@ private:
 
 	std::array<double, 3> lastRenderAt;
 
+	glm::mat<4, 4, double> lookAtMatrix;
+
 public:
 	double volumeMaster;
+
+	const glm::mat<4, 4, double> &getLookAtMatrix() const { return lookAtMatrix; }
 
 	struct cameraSET{
 		glm::vec<3, double> eye;
 		glm::vec<3, double> center;
 		glm::vec<3, double> up;
+
+		bool operator==(const cameraSET &c) const
+		{
+			return (eye == c.eye && center == c.center && up == c.up);
+		}
+
+		bool operator!=(const cameraSET &c) const
+		{
+			return !(*this == c);
+		}
 
 		cameraSET(double eyex,
 			double eyey,
