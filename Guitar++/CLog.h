@@ -42,6 +42,8 @@ class CLog{
 	public:
 		const std::string &getStr() const { return str; }
 
+		argToString(bool value) : str(value? "true" : "false") { }
+
 		argToString(const char *str) : str(str) { }
 
 		argToString(const std::exception &e) : str(e.what()) { }

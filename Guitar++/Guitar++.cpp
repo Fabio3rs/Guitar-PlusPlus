@@ -24,6 +24,7 @@
 #include "CCampaing.h"
 #include "CGPPFileMGR.h"
 #include "CChart.h"
+#include "CShader.h"
 
 int main(int argc, char* argv[])
 {
@@ -80,6 +81,8 @@ int main(int argc, char* argv[])
 
 		// Window
 		game.createWindow();
+
+		CLog::log().multiRegister("Shaders status: %0", ShaderProject::CShader::inst().isShadersEnabled());
 
 		double ltime = CEngine::engine().getTime();
 

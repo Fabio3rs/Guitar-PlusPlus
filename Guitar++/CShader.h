@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <stdexcept>
 #include <functional>
+#include <memory>
+#include <map>
 
 namespace ShaderProject
 {
@@ -88,7 +90,7 @@ namespace ShaderProject
 			shaderTypes type;
 			ShaderObject glID;
 			std::string fileName;
-			char *shaderContent;
+			std::unique_ptr<char[]> shaderContent;
 			int shaderSize;
 
 			template<class T>
@@ -111,6 +113,22 @@ namespace ShaderProject
 			shaderEvent(const shaderEvent&) = delete;
 			shaderEvent(shaderEvent&&) = default;
 
+			shaderEvent &operator=(shaderEvent &&obj)
+			{
+				if (this == std::addressof(obj))
+					return *this;
+
+				shaderProg.deleteObject();
+
+				shaderProg = std::move(obj.shaderProg);
+				eventName = std::move(obj.eventName);
+				shaders = std::move(obj.shaders);
+
+				obj.shaders.clear();
+
+				return *this;
+			}
+
 			shaderEvent(const char *name);
 		};
 
@@ -119,13 +137,29 @@ namespace ShaderProject
 	public:
 		static CShader &inst();
 
-		void processEvent(int id);
-		int addEvent(const char *name);
-		void addShaderToEvent(const char *shaderEvent, int shaderID);
-		int newShader(const char *shaderFile, shaderTypes type, int eventToLink);
-		int newShader(const char *shaderFile, shaderTypes type, const char *name);
-		void linkAllShaders();
-		void desactivateShader();
+		bool isShadersEnabled() const {
+			return enableShaders;
+		}
+
+		bool isUsingProgram() const {
+			return usingProgram;
+		}
+
+		size_t eventsSize() const {
+			return events.size();
+		}
+
+		size_t shadersListSize() const {
+			return shadersList.size();
+		}
+
+		void					processEvent(int id);
+		int						addEvent(const char *name);
+		void					addShaderToEvent(const char *shaderEvent, int shaderID);
+		int						newShader(const char *shaderFile, shaderTypes type, int eventToLink);
+		int						newShader(const char *shaderFile, shaderTypes type, const char *name);
+		void					linkAllShaders();
+		void					deactivateShader();
 
 		static void bindProgram(const ProgramObject &programID);
 		static void bindProgram(unsigned int programID);
@@ -144,6 +178,7 @@ namespace ShaderProject
 
 	private:
 		CShader();
+		CShader(const CShader&) = delete;
 	};
 }
 
