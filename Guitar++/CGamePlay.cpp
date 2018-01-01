@@ -73,7 +73,7 @@ double CGamePlay::fretboardPositionCalcByT(double time, double prop, double *max
 	cCalc /= propSpeeed;
 
 	cCalc *= 1000000.0;
-	cCalc = (int64_t)cCalc % (int64_t)((size * 1000000) * prop);
+	cCalc = static_cast<double>((int64_t)cCalc % (int64_t)((size * 1000000) * prop));
 	return cCalc / 1000000.0;
 }
 
@@ -320,7 +320,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		const double mtime = (time - 1.0);
 		int BPMnowbuff = Player.BPMNowBuffer/*getBPMAtI(Player, (mtime > 0.0) ? mtime : 0.0)*/;
 
-		if (BPMnowbuff >= bpmBuffSize)
+		if (static_cast<size_t>(BPMnowbuff) >= bpmBuffSize)
 		{
 			BPMnowbuff = bpmBuffSize - 1;
 		}
@@ -333,7 +333,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		if (mtime >= 0.0)
 		{
 			int nbuff = BPMnowbuff + 1;
-			if (bpmBuffSize > nbuff)
+			if (bpmBuffSize > static_cast<size_t>(nbuff))
 			{
 				if (((mscRunnTime - 1.5) > (Player.Notes.BPM[nbuff].time)))
 				{
@@ -363,8 +363,8 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 		double tCalc = 0.0;
 		double timeToSum = Player.Notes.BPM[BPMnowbuff].time;
 
-		int64_t bpmMultiplier = blinetime;
-		double bpmMultiplierd = bpmMultiplier;
+		int64_t bpmMultiplier = static_cast<int64_t>(floor(blinetime));
+		//double bpmMultiplierd = static_cast<double>(bpmMultiplier);
 
 		double chartEnd = Player.Notes.getChartEnd(1.0);
 
@@ -379,7 +379,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 			{
 				int nbuff = BPMnowbuff + 1;
-				if (bpmBuffSize > nbuff)
+				if (bpmBuffSize > static_cast<size_t>(nbuff))
 				{
 					if (blinetime >= Player.Notes.BPM[nbuff].time)
 					{
@@ -923,9 +923,9 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, in
 		if (Texture == GPPGame::GuitarPP().HOPOSText)
 		{
 			gppVec3f vec3data;
-			vec3data.x = TempStruct3D.x1;
+			vec3data.x = static_cast<float>(TempStruct3D.x1);
 			vec3data.y = -0.462f;
-			vec3data.z = TempStruct3D.z1;
+			vec3data.z = static_cast<float>(TempStruct3D.z1);
 
 
 			hopostp.push_front(vec3data);
@@ -1054,9 +1054,9 @@ void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlay
 			for (int i = 0; i < 5; ++i)
 			{
 				gppVec3f vec3data;
-				vec3data.x = xdata[i];
+				vec3data.x = static_cast<float>(xdata[i]);
 				vec3data.y = -0.47f;
-				vec3data.z = TempStruct3D.z1;
+				vec3data.z = static_cast<float>(TempStruct3D.z1);
 
 				hopostp.push_front(vec3data);
 			}
@@ -2108,7 +2108,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				CFonts::fonts().addTextAlert(std::move(t));
 			}
 
-			int combo = player.getCombo();
+			int64_t combo = player.getCombo();
 
 			if (combo > 0)
 			{
@@ -2159,7 +2159,7 @@ void CGamePlay::renderFretBoardShadow(CPlayer &player, double x1, double x2, dou
 		cCalc /= propSpeeed;
 
 		cCalc *= 1000000.0;
-		cCalc = (int64_t)cCalc % (int64_t)((size * 1000000) * prop);
+		cCalc = static_cast<double>((int64_t)cCalc % (int64_t)((size * 1000000) * prop));
 		return cCalc / 1000000.0;
 	};
 
@@ -2235,7 +2235,7 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 		cCalc /= propSpeeed;
 
 		cCalc *= 1000000.0;
-		cCalc = (int64_t)cCalc % (int64_t)((size * 1000000) * prop);
+		cCalc = static_cast<double>((int64_t)cCalc % (int64_t)((size * 1000000) * prop));
 		return cCalc / 1000000.0;
 	};
 	
@@ -2622,7 +2622,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		for (auto &t : l.ambientLight)
 		{
-			t = difftime;
+			t = static_cast<float>(difftime);
 		}
 
 		for (auto &t : l.direction)
@@ -2646,10 +2646,10 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		}
 
 		l.specularLight[2] = 1.0f;
-		l.specularLight[3] = 1.0f - difftime;
+		l.specularLight[3] = 1.0f - static_cast<float>(difftime);
 		l.diffuseLight[2] = 1.0f;
-		l.diffuseLight[3] = 1.0f - difftime;
-		l.ambientLight[3] = difftime;
+		l.diffuseLight[3] = 1.0f - static_cast<float>(difftime);
+		l.ambientLight[3] = static_cast<float>(difftime);
 
 		l.angle = 100.0f;
 		l.direction[0] = 0.0f;

@@ -221,6 +221,8 @@ class CEngine {
 	ALCcontext *audioContext;
 	static ALenum error;
 
+	static bool readWave(const char *wavFile, ALuint buffer);
+
 public:
 	inline const double *getProjMatrix() const { return projMatrix.data();  }
 
@@ -297,7 +299,6 @@ public:
 	std::function <void(int, const std::string &e)> errorCallbackFun;
 
 private:
-	//void gluPerspective(double fovy, double aspect, double zNear, double zFar);
 	static void GLFWerrorfun(int error, const char *description);
 
 	double lastFrameTime, lastFPSSwapTime, DeltaTime;
@@ -310,8 +311,6 @@ private:
 	//const static uint32_t bitValues[32];
 
 	std::bitset <0x18000> glStates;
-
-	//void setBitState(unsigned int *array, unsigned int bitSet, bool state);
 
 	struct audioInfo{
 		const char *fileName;
@@ -542,7 +541,6 @@ public:
 	void glDisable(int num);
 
 	void renderAt(double x, double y, double z);
-	void loadModel();
 
 	/* Rendering functions */
 	void Render2DQuad(const RenderDoubleStruct &quad2DData);
@@ -599,8 +597,31 @@ public:
 			alSourceRewind(source);
 		}
 
+		void destroy()
+		{
+			if (buffer)
+			{
+				alDeleteBuffers(1, &buffer);
+			}
+
+			if (source)
+			{
+				alDeleteSources(1, &source);
+			}
+		}
+
 		audioInstance(const audioInstance&) = delete;
 		audioInstance &operator=(const audioInstance&) = delete;
+
+		audioInstance &operator=(audioInstance &&a)
+		{
+			destroy();
+
+			buffer = a.buffer;
+			source = a.source;
+
+			a.buffer = a.source = 0u;
+		}
 
 		audioInstance(ALuint b, ALuint s) : audioInstance()
 		{
@@ -613,16 +634,7 @@ public:
 
 		~audioInstance()
 		{
-			std::cout << "Delete " << buffer << "  " << source << std::endl;
-			if (buffer)
-			{
-				alDeleteBuffers(1, &buffer);
-			}
-
-			if (source)
-			{
-				alDeleteSources(1, &source);
-			}
+			destroy();
 		}
 	};
 

@@ -489,14 +489,14 @@ int CLuaFunctions::setConfigs(lua_State *L)
 	lua_getglobal(L, "WindowWidth");
 
 	if (lua_isnumber(L, -1))
-		cfg.w = lua_tointeger(L, -1);
+		cfg.w = static_cast<int>(lua_tointeger(L, -1));
 
 
 
 	lua_getglobal(L, "WindowHeight");
 
 	if (lua_isnumber(L, -1))
-		cfg.h = lua_tointeger(L, -1);
+		cfg.h = static_cast<int>(lua_tointeger(L, -1));
 
 
 
@@ -521,57 +521,57 @@ int CLuaFunctions::setConfigs(lua_State *L)
 	lua_getglobal(L, "VSync");
 
 	if (lua_isnumber(L, -1))
-		cfg.VSyncMode = lua_tointeger(L, -1);
+		cfg.VSyncMode = static_cast<int>(lua_tointeger(L, -1));
 
 
 
 	lua_getglobal(L, "AntiAliasing");
 
 	if (lua_isnumber(L, -1))
-		cfg.AA = lua_tointeger(L, -1);
+		cfg.AA = static_cast<int>(lua_tointeger(L, -1));
 
 
 
 	lua_getglobal(L, "Green");
 
 	if (lua_isnumber(L, -1))
-		GPPGame::GuitarPP().strumKeys[0] = lua_tointeger(L, -1);
+		GPPGame::GuitarPP().strumKeys[0] = static_cast<unsigned int>(lua_tointeger(L, -1));
 
 
 	lua_getglobal(L, "Red");
 
 	if (lua_isnumber(L, -1))
-		GPPGame::GuitarPP().strumKeys[1] = lua_tointeger(L, -1);
+		GPPGame::GuitarPP().strumKeys[1] = static_cast<unsigned int>(lua_tointeger(L, -1));
 
 
 	lua_getglobal(L, "Yellow");
 
 	if (lua_isnumber(L, -1))
-		GPPGame::GuitarPP().strumKeys[2] = lua_tointeger(L, -1);
+		GPPGame::GuitarPP().strumKeys[2] = static_cast<unsigned int>(lua_tointeger(L, -1));
 
 
 	lua_getglobal(L, "Blue");
 
 	if (lua_isnumber(L, -1))
-		GPPGame::GuitarPP().strumKeys[3] = lua_tointeger(L, -1);
+		GPPGame::GuitarPP().strumKeys[3] = static_cast<unsigned int>(lua_tointeger(L, -1));
 
 
 	lua_getglobal(L, "Orange");
 
 	if (lua_isnumber(L, -1))
-		GPPGame::GuitarPP().strumKeys[4] = lua_tointeger(L, -1);
+		GPPGame::GuitarPP().strumKeys[4] = static_cast<unsigned int>(lua_tointeger(L, -1));
 
 
 	lua_getglobal(L, "fretOne");
 
 	if (lua_isnumber(L, -1))
-		GPPGame::GuitarPP().fretOneKey = lua_tointeger(L, -1);
+		GPPGame::GuitarPP().fretOneKey = static_cast<unsigned int>(lua_tointeger(L, -1));
 
 
 	lua_getglobal(L, "fretTwo");
 
 	if (lua_isnumber(L, -1))
-		GPPGame::GuitarPP().fretTwoKey = lua_tointeger(L, -1);
+		GPPGame::GuitarPP().fretTwoKey = static_cast<unsigned int>(lua_tointeger(L, -1));
 
 
 
@@ -787,7 +787,7 @@ int CLuaFunctions::setSoundVolume(lua_State * L)
 		p >> handle;
 		p >> value;
 
-		p << CEngine::engine().setSoundVolume(handle, value);
+		p << CEngine::engine().setSoundVolume(handle, static_cast<float>(value));
 	}
 
 	return p.rtn();
@@ -867,7 +867,7 @@ int CLuaFunctions::setSoundFlags(lua_State * L)
 		p >> flags;
 		p >> mask;
 
-		p << CEngine::engine().setSoundFlags(handle, flags, mask);
+		p << CEngine::engine().setSoundFlags(handle, static_cast<int>(flags), static_cast<int>(mask));
 	}
 
 	return p.rtn();
@@ -887,7 +887,7 @@ int CLuaFunctions::setSoundAttribute(lua_State * L)
 		p >> flags;
 		p >> value;
 
-		p << CEngine::engine().setSoundAttribute(handle, flags, value);
+		p << CEngine::engine().setSoundAttribute(handle, flags, static_cast<float>(value));
 	}
 
 	return p.rtn();

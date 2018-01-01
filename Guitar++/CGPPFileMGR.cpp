@@ -20,7 +20,12 @@ void GPPPackage::pushFile(const std::string &file, const std::string &name, bool
 
 	std::fstream f(file, std::ios::in | std::ios::binary);
 
-	size_t s = CGPPFileMGR::fileSize(f);
+	if (!f.is_open())
+	{
+		return;
+	}
+
+	size_t s = static_cast<size_t>(CGPPFileMGR::fileSize(f));
 
 	ni.bytes.insert(ni.bytes.begin(), s, '\0');
 	f.read((char*)&ni.bytes[0], s);

@@ -3058,7 +3058,7 @@ std::string GPPGame::selectSong()
 
 						for (auto &musicOpt : menuMusics)
 						{
-							if (musicOpt.first < menu.options.size())
+							if (static_cast<size_t>(musicOpt.first) < menu.options.size())
 							{
 								menu.options[musicOpt.first].y += loffset;
 							}
@@ -3336,7 +3336,7 @@ void GPPGame::addSongListToMenu(CMenu &selectSongMenu, std::map<int, std::string
 
 						for (auto &musicOpt : menuMusics)
 						{
-							if (musicOpt.first < menu.options.size())
+							if (static_cast<size_t>(musicOpt.first) < menu.options.size())
 							{
 								menu.options[musicOpt.first].y += loffset;
 							}

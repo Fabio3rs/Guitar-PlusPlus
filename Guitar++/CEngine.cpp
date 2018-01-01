@@ -124,7 +124,7 @@ ALenum deduceAlFormat(int channels, int bits)
 	return 0;
 }
 
-bool readWave(const char *wavFile, ALuint buffer)
+bool CEngine::readWave(const char *wavFile, ALuint buffer)
 {
 	std::fstream mywave(wavFile, std::ios::binary | std::ios::in);
 
@@ -132,7 +132,7 @@ bool readWave(const char *wavFile, ALuint buffer)
 		return false;
 
 	mywave.seekg(0, std::ios::end);
-	size_t size = mywave.tellg();
+	size_t size = static_cast<size_t>(mywave.tellg());
 	mywave.seekg(0, std::ios::beg);
 
 	std::unique_ptr<char[]> pointer(std::make_unique<char[]>(size));
@@ -151,7 +151,7 @@ bool readWave(const char *wavFile, ALuint buffer)
 
 	if ((error = alGetError()) != AL_NO_ERROR)
 	{
-		printf("alBufferData buffer 0: %d", error);
+		CEngine::error = error;
 		alDeleteBuffers(1, &buffer);
 		return false;
 	}
@@ -1581,7 +1581,7 @@ void CEngine::colorRGBToArrayf(int32_t rgb, float *arr)
 
 void CEngine::setClearColor(const std::array<double, 4>& color)
 {
-	glClearColor(color[0], color[1], color[2], color[3]);
+	glClearColor(static_cast<float>(color[0]), static_cast<float>(color[1]), static_cast<float>(color[2]), static_cast<float>(color[3]));
 }
 
 void CEngine::shadowMatrix(float shadowMat[4][4], float groundplane[4], float lightpos[4])
@@ -1815,7 +1815,7 @@ void CEngine::Render2DCircleBufferMax(double x, double y, double perone, double 
 		}
 	}
 
-	polysNum = maxPolys * peroneA;
+	polysNum = static_cast<int>(floor(maxPolys * peroneA));
 
 	bindTexture(0);
 	glBufferDataARB(GL_ARRAY_BUFFER_ARB, polysNum * 12 * sizeof(GLdouble), result.get(), GL_STATIC_DRAW_ARB);

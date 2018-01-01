@@ -935,9 +935,9 @@ void CMenu::update()
 						{
 							double optListSized = opt.optList.size();
 
-							opt.listID = (int)((optListSized / opt.deslizantBarSize) * subX);
+							opt.listID = static_cast<int>(floor((optListSized / opt.deslizantBarSize) * subX));
 
-							if (opt.listID >= opt.optList.size())
+							if (opt.listID >= static_cast<int>(opt.optList.size()))
 							{
 								opt.listID = opt.optList.size() - 1;
 							}

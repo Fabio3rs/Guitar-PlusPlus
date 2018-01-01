@@ -470,7 +470,7 @@ int main(int argc, char* argv[])
 							if (opt.listID < 0)
 								opt.listID = 0;
 
-							if (opt.listID >= opt.optList.size())
+							if (opt.listID >= static_cast<int>(opt.optList.size()))
 								opt.listID = opt.optList.size() - 1;
 
 							opt.updateCppCallback = [](CMenu &menu, CMenu::menuOpt &opt)
@@ -484,7 +484,7 @@ int main(int argc, char* argv[])
 										if (opt.listID < 0)
 											opt.listID = 0;
 
-										if (opt.listID >= opt.optList.size())
+										if (opt.listID >= static_cast<int>(opt.optList.size()))
 											opt.listID = opt.optList.size() - 1;
 									}
 									catch (...)
