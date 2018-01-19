@@ -32,7 +32,7 @@ public:
 		return error.c_str();
 	}
 	
-	SocketError(const char *msg) : std::exception()
+	SocketError(const char *msg) noexcept : std::exception()
 	{
 		error = msg;
 	}

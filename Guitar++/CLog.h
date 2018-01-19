@@ -17,6 +17,7 @@
 #include <deque>
 #include <memory>
 #include <utility>
+#include <type_traits>
 
 class CLogException : public std::exception{
 	std::string str;
@@ -50,8 +51,8 @@ class CLog{
 
 		argToString(const std::string &str) : str(str) { }
 
-		template<class T>
-		argToString(const T &value) : str(std::to_string(value)) { }
+		template<class T, typename = std::enable_if_t<std::is_arithmetic<T>::value>>
+		argToString(T value) : str(std::to_string(value)) { }
 	};
 
 	bool Finished;

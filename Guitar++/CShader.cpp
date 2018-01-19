@@ -3,7 +3,7 @@
 #include <iostream>
 #include <GL/glew.h>
 #include "CShader.h"
-#include <Windows.h>
+//#include <Windows.h>
 #include "CLog.h"
 #include "CLuaFunctions.hpp"
 
@@ -230,7 +230,7 @@ namespace ShaderProject
 		GLenum err = glewInit();
 		if (GLEW_OK != err) {
 			/*Problem: glewInit failed, something is seriously wrong. */
-			MessageBoxA(0, (char*)glewGetErrorString(err), "Error: %s\n", 0);
+			//MessageBoxA(0, (char*)glewGetErrorString(err), "Error: %s\n", 0);
 		}
 		//glUseProgram(0);
 		/*
