@@ -217,6 +217,17 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 								ntsI.push_back(nt);
 							}
 						}
+						else if (nt.type == 5)
+						{
+							if (ntsI.size() > 0)
+							{
+								auto &last = ntsI[ntsI.size() - 1];
+								if (last.time == nt.time)
+								{
+									last.type |= nf_reverseStrumHopo;
+								}
+							}
+						}
 						else if (nt.type == 6)
 						{
 							if (ntsI.size() > 0)
@@ -464,6 +475,11 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 				newNote.type = Nts[i].type;
 
 				hopoTest(newNote);
+
+				if (newNote.type & nf_reverseStrumHopo)
+				{
+					newNote.type ^= nf_not_hopo;
+				}
 
 				gNotes.push_back(newNote);
 			}
