@@ -508,13 +508,13 @@ public:
 	void						runEvent(const std::string &name);
 	void						runCheatEvent(const std::string &name);
 	void						runHookEvent(uintptr_t address);
-	void						runEventFromDeque(const std::string &name, std::deque<CLuaH::luaScript> &storage);
+	void						runEventFromContainer(const std::string &name, std::deque<CLuaH::luaScript> &storage);
 	
 	/*
 	* Run a especific with parameteres (calls him specifics callbacks)
 	*/
 	void						runEventWithParams(const std::string &name, const multiCallBackParams_t &params);
-	void						runEventWithParamsFromDeque(const std::string &name, const multiCallBackParams_t &params, std::deque<CLuaH::luaScript> &storage);
+	void						runEventWithParamsFromContainer(const std::string &name, const multiCallBackParams_t &params, std::deque<CLuaH::luaScript> &storage);
 
 	/*
 	* Run a internal event (calls him specifics callbacks)

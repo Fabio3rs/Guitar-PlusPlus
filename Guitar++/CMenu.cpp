@@ -1335,6 +1335,15 @@ CMenu::CMenu()
 
 CMenu::CMenu(const std::string &name)
 {
+	{
+		auto m = Menus.find(name);
+
+		if (m != Menus.end())
+		{
+			throw std::runtime_error(CLog::log().multiRegister("Error menu %0 already exists", name));
+		}
+	}
+
 	lastEnterOptBtn = false;
 	status = 0;
 	thisUiID = -1;
@@ -1347,10 +1356,8 @@ CMenu::CMenu(const std::string &name)
 
 	devMenuNOUpdateOthers = false;
 
-	menuName = "menu_";
-	menuName += name;
-	menuName += "_";
-	menuName += std::to_string(menusCreated);
+	menuName = name;
+
 	Menus[menuName] = this;
 
 	temp = false;

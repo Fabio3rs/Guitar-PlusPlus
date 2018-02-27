@@ -346,7 +346,7 @@ void CLuaH::runHookEvent(uintptr_t address)
 	}
 }
 
-void CLuaH::runEventFromDeque(const std::string &name, std::deque<CLuaH::luaScript> &storage)
+void CLuaH::runEventFromContainer(const std::string &name, std::deque<CLuaH::luaScript> &storage)
 {
 	for (auto &scripts : storage)
 	{
@@ -511,7 +511,7 @@ void CLuaH::runEventWithParams(const std::string &name, const multiCallBackParam
 	}
 }
 
-void CLuaH::runEventWithParamsFromDeque(const std::string & name, const multiCallBackParams_t & params, std::deque<CLuaH::luaScript>& storage)
+void CLuaH::runEventWithParamsFromContainer(const std::string & name, const multiCallBackParams_t & params, std::deque<CLuaH::luaScript>& storage)
 {
 	for (auto &scripts : storage)
 	{

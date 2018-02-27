@@ -57,7 +57,7 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 		}
 
 		CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
-		CLuaH::Lua().runEventFromDeque("campaingLoad", campaingScripts);
+		CLuaH::Lua().runEventFromContainer("campaingLoad", campaingScripts);
 	}
 	catch (const std::exception &e)
 	{
@@ -166,7 +166,7 @@ int CCampaing::newCampaing()
 	}
 
 	CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
-	CLuaH::Lua().runEventFromDeque("campaingInit", campaingScripts);
+	CLuaH::Lua().runEventFromContainer("campaingInit", campaingScripts);
 
 	saveCampaingF();
 
@@ -214,7 +214,7 @@ int CCampaing::campaingMainMenu(CMenu &menu)
 		opt.status = 0;
 		opt.type = CMenu::menusOPT::textbtn;
 
-		opt.menusXRef.push_back(game.addGameCallbacks("continueCampaingFunctionMGR", GPPGame::continueCampaing));
+		opt.menusXRef.push_back(mainMenu);
 		opt.updateCppCallback = cotinueCampaingOptCallback;
 
 		menuContinuarCampanhaID = menu.addOpt(opt);
@@ -395,19 +395,19 @@ int CCampaing::campaingDrawScreen()
 
 	auto preFun = [&]()
 	{
-		CLuaH::Lua().runEventFromDeque("campaingMenuPreFun", mgr.campaingScripts);
+		CLuaH::Lua().runEventFromContainer("campaingMenuPreFun", mgr.campaingScripts);
 		return 0;
 	};
 
 	auto midFun = [&]()
 	{
-		CLuaH::Lua().runEventFromDeque("campaingMenuMidFun", mgr.campaingScripts);
+		CLuaH::Lua().runEventFromContainer("campaingMenuMidFun", mgr.campaingScripts);
 		return 0;
 	};
 
 	auto posFun = [&]()
 	{
-		CLuaH::Lua().runEventFromDeque("campaingMenuPosFun", mgr.campaingScripts);
+		CLuaH::Lua().runEventFromContainer("campaingMenuPosFun", mgr.campaingScripts);
 		return 0;
 	};
 
@@ -420,7 +420,7 @@ int CCampaing::campaingDrawScreen()
 			break;
 		}
 
-		CLuaH::Lua().runEventFromDeque("campaingDrawScreenUpdate", mgr.campaingScripts);
+		CLuaH::Lua().runEventFromContainer("campaingDrawScreenUpdate", mgr.campaingScripts);
 
 		GuitarPP.renderFrame();
 
@@ -468,6 +468,19 @@ int CCampaing::cotinueCampaingOptCallback(CMenu &menu, CMenu::menuOpt &opt)
 
 CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings")
 {
+	auto &contOptions = GPPGame::GuitarPP().newNamedMenu("continueCampaingOptions");
+
+	contOptions.openCallback = [](CMenu &m)
+	{
+		m.resetData();
+		m.resetBtns();
+
+		CLuaH::Lua().runEventWithParamsFromContainer("campaingMainMenuOpen", { CLuaH::customParam(&m) }, campaingMGR().campaingScripts);
+		return 0;
+	};
+
+	mainMenu = contOptions.getName();
+
 	numCampaingSaves = 0;
 	menuNovaCampanhaID = menuContinuarCampanhaID = 0;
 	campaingFunctionGotoID = 0;

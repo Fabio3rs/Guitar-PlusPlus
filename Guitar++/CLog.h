@@ -62,7 +62,7 @@ public:
 	void AddToLog(const std::string &Text);
 
 	template<class... Types>
-	void multiRegister(const std::string &format, Types&&... args)
+	std::string multiRegister(const std::string &format, Types&&... args)
 	{
 		const std::array < argToString, std::tuple_size<std::tuple<Types...>>::value > a = { std::forward<Types>(args)... };
 		std::string printbuf, numbuf;
@@ -160,6 +160,7 @@ public:
 		}
 
 		AddToLog(printbuf);
+		return printbuf;
 	}
 
 	void FinishLog();

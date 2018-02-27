@@ -266,6 +266,7 @@ private:
 	static int cotinueCampaingOptCallback(CMenu &menu, CMenu::menuOpt &opt);
 
 	CCampaingData campaingNow;
+	std::string mainMenu;
 
 	CCampaing();
 
