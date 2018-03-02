@@ -22,7 +22,7 @@ class CCampaing
 	int numCampaingSaves;
 	int menuNovaCampanhaID, menuContinuarCampanhaID;
 
-	std::deque <CLuaH::luaScript> campaingScripts;
+	CLuaH::scriptStorage campaingScripts;
 
 	bool continueInDrawScreen, keepMenuStack;
 

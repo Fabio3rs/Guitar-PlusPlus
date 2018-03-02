@@ -3446,7 +3446,7 @@ std::string GPPGame::getRunningModule()
 	return runningModule;
 }
 
-std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::function<int(void)> midFun, std::function<int(void)> posFun, bool dev, std::deque < CMenu* > stackTest)
+std::vector <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::function<int(void)> midFun, std::function<int(void)> posFun, bool dev, std::vector < CMenu* > stackTest)
 {
 	callOnDctor<void(void)> exitguard([]()
 	{
@@ -3457,7 +3457,7 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 	auto &lua = CLuaH::Lua();
 	double waitForTime = 0.0;
 	
-	std::deque < CMenu* > menusStack = stackTest;
+	std::vector < CMenu* > menusStack = stackTest;
 	//static std::deque < CMenu* > devMenusStack;
 
 	if (menusStack.size() == 0)
@@ -3945,7 +3945,7 @@ std::deque <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)
 
 	currentMenu = nullptr;
 
-	return std::deque<CMenu*>();
+	return std::vector<CMenu*>();
 }
 
 void GPPGame::teste(const std::string &name)

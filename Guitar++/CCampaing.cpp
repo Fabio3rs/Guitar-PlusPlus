@@ -56,7 +56,7 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 			CLuaFunctions::LuaF().registerGlobals(campaingScripts[i].luaState);
 		}
 
-		CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
+		CLuaH::Lua().runScriptsFromStorage(campaingScripts);
 		CLuaH::Lua().runEventFromContainer("campaingLoad", campaingScripts);
 	}
 	catch (const std::exception &e)
@@ -165,7 +165,7 @@ int CCampaing::newCampaing()
 		campaingNow.scripts.push_back(nluascriptsave);
 	}
 
-	CLuaH::Lua().runScriptsFromDequeStorage(campaingScripts);
+	CLuaH::Lua().runScriptsFromStorage(campaingScripts);
 	CLuaH::Lua().runEventFromContainer("campaingInit", campaingScripts);
 
 	saveCampaingF();
@@ -389,7 +389,7 @@ int CCampaing::campaingDrawScreen()
 		mgr.continueInDrawScreen = 0;
 	});
 
-	std::deque <CMenu*> menusStack;
+	std::vector <CMenu*> menusStack;
 
 	bool windowOpened = true;
 

@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <deque>
+#include <vector>
 #include "CLuaFunctions.hpp"
 #include "CMenu.h"
 #include "CEngine.h"
@@ -240,7 +241,7 @@ public:
 
 	void setVSyncMode(int mode);
 
-	std::deque <CMenu*> openMenus(CMenu *startMenu, std::function<int(void)> preFun = nullptr, std::function<int(void)> midFun = nullptr, std::function<int(void)> posFun = nullptr, bool dev = false, std::deque < CMenu* > stackTest = std::deque < CMenu* >());
+	std::vector <CMenu*> openMenus(CMenu *startMenu, std::function<int(void)> preFun = nullptr, std::function<int(void)> midFun = nullptr, std::function<int(void)> posFun = nullptr, bool dev = false, std::vector < CMenu* > stackTest = std::vector < CMenu* >());
 
 	inline CMenu *getActualMenu()
 	{

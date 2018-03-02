@@ -460,7 +460,8 @@ public:
 
 	bool registerCustomFunctions;
 
-	typedef std::deque<customParam> multiCallBackParams_t;
+	typedef std::vector<customParam> multiCallBackParams_t;
+	typedef std::vector<CLuaH::luaScript> scriptStorage;
 
 	static CLuaH				&Lua();
 
@@ -471,7 +472,7 @@ public:
 	*/
 	bool						loadFiles(const std::string &path);
 
-	bool						loadFilesDequeStorage(const std::string &path, std::deque<CLuaH::luaScript> &storage);
+	bool						loadFilesDequeStorage(const std::string &path, scriptStorage &storage);
 
 	/*
 	* Run all scripts in script quere
@@ -481,7 +482,7 @@ public:
 
 	void						runScriptsFromPath(const std::string &path);
 
-	void						runScriptsFromDequeStorage(std::deque<CLuaH::luaScript> &storage);
+	void						runScriptsFromStorage(scriptStorage &storage);
 
 	/*
 	* New script and DO NOT add it to quere
@@ -508,13 +509,13 @@ public:
 	void						runEvent(const std::string &name);
 	void						runCheatEvent(const std::string &name);
 	void						runHookEvent(uintptr_t address);
-	void						runEventFromContainer(const std::string &name, std::deque<CLuaH::luaScript> &storage);
+	void						runEventFromContainer(const std::string &name, scriptStorage &storage);
 	
 	/*
 	* Run a especific with parameteres (calls him specifics callbacks)
 	*/
 	void						runEventWithParams(const std::string &name, const multiCallBackParams_t &params);
-	void						runEventWithParamsFromContainer(const std::string &name, const multiCallBackParams_t &params, std::deque<CLuaH::luaScript> &storage);
+	void						runEventWithParamsFromContainer(const std::string &name, const multiCallBackParams_t &params, scriptStorage &storage);
 
 	/*
 	* Run a internal event (calls him specifics callbacks)

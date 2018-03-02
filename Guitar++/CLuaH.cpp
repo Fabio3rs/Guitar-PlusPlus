@@ -57,7 +57,7 @@ bool CLuaH::loadFiles(const std::string &path)
 	return true;
 }
 
-bool CLuaH::loadFilesDequeStorage(const std::string &path, std::deque<CLuaH::luaScript> &storage)
+bool CLuaH::loadFilesDequeStorage(const std::string &path, scriptStorage &storage)
 {
 	auto extension_from_filename = [](const std::string &fname)
 	{
@@ -346,7 +346,7 @@ void CLuaH::runHookEvent(uintptr_t address)
 	}
 }
 
-void CLuaH::runEventFromContainer(const std::string &name, std::deque<CLuaH::luaScript> &storage)
+void CLuaH::runEventFromContainer(const std::string &name, scriptStorage &storage)
 {
 	for (auto &scripts : storage)
 	{
@@ -511,7 +511,7 @@ void CLuaH::runEventWithParams(const std::string &name, const multiCallBackParam
 	}
 }
 
-void CLuaH::runEventWithParamsFromContainer(const std::string & name, const multiCallBackParams_t & params, std::deque<CLuaH::luaScript>& storage)
+void CLuaH::runEventWithParamsFromContainer(const std::string & name, const multiCallBackParams_t & params, scriptStorage &storage)
 {
 	for (auto &scripts : storage)
 	{
@@ -596,7 +596,7 @@ void CLuaH::runScriptsFromPath(const std::string &path)
 	}
 }
 
-void CLuaH::runScriptsFromDequeStorage(std::deque<CLuaH::luaScript>& storage)
+void CLuaH::runScriptsFromStorage(scriptStorage &storage)
 {
 	for (auto &pathScripts : storage)
 	{
