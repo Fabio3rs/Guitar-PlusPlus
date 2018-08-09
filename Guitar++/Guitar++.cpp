@@ -12,10 +12,6 @@
 #include "CEngine.h"
 #include "CLog.h"
 #include "CMenu.h"
-#ifdef _WIN32
-//#include <Windows.h>
-//#include <Psapi.h>
-#endif
 #include "CFonts.h"
 #include "CPlayer.h"
 #include "CSaveSystem.h"
@@ -30,33 +26,16 @@ int main(int argc, char* argv[])
 {
 	///startGambiarras();
 	try{
-		CEngine::engine(GPPGame::logError);
-
-		try{
-			CLog::log(); // Start logging before everything, to avoid non-logged crashes
-		}
-		catch (const std::exception &e)
-		{
-#ifdef _WIN32
-			//MessageBoxA(0, e.what(), "Error", 0);
-#endif
-			return 1;
-		}
+		CEngine::engine().errorCallbackFun = GPPGame::logError;
+		CLog::log();
+		CEngine::engine().init();
 
 		auto &lngmgr = CLanguageManager::langMGR();
-		//int variaveldopato = 0;
-
-		//std::cout << "@_@: " << svtest.getVarContent<int>("variaveldopato") << std::endl;
 
 		auto &game = GPPGame::GuitarPP();
 		auto &guitars = CGuitars::inst();
 
 		game.parseParameters(argc, argv);
-
-		//svtest.addVariableAttData("variaveldopato", variaveldopato, true);
-		//variaveldopato = 10;
-
-		//svtest.saves();
 		
 		auto &campaingMgr = CCampaing::campaingMGR();
 
@@ -72,12 +51,6 @@ int main(int argc, char* argv[])
 
 		// Run all scripts in quere
 		lua.runScripts();
-
-		/*{
-			auto tnddawnpackage = CGPPFileMGR::mgr().newPackageFromDirectory("2nd Dawn", "./data/songs/2nd Dawn");
-
-			std::cout << "2nd Dawn Package items" << tnddawnpackage.items.size() << std::endl;
-		}*/
 
 		// Window
 		game.createWindow();
@@ -278,6 +251,7 @@ int main(int argc, char* argv[])
 							opt.group = 1;
 							opt.status = 0;
 							opt.type = CMenu::menusOPT::text_input;
+							opt.preText = "Fabio Rossini Sluzala";
 
 							mainMenu.addOpt(opt);
 						}
@@ -690,91 +664,25 @@ int main(int argc, char* argv[])
 
 		GPPGame::GuitarPP().setVSyncMode(1);
 
-		// menu background texture
-
-		//***********************************************
-		//CEngine::RenderDoubleStruct RenderData;
-
-		//double prop = (double)menu.getImgWidth() / (double)menu.getImgHeight();
-
-		/*RenderData.x1 = -prop;
-		RenderData.x2 = prop;
-		RenderData.x3 = prop;
-		RenderData.x4 = -prop;
-
-		RenderData.y1 = 1.0;
-		RenderData.y2 = 1.0;
-		RenderData.y3 = -1.0;
-		RenderData.y4 = -1.0;
-
-		RenderData.z1 = 0.0;
-		RenderData.z2 = 0.0;
-		RenderData.z3 = 0.0;
-		RenderData.z4 = 0.0;
-
-		RenderData.TextureX1 = 0.0;
-		RenderData.TextureX2 = 1.0;
-		RenderData.TextureY1 = 1.0;
-		RenderData.TextureY2 = 0.0;
-
-		RenderData.Text = menu.getTextId();*/
-		//////////////////////////////////////////////
-
 		{
 			//CCampaing::campaingMGR().loadedCampaingFilepath = "./data/saves/campaings/campaingZoeira/save";
+			cfile_ptr svfstream(CEngine::make_cfile("./data/saves/campaings/campaingZoeira/save", "rb"));
 
-			std::fstream svfstream("./data/saves/campaings/campaingZoeira/save", std::ios::in | std::ios::binary);
-
-			if (!svfstream.is_open())
+			if (svfstream)
 			{
+				svfstream.reset();
+
 				CCampaing::campaingMGR().newCampaing();
 			}
 			else
 			{
-				svfstream.close();
+				svfstream.reset();
 
 				CCampaing::campaingMGR().loadCampaingF("./data/saves/campaings/campaingZoeira/save");
 			}
 		}
 
-		/*{
-			CChart chartTest;
-			bool chartOpened = chartTest.open("./data/songs/Soulless3/Soulless3.chart");
-			CLog::log().multiRegister("chartTest.open(\"./data/songs/Soulless3/Soulless3.chart\") -> %0", chartOpened);
-			CLog::log().SaveBuffer();
-
-			try {
-				chartTest.compileGppChart("./data/songs/Soulless3/Soulless3.gpp");
-
-				CLog::log() << "Save ok ./data/songs/Soulless3/Soulless3.gpp";
-				CLog::log().SaveBuffer();
-			}
-			catch (const std::exception &e)
-			{
-				CLog::log().multiRegister("Exception at compileGppChart -> %0", e);
-				CLog::log().SaveBuffer();
-			}
-			catch (...)
-			{
-				CLog::log() << "Unknow exception at compileGppChart";
-				CLog::log().SaveBuffer();
-			}
-
-			CLog::log() << "CChart test ok";
-			CLog::log().SaveBuffer();
-		}*/
-
-		//game.getMainMenu()->backgroundTexture = menu.getGTextureName();
-		/*{
-			std::array<double, 4> colorarray;
-			CEngine::colorRGBToArray(0xFF00FF, colorarray.data());
-			CEngine::setClearColor(colorarray);
-			game.drawGamePlayBackground = false;
-			game.showTextsTest = false;
-		}*/
-
 		game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, false);
-
 
 		lua.runEvent("atExit");
 		guitars.unload();

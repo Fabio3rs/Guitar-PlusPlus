@@ -53,119 +53,6 @@ static const double perspectiveMaxDist = 500000.0;
 //
 //========================================================================
 
-ALenum CEngine::error = AL_NO_ERROR;
-
-#pragma pack(push, 1)
-struct wavheader {
-	char riff[4];
-	int32_t size;
-	char wave[4];
-	char fmt[4];
-	int32_t lenght;
-	int16_t pcm;
-	int16_t channels;
-	int32_t rate;
-	int32_t bytesr; // (Sample Rate * BitsPerSample * Channels) / 8.
-	int16_t bpsc; // (BitsPerSample * Channels) / 8.1 - 8 bit mono2 - 8 bit stereo/16 bit mono4 - 16 bit stereo
-	int16_t bps; // Bits per sample
-	char data[4]; // "data" chunk header. Marks the beginning of the data section.
-	uint32_t dataSize;
-
-	wavheader()
-	{
-		memcpy(riff, "RIFF", 4);
-		memcpy(wave, "WAVE", 4);
-		memcpy(fmt, "fmt\x20", 4);
-		memcpy(data, "data", 4);
-	}
-};
-
-struct channels {
-	short l;
-	short r;
-};
-
-#pragma pack(pop)
-
-ALenum deduceAlFormat(int channels, int bits)
-{
-	switch (channels)
-	{
-	case 1:
-		switch (bits)
-		{
-		case 8:
-			return AL_FORMAT_MONO8;
-			
-		case 16:
-			return AL_FORMAT_MONO16;
-
-		default:
-			return 0;
-		}
-
-	case 2:
-		switch (bits)
-		{
-		case 8:
-			return AL_FORMAT_STEREO8;
-
-		case 16:
-			return AL_FORMAT_STEREO16;
-
-		default:
-			return 0;
-		}
-
-	default:
-		return 0;
-	}
-
-	return 0;
-}
-
-bool CEngine::readWave(const char *wavFile, ALuint buffer)
-{
-	std::fstream mywave(wavFile, std::ios::binary | std::ios::in);
-
-	if (!mywave.is_open())
-		return false;
-
-	mywave.seekg(0, std::ios::end);
-	size_t size = static_cast<size_t>(mywave.tellg());
-	mywave.seekg(0, std::ios::beg);
-
-	std::unique_ptr<char[]> pointer(std::make_unique<char[]>(size));
-
-	mywave.read(pointer.get(), size);
-
-	wavheader &header = *(wavheader*)pointer.get();
-
-	char *p = pointer.get() + sizeof(wavheader);
-
-	channels *ch = (channels*)p;
-
-	alBufferData(buffer, deduceAlFormat(header.channels, header.lenght), p, header.dataSize, header.rate);
-	
-	ALenum error = AL_NO_ERROR;
-
-	if ((error = alGetError()) != AL_NO_ERROR)
-	{
-		CEngine::error = error;
-		alDeleteBuffers(1, &buffer);
-		return false;
-	}
-
-	return true;
-}
-/*
-void CALLBACK GetBPM_ProgressCallback(DWORD chan, float percent, void *user)
-{
-	std::cout << percent << "  " << chan << std::endl;
-
-
-}*/
-
 double CEngine::getChannelLength(unsigned int ch)
 {
 	return BASS_ChannelBytes2Seconds(ch, BASS_ChannelGetLength(ch, BASS_POS_BYTE));
@@ -204,18 +91,34 @@ void CEngine::retAccumulationBuffer(double d)
 	glAccum(GL_RETURN, static_cast<float>(d));
 }
 
-CEngine &CEngine::engine(std::function <void(int, const std::string &e)> errfun)
+CEngine &CEngine::engine()
 {
-	static CEngine eng(errfun);
+	static CEngine eng;
 	return eng;
 }
 
-/*const uint32_t CEngine::bitValues[32] = {
-	1, 2, 4, 8, 16, 32, 64, 128,
-	256, 512, 1024, 2048, 4096, 8192, 16384, 32768,
-	65536, 131072, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000,
-	0x1000000, 0x2000000, 0x4000000, 0x8000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000
-};*/
+void CEngine::init()
+{
+	lastFrameTime = lastFPSSwapTime = 0.0;
+
+	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
+
+	glfwSetErrorCallback(GLFWerrorfun);
+
+	if (!glfwInit())
+	{
+		throw std::logic_error("Fail to initialize GLFW");
+	}
+
+	lastFrameTime = glfwGetTime();
+	lastFPSSwapTime = glfwGetTime();
+
+	lookAtMatrix = glm::lookAt(nowCamera.eye, nowCamera.center, nowCamera.up);
+
+	setCamera({ 0.0, 0.0, 2.3, /* look from camera XYZ */
+		0, 0, 0, /* look at the origin */
+		0, 1, 0 });
+}
 
 bool CEngine::pauseSoundStream(int handle){
 	return BASS_ChannelPause(handle) != 0;
@@ -307,43 +210,6 @@ void CEngine::Rotate(double a, double x, double y, double z){
 	glRotated(a, x, y, z);
 }
 
-void sub_50E0C1F8(double *a1)
-{
-	*(double *)a1 = 1.0;
-	*(double *)(a1 + 32) = 0.0;
-	*(double *)(a1 + 64) = 0.0;
-	*(double *)(a1 + 96) = 0.0;
-	*(double *)(a1 + 8) = 0.0;
-	*(double *)(a1 + 72) = 0.0;
-	*(double *)(a1 + 104) = 0.0;
-	*(double *)(a1 + 16) = 0.0;
-	*(double *)(a1 + 48) = 0.0;
-	*(double *)(a1 + 112) = 0.0;
-	*(double *)(a1 + 24) = 0.0;
-	*(double *)(a1 + 56) = 0.0;
-	*(double *)(a1 + 88) = 0.0;
-	*(double *)(a1 + 40) = 1.0;
-	*(double *)(a1 + 80) = 1.0;
-	*(double *)(a1 + 120) = 1.0;
-}
-
-template<class T>
-class GLTypes
-{
-	static const int gltypeid;
-};
-
-const int GLTypes<float>::gltypeid = GL_FLOAT;
-const int GLTypes<double>::gltypeid = GL_DOUBLE;
-const int GLTypes<int>::gltypeid = GL_INT;
-
-template<class T>
-int GLType(const T &sample)
-{
-	return GLTypes<T>::gltypeid;
-}
-
-
 void CEngine::pushMatrix()
 {
 	glPushMatrix();
@@ -369,40 +235,6 @@ void CEngine::matrixReset()
 	glLoadIdentity();
 }
 
-double CEngine::updateRandomNoiseInterval(double interval){
-	if (std::isnan(interval)){
-		return updateNoiseInterval;
-	}
-
-	updateNoiseInterval = interval;
-	return updateNoiseInterval;
-}
-
-int CEngine::getCRCKeyboardNoise(){
-	noiseCRC32 = 0xFFFFFFFF;
-
-	for (int i = 0, size = keyboardNoise.size(), temp; i < size; i++){
-		temp = keyboardNoise[i];
-		temp <<= i % 64;
-		temp += 64 % (i + 1);
-		noiseCRC32 ^= temp;
-	}
-
-	return noiseCRC32;
-}
-
-std::string CEngine::getKeyboardNoise(){
-	keyboardNoise = "";
-
-	for (int i = 1; i < GLFW_KEY_LAST; i++)
-	{
-		keyboardNoise += (char)i;
-		keyboardNoise += (char)getKey(i);
-	}
-
-	return keyboardNoise;
-}
-
 int CEngine::getKey(int key){
 	return glfwGetKey((GLFWwindow*)window, key);
 }
@@ -418,7 +250,6 @@ void CEngine::setColor(double r, double g, double b, double a)
 		glColor4d(r, g, b, a);
 	}
 }
-
 
 double CEngine::getSoundTime(int handle)
 {
@@ -443,40 +274,6 @@ bool CEngine::loadMusicStream(const char *fileName, int &handle)
 	handle = BASS_MusicLoad(false, fileName, (QWORD)MAKELONG(0, 0), 0, BASS_STREAM_PRESCAN | BASS_ASYNCFILE, 0);
 
 	return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE) && handle != 0;
-}
-
-CEngine::audioInstance CEngine::loadWave(const char *filePath)
-{
-	ALuint buffers = 0, source = 0;
-
-	alGenBuffers(1, &buffers);
-	if ((error = alGetError()) != AL_NO_ERROR)
-	{
-		return audioInstance();
-	}
-
-	bool readed = readWave(filePath, buffers);
-
-	if (!readed)
-	{
-		return audioInstance();
-	}
-
-	// Generate Sources
-	alGenSources(1, &source);
-	if ((error = alGetError()) != AL_NO_ERROR)
-	{
-		return audioInstance();
-	}
-
-	alSourcei(source, AL_BUFFER, buffers);
-
-	if ((error = alGetError()) != AL_NO_ERROR)
-	{
-		return audioInstance();
-	}
-
-	return audioInstance(buffers, source);
 }
 
 float CEngine::getMainVolume()
@@ -575,47 +372,14 @@ static void windowCallBack(GLFWwindow *window, int w, int h){
 		engine.getWindowCallbackFunction()(w, h, posUpdate);
 }
 
-/*void CEngine::setBitState(unsigned int *array, unsigned int bitSet, bool state){
-	if (array){
-		int index = bitSet >> 5, bit = bitValues[bitSet % 32];
-
-		if ((array[index] & bit) && !state){
-			::glDisable(bitSet);
-			array[index] ^= bit;
-		}
-		else if (!(array[index] & bit) && state){
-			::glEnable(bitSet);
-			array[index] ^= bit;
-		}
-	}
-	else{
-		if (state){
-			::glEnable(bitSet);
-		}
-		else{
-			::glDisable(bitSet);
-		}
-	}
-}*/
-
-void CEngine::glEnable(int num){
-	//if (num >= glStates.size())
-	//	MessageBoxA(0, std::to_string(num).c_str(), "Erro", 0);
-
-	//if (!glStates[num]){
-		::glEnable(num);
-		//glStates[num] = true;
-	//}
+void CEngine::glEnable(int num)
+{
+	::glEnable(num);
 }
 
-void CEngine::glDisable(int num){
-	//if (num >= glStates.size())
-	//	MessageBoxA(0, std::to_string(num).c_str(), "Erro", 0);
-
-	//if (glStates[num]){
-		::glDisable(num);
-	//	glStates[num] = false;
-	//}
+void CEngine::glDisable(int num)
+{
+	::glDisable(num);
 }
 
 int CEngine::openFileStream(GLFWstream *stream, const char *name, const char *mode){
@@ -1413,18 +1177,6 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
 
 	glAlphaFunc(GL_GEQUAL, static_cast<float>(0.01));
 
-	//White specular material color, shininess 16
-	/*
-	float white[] = {1.0, 1.0, 1.0, 1.0};
-	glMaterialfv(GL_FRONT, GL_SPECULAR, white);
-	glMaterialf(GL_FRONT, GL_SHININESS, 16.0f);*/
-
-	//glCullFace(GL_BACK);
-
-	//int a = { 1 };
-
-	//glLightModeliv(GL_LIGHT_MODEL_LOCAL_VIEWER, &a);
-
 	cursorText = loadTexture("data/sprites/cursor.tga");
 	glfwSetInputMode((GLFWwindow*)window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 	//setVSyncMode(0);
@@ -2131,7 +1883,7 @@ void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData){
 	glDisableClientState(GL_COLOR_ARRAY);
 }
 
-CEngine::CEngine() : audioDevice(nullptr), audioContext(nullptr)
+CEngine::CEngine()
 {
 	openWindowCalled = false;
 	volumeMaster = 1.0;
@@ -2140,80 +1892,32 @@ CEngine::CEngine() : audioDevice(nullptr), audioContext(nullptr)
 	lastRenderAt[2] = 0.0;
 	AASamples = 0;
 
+	wcallfunc = nullptr;
+
 	window = nullptr;
 
 	mouseX = mouseY = 0.0;
 	glMajor = 1;
 	glMinor = 1;
 	lastUsedTexture = 0;
-
-
-	glfwSetErrorCallback(GLFWerrorfun);
-
-	if (!glfwInit())
-	{
-		throw std::logic_error("Fail to initialize GLFW");
-	}
-
-	lastFrameTime = glfwGetTime();
-	lastFPSSwapTime = glfwGetTime();
 	DeltaTime = 0.0;
 	FPS = 0;
 	tmpFPS = 0;
-
-	audioDevice = alcOpenDevice(nullptr);
-
-	if (audioDevice) {
-		audioContext = alcCreateContext(audioDevice, NULL);
-		alcMakeContextCurrent(audioContext);
-	}
-
-	auto result = BASS_Init(-1, 44100, 0, 0, NULL);
 	lastUpdatedNoise = 0.0;
 	updateNoiseInterval = 0.2;
-
-	lookAtMatrix = glm::lookAt(nowCamera.eye, nowCamera.center, nowCamera.up);
-
-	setCamera({ 0.0, 0.0, 2.3, /* look from camera XYZ */
-		0, 0, 0, /* look at the origin */
-		0, 1, 0 });
-
-	wcallfunc = nullptr;
-	/*
-	if(!bitArray){
-	bitArray = new unsigned int[10000];
-	memset(bitArray, 0, sizeof(unsigned int) * 10000);
-	}*/
-}
-
-CEngine::CEngine(std::function <void(int, const std::string &e)> errfun) : CEngine()
-{
-	errorCallbackFun = errfun;
 }
 
 CEngine::~CEngine(){
 	glfwTerminate();
-	//BASS_Stop();
-	//BASS_Free();
-
-	/*
-	if(bitArray){
-	delete[] bitArray;
-	bitArray = nullptr;
-	}*/
-
 }
 
 void CEngine::staticDrawBuffer::destroy(bool deletePtr)
 {
 	if (bufferID != (~0) && glIsBuffer != nullptr && glDeleteBuffers != nullptr && glIsBuffer(bufferID))
 	{
-		GLFWerrorfun(0, (std::string("CEngine::staticDrawBuffer::destroy glDeleteBuffers ") + std::to_string(bufferID)).c_str());
+		//GLFWerrorfun(0, (std::string("CEngine::staticDrawBuffer::destroy glDeleteBuffers ") + std::to_string(bufferID)).c_str());
 		glDeleteBuffers(1, &bufferID);
 	}
-
-	//if (deletePtr && pointer != nullptr)
-	//	delete pointer;
 
 	count = 0;
 	vertexL = uvL = normalsL = texture = 0;

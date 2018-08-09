@@ -1,7 +1,6 @@
 #pragma once
 #ifndef _GUITARPP_CLANGUAGEMANAGER_H_
 #define _GUITARPP_CLANGUAGEMANAGER_H_
-#include "CSaveSystem.h"
 #include "CLuaH.hpp"
 #include <map>
 #include <string>

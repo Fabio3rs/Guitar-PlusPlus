@@ -417,9 +417,7 @@ void CLuaH::runCheatEvent(const std::string &name)
 							}
 							else
 							{
-								/*char *buffer = (char*)0x969110;
 
-								*buffer = 0;*/
 							}
 						}
 					}
@@ -746,26 +744,6 @@ void CLuaH::luaScript::unload()
 	callbacks.clear();
 }
 
-/*
-* luaScript can't be duplicated
-* 'cause dctor calls lua_close(luaState)
-* copy ctor works like move operator
-*/
-/*CLuaH::luaScript::luaScript(luaScript &L){
-	luaState = L.luaState;
-
-	savedValues = std::move(L.savedValues);
-	filePath = std::move(L.filePath);
-	fileName = std::move(L.fileName);
-	callbacks = std::move(L.callbacks);
-
-	L.luaState = nullptr;
-
-	cheatsAdded = L.cheatsAdded;
-	callbacksAdded = L.callbacksAdded;
-	hooksAdded = L.hooksAdded;
-}*/
-
 CLuaH::luaScript::luaScript(luaScript &&L)
 {
 	luaState = std::move(L.luaState);
@@ -840,7 +818,6 @@ void CLuaH::customParam::loadTableWOPush(lua_State *L)
 
 	while ((index = lua_next(L, -2)))
 	{
-		//std::cout << lua_tostring(L, -2) << " " << lua_isstring(L, -1) << std::endl;
 		std::string dataStr = std::string(lua_tostring(L, -2));
 
 		const static std::map<std::string, bool> n{ {"string", true}, { "config", true }, { "io", true }, { "stderr", true }, { "stdout", true }, { "_G", true }, { "preload", true },
@@ -853,9 +830,7 @@ void CLuaH::customParam::loadTableWOPush(lua_State *L)
 		}
 
 		if (lua_istable(L, -1))
-		{
-			//std::cout << "Table: " << dataStr << std::endl;
-		}
+		{ }
 
 		customParam np;
 
@@ -878,7 +853,6 @@ void CLuaH::customParam::loadTableWOPush(lua_State *L)
 
 void CLuaH::customParam::loadTable(lua_State *L, int idx)
 {
-	std::cout << "lua_gettable: " << idx << std::endl;
 	lua_pushvalue(L, idx);
 	lua_pushnil(L);
 	loadTableWOPush(L);

@@ -3,6 +3,7 @@
 #include <iostream>
 #include "CShader.h"
 #include "GPPGame.h"
+#include "CLog.h"
 
 void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file)
 {
@@ -57,7 +58,6 @@ void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file)
 				mtl.textureName = bufferMtlName.data();
 				mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
 				newmtllt = true;
-				//std::cout << path + " / " + mtl.textureName + std::to_string(mtl.textureID) << std::endl;
 				continue;
 			}
 		}
@@ -248,7 +248,9 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, c
 			adata.textureID = mtlLib[part.name].textureID;
 
 			if (adata.textureID == 0)
-				std::cout << part.name << std::endl;
+			{
+				CLog::log().multiRegister("adata.textureID == 0 %0", part.name);
+			}
 		}
 		else
 		{
@@ -275,7 +277,7 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, c
 		}
 	}
 
-	std::cout << "multiData " << multiData.size() << std::endl;
+	//std::cout << "multiData " << multiData.size() << std::endl;
 
 	return true;
 }

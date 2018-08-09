@@ -22,14 +22,24 @@
 #include <array>
 #include <iostream>
 
-#include <AL/al.h>
-#include <AL/alc.h>
-#include <AL/efx.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/simd/matrix.h>
+
+
+
+
+class CFiledtor
+{
+public:
+	void operator() (FILE *p) const
+	{
+		fclose(p);
+	}
+};
+
+typedef std::unique_ptr < FILE, CFiledtor > cfile_ptr;
 
 #ifndef GLFW_KEY_MENU
 /* The unknown key */
@@ -220,13 +230,12 @@ class CEngine {
 
 	std::array<double, 16> projMatrix;
 
-	ALCdevice *audioDevice;
-	ALCcontext *audioContext;
-	static ALenum error;
-
-	static bool readWave(const char *wavFile, ALuint buffer);
-
 public:
+	static cfile_ptr make_cfile(const char *name, const char *mode)
+	{
+		return cfile_ptr(fopen(name, mode));
+	}
+
 	inline const double *getProjMatrix() const { return projMatrix.data();  }
 
 	void setWindowCallbackFunction(customwcallback f){
@@ -538,12 +547,6 @@ public:
 
 	std::vector<Resolution> getPossibleVideoModes();
 
-	int noiseCRC32;
-
-	std::string getKeyboardNoise();
-	int getCRCKeyboardNoise();
-	double updateRandomNoiseInterval(double interval);
-
 	void setCamera(const cameraSET &cam);
 	void openWindow(const char *name, int w, int h, int fullScreen);
 	bool windowOpened();
@@ -584,78 +587,6 @@ public:
 	{
 		std::array<float, 4> data;
 	};
-
-	struct audioInstance
-	{
-		ALuint buffer = 0, source = 0;
-
-		audioInstance(audioInstance &&a) : audioInstance(a.buffer, a.source)
-		{
-			a.buffer = a.source = 0u;
-		}
-
-		void play()
-		{
-			alSourcePlay(source);
-		}
-
-		void pause()
-		{
-			alSourcePause(source);
-		}
-
-		void stop()
-		{
-			alSourceStop(source);
-		}
-
-		void rewind()
-		{
-			alSourceRewind(source);
-		}
-
-		void destroy()
-		{
-			if (buffer)
-			{
-				alDeleteBuffers(1, &buffer);
-			}
-
-			if (source)
-			{
-				alDeleteSources(1, &source);
-			}
-		}
-
-		audioInstance(const audioInstance&) = delete;
-		audioInstance &operator=(const audioInstance&) = delete;
-
-		audioInstance &operator=(audioInstance &&a)
-		{
-			destroy();
-
-			buffer = a.buffer;
-			source = a.source;
-
-			a.buffer = a.source = 0u;
-		}
-
-		audioInstance(ALuint b, ALuint s) : audioInstance()
-		{
-			buffer = b;
-			source = s;
-		}
-
-		audioInstance() : buffer(0u), source(0u)
-		{ }
-
-		~audioInstance()
-		{
-			destroy();
-		}
-	};
-
-	audioInstance loadWave(const char *filePath);
 
 	/**/
 	static float getMainVolume();
@@ -726,13 +657,13 @@ public:
 
 	~CEngine();
 
-	static CEngine &engine(std::function <void(int, const std::string &e)> errfun = nullptr);
+	static CEngine &engine();
 
 	CEngine(const CEngine&) = delete;
+	void init();
 
 private:
 	CEngine();
-	CEngine(std::function <void(int, const std::string &e)> errfun);
 };
 
 #endif

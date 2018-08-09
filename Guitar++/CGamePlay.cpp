@@ -4,9 +4,8 @@
 #include "CFonts.h"
 #include <array>
 
-//unsigned int programID;
-//unsigned int MatrixID;
-//unsigned int TextureID;
+#include <Windows.h>
+#include <GLFW/glfw3.h>
 
 int gpppowi(int b, int e)
 {
@@ -2540,6 +2539,38 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	auto &engine = CEngine::engine();
 
+	/*static OutputSurface_t surf = []() { OutputSurface_t result;
+	memset(&result, 0, sizeof(result)); return result; }();
+	
+	bool b = ([&]() {
+	//surf.surface = nullptr;
+
+	static int vframe = 0;
+
+	//result = minivideo_extract(aaaaaa.getContext(), "./aaaa", false, true, false);
+	//MessageBoxA(0, (std::string("decode fail ") + std::to_string((uintptr_t)result)).c_str(), "aaaa", 0);
+
+	{
+		static double time = engine.getTime() - 1.2;
+		double tnow = engine.getTime();
+		if ((tnow - time) > 1.0)
+		{
+			time = tnow;
+			int result = minivideo_decode(aaaaaa.getContext(), &surf, vframe);
+			//vframe++;
+		}
+	}
+
+	return true;
+	})();
+
+	std::cout << surf.width << "  " << surf.height << "  " << (uintptr_t)surf.surface  << std::endl;
+
+	if (surf.surface)
+	{
+		glDrawPixels(surf.width, surf.height, GL_RGB, GL_UNSIGNED_BYTE, surf.surface);
+	}*/
+
 	/*static double ffatime = engine.getTime();
 	double p = pow(10, 30);
 
@@ -2780,23 +2811,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		{ -20.0, -0.5, -20.0 },
 	};
 
-	//engine.addToAccumulationBuffer(0.5);
-	//engine.retAccumulationBuffer(1.0);
-
-	//for (int i = 0; i < 5; i++)
-	//{
-		//renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 4, player);
-	//}
-
-	/*for (int i = 0; i < 5; i++)
-	{
-
-		renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 3, player);
-		if (player.fretsPressed[i])
-			renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, 0, player);
-		//renderIndivdualNote(i, getRunningMusicTime(player), 0, player);
-	}*/
-
 	auto renderScene = [&]()
 	{
 		engine.setColor(1.0, 1.0, 1.0, 1.0);
@@ -2829,51 +2843,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		engine.setLight(l0, 0);
 	}
 
-	//engine.setColor(1.0, 1.0, 1.0, 1.0);
-
-	{
-		//engine.activateLight(1, false);
-		//engine.activateLight(0, true);
-
-		auto l0n = (const lightData)l0;
-
-		l0n.ambientLight[0] = 0.1f;
-		l0n.ambientLight[1] = 0.1f;
-		l0n.ambientLight[2] = 0.1f;
-		l0n.ambientLight[3] = 1.0f;
-
-		l0n.diffuseLight[0] = 0.0f;
-		l0n.diffuseLight[1] = 0.0f;
-		l0n.diffuseLight[2] = 0.0f;
-		l0n.diffuseLight[3] = 0.0f;
-
-		l0n.specularLight[0] = 0.0f;
-		l0n.specularLight[1] = 0.0f;
-		l0n.specularLight[2] = 0.0f;
-		l0n.specularLight[3] = 0.0f;
-
-		//engine.setLight(l0n, 0);{
-	}
-
-	//renderScene();
-	//engine.matrixReset();
-	/*{
-
-		CEngine::cameraSET usingCamera;
-		usingCamera.eyex = l0.position[0];
-		usingCamera.eyey = l0.position[1];
-		usingCamera.eyez = l0.position[2];
-		usingCamera.centerx = l0.direction[0];
-		usingCamera.centery = l0.direction[1];
-		usingCamera.centerz = l0.direction[2];
-		usingCamera.upx = 0;
-		usingCamera.upy = 1;
-		usingCamera.upz = 0;
-
-		engine.setCamera(usingCamera);
-	}
-	*/
-	
 	static float floorShadow[4][4];
 
 	float matrix[4][4];
@@ -2942,122 +2911,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 
 	engine.activateNormals(true);
-	//engine.activateStencilTest(false);
-	
 
 	renderScene();
-
-	/*engine.activateStencilTest(true);
-	//CEngine::pushMatrix();
-	engine.setCamera(player.playerCamera);
-	CEngine::multiplyMatrix((float*)matrix);
-	
-	engine.glEnable(0x8037);
-	engine.setColor(0.0, 0.0, 0.0, 0.5);
-	engine.activate3DRender(false);
-	engine.enablePolygonOffset();
-
-	if (player.guitar == nullptr)
-	{
-		renderPylmBar();
-	}
-	else
-	{
-		CEngine::engine().renderAt(0.0, -0.2, 1.1);
-
-		player.guitar->gameplayBar.draw(player.guitar->textureID, false);
-	}
-
-	engine.glDisable(0x8037);
-	engine.disablePolygonOffset();
-
-	engine.activate3DRender(true);
-	//CEngine::popMatrix();
-	CEngine::engine().matrixReset();
-	engine.setCamera(player.playerCamera);
-
-	engine.activateStencilTest(false);
-	engine.setColor(1.0, 1.0, 1.0, 1.0);
-	
-	CEngine::engine().renderAt(0.0, -0.2, 1.1);
-
-	player.guitar->gameplayBar.draw(player.guitar->textureID, false);*/
-	/*engine.activateLight(0, false);
-	engine.activateStencilTest(true);
-	engine.activateLighting(false);
-
-	engine.startShadowCapture();
-
-	for (auto &n : player.buffer)
-	{
-		renderNoteNoAdd(n, player);
-		//renderNoteShadow(n, player);
-	}
-
-	engine.endShadowCapture();
-
-	CEngine::pushMatrix();
-	engine.glEnable(0x8037);
-	engine.setColor(0.0, 0.0, 0.0, 1.0);
-	engine.matrixReset();
-	{
-		engine.setCamera(player.playerCamera);
-	}
-
-	//renderPylmBar();
-
-	//engine.clearAccmumaltionBuffer();
-	//for (auto &n : player.buffer)
-	//{
-	//	renderNoteShadow(n, player);
-	//}
-
-	engine.bindVBOBuffer(0);
-	engine.activateNormals(false);
-	engine.activate3DRender(false);
-	renderNoteShadowHpStyle(player);
-	engine.activateNormals(true);
-	engine.activate3DRender(true);
-
-	engine.glDisable(0x8037);
-	
-	CEngine::popMatrix();
-	engine.matrixReset();
-	engine.setCamera(player.playerCamera);
-
-	engine.activateStencilTest(false);*/
-	//renderScene();
-
-	//engine.addToAccumulationBuffer(0.5);
-	//engine.retAccumulationBuffer(1.0);
-
-	//engine.bindVBOBuffer(0);
-
-	//double BPMT = player.Notes.BPM[player.BPMNowBuffer].lTime / 120.0;
-	//int flamepos = (int)(engine.getTime() * 12.0 / BPMT) % 4;
-
-	// ********************************************** STRIKE LINE BTN -
-	//for (int i = 0; i < 5; i++)
-	{
-		//double pressT = engine.getTime() - player.Notes.fretsNotePickedTime[i];
-
-	//	pressT /= 0.15;
-//
-	//	if (pressT > 1.0 && player.notesSlide[i] == -1)
-		//{
-			//continue;
-		//}
-
-//		pressT *= 3;
-	//	int p = (int)floor(pressT + 1) % 3;
-
-		//renderIndivdualStrikeButton(i, 0.0, fretsText.strikeLineTexture, p, player);
-
-		/*if (flamepos < 3) renderIndivdualFlame(i, -0.35, fireText, flamepos + 1, 0.7, player);
-		renderIndivdualFlame(i, -0.32, fireText, flamepos, 0.8, player);
-		renderIndivdualFlame(i, -0.29, fireText, flamepos, 0.75, player);
-		if (flamepos > 0) renderIndivdualFlame(i, -0.25, fireText, flamepos - 1, 0.7, player);*/
-	}
 
 	engine.setColor(1.0, 1.0, 1.0, 1.0);
 
@@ -3159,19 +3014,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	renderHoposLight();
 
 
-
-	/*int tailsdatasize = tailsData.size();
-	if (tailsdatasize > 0)
-	{
-		engine.activate3DRender(true);
-	}*/
-	//renderTailsBuffer();
-	/*if (tailsdatasize > 0)
-	{
-		engine.activate3DRender(false);
-	}*/
-
-
 	{
 		CEngine::cameraSET usingCamera;
 		usingCamera.eye.x = 0.0;
@@ -3186,12 +3028,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		engine.setCamera(usingCamera);
 	}
-	//CFonts::fonts().drawTextInScreen(std::to_string(player.buffer.size()), 0.0, 0.5, 0.1);
-
-	///////////******************************************
-
-
-	//auto &engine = CEngine::engine();
 
 	if (bRenderHUD){
 
