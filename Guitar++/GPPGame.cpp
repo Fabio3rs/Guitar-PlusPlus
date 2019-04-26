@@ -2131,6 +2131,21 @@ void GPPGame::callbackRenderFrame()
 	CFonts::fonts().drawAllBuffers();
 }
 
+void GPPGame::callbackKeys(int key, int scancode, int action, int mods)
+{
+	if (GPPGame::GuitarPP().currentMenu)
+	{
+		GPPGame::GuitarPP().currentMenu->shortcutCallback(key, scancode, action, mods);
+	}
+
+	CMenu::uiWindowStruct &w = CMenu::getUILast();
+
+	if (w.m && w.m.get() != GPPGame::GuitarPP().currentMenu)
+	{
+		w.m.get()->shortcutCallback(key, scancode, action, mods);
+	}
+}
+
 void GPPGame::continueCampaing(const std::string &name)
 {
 	auto createMMenu = []()
@@ -3933,6 +3948,9 @@ int GPPGame::createWindow()
 
 	CEngine::engine().openWindow(title.c_str(), getWindowConfig().w, getWindowConfig().h, getWindowConfig().fullscreen);
 	CEngine::engine().activateAlphaTest(true);
+	CControls::controls().init();
+
+	CControls::controls().keyCallback = callbackKeys;
 
 	if (getWindowConfig().VSyncMode >= 0 && getWindowConfig().VSyncMode <= 2)
 	{

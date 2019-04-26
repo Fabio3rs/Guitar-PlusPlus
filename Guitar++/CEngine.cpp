@@ -235,7 +235,8 @@ void CEngine::matrixReset()
 	glLoadIdentity();
 }
 
-int CEngine::getKey(int key){
+int CEngine::getKey(int key) const
+{
 	return glfwGetKey((GLFWwindow*)window, key);
 }
 

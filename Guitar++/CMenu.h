@@ -18,6 +18,7 @@ class CMenu{
 
 	static std::string textBuffer;
 
+public:
 	struct uiWindowStruct
 	{
 		std::unique_ptr<CMenu> m;
@@ -50,6 +51,7 @@ class CMenu{
 		}
 	};
 
+private:
 	static std::deque<uiWindowStruct> uiList;
 	static std::vector<posUiOrder> uiOrderList;
 	std::deque<int> myUiList;
@@ -79,7 +81,7 @@ public:
 
 	static inline uiWindowStruct &getUiAt(int index) { return uiList[index]; }
 	static void renderUiList();
-	uiWindowStruct &getUILast();
+	static uiWindowStruct &getUILast();
 
 	double x, y;
 	bool devMenuNOUpdateOthers;
@@ -201,6 +203,7 @@ public:
 
 	void update();
 	void updateDev();
+	void shortcutCallback(int key, int scancode, int action, int mods);
 
 	void render();
 	int addOpt(const menuOpt &opt);

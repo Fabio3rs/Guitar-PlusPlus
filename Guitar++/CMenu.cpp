@@ -619,7 +619,7 @@ void CMenu::update()
 		}
 	};
 
-	int leftKey = CEngine::engine().getKey(GLFW_KEY_LEFT), rightKey = CEngine::engine().getKey(GLFW_KEY_RIGHT);
+	//int leftKey = CEngine::engine().getKey(GLFW_KEY_LEFT), rightKey = CEngine::engine().getKey(GLFW_KEY_RIGHT);
 
 	bool enterOpt = false, mBTNClick = false;
 
@@ -686,12 +686,14 @@ void CMenu::update()
 		if (k.pressed && !k.lastFramePressed)
 		{
 			k.t = CEngine::engine().getTime() + 0.1;
+			k.lastFramePressed = k.pressed;
 			return i;
 		}
 
 		if (k.pressed && k.lastFramePressed && (CEngine::engine().getTime() - k.t) > 0.1)
 		{
 			k.t = CEngine::engine().getTime();
+			k.lastFramePressed = k.pressed;
 			return i;
 		}
 
@@ -743,6 +745,9 @@ void CMenu::update()
 				break;
 
 			case text_input:
+			{
+				auto &controls = CControls::controls();
+
 				textSize = textSizeInScreen(opt.preText, opt.size) + 0.1;
 
 				if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y - (opt.size), textSize, opt.size * 1.10) && enterOpt)
@@ -767,7 +772,7 @@ void CMenu::update()
 					opt.status = 4;
 					opt.strEditPoint = static_cast<int>(xtest);
 
-					CControls::controls().update();
+					controls.update();
 
 					if (params.size() <= 3) params.push_back(CLuaH::customParam((double)opt.status));
 
@@ -779,81 +784,18 @@ void CMenu::update()
 
 				if ((opt.status & 4))
 				{
-					CControls::controls().update();
+					controls.update();
 					int ch = 0;
-
-					{
-						int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_SPACE], GLFW_KEY_SPACE);
-
-						if (chtmp != 0)
-							ch = chtmp;
-					}
-
-					{
-						int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_BACKSPACE], GLFW_KEY_BACKSPACE);
-
-						if (chtmp != 0)
-							ch = chtmp;
-					}
-
-					{
-						int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_LEFT], GLFW_KEY_LEFT);
-
-						if (chtmp != 0)
-						{
-							--opt.strEditPoint;
-
-							if (opt.strEditPoint < 0)
-								opt.strEditPoint = 0;
-						}
-					}
-
-					{
-						int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_RIGHT], GLFW_KEY_RIGHT);
-
-						if (chtmp != 0)
-						{
-							++opt.strEditPoint;
-
-							int textChars = CFonts::utf8Size(opt.preText);
-
-							if (opt.strEditPoint > textChars)
-								opt.strEditPoint = textChars;
-						}
-					}
-
-					static int capsLock = 0;
-					static int aCaps = 0;
-
-					int capsNow = CControls::controls().keys[GLFW_KEY_CAPS_LOCK].pressed;
-
-					if (aCaps != capsNow)
-					{
-						capsLock ^= capsNow;
-					}
-					aCaps = capsNow;
-
-					bool caps = capsLock;
-
-					if (CControls::controls().keys[GLFW_KEY_RIGHT_SHIFT].pressed || CControls::controls().keys[GLFW_KEY_LEFT_SHIFT].pressed)
-					{
-						caps = !caps;
-					}
-
-					/*if (!caps)
-					{
-						ch = tolower(ch);
-					}*/
 
 					std::string utf8CharOrStr;
 
 					{
 						char utftempbuf[8] = { 0 };
 
-						if (CControls::controls().lastChar != 0)
+						if (controls.lastChar != 0)
 						{
-							utf8::append(CControls::controls().lastChar, utftempbuf);
-							CControls::controls().lastChar = 0;
+							utf8::append(controls.lastChar, utftempbuf);
+							controls.lastChar = 0;
 							utf8CharOrStr = utftempbuf;
 							ch = 1;
 						}
@@ -866,23 +808,10 @@ void CMenu::update()
 							opt.preText = *opt.externalPreTextRef;
 						}
 
-						if (ch != GLFW_KEY_BACKSPACE)
 						{
 							if (opt.preText.size() < opt.preTextMaxSize)
 							{
 								opt.strEditPoint = CFonts::utf8InsertAt(opt.preText, utf8CharOrStr, opt.strEditPoint);
-							}
-						}
-						else
-						{
-							if (opt.preText.size() > 0)
-							{
-								//CFonts::utf8RemoveLast(opt.preText);
-								CFonts::utf8RemoveAtRange(opt.preText, opt.strEditPoint - 1, 1);
-								--opt.strEditPoint;
-
-								if (opt.strEditPoint < 0)
-									opt.strEditPoint = 0;
 							}
 						}
 					}
@@ -892,6 +821,7 @@ void CMenu::update()
 						*opt.externalPreTextRef = opt.preText;
 					}
 				}
+			}
 				break;
 
 			case textbtn:
@@ -1199,6 +1129,127 @@ void CMenu::updateDev()
 		}
 
 		++i;
+	}
+}
+
+void CMenu::shortcutCallback(int key, int scancode, int action, int mods)
+{
+	auto keyTest = [key, action](int k)
+	{
+		if (key != k)
+			return 0;
+		return (action == 1 || action == 2)? key : 0;
+	};
+
+	int i = 0;
+	for (auto &opt : options)
+	{
+		switch (opt.type) {
+		case button_ok:
+
+			break;
+
+		case text_input:
+		{
+			auto &controls = CControls::controls();
+
+			if ((opt.status & 4))
+			{
+				controls.update();
+				int ch = 0;
+
+				{
+					int chtmp = keyTest(GLFW_KEY_SPACE);
+
+					if (chtmp != 0)
+						ch = chtmp;
+				}
+
+				{
+					int chtmp = keyTest(GLFW_KEY_BACKSPACE);
+
+					if (chtmp != 0)
+						ch = chtmp;
+				}
+
+				{
+					int chtmp = keyTest(GLFW_KEY_LEFT);
+
+					if (chtmp != 0)
+					{
+						--opt.strEditPoint;
+
+						if (opt.strEditPoint < 0)
+							opt.strEditPoint = 0;
+					}
+				}
+
+				{
+					int chtmp = keyTest(GLFW_KEY_RIGHT);
+
+					if (chtmp != 0)
+					{
+						++opt.strEditPoint;
+
+						int textChars = CFonts::utf8Size(opt.preText);
+
+						if (opt.strEditPoint > textChars)
+							opt.strEditPoint = textChars;
+					}
+				}
+				
+				if (ch != 0)
+				{
+					if (opt.externalPreTextRef)
+					{
+						opt.preText = *opt.externalPreTextRef;
+					}
+
+					if (ch != GLFW_KEY_BACKSPACE)
+					{
+						char utftempbuf[8] = { 0 };
+						utf8::append(ch, utftempbuf);
+						controls.lastChar = 0;
+
+						opt.strEditPoint = CFonts::utf8InsertAt(opt.preText, utftempbuf, opt.strEditPoint);
+					}
+					else
+					{
+						if (opt.preText.size() > 0)
+						{
+							//CFonts::utf8RemoveLast(opt.preText);
+							CFonts::utf8RemoveAtRange(opt.preText, opt.strEditPoint - 1, 1);
+							--opt.strEditPoint;
+
+							if (opt.strEditPoint < 0)
+								opt.strEditPoint = 0;
+						}
+					}
+				}
+
+				if (opt.externalPreTextRef)
+				{
+					*opt.externalPreTextRef = opt.preText;
+				}
+			}
+		}
+		break;
+
+		case textbtn:
+			break;
+
+		case deslizant_Select_list:
+			break;
+
+		case drag_bar:
+			break;
+
+		case static_text:
+			break;
+
+		default:
+			break;
+		}
 	}
 }
 

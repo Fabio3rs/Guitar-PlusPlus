@@ -10,13 +10,17 @@
 
 class CControls{
 	CControls(CControls&) = delete;
+	static void joystickCb(int jid, int eventId);
+	int inited;
 
 public:
 	static CControls &controls();
 
 	unsigned int lastChar;
 	std::function<void(unsigned int)> textCallback;
+	std::function<void(int key, int scancode, int action, int mods)> keyCallback;
 
+	void init();
 	void update();
 	CControls();
 
@@ -44,7 +48,12 @@ public:
 	{
 		int device;
 		int keyID;
+
+		bool isPressed() const;
+		key() { device = keyID = 0; }
 	};
+
+	int getKeyboardKeyState(int keyID);
 
 	std::map < int, keyState > keys;
 
@@ -75,7 +84,13 @@ public:
 	{
 		std::vector < key > keys;
 
-		bool isPressed();
+		bool isPressed() const
+		{
+			for (auto &k : keys)
+				if (k.isPressed()) return true;
+
+			return false;
+		}
 	};
 };
 

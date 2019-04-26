@@ -301,6 +301,7 @@ private:
 	GPPOBJ testobj;
 
 	static void callbackRenderFrame();
+	static void callbackKeys(int key, int scancode, int action, int mods);
 
 	struct loadThreadData
 	{

@@ -284,7 +284,7 @@ public:
 	void freeImage(GLFWimage *img);
 
 
-	int getKey(int key);
+	int getKey(int key) const;
 	void Rotate(double a, double x, double y, double z);
 	void matrixReset();
 	static void pushMatrix();

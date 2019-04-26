@@ -9,9 +9,35 @@ void character_callback(GLFWwindow* window, unsigned int codepoint)
 	if (CControls::controls().textCallback) CControls::controls().textCallback(codepoint);
 }
 
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+	auto &inst = CControls::controls();
+
+	auto &k = inst.keys[key];
+
+	bool press = (action == GLFW_PRESS);
+	bool repeat = (action == GLFW_REPEAT);
+
+	k.pressed = press || repeat;
+	k.lastFramePressed = (action == GLFW_REPEAT);
+
+	if (press)
+		k.t = CEngine::engine().getTime();
+
+	if (inst.keyCallback)
+		inst.keyCallback(key, scancode, action, mods);
+}
+
+void CControls::init()
+{
+	glfwSetCharCallback((GLFWwindow*)CEngine::engine().getWindow(), character_callback);
+	glfwSetKeyCallback((GLFWwindow*)CEngine::engine().getWindow(), key_callback);
+	glfwSetJoystickCallback(joystickCb);
+}
+
 void CControls::update()
 {
-	auto &engine = CEngine::engine();
+	/*auto &engine = CEngine::engine();
 
 	double time = engine.getTime();
 
@@ -34,7 +60,13 @@ void CControls::update()
 		{
 			k.t = time;
 		}
-	}
+	}*/
+}
+
+void CControls::joystickCb(int jid, int eventId)
+{
+	std::cout << "joystick " << jid << " " << eventId << std::endl;
+	// glfwGetGamepadState(jid, &state)
 }
 
 CControls &CControls::controls()
@@ -47,9 +79,12 @@ CControls &CControls::controls()
 CControls::CControls()
 {
 	lastChar = 0;
-	glfwSetCharCallback((GLFWwindow*)CEngine::engine().getWindow(), character_callback);
+	inited = 0;
+}
 
-
+int CControls::getKeyboardKeyState(int keyID)
+{
+	return CEngine::engine().getKey(keyID);
 }
 
 
@@ -58,3 +93,11 @@ CControls::CPlayerControls::CPlayerControls()
 
 }
 
+bool CControls::key::isPressed() const
+{
+	if (device == 0)
+	{
+		return CEngine::engine().getKey(keyID);
+	}
+	return false;
+}
