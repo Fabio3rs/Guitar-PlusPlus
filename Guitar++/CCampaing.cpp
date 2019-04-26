@@ -370,7 +370,6 @@ int CCampaing::campaingLoop()
 	*/
 	//bool windowOpened = true;
 
-	
 
 	return 0;
 }
@@ -466,6 +465,16 @@ int CCampaing::cotinueCampaingOptCallback(CMenu &menu, CMenu::menuOpt &opt)
 	return 0;
 }
 
+void CCampaing::campaingPlayLoop(const std::string &n)
+{
+	auto &game = GPPGame::GuitarPP();
+	{
+		game.marathonSongsList = campaingMGR().playSongsList;
+	}
+
+	GPPGame::startMarathonModule(n);
+}
+
 CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings")
 {
 	auto &contOptions = GPPGame::GuitarPP().newNamedMenu("continueCampaingOptions");
@@ -478,6 +487,174 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings")
 		CLuaH::Lua().runEventWithParamsFromContainer("campaingMainMenuOpen", { CLuaH::customParam(&m) }, campaingMGR().campaingScripts);
 		return 0;
 	};
+
+	{
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Modo campanha";
+			opt.y = 0.8;
+			opt.size = 0.1;
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+			//opt.group = 0;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::static_text;
+
+			contOptions.addOpt(opt);
+		}
+		
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Jogar";
+			opt.y = 0.4;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+
+			std::string testecallback = GPPGame::GuitarPP().addGameCallbacks("campaingGameplayLoop", campaingPlayLoop);
+			opt.menusXRef.push_back(testecallback);
+
+			contOptions.addOpt(opt);
+		}
+
+		double infoPos = 0.0;
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Informa\xc3\xa7ões:";
+			opt.y = 0.3;
+			opt.size = 0.075;
+			opt.x = infoPos = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.3);
+			//opt.group = 0;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::static_text;
+
+			contOptions.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "* Show em um lugar público xyz";
+			opt.y = 0.2;
+			opt.size = 0.075;
+			opt.x = infoPos;
+			//opt.group = 0;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::static_text;
+
+			contOptions.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "* Várias músicas";
+			opt.y = 0.11;
+			opt.size = 0.075;
+			opt.x = infoPos;
+			//opt.group = 0;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::static_text;
+
+			contOptions.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "* Possibilidade de música aleatoria";
+			opt.y = 0.02;
+			opt.size = 0.075;
+			opt.x = infoPos;
+			//opt.group = 0;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::static_text;
+
+			contOptions.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "* Reputação máxima prevista 10000";
+			opt.y = -0.07;
+			opt.size = 0.075;
+			opt.x = infoPos;
+			//opt.group = 0;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::static_text;
+
+			contOptions.addOpt(opt);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "* Musicas previstas:";
+			opt.y = -0.16;
+			opt.size = 0.075;
+			opt.x = infoPos;
+			//opt.group = 0;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::static_text;
+
+			contOptions.addOpt(opt);
+		}
+
+		{
+			auto songs = GPPGame::getDirectory("./data/songs", false, true);
+
+			std::random_shuffle(songs.begin(), songs.end());
+
+			const unsigned int songsSize = 2 + rand() % 2;
+			const unsigned int size = (songs.size() > songsSize)? songsSize : songs.size();
+
+			if (size < songs.size())
+			{
+				songs.resize(size);
+			}
+
+			for (int i = 0; i < size; i++)
+			{
+				{
+					CMenu::menuOpt opt;
+
+					opt.text = songs[i];
+					opt.y = -0.25 - i * 0.08;
+					opt.size = 0.075;
+					opt.x = infoPos + 0.075 * 2.0;
+					//opt.group = 0;
+					opt.status = 0;
+					opt.type = CMenu::menusOPT::static_text;
+
+					contOptions.addOpt(opt);
+				}
+			}
+
+			playSongsList = std::move(songs);
+		}
+
+		{
+			CMenu::menuOpt opt;
+
+			opt.text = "Voltar";
+			opt.y = -0.8;
+			opt.size = 0.075;
+			opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
+			opt.group = 1;
+			opt.status = 0;
+			opt.type = CMenu::menusOPT::textbtn;
+			opt.goback = true;
+
+			contOptions.addOpt(opt);
+		}
+	}
+
 
 	mainMenu = contOptions.getName();
 

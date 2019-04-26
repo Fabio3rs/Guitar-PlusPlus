@@ -6,8 +6,9 @@
 #include <iostream>
 #include "CLog.h"
 #include "CControls.h"
+#include "utf8.h"
 
-std::map <std::string, CMenu*> CMenu::Menus = std::map <std::string, CMenu*>();
+//std::map <std::string, CMenu*> CMenu::Menus = std::map <std::string, CMenu*>();
 std::deque<CMenu::uiWindowStruct> CMenu::uiList = std::deque<CMenu::uiWindowStruct>();
 std::vector<CMenu::posUiOrder> CMenu::uiOrderList = std::vector<CMenu::posUiOrder>();
 int CMenu::menusCreated = 0;
@@ -680,7 +681,7 @@ void CMenu::update()
 	double barPosX1 = 0.0;
 	double barPosX2 = 0.0;
 
-	auto kprocess = [](CControls::key &k, int i)
+	auto kprocess = [](CControls::keyState &k, int i)
 	{
 		if (k.pressed && !k.lastFramePressed)
 		{
@@ -781,14 +782,6 @@ void CMenu::update()
 					CControls::controls().update();
 					int ch = 0;
 
-					for (int glfwkey = GLFW_KEY_A; glfwkey <= GLFW_KEY_Z; glfwkey++)
-					{
-						int chtmp = kprocess(CControls::controls().keys[glfwkey], glfwkey);
-
-						if (chtmp != 0)
-							ch = chtmp;
-					}
-
 					{
 						int chtmp = kprocess(CControls::controls().keys[GLFW_KEY_SPACE], GLFW_KEY_SPACE);
 
@@ -847,9 +840,23 @@ void CMenu::update()
 						caps = !caps;
 					}
 
-					if (!caps)
+					/*if (!caps)
 					{
 						ch = tolower(ch);
+					}*/
+
+					std::string utf8CharOrStr;
+
+					{
+						char utftempbuf[8] = { 0 };
+
+						if (CControls::controls().lastChar != 0)
+						{
+							utf8::append(CControls::controls().lastChar, utftempbuf);
+							CControls::controls().lastChar = 0;
+							utf8CharOrStr = utftempbuf;
+							ch = 1;
+						}
 					}
 
 					if (ch != 0)
@@ -863,9 +870,7 @@ void CMenu::update()
 						{
 							if (opt.preText.size() < opt.preTextMaxSize)
 							{
-								std::string tmp;
-								tmp.insert(0, 1, ch);
-								opt.strEditPoint = CFonts::utf8InsertAt(opt.preText, tmp, opt.strEditPoint);
+								opt.strEditPoint = CFonts::utf8InsertAt(opt.preText, utf8CharOrStr, opt.strEditPoint);
 							}
 						}
 						else
@@ -1319,7 +1324,7 @@ CMenu::CMenu()
 	menuName = "menu_main_";
 	menuName += std::to_string(menusCreated);
 
-	Menus[menuName] = this;
+	//Menus[menuName] = this;
 
 	temp = false;
 
@@ -1335,14 +1340,14 @@ CMenu::CMenu()
 
 CMenu::CMenu(const std::string &name)
 {
-	{
+	/*{
 		auto m = Menus.find(name);
 
 		if (m != Menus.end())
 		{
 			throw std::runtime_error(CLog::log().multiRegister("Error menu %0 already exists", name));
 		}
-	}
+	}*/
 
 	lastEnterOptBtn = false;
 	status = 0;
@@ -1358,7 +1363,7 @@ CMenu::CMenu(const std::string &name)
 
 	menuName = name;
 
-	Menus[menuName] = this;
+	//Menus[menuName] = this;
 
 	temp = false;
 
@@ -1372,5 +1377,5 @@ CMenu::CMenu(const std::string &name)
 }
 
 CMenu::~CMenu(){
-	Menus.erase(menuName);
+	//Menus.erase(menuName);
 }

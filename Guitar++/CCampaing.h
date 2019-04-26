@@ -264,9 +264,11 @@ protected:
 private:
 	static int openCampaingMenuCallback(CMenu &menu);
 	static int cotinueCampaingOptCallback(CMenu &menu, CMenu::menuOpt &opt);
+	static void campaingPlayLoop(const std::string &n);
 
 	CCampaingData campaingNow;
 	std::string mainMenu;
+	std::deque<std::string> playSongsList;
 
 	CCampaing();
 

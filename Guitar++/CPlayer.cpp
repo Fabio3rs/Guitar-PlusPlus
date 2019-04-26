@@ -1095,6 +1095,43 @@ void CPlayer::processError()
 	if (publicAprov > 0) publicAprov--;
 }
 
+void CPlayer::processErrorNonPickedB(size_t pos)
+{
+	if (pos > 0 && pos < Notes.gNotes.size())
+	{
+		auto &noteRef = Notes.gNotes[pos];
+		double tMin = noteRef.time - 0.5;
+
+		pos--;
+
+		int count = 0;
+
+		for (int64_t i = pos; i >= 0; i--)
+		{
+			auto &note = Notes.gNotes[i];
+			if (note.time > tMin && !(note.type & notesFlags::nf_picked)
+				&& !(note.type & notesFlags::nf_failed)
+				&& !(note.type & notesFlags::nf_doing_slide))
+			{
+				note.type |= notesFlags::nf_failed;
+				++count;
+			}
+		}
+
+		if (count > 0)
+		{
+			breakCombo();
+
+			publicAprov -= count;
+
+			if (publicAprov < 0)
+			{
+				publicAprov = 0.0;
+			}
+		}
+	}
+}
+
 void CPlayer::releaseSong()
 {
 	if (songAudioID != -1 && songAudioID)
@@ -1134,14 +1171,14 @@ int64_t CPlayer::getPoints()
 
 bool CPlayer::isSongChartFinished()
 {
-	auto size = Notes.gNotes.size();
-	if (Notes.gNotes.size() > 0)
+	size_t size = Notes.gNotes.size();
+	if (size > 0)
 	{
 		auto &lastNote = Notes.gNotes[size - 1];
 
 		double finalTime = lastNote.time + lastNote.lTime;
 
-		if ((musicRunningTime - finalTime) > 2.0)
+		if ((musicRunningTime - finalTime) > 3.0)
 		{
 			return true;
 		}

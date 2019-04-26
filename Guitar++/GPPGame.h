@@ -46,8 +46,6 @@ class GPPGame{
 
 	CMenu *currentMenu;
 
-	std::string runningModule;
-
 	bool devMode;
 
 public:
@@ -203,8 +201,6 @@ public:
 
 	std::map<std::string, bool>				 cmdparams;
 	void parseParameters(int argc, char *argv[]);
-
-	std::string getRunningModule();
 	
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
 	const CTheme &loadThemes(const std::string &theme, CLuaH::luaScript *luaScript = nullptr);
@@ -285,6 +281,8 @@ public:
 	double gameplayRunningTime;
 	bool gamePlayPlusEnabled;
 
+	std::deque<std::string> marathonSongsList;
+
 	static std::deque<std::string> getDirectory(const char *dir, bool getFiles, bool getDirectories);
 
 	void initialLoad();
@@ -334,8 +332,6 @@ private:
 
 	GPPGame();
 	~GPPGame() noexcept;
-
-	void setRunningModule(const std::string m);
 
 public:
 	const gameWindow &getWindowConfig() const{ return windowCFGs; };

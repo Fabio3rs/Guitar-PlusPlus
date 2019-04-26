@@ -73,9 +73,9 @@ class CGamePlay{
 
 	CEngine &engine;
 
-
 public:
 	bool enableTails;
+	double fretboardLightFade;
 
 	double fretboardPositionCalcByT(double time, double prop, double *max = nullptr);
 

@@ -14,7 +14,7 @@
 class CMenu{
 	std::string menuName;
 	static int menusCreated;
-	static std::map <std::string, CMenu*> Menus;
+	//static std::map <std::string, CMenu*> Menus;
 
 	static std::string textBuffer;
 
@@ -54,10 +54,13 @@ class CMenu{
 	static std::vector<posUiOrder> uiOrderList;
 	std::deque<int> myUiList;
 
-	static int allocOrGetUiFreeSpace();
-
 	bool uiMenu;
 	int thisUiID;
+
+	bool lastEnterOptBtn;
+	bool lastMouseClickStatus;
+
+	static int allocOrGetUiFreeSpace();
 
 	static void refreshMenusUiPosOrder();
 	static void interfaceCalcPos();
@@ -67,30 +70,19 @@ class CMenu{
 	void putOnTop();
 	bool isThisOnTop();
 
-	bool lastEnterOptBtn;
-	bool lastMouseClickStatus;
-
 public:
+	enum menusOPT { none = -1, button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui, drag_bar, static_text };
+
 	bool isInterfaceOver();
-
 	int getUIListSize();
-
 	bool isMouseOnThisMenu();
 
-	static inline uiWindowStruct &getUiAt(int index)
-	{
-		return uiList[index];
-	}
-
+	static inline uiWindowStruct &getUiAt(int index) { return uiList[index]; }
 	static void renderUiList();
-
 	uiWindowStruct &getUILast();
 
 	double x, y;
-
 	bool devMenuNOUpdateOthers;
-
-	enum menusOPT { none = -1, button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui, drag_bar, static_text };
 	std::string mTitle;
 
 	CLuaH::luaScript *lScript;
@@ -229,17 +221,7 @@ public:
 	int status;
 
 	CMenu();
-	//CMenu(const CMenu&) = default;
-	//CMenu(CMenu&&) = default;
 	CMenu(const std::string &name);
-
-	//CMenu &operator=(const CMenu&) = delete;
-	//CMenu &operator=(CMenu&&) = default;
-	/*static inline CMenu *getMenuByName(const std::string &n)
-	{
-		return Menus[n];
-	}*/
-
 	~CMenu();
 };
 

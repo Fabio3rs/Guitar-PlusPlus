@@ -251,7 +251,7 @@ int main(int argc, char* argv[])
 							opt.group = 1;
 							opt.status = 0;
 							opt.type = CMenu::menusOPT::text_input;
-							opt.preText = "Fabio Rossini Sluzala";
+							opt.preText = "Teste campo Digita\xc3\xa7\xc3\xa3o";
 
 							mainMenu.addOpt(opt);
 						}

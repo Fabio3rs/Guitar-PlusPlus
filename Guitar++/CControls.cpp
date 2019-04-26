@@ -1,6 +1,13 @@
 #include "CControls.h"
 #include "CEngine.h"
 #include <GLFW/glfw3.h>
+#include <iostream>
+
+void character_callback(GLFWwindow* window, unsigned int codepoint)
+{
+	CControls::controls().lastChar = codepoint;
+	if (CControls::controls().textCallback) CControls::controls().textCallback(codepoint);
+}
 
 void CControls::update()
 {
@@ -39,7 +46,8 @@ CControls &CControls::controls()
 
 CControls::CControls()
 {
-
+	lastChar = 0;
+	glfwSetCharCallback((GLFWwindow*)CEngine::engine().getWindow(), character_callback);
 
 
 }

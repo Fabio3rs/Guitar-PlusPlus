@@ -736,41 +736,48 @@ double CFonts::getCenterPos(const std::string &text, double size, double posX1, 
 
 	auto &engine = CEngine::engine();
 
-	auto it = st.begin();
+	try {
 
-	for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
+		auto it = st.begin();
+
+		for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
+		{
+			auto &chData = fontToUse.chars[ch];
+
+			if (iswblank(ch))
+			{
+				CharPos += size / 1.5;
+			}
+			else if (chData.getText())
+			{
+				auto &fontsTextData = *chData.getText();
+
+				if (chData.getAlign() > 0.15)
+					CharPos += -(chData.getAlign() * size) + sizeDiv10_0;
+
+				if (chData.getAlign() < 0.1)
+					CharPos += sizeDiv20_0;
+
+				double sizCalc = sizeDiv12_0;
+				double useSiz = chData.getSize();
+
+				if (useSiz < 0.45)
+				{
+					useSiz = 0.45;
+				}
+				else if (useSiz > 0.9)
+				{
+					sizCalc = 0;
+				}
+
+				CharPos += useSiz * size + sizCalc;
+
+			}
+		}
+	}
+	catch (const std::exception &e)
 	{
-		auto &chData = fontToUse.chars[ch];
-
-		if (iswblank(ch))
-		{
-			CharPos += size / 1.5;
-		}
-		else if (chData.getText())
-		{
-			auto &fontsTextData = *chData.getText();
-
-			if (chData.getAlign() > 0.15)
-				CharPos += -(chData.getAlign() * size) + sizeDiv10_0;
-
-			if (chData.getAlign() < 0.1)
-				CharPos += sizeDiv20_0;
-
-			double sizCalc = sizeDiv12_0;
-			double useSiz = chData.getSize();
-
-			if (useSiz < 0.45)
-			{
-				useSiz = 0.45;
-			}
-			else if (useSiz > 0.9)
-			{
-				sizCalc = 0;
-			}
-
-			CharPos += useSiz * size + sizCalc;
-
-		}
+		CLog::log().multiRegister("CFonts::getCenterPos exception <%0>, string \"%1\"", e, text);
 	}
 
 	return posX1 - CharPos / 2.0;

@@ -69,14 +69,7 @@ void GPPGame::charterModule(const std::string &name)
 	auto realname = game.getCallBackRealName(name);
 	auto &module = game.gameModules[realname];
 
-	if (game.getRunningModule().size() > 0)
-	{
-		throw gameException("A module is already running: " + name);
-	}
-
 	game.setVSyncMode(0);
-
-	game.setRunningModule(realname + "benchmark");
 
 	double sTime = CEngine::engine().getTime();
 
@@ -164,8 +157,6 @@ void GPPGame::charterModule(const std::string &name)
 
 		GPPGame::GuitarPP().renderFrame();
 	}
-
-	game.setRunningModule("");
 }
 
 void GPPGame::benchmark(const std::string &name)
@@ -174,14 +165,7 @@ void GPPGame::benchmark(const std::string &name)
 	auto realname = game.getCallBackRealName(name);
 	auto &module = game.gameModules[realname];
 
-	if (game.getRunningModule().size() > 0)
-	{
-		throw gameException("A module is already running: " + name);
-	}
-
 	game.setVSyncMode(0);
-
-	game.setRunningModule(realname + "benchmark");
 
 
 	module.players.push_back(CPlayer("benchmark"));
@@ -213,18 +197,11 @@ void GPPGame::benchmark(const std::string &name)
 
 		GPPGame::GuitarPP().renderFrame();
 	}
-
-	game.setRunningModule("");
 }
 
 CMenu &GPPGame::getMenuByName(const std::string &name)
 {
 	return gameMenus[name];
-}
-
-void GPPGame::setRunningModule(const std::string m)
-{
-	runningModule = m;
 }
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
@@ -459,16 +436,9 @@ void GPPGame::testClient(const std::string &name)
 	auto realname = game.getCallBackRealName(name);
 	auto &module = game.gameModules[realname];
 
-	if (game.getRunningModule().size() > 0)
-	{
-		throw gameException("A module is already running: " + name);
-	}
-
 	module.setHyperSpeed(2.5 * game.hyperSpeed);
 
 	game.setVSyncMode(0);
-
-	game.setRunningModule(realname);
 	/*
 	{
 	module.players.push_back(CPlayer("xi 3"));
@@ -743,11 +713,6 @@ void GPPGame::serverModule(const std::string &name)
 	auto &module = game.gameModules[realname];
 	module.players.clear();
 
-	if (game.getRunningModule().size() > 0)
-	{
-		throw gameException("A module is already running: " + name);
-	}
-
 	CMultiplayer mp(true);
 	mp.initConnections(ip, port);
 	mp.setPlayersData(module.players);
@@ -755,8 +720,6 @@ void GPPGame::serverModule(const std::string &name)
 	module.setHyperSpeed(2.5 * game.hyperSpeed);
 
 	game.setVSyncMode(0);
-
-	game.setRunningModule(realname);
 
 	module.players.push_back(CPlayer("you"));
 	module.players.back().playerCamera.center.x = -0.6;
@@ -1108,11 +1071,6 @@ void GPPGame::startModule(const std::string &name)
 	auto &module = game.gameModules[realname];
 	game.gameplayRunningTime = 0.0;
 
-	if (game.getRunningModule().size() > 0)
-	{
-		throw gameException("A module is already running: " + name);
-	}
-
 	std::string song = game.selectSong();
 	
 	if (song.size() > 0)
@@ -1121,7 +1079,6 @@ void GPPGame::startModule(const std::string &name)
 	}
 	else
 	{
-		game.setRunningModule("");
 		return;
 	}
 
@@ -1129,7 +1086,6 @@ void GPPGame::startModule(const std::string &name)
 
 	game.setVSyncMode(0);
 
-	game.setRunningModule(realname);
 	/*
 	{
 		module.players.push_back(CPlayer("xi 3"));
@@ -1609,11 +1565,6 @@ void GPPGame::startMarathonModule(const std::string &name)
 	auto realname = game.getCallBackRealName(name);
 	auto &module = game.gameModules[realname];
 
-	if (game.getRunningModule().size() > 0)
-	{
-		throw gameException("A module is already running: " + name);
-	}
-
 	game.HUDText = game.loadTexture("data/sprites", "HUD.tga").getTextId();
 	game.fretboardText = game.loadTexture("data/sprites", "fretboard.tga").getTextId();
 	game.lineText = game.loadTexture("data/sprites", "line.tga").getTextId();
@@ -1624,14 +1575,13 @@ void GPPGame::startMarathonModule(const std::string &name)
 
 	game.setVSyncMode(0);
 
-	game.setRunningModule(realname);
-
 	module.players.push_back(CPlayer("xi"));
+	module.fretboardLightFade = 20.0;
 
 	l.processing = true;
 	l.continueThread = true;
 	l.songID = 0;
-	l.songsList = getDirectory("./data/songs", false, true);
+	l.songsList = ((game.marathonSongsList.size() == 0)? getDirectory("./data/songs", false, true) : std::move(game.marathonSongsList));
 	l.listEnd = false;
 	l.sendToModulePlayers = false;
 	l.loadSong = true;
@@ -1668,15 +1618,17 @@ void GPPGame::startMarathonModule(const std::string &name)
 	l.songID++;
 	l.loadSong = true;
 
+	double startWaitTime = 10.0;
+
 	for (auto &p : module.players)
 	{
-		p.startTime = engine.getTime() + 3.0;
-		p.musicRunningTime = -3.0;
+		p.startTime = engine.getTime() + startWaitTime;
+		p.musicRunningTime = -startWaitTime;
 	}
 
-	double startTime = module.players.back().startTime = engine.getTime() + 3.0;
+	double startTime = module.players.back().startTime = engine.getTime() + startWaitTime;
 	double openMenuTime = 0.0;
-	module.players.back().musicRunningTime = -3.0;
+	module.players.back().musicRunningTime = -startWaitTime;
 	module.players.back().guitar = CGuitars::inst().getGuitarIfExists(game.defaultGuitar);
 
 	if (module.players.back().guitar)
@@ -1819,7 +1771,7 @@ void GPPGame::startMarathonModule(const std::string &name)
 					}
 					else
 					{
-						double waitTime = 5.0;
+						double waitTime = 10.0;
 
 						double deltaTol = engine.getDeltaTime();
 
@@ -2260,11 +2212,6 @@ void GPPGame::campaingPlayModule(const std::string &name)
 	auto realname = game.getCallBackRealName(name);
 	auto &module = game.gameModules[realname];
 
-	if (game.getRunningModule().size() > 0)
-	{
-		throw gameException("A module is already running: " + name);
-	}
-
 	game.HUDText = game.loadTexture("data/sprites", "HUD.tga").getTextId();
 	game.fretboardText = game.loadTexture("data/sprites", "fretboard.tga").getTextId();
 	game.lineText = game.loadTexture("data/sprites", "line.tga").getTextId();
@@ -2274,8 +2221,6 @@ void GPPGame::campaingPlayModule(const std::string &name)
 	module.setHyperSpeed(2.5 * game.hyperSpeed);
 
 	game.setVSyncMode(0);
-
-	game.setRunningModule(realname);
 
 	module.players.push_back(CPlayer("xi"));
 
@@ -3439,11 +3384,6 @@ void GPPGame::addSongListToMenu(CMenu &selectSongMenu, std::map<int, std::string
 GPPGame::func_t GPPGame::getCallback(const std::string &str)
 {
 	return gameCallbacks[str];
-}
-
-std::string GPPGame::getRunningModule()
-{
-	return runningModule;
 }
 
 std::vector <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void)> preFun, std::function<int(void)> midFun, std::function<int(void)> posFun, bool dev, std::vector < CMenu* > stackTest)

@@ -1772,7 +1772,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 				strklinbotsetted = true;
 			}
 
-			if (noteTime > -0.05 && noteTime < 0.1 && !(note.type & notesFlags::nf_picked))
+			if (noteTime > -0.05 && noteTime < 0.1 && !(note.type & notesFlags::nf_picked) && !(note.type & notesFlags::nf_failed))
 			{
 				if (!noteDoedThisFrame)
 				{
@@ -1860,6 +1860,9 @@ void CGamePlay::updatePlayer(CPlayer &player)
 							{
 								if (palhetaTest && (highestFlagInPressedKey != 0 || player.palhetaKey))
 								{
+									// TODO: Add some distortion
+									player.processErrorNonPickedB(i);
+
 									doNoteFunc(note, i);
 									regiserr = false;
 									player.lastHOPO = noteHF;
@@ -2315,10 +2318,10 @@ void CGamePlay::renderPylmBar()
 
 void CGamePlay::renderLyrics()
 {
-	double time = players[0].musicRunningTime;
-
 	if (songlyrics.size() > songlyricsIndex)
 	{
+		double time = players[0].musicRunningTime;
+
 		if (time > songlyrics[songlyricsIndex].tend)
 		{
 			++songlyricsIndex;
@@ -2339,7 +2342,7 @@ void CGamePlay::loadSongLyrics(const std::string &song)
 	songlyricsIndex = 0;
 
 	std::string lyricFile = "data/songs/" + song + "/lyrics.srt";
-	std::ifstream lyrics(lyricFile, std::ios::binary);
+	std::ifstream lyrics(lyricFile);
 
 	auto deduceTime = [](int *a)
 	{
@@ -2352,7 +2355,7 @@ void CGamePlay::loadSongLyrics(const std::string &song)
 		return result;
 	};
 
-	std::cout << lyricFile << lyrics.is_open() << std::endl;
+	std::cout << lyricFile << " " << lyrics.is_open() << std::endl;
 
 	if (lyrics.is_open())
 	{
@@ -2539,6 +2542,8 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	auto &engine = CEngine::engine();
 
+	bool fading = false;
+
 	/*static OutputSurface_t surf = []() { OutputSurface_t result;
 	memset(&result, 0, sizeof(result)); return result; }();
 	
@@ -2600,9 +2605,20 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	engine.draw2DLine(player.spectrumLines, 4);
 	*/
+	if (fretboardLightFade > 1.0)
+	{
+		fretboardLightFade -= engine.getDeltaTime() * 4.0;
+		fading = true;
+	}
+
 	for (auto &t : l0.ambientLight)
 	{
 		t = 0.2f;
+
+		if (fretboardLightFade > 1.0)
+		{
+			t /= fretboardLightFade;
+		}
 	}
 
 	for (auto &t : l0.direction)
@@ -2636,6 +2652,11 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	l0.position[3] = 1.0f;
 	l0.position[1] = 0.0f;
 	l0.position[2] = 2.5f;
+
+	if (fretboardLightFade > 1.0)
+	{
+		l0.position[2] -= fretboardLightFade - 1.0;
+	}
 
 	auto &lua = CLuaH::Lua();
 
@@ -2796,6 +2817,16 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	//engine.retAccumulationBuffer(1.0);
 	CEngine::enableColorsPointer(true);
 
+	//engine.setColor(1.0, 1.0, 1.0, 1.0);
+	if (fading)
+	{
+		engine.activateLighting(true);
+		engine.activateLight(1, false);
+		engine.activateLight(0, true);
+
+		engine.setLight(l0, 0);
+	}
+
 	unsigned int fretboardText = (player.guitar == nullptr)? GPPGame::GuitarPP().fretboardText :
 								((player.guitar->fretboardText != 0)? player.guitar->fretboardText : GPPGame::GuitarPP().fretboardText);
 
@@ -2831,16 +2862,19 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		}
 	};
 
-	engine.activateLighting(true);
-
-	
-	//engine.setColor(1.0, 1.0, 1.0, 1.0);
-	//if (player.plusEnabled || renablel0)
+	if (!fading)
 	{
-		engine.activateLight(1, false);
-		engine.activateLight(0, true);
+		engine.activateLighting(true);
 
-		engine.setLight(l0, 0);
+
+		//engine.setColor(1.0, 1.0, 1.0, 1.0);
+		//if (player.plusEnabled || renablel0)
+		{
+			engine.activateLight(1, false);
+			engine.activateLight(0, true);
+
+			engine.setLight(l0, 0);
+		}
 	}
 
 	static float floorShadow[4][4];
@@ -2849,9 +2883,9 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	float lightPosition[4] = { 0, 0, 2.5, 1.0 };
 	// A*x + B*y + C*z + D = 0
-	std::array<float, 4> groundPlane = CEngine::planeEquation({ 0.0f, -0.499f, 0.0f }, { 0, 1, 0 });
+	//std::array<float, 4> groundPlane = CEngine::planeEquation({ 0.0f, -0.499f, 0.0f }, { 0, 1, 0 });
 
-	CEngine::shadowMatrix(matrix, groundPlane.data(), l0.position);
+	//CEngine::shadowMatrix(matrix, groundPlane.data(), l0.position);
 
 	/*
 	xyz -1 -0.5 -1
@@ -2871,19 +2905,19 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	{
 
-		engine.activateStencilTest(true);
-		engine.activate3DRender(false);
+		//engine.activateStencilTest(true);
+		//engine.activate3DRender(false);
 
-		engine.startShadowCapture(); // na verdade isso aqui é a delimitação da área de renderização da sombra
+		//engine.startShadowCapture(); // na verdade isso aqui é a delimitação da área de renderização da sombra
 
-		renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], fretboardText);
+		//renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], fretboardText);
 
-		engine.endShadowCapture();
+		//engine.endShadowCapture();
 
-		CEngine::pushMatrix();
+		//CEngine::pushMatrix();
 
 		//engine.renderDarkCube();
-		CEngine::multiplyMatrix((float*)matrix);
+		/*CEngine::multiplyMatrix((float*)matrix);
 
 		engine.setColor(0.0, 0.0, 0.0, 0.5);
 
@@ -2898,15 +2932,15 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		for (auto &n : player.buffer)
 		{
-			renderNoteShadow(n, player);
+			//renderNoteShadow(n, player);
 		}
 
 		CEngine::popMatrix();
-		CEngine::engine().matrixReset();
+		CEngine::engine().matrixReset();*/
 
-		engine.activateStencilTest(false);
+		//engine.activateStencilTest(false);
 
-		engine.activate3DRender(true);
+		//engine.activate3DRender(true);
 	}
 
 
@@ -3150,6 +3184,7 @@ void CGamePlay::marathonUpdate()
 
 void CGamePlay::resetModule()
 {
+	fretboardLightFade = 20.0;
 	players.clear();
 	chartInstruments.clear();
 
@@ -3219,6 +3254,7 @@ CGamePlay &CGamePlay::gamePlay()
 
 CGamePlay::CGamePlay() : engine(CEngine::engine())
 {
+	fretboardLightFade = 20.0;
 	bRenderHUD = true;
 	bIsACharterGP = false;
 	showBPMVlaues = false;

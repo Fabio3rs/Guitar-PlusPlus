@@ -361,6 +361,7 @@ public:
 	void updateControls();
 	void breakCombo();
 	void processError();
+	void processErrorNonPickedB(size_t pos);
 	void releaseSong();
 
 	void doNote(size_t i);
