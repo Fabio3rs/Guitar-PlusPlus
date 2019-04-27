@@ -157,7 +157,7 @@ void CMenu::render()
 		case text_input:
 			CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2], opt.color[3]);
 			{
-				double textSize = textSizeInScreen(opt.preText, opt.size) + opt.size * 0.5;
+				double textSize = CFonts::fonts().getXSizeInScreen(opt.preText, opt.size)/*textSizeInScreen(opt.preText, opt.size) + opt.size * 0.5*/;
 
 				{
 					CEngine::RenderDoubleStruct RenderData;
@@ -227,10 +227,10 @@ void CMenu::render()
 			if (opt.status & 1)
 			{
 				CEngine::RenderDoubleStruct RenderData;
-				RenderData.x1 = opt.x - opt.size / 2.0 + x;
-				RenderData.x2 = opt.x - opt.size / 2.0 + opt.size + x;
-				RenderData.x3 = opt.x - opt.size / 2.0 + opt.size + x;
-				RenderData.x4 = opt.x - opt.size / 2.0 + x;
+				RenderData.x1 = opt.x - opt.size + x;
+				RenderData.x2 = opt.x /*- opt.size + opt.size*/ + x;
+				RenderData.x3 = opt.x /*- opt.size + opt.size*/ + x;
+				RenderData.x4 = opt.x - opt.size + x;
 
 				RenderData.y1 = opt.y + opt.size + y;
 				RenderData.y2 = opt.y + opt.size + y;

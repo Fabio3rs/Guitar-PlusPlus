@@ -4,8 +4,24 @@
 
 void character_callback(GLFWwindow* window, unsigned int codepoint)
 {
-	CControls::controls().lastChar = codepoint;
-	if (CControls::controls().textCallback) CControls::controls().textCallback(codepoint);
+	auto &inst = CControls::controls();
+	inst.lastChar = codepoint;
+	if (inst.textCallback) inst.textCallback(codepoint);
+}
+
+void CControls::joystickCb(int jid, int eventId)
+{
+	std::cout << "joystick " << jid << " " << eventId << std::endl;
+	if (eventId == GLFW_CONNECTED)
+	{
+		// The joystick was connected
+	}
+	else if (eventId == GLFW_DISCONNECTED)
+	{
+		// The joystick was disconnected
+	}
+
+	// glfwGetGamepadState(jid, &state)
 }
 
 void CControls::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -60,12 +76,6 @@ void CControls::update()
 			k.t = time;
 		}
 	}*/
-}
-
-void CControls::joystickCb(int jid, int eventId)
-{
-	std::cout << "joystick " << jid << " " << eventId << std::endl;
-	// glfwGetGamepadState(jid, &state)
 }
 
 CControls &CControls::controls()

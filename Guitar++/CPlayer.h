@@ -411,6 +411,7 @@ public:
 	CGuitars::CGuitar *guitar;
 
 	CPlayer(const char *name);
+	~CPlayer();
 
 	inline CPlayer() : CPlayer("default")
 	{

@@ -3155,9 +3155,9 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		//CFonts::fonts().drawTextInScreen(std::to_string(player.plusLoadB), 0.0, 0.2, 0.1);
 
-		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(player.getCombo()), -1.025 + neg, 0.04 + negy, 0.1);
-		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(player.getPoints()), -1.02 + neg, -0.1 + negy, 0.06);
-		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string((int)player.comboToMultiplier()), -0.9 + neg, -0.37 + negy, 0.1);
+		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(player.getCombo()), -0.974 + neg, 0.04 + negy, 0.1);
+		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(player.getPoints()), -0.99 + neg, -0.1 + negy, 0.06);
+		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string((int)player.comboToMultiplier()), -0.85 + neg, -0.37 + negy, 0.1);
 	}
 	/////////////***************************************
 

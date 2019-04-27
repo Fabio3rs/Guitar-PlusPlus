@@ -1064,91 +1064,34 @@ void GPPGame::serverModule(const std::string &name)
 
 void GPPGame::startModule(const std::string &name)
 {
+	int state = 0;
 	auto &game = GPPGame::GuitarPP();
 	auto &engine = CEngine::engine();
 	auto &fonts = CFonts::fonts();
 	auto &controls = CControls::controls();
 	auto realname = game.getCallBackRealName(name);
 	auto &module = game.gameModules[realname];
-	game.gameplayRunningTime = 0.0;
 
-	std::string song = game.selectSong();
-	
-	if (song.size() > 0)
-	{
-		game.songToLoad = song;
-	}
-	else
+	game.songToLoad = game.selectSong();
+
+	if (game.songToLoad.size() == 0)
 	{
 		return;
 	}
 
 	module.setHyperSpeed(2.5 * game.hyperSpeed);
 
-	game.setVSyncMode(0);
-
-	/*
-	{
-		module.players.push_back(CPlayer("xi 3"));
-		auto &playerCamera = module.players.back().playerCamera;
-
-		//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
-
-		playerCamera.eye.x = 0.65;
-		playerCamera.eye.y = 0.2;
-		playerCamera.eye.z = 2.3;
-		playerCamera.center.x = 1.3;
-		playerCamera.center.y = -0.2;
-		playerCamera.center.z = 0;
-		playerCamera.up.x = 0;
-		playerCamera.up.y= 1;
-		playerCamera.up.z = 0;
-	}
-
-	{
-		module.players.push_back(CPlayer("xi 2"));
-
-		//module.players.back().Notes.instrument = "[ExpertDoubleBass]";
-
-		auto &playerCamera = module.players.back().playerCamera;
-
-		playerCamera.eye.x = -0.65;
-		playerCamera.eye.y = 0.2;
-		playerCamera.eye.z = 2.3;
-		playerCamera.center.x = -1.3;
-		playerCamera.center.y = -0.2;
-		playerCamera.center.z = 0;
-		playerCamera.up.x = 0;
-		playerCamera.up.y= 1;
-		playerCamera.up.z = 0;
-	}
-	*/
-
-
 	module.players.push_back(CPlayer("xi"));
-
 	loadThreadData l;
 
 	l.processing = true;
 
 	std::thread load(loadThread, std::ref(module), std::ref(l));
 
-	CLuaH::Lua().runEvent("gameplayLoading");
-
-	while (engine.windowOpened() && l.processing)
+	callOnDctor<void(void)> exitguard([&load]()
 	{
-		game.clearScreen();
-
-		CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0, 0.1);
-
-		game.renderFrame();
-	}
-
-	for (auto &p : module.players)
-	{
-		p.startTime = engine.getTime() + 3.0;
-		p.musicRunningTime = -3.0;
-	}
+		if (load.joinable()) load.join();
+	});
 
 	game.HUDText = game.loadTexture("data/sprites", "HUD.tga").getTextId();
 	game.fretboardText = game.loadTexture("data/sprites", "fretboard.tga").getTextId();
@@ -1156,96 +1099,62 @@ void GPPGame::startModule(const std::string &name)
 	game.HOPOSText = -1/*GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId()*/;
 	game.pylmBarText = game.loadTexture("data/sprites", "pylmbar.tga").getTextId();
 
-	double startTime = module.players.back().startTime = engine.getTime() + 3.0;
-	double openMenuTime = 0.0;
-	module.players.back().musicRunningTime = -3.0;
-	module.players.back().guitar = CGuitars::inst().getGuitarIfExists(game.defaultGuitar);
-
-	if(module.players.back().guitar)
-		module.players.back().guitar->load();
+	double startTime = 0.0, openMenuTime = 0.0, fadeoutdsc = engine.getTime();
+	int musicstartedg = 0;
+	bool firstStartFrame = true;
 
 	bool enterInMenu = false, esc = false;
-	int musicstartedg = 0;
 
 	bool songTimeFixed = false;
 
+	std::string songName, songArtist, songCharter;
 
-	module.players.back().enableBot = game.botEnabled;
-	module.players.back().playerCamera.center.y = 1.0;
-	module.players.back().playerCamera.eye.z += 2.0;
-	//CLog::log() << std::to_string(module.players.back().enableBot) + "bot que voa";
+	CPlayer *pplayerb = &module.players.back();
 
-	std::cout << "Plus in chart: " << module.players.back().Notes.gPlus.size() << std::endl;
-
-	if (module.players.back().Notes.gPlus.size())
-	{
-		std::cout << "Plus 0 time: " << module.players.back().Notes.gPlus[0].time << std::endl;
-		std::cout << "Plus 0 duration: " << module.players.back().Notes.gPlus[0].lTime << std::endl;
-	}
-
-	bool firstStartFrame = true;
-	
-	auto &playerb = module.players.back();
-	std::string songName = playerb.Notes.songName, songArtist = playerb.Notes.songArtist, songCharter = playerb.Notes.songCharter;
-
-	double fadeoutdsc = engine.getTime();
+	game.setVSyncMode(0);
 
 	while (engine.windowOpened())
 	{
 		game.clearScreen();
 
-		if (controls.keyEscape())
+		switch (state)
 		{
-			esc = true;
-		}
-		else if (esc)
+		case 0:
+			if (!l.processing)
+				++state;
+
+			CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0, 0.1);
+			break;
+
+		case 1:
 		{
-			enterInMenu = true;
-		}
-		else
-		{
-			enterInMenu = false;
-		}
-
-
-
-		if (enterInMenu)
-		{
-			if (musicstartedg == 2)
-			{
-				for (auto &p : module.players)
-				{
-					p.instrumentPause();
-				}
-
-				engine.pauseSoundStream(module.players.back().songAudioID);
-				musicstartedg = 0;
-			}
-
-			songTimeFixed = false;
-
-			openMenuTime = engine.getTime();
-
-			game.openMenus(&module.moduleMenu);
-
-			if (module.moduleMenu.options[module.exitModuleOpt].status & 1)
-			{
-				module.resetModule();
-				break;
-			}
-
-			double time = engine.getTime();
-
 			for (auto &p : module.players)
 			{
-				p.startTime += time - openMenuTime;
+				p.startTime = engine.getTime() + 3.0;
+				p.musicRunningTime = -3.0;
 			}
 
-			enterInMenu = false;
-			esc = false;
+			startTime = module.players.back().startTime = engine.getTime() + 3.0;
+			module.players.back().musicRunningTime = -3.0;
+			module.players.back().guitar = CGuitars::inst().getGuitarIfExists(game.defaultGuitar);
+
+			if (module.players.back().guitar)
+				module.players.back().guitar->load();
+
+			module.players.back().enableBot = game.botEnabled;
+			module.players.back().playerCamera.center.y = 1.0;
+			module.players.back().playerCamera.eye.z += 2.0;
+
+			auto &playerb = *pplayerb;
+			songName = playerb.Notes.songName; songArtist = playerb.Notes.songArtist; songCharter = playerb.Notes.songCharter;
+			state++;
 		}
-		else
+			break;
+
+		case 2:
 		{
+			auto &playerb = *pplayerb;
+
 			module.update();
 
 			for (auto &p : module.players)
@@ -1288,218 +1197,10 @@ void GPPGame::startModule(const std::string &name)
 				songTimeFixed = true;
 			}
 
-
-
-
-			if (game.drawGamePlayBackground) {
-
-
-				engine.activate3DRender(true);
-				engine.activateLighting(true);
-
-				{
-					double centerx = 0.0;
-					double centerz = -650.0;
-
-					double rtime = module.players.back().musicRunningTime / 10.0;
-					double eyexcam = sin(0) * 1.0 + centerx + sin(rtime) * 1.0;
-					double eyezcam = cos(0) * 1.0 + centerz + cos(rtime) * 1.0;
-
-					CEngine::cameraSET usingCamera;
-
-					
-					usingCamera.eye.x = 3.0 + sin(rtime);
-					usingCamera.eye.y = 2.5;
-					usingCamera.eye.z = 1.0 + cos(rtime);
-					usingCamera.center.x = 3.0;
-					usingCamera.center.y = 0.5;
-					usingCamera.center.z = -5;
-					usingCamera.up.x = 0;
-					usingCamera.up.y = 1;
-					usingCamera.up.z = 0;
-					/*usingCamera.eye.x = eyexcam;
-					usingCamera.eye.y = 130.0;
-					usingCamera.eye.z = eyezcam;
-					usingCamera.center.x = centerx;
-					usingCamera.center.y = 130.0;
-					usingCamera.center.z = centerz;
-					usingCamera.up.x = 0;
-					usingCamera.up.y= 1;
-					usingCamera.up.z = 0;*/
-
-					engine.setCamera(usingCamera);
-				}
-
-				{
-					lightData l;
-
-					for (auto &t : l.ambientLight)
-					{
-						t = 0.2f;
-					}
-
-					for (auto &t : l.direction)
-					{
-						t = 2.5f;
-					}
-
-					for (auto &t : l.position)
-					{
-						t = 0.0f;
-					}
-
-					for (auto &t : l.specularLight)
-					{
-						t = 0.5f;
-					}
-
-					for (auto &t : l.diffuseLight)
-					{
-						t = 0.2f;
-					}
-
-					l.specularLight[1] = 1.0f;
-					l.specularLight[2] = 1.0f;
-					l.diffuseLight[0] = 1.0f;
-					l.diffuseLight[1] = 1.0f;
-					l.ambientLight[3] = 0.1f;
-
-					CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
-
-					l.angle = 100.0f;
-					l.direction[0] = 3.0f;
-					l.direction[1] = -0.5f;
-					l.direction[2] = -1.5f;
-
-					l.position[0] = 3.0f;
-					l.position[1] = 2.7f;
-					l.position[2] = -1.5f;
-					l.position[3] = 1.0f;
-
-					engine.activateLight(0, false);
-					engine.activateLight(1, true);
-					engine.setLight(l, 1);
-				}
-
-				/*{
-					lightData l;
-
-					for (auto &t : l.ambientLight)
-					{
-						t = 0.1;
-					}
-
-					for (auto &t : l.direction)
-					{
-						t = 2.5;
-					}
-
-					for (auto &t : l.position)
-					{
-						t = 0.0;
-					}
-
-					for (auto &t : l.specularLight)
-					{
-						t = 1.0;
-					}
-
-					for (auto &t : l.diffuseLight)
-					{
-						t = 0.5;
-					}
-
-					l.specularLight[1] = 1.0;
-					l.specularLight[2] = 1.0;
-					l.specularLight[3] = 0.5;
-					l.diffuseLight[3] = 0.5;
-					l.ambientLight[3] = 0.1;
-
-					l.angle = 80.0;
-					l.direction[0] = 100.0;
-					l.direction[1] = -0.5;
-					l.direction[2] = 0.0;
-
-					l.position[3] = 0.0;
-					l.position[1] = 50.0;
-					l.position[2] = 100.5;
-
-					engine.activateLight(0, true);
-					engine.setLight(l, 0);
-				}*/
-
-				//static const unsigned int cityTextID = game.loadTexture("test", "city.tga").getTextId();
-
-				engine.activateNormals(true);
-				game.testobj.draw(0);
-				engine.activateNormals(false);
-
-				engine.activateLighting(false);
-				engine.activate3DRender(false);
-
-				/*{
-					double size = 0.4;
-
-					CEngine::RenderDoubleStruct TempStruct3D;
-
-					static auto hopoLightText = GPPGame::GuitarPP().loadTexture("data/sprites", "hopolight.tga").getTextId();
-
-					double flarex = 2.92, flarey = 2.5, flarez = -1.0;
-
-					TempStruct3D.Text = hopoLightText;
-					TempStruct3D.TextureX1 = 0.0;
-					TempStruct3D.TextureX2 = 1.0;
-					TempStruct3D.TextureY1 = 1.0;
-					TempStruct3D.TextureY2 = 0.0;
-
-					//CFonts::fonts().drawTextInScreen(std::to_string(hopostp.size()), 0.0, 0.5, 0.1);
-
-					TempStruct3D.x1 = flarex;
-					TempStruct3D.x2 = TempStruct3D.x1 + size;
-					TempStruct3D.x3 = TempStruct3D.x1 + size;
-					TempStruct3D.x4 = TempStruct3D.x1;
-
-					TempStruct3D.y1 = flarey;
-					TempStruct3D.y2 = TempStruct3D.y1;
-					TempStruct3D.y3 = flarey + 0.2;
-					TempStruct3D.y4 = TempStruct3D.y3;
-
-					TempStruct3D.z1 = flarez + size * 2.0;
-					TempStruct3D.z2 = TempStruct3D.z1;
-					TempStruct3D.z3 = flarez;
-					TempStruct3D.z4 = TempStruct3D.z3;
-
-					CEngine::engine().Render3DQuad(TempStruct3D);
-				}*/
-				
-				engine.matrixReset();
-
-				engine.clear3DBuffer();
-				{
-					CEngine::cameraSET usingCamera;
-					usingCamera.eye.x = 0.0;
-					usingCamera.eye.y = 0.0;
-					usingCamera.eye.z = 2.3;
-					usingCamera.center.x = 0;
-					usingCamera.center.y = 0;
-					usingCamera.center.z = 0.0;
-					usingCamera.up.x = 0;
-					usingCamera.up.y= 1;
-					usingCamera.up.z = 0;
-
-					engine.setCamera(usingCamera);
-				}
-			}
-
-
-
+			/////////////////
 
 			module.render();
 			module.renderLyrics();
-
-
-			//CFonts::fonts().drawTextInScreen("BASS" + std::to_string(CEngine::engine().getSoundTime(module.players.back().songAudioID)), 0.52, -0.4, 0.1);
-			//CFonts::fonts().drawTextInScreen("SONG" + std::to_string(CEngine::engine().getTime() - startTime), 0.52, -0.52, 0.1);
 
 			if (firstStartFrame)
 			{
@@ -1516,7 +1217,7 @@ void GPPGame::startModule(const std::string &name)
 			{
 
 				fadeoutdsc = engine.getTime();
-				fonts.drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
+				fonts.drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.15, 0.0, 0.3);
 				musicstartedg = 0;
 			}
 
@@ -1545,15 +1246,56 @@ void GPPGame::startModule(const std::string &name)
 
 				musicstartedg = 2;
 			}
+
+			if (controls.keyEscape())
+			{
+				state++;
+			}
 		}
+			break;
 
+		case 3:
+		{
+			if (musicstartedg == 2)
+			{
+				for (auto &p : module.players)
+				{
+					p.instrumentPause();
+				}
 
+				engine.pauseSoundStream(module.players.back().songAudioID);
+				musicstartedg = 0;
+			}
 
+			songTimeFixed = false;
+
+			openMenuTime = engine.getTime();
+
+			game.openMenus(&module.moduleMenu);
+
+			if (module.moduleMenu.options[module.exitModuleOpt].status & 1)
+			{
+				module.resetModule();
+				return;
+			}
+
+			double time = engine.getTime();
+
+			for (auto &p : module.players)
+			{
+				p.startTime += time - openMenuTime;
+			}
+
+			state = 2;
+		}
+			break;
+
+		default:
+			break;
+		}
 
 		game.renderFrame();
 	}
-
-	if (load.joinable()) load.join();
 }
 
 void GPPGame::startMarathonModule(const std::string &name)

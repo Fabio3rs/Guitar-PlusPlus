@@ -527,7 +527,7 @@ void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double pos
 
 	const double sizeDiv2_0 = size / 2.0, sizeDiv12_0 = size / 12.0, sizeDiv10_0 = size / 10.0, sizeDiv20_0 = size / 20.0;
 	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
-	double CharPos = posX1PlusSizeDiv2_0;
+	double CharPos = posX1;
 
 	auto &engine = CEngine::engine();
 	CEngine::RenderDoubleStruct RenderData;
@@ -626,7 +626,7 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 
 	const double sizeDiv2_0 = size / 2.0, sizeDiv12_0 = size / 12.0, sizeDiv10_0 = size / 10.0, sizeDiv20_0 = size / 20.0;
 	const double posX1PlusSizeDiv2_0 = posX1 + sizeDiv2_0;
-	double CharPos = posX1PlusSizeDiv2_0;
+	double CharPos = posX1;
 
 	auto &engine =  CEngine::engine();
 	CEngine::RenderDoubleStruct RenderData;
@@ -727,10 +727,15 @@ std::string CFonts::addTextureToFont(const std::string &fontName, const std::str
 
 double CFonts::getCenterPos(const std::string &text, double size, double posX1, const std::string &fontName)
 {
+	return posX1 - getXSizeInScreen(text, size, fontName) / 2.0;
+}
+
+double CFonts::getXSizeInScreen(const std::string &text, double size, const std::string &fontName)
+{
 	auto &fontToUse = fontsReg[fontName];
 
 	const double sizeDiv2_0 = size / 2.0, sizeDiv12_0 = size / 12.0, sizeDiv10_0 = size / 10.0, sizeDiv20_0 = size / 20.0;
-	double CharPos = sizeDiv2_0;
+	double CharPos = 0.0;
 
 	const std::string st = text + " ";
 
@@ -780,7 +785,7 @@ double CFonts::getCenterPos(const std::string &text, double size, double posX1, 
 		CLog::log().multiRegister("CFonts::getCenterPos exception <%0>, string \"%1\"", e, text);
 	}
 
-	return posX1 - CharPos / 2.0;
+	return CharPos;
 }
 
 CFonts::Font::Font()

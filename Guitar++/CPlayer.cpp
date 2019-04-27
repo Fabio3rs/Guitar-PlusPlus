@@ -1326,3 +1326,10 @@ CPlayer::CPlayer(const char *name)
 
 	experience = 100.0;
 }
+
+CPlayer::~CPlayer()
+{
+	CEngine::engine().unloadSoundStream(instrumentSound);
+	CEngine::engine().unloadSoundStream(songAudioID);
+
+}

@@ -144,6 +144,7 @@ public:
 	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::wstring &textChars);
 	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars);
 	double								getCenterPos(const std::string &text, double size, double posX1, const std::string &fontName = "default");
+	double								getXSizeInScreen(const std::string &text, double size, const std::string &fontName = "default");
 	
 	void								drawTextInScreenWithBuffer(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName = "default");
 	void								drawTextInScreen(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName = "default");

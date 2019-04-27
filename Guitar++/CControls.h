@@ -62,7 +62,7 @@ public:
 
 	std::map < int, keyState > keys;
 
-	bool isKeyPressed(const key &k);
+	bool getKeyState(const key &k);
 	double getAnalogKeyState(const key &k);
 
 	class CPlayerControls{
