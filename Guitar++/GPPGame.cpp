@@ -1067,6 +1067,7 @@ void GPPGame::startModule(const std::string &name)
 	auto &game = GPPGame::GuitarPP();
 	auto &engine = CEngine::engine();
 	auto &fonts = CFonts::fonts();
+	auto &controls = CControls::controls();
 	auto realname = game.getCallBackRealName(name);
 	auto &module = game.gameModules[realname];
 	game.gameplayRunningTime = 0.0;
@@ -1193,7 +1194,7 @@ void GPPGame::startModule(const std::string &name)
 	{
 		game.clearScreen();
 
-		if (engine.getKey(GLFW_KEY_ESCAPE))
+		if (controls.keyEscape())
 		{
 			esc = true;
 		}
@@ -2138,11 +2139,11 @@ void GPPGame::callbackKeys(int key, int scancode, int action, int mods)
 		GPPGame::GuitarPP().currentMenu->shortcutCallback(key, scancode, action, mods);
 	}
 
-	CMenu::uiWindowStruct &w = CMenu::getUILast();
+	CMenu *m = CMenu::getUiMenuOnTop();
 
-	if (w.m && w.m.get() != GPPGame::GuitarPP().currentMenu)
+	if (m && m != GPPGame::GuitarPP().currentMenu)
 	{
-		w.m.get()->shortcutCallback(key, scancode, action, mods);
+		m->shortcutCallback(key, scancode, action, mods);
 	}
 }
 

@@ -75,6 +75,7 @@ private:
 public:
 	enum menusOPT { none = -1, button_ok, text_input, button_cancel, textbtn, multi_btn, deslizant_Select_list, button_ui, drag_bar, static_text };
 
+	static CMenu *getUiMenuOnTop();
 	bool isInterfaceOver();
 	int getUIListSize();
 	bool isMouseOnThisMenu();

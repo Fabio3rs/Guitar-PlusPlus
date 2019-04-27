@@ -1,6 +1,5 @@
 #include "CControls.h"
 #include "CEngine.h"
-#include <GLFW/glfw3.h>
 #include <iostream>
 
 void character_callback(GLFWwindow* window, unsigned int codepoint)
@@ -9,7 +8,7 @@ void character_callback(GLFWwindow* window, unsigned int codepoint)
 	if (CControls::controls().textCallback) CControls::controls().textCallback(codepoint);
 }
 
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+void CControls::key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
 	auto &inst = CControls::controls();
 
@@ -21,8 +20,8 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 	k.pressed = press || repeat;
 	k.lastFramePressed = (action == GLFW_REPEAT);
 
-	if (press)
-		k.t = CEngine::engine().getTime();
+	if (key == GLFW_KEY_ESCAPE)
+		inst.escCB = (action == GLFW_PRESS);
 
 	if (inst.keyCallback)
 		inst.keyCallback(key, scancode, action, mods);

@@ -470,6 +470,20 @@ bool CMenu::isMouseOnThisMenu()
 	return false;
 }
 
+CMenu *CMenu::getUiMenuOnTop()
+{
+	for (int i = uiOrderList.size() - 1; i >= 0; i--)
+	{
+		CMenu *m = uiList[uiOrderList[i].id].m.get();
+		if (m)
+		{
+			return m;
+		}
+	}
+
+	return nullptr;
+}
+
 bool CMenu::isInterfaceOver()
 {
 	bool result = false;
@@ -524,6 +538,7 @@ CMenu::posUiOrder &CMenu::getTopUI()
 	for (int i = uiOrderList.size() - 1; i >= 0; i--)
 	{
 		CMenu *m = uiList[uiOrderList[i].id].m.get();
+
 		if (m)
 		{
 			return uiOrderList[i];
@@ -1239,6 +1254,22 @@ void CMenu::shortcutCallback(int key, int scancode, int action, int mods)
 			break;
 
 		case deslizant_Select_list:
+			if ((opt.status & 1) != 0 && opt.optList.size() > 0)
+			{
+				if (keyTest(GLFW_KEY_LEFT))
+				{
+					if (opt.listID > 0)
+						opt.listID--;
+				}
+
+				if (keyTest(GLFW_KEY_RIGHT))
+				{
+					if (opt.listID < (opt.optList.size() - 1))
+					{
+						opt.listID++;
+					}
+				}
+			}
 			break;
 
 		case drag_bar:

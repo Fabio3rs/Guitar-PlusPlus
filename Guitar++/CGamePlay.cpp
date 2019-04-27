@@ -2879,7 +2879,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	static float floorShadow[4][4];
 
-	float matrix[4][4];
+	//float matrix[4][4];
 
 	float lightPosition[4] = { 0, 0, 2.5, 1.0 };
 	// A*x + B*y + C*z + D = 0

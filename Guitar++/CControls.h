@@ -7,11 +7,14 @@
 #include <map>
 #include <string>
 #include <functional>
+#include <GLFW/glfw3.h>
 
 class CControls{
 	CControls(CControls&) = delete;
 	static void joystickCb(int jid, int eventId);
 	int inited;
+	int escCB;
+	static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 public:
 	static CControls &controls();
@@ -19,6 +22,8 @@ public:
 	unsigned int lastChar;
 	std::function<void(unsigned int)> textCallback;
 	std::function<void(int key, int scancode, int action, int mods)> keyCallback;
+
+	int keyEscape() { int r = escCB; escCB = 0; return r; };
 
 	void init();
 	void update();
