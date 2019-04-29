@@ -3,6 +3,12 @@
 #include "GPPGame.h"
 #include "CFonts.h"
 #include <dirent.h>
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/deque.hpp>
 
 CCampaing::CCampaingData::CCampaingData()
 {

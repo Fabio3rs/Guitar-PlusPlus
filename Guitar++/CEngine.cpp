@@ -304,11 +304,13 @@ bool CEngine::loadSoundStream(const char *fileName, int &handle, bool decode)
 
 bool CEngine::unloadSoundStream(int &handle)
 {
-	auto r = BASS_StreamFree(handle);
-	handle = -1;
+	if (handle == 0)
+		return false;
+
+	bool r = BASS_StreamFree(handle) != 0;
+	handle = 0;
 	return r;
 }
-
 
 bool CEngine::playSoundStream(int handle){
 	return BASS_ChannelPlay(handle, false) != 0;

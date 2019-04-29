@@ -9,6 +9,7 @@
 #include <atomic>
 #include <mutex>
 #include <thread>
+#include <memory>
 #include <map>
 #include "CPlayer.h"
 
@@ -49,7 +50,7 @@ class CMultiplayer
 	std::vector < playersData > pData;
 
 	std::map <uintptr_t, std::mutex> mutexplayers;
-	std::deque < CPlayer > *players;
+	CPlayersContainer_t *players;
 	std::map < void*, std::pair<int, int> > xrefplayer;
 
 	struct serverInfo
@@ -99,7 +100,7 @@ public:
 
 	static std::vector < playersData > &sgetPlData();
 
-	inline void setPlayersData(std::deque < CPlayer > &pl)
+	inline void setPlayersData(CPlayersContainer_t &pl)
 	{
 		players = &pl;
 	}

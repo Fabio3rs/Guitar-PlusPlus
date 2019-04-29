@@ -2,11 +2,11 @@
 #ifndef _CGUITARPP_CGUITARS_H_
 #define _CGUITARPP_CGUITARS_H_
 
-#include "GPPOBJ.h"
-#include <string>
 #include <map>
+#include <string>
 #include <fstream>
 #include "CLuaH.hpp"
+#include "GPPOBJ.h"
 
 class CGamePlay;
 

@@ -3,28 +3,20 @@
 #ifndef __GUITARPP_CPLAYER_H_
 #define __GUITARPP_CPLAYER_H_
 
+#include <map>
+#include <deque>
+#include <atomic>
+#include <memory>
 #include <string>
 #include <cstdint>
-#include <deque>
+#include <sstream>
 #include <iostream>
 #include <algorithm>
-#include <cstdint>
 #include <functional>
-#include <memory>
+#include "CFonts.h"
 #include "CEngine.h"
 #include "CParticle.h"
-#include <atomic>
 #include "CGuitars.h"
-#include <map>
-#include <sstream>
-#include <cereal/cereal.hpp>
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/archives/binary.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/string.hpp>
-#include "CFonts.h"
 
 class CCharter;
 
@@ -418,5 +410,7 @@ public:
 
 	}
 };
+
+typedef std::deque<std::shared_ptr<CPlayer>> CPlayersContainer_t;
 
 #endif

@@ -111,8 +111,18 @@ public:
 
 	bool showBPMLines;
 
-	std::deque < CPlayer > players;
+	CPlayersContainer_t players;
 	std::vector < std::string > chartInstruments;
+
+	inline CPlayer &getPlayer(int id = 0)
+	{
+		return *players[id];
+	}
+
+	inline CPlayer &getBPlayer()
+	{
+		return *players.back();
+	}
 
 	std::string backgroundTexture;
 

@@ -2320,7 +2320,7 @@ void CGamePlay::renderLyrics()
 {
 	if (songlyrics.size() > songlyricsIndex)
 	{
-		double time = players[0].musicRunningTime;
+		double time = getPlayer(0).musicRunningTime;
 
 		if (time > songlyrics[songlyricsIndex].tend)
 		{
@@ -3167,8 +3167,9 @@ void CGamePlay::renderPlayer(CPlayer &player)
 void CGamePlay::update()
 {
 	std::lock_guard<std::mutex> l(GPPGame::playersMutex);
-	for (auto &p : players)
+	for (auto &pp : players)
 	{
+		auto &p = *pp;
 		if (p.bUpdateP) updatePlayer(p);
 	}
 }
@@ -3176,8 +3177,9 @@ void CGamePlay::update()
 void CGamePlay::marathonUpdate()
 {
 	//std::lock_guard<std::mutex> l(GPPGame::playersMutex);
-	for (auto &p : players)
+	for (auto &pp : players)
 	{
+		auto &p = *pp;
 		if (p.bUpdateP && !p.isSongChartFinished()) updatePlayer(p);
 	}
 }
@@ -3237,7 +3239,7 @@ void CGamePlay::render()
 
 	for (auto &p : players)
 	{
-		if (p.bRenderP) renderPlayer(p);
+		if (p->bRenderP) renderPlayer(*p);
 	}
 	//*******************************************************************************************************
 

@@ -2,7 +2,6 @@
 #ifndef _GUITARPP_CCHART_H_
 #define _GUITARPP_CCHART_H_
 
-#include "CLog.h"
 #include "CPlayer.h"
 #include <string>
 #include <deque>
@@ -10,12 +9,6 @@
 #include <fstream>
 #include <map>
 #include <cereal/cereal.hpp>
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/archives/binary.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/deque.hpp>
 
 typedef CPlayer::NotesData::Note Note_t;
 typedef CPlayer::NotesData::NoteInt NoteInt_t;

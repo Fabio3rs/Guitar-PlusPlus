@@ -15,6 +15,13 @@
 #include "CMultiplayer.h"
 #include "CFonts.h"
 #include "CChart.h"
+#include <cereal/cereal.hpp>
+#include <cereal/archives/portable_binary.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/string.hpp>
 
 const int CPlayer::notesEnum = nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
 const int CPlayer::notesEnumWithOpenNotes = nf_green | nf_red | nf_yellow | nf_blue | nf_orange | nf_open;
@@ -1042,7 +1049,8 @@ void CPlayer::resetData()
 	bRenderP = bUpdateP = true;
 }
 
-CPlayer::NotesData::NotesData(){
+CPlayer::NotesData::NotesData()
+{
 	notePos = 0;
 	lastNotePicked = -1;
 	longNoteComb = 0;
@@ -1255,7 +1263,8 @@ void CPlayer::doNote(size_t i)
 	}
 }
 
-CPlayer::NotesData::~NotesData(){
+CPlayer::NotesData::~NotesData()
+{
 	unloadChart();
 }
 

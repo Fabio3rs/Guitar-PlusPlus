@@ -18,14 +18,16 @@ void CCharter::prepareDemoGamePlay(CGamePlay &gp)
 
 	for (auto &p : gpModule.players)
 	{
-		eraseNulls(p);
-		p.Notes.deducePlusLastNotes();
+		eraseNulls(*p);
+		(*p).Notes.deducePlusLastNotes();
 	}
 
 	for (auto np : gpModule.players)
 	{
-		np.enableBot = true;
-		gp.players.push_back(np);
+		CPlayer n = *np;
+
+		n.enableBot = true;
+		gp.players.push_back(std::make_shared<CPlayer>(n));
 	}
 }
 
@@ -60,8 +62,8 @@ void CCharter::eraseNulls(CPlayer &player)
 
 void CCharter::preRender()
 {
+	auto &player = *gpModule.players.back();
 	{
-		auto &player = gpModule.players.back();
 		if (player.BPMNowBuffer > 0)
 		{
 			if (static_cast<size_t>(player.BPMNowBuffer) < player.Notes.BPM.size())
@@ -96,9 +98,9 @@ void CCharter::preRender()
 			std::lock_guard<std::mutex> lk(loadBPMMutex);
 
 			if (songBPM.size() > 0)
-				gpModule.players.back().Notes.BPM = songBPM;
+				player.Notes.BPM = songBPM;
 
-			gpModule.players.back().BPMNowBuffer = 0;
+			player.BPMNowBuffer = 0;
 		}
 
 		double time = readBPMAtSeconds - 2.0;
@@ -107,8 +109,8 @@ void CCharter::preRender()
 			time = 0.0;
 
 		atMusicTime = time;
-		gpModule.players.back().musicRunningTime = atMusicTime;
-		gpModule.players.back().Notes.plusPos = 0;
+		player.musicRunningTime = atMusicTime;
+		player.Notes.plusPos = 0;
 		backToZero = true;
 	}
 	else if (backToZero)
@@ -121,13 +123,13 @@ void CCharter::preRender()
 			{
 				atMusicTime = 0.0;
 				backToZero = false;
-				gpModule.players.back().Notes.plusPos = 0;
+				player.Notes.plusPos = 0;
 			}
 		}
 		else
 		{
 			backToZero = false;
-			gpModule.players.back().Notes.plusPos = 0;
+			player.Notes.plusPos = 0;
 		}
 	}
 
@@ -144,7 +146,7 @@ void CCharter::preRender()
 			return t / d0;
 		};
 
-		auto &processingP = gpModule.players.back();
+		auto &processingP = *gpModule.players.back();
 
 		double BPM = 120.0 / 60.0;
 
@@ -204,8 +206,9 @@ void CCharter::preRender()
 			bForwardBackwardK = false;
 		}
 
-		for (auto &p : gpModule.players)
+		for (auto &pp : gpModule.players)
 		{
+			auto &p = *pp;
 			p.musicRunningTime = atMusicTime;
 
 			auto &notes = p.Notes;
@@ -500,9 +503,10 @@ void CCharter::renderInfo()
 
 	if (!loading)
 	{
-		if (songBPM.size() != gpModule.players.back().Notes.BPM.size())
+		auto &player = *gpModule.players.back();
+		if (songBPM.size() != player.Notes.BPM.size())
 		{
-			gpModule.players.back().Notes.BPM = songBPM;
+			player.Notes.BPM = songBPM;
 		}
 	}
 	else
@@ -516,19 +520,21 @@ void CCharter::renderAll()
 	//auto &chartInstrument = chart.getInstrument(instrument);
 	//auto &BPM = chart.getBPMContainer();
 
-	if (gpModule.players.back().Notes.BPM.size() == 0)
+	auto &player = *gpModule.players.back();
+
+	if (player.Notes.BPM.size() == 0)
 	{
 		CPlayer::NotesData::Note n;
 		n.time = 0.0;
 		n.lTime = 120.0;
 		n.type = 0;
 
-		gpModule.players.back().Notes.BPM.push_back(n);
+		player.Notes.BPM.push_back(n);
 	}
 
 	if (songBPM.size() == 0)
 	{
-		songBPM = gpModule.players.back().Notes.BPM;
+		songBPM = player.Notes.BPM;
 	}
 
 	preRender();
@@ -578,7 +584,7 @@ CCharter::CCharter()
 	loadThreadEnd = true;
 	loading = false;
 	atMusicTime = 0.0;
-	gpModule.players.push_back(CPlayer("guitar charter"));
+	gpModule.players.push_back(std::make_shared<CPlayer>(CPlayer("guitar charter")));
 	instrument = "[ExpertSingle]";
 	gpModule.bIsACharterGP = true;
 	divTime = 0.5;
@@ -588,8 +594,9 @@ CCharter::CCharter()
 	std::string song = GPPGame::GuitarPP().songToLoad;
 	//module.players[0].loadSongOnlyChart(song);
 	//module.players[1].loadSong(song);
-	gpModule.players.back().loadSong(song);
-	std::cout << "audio id " << CEngine::engine().loadSoundStream(gpModule.players.back().Notes.songFullPath.c_str(), songAudioID, true) << std::endl;
+	auto &player = *gpModule.players.back();
+	player.loadSong(song);
+	std::cout << "audio id " << CEngine::engine().loadSoundStream(player.Notes.songFullPath.c_str(), songAudioID, true) << std::endl;
 	gpModule.bRenderHUD = false;
 	gpModule.showBPMVlaues = true;
 	gpModule.showBPMLines = true;

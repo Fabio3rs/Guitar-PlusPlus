@@ -682,6 +682,7 @@ int main(int argc, char* argv[])
 			}
 		}
 
+		game.selectPlayerMenu();
 		game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, false);
 
 		lua.runEvent("atExit");

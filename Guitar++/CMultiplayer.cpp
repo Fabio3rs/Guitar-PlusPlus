@@ -28,7 +28,7 @@ void CMultiplayer::callbackFun(CServerSock::ServerThreads *th, std::unique_ptr<c
 
 			mpmgr->xrefplayer[th].second = mpmgr->players->size();
 
-			mpmgr->players->push_back(CPlayer(name.c_str()));
+			mpmgr->players->push_back(std::make_shared<CPlayer>(CPlayer(name.c_str())));
 			//mpmgr->players->back().multiPlayerInfo.i = (void*)th->ClientSocket;
 		}
 
@@ -56,7 +56,7 @@ void CMultiplayer::callbackFun(CServerSock::ServerThreads *th, std::unique_ptr<c
 		pData[mpmgr->xrefplayer[th].first] = tsPlayerData;
 		{
 			std::lock_guard<std::mutex> l(GPPGame::playersMutex);
-			(*mpmgr->players)[mpmgr->xrefplayer[th].second].multiPlayerInfo.ready = tsPlayerData.ready;
+			(*mpmgr->players)[mpmgr->xrefplayer[th].second]->multiPlayerInfo.ready = tsPlayerData.ready;
 		}
 	}
 }
@@ -147,14 +147,14 @@ void CMultiplayer::mpThread()
 		//pData.emplace_back((playersData*)test, (playersData*)(((char*)test) + retsize));
 		pData.insert(pData.begin(), (playersData*)t02, (playersData*)(((char*)t02) + retsize - sizeof(mpmgr->svi)));
 
-		pData[mpmgr->clidentpair.f].keys = (*mpmgr->players)[0].getFretsPressedFlags();
-		pData[mpmgr->clidentpair.f].lkeys = (*mpmgr->players)[0].getLastFretsPressedFlags();
+		pData[mpmgr->clidentpair.f].keys = (*mpmgr->players)[0]->getFretsPressedFlags();
+		pData[mpmgr->clidentpair.f].lkeys = (*mpmgr->players)[0]->getLastFretsPressedFlags();
 		pData[mpmgr->clidentpair.f].strum = palhetaNpKey;
-		pData[mpmgr->clidentpair.f].lstrum = (*mpmgr->players)[0].palhetaKeyLast;
+		pData[mpmgr->clidentpair.f].lstrum = (*mpmgr->players)[0]->palhetaKeyLast;
 
 		if (i < 100 && mpmgr->svi.startSong)
 		{
-			(*mpmgr->players)[0].musicRunningTime = mpmgr->svi.musicRunningTime;
+			(*mpmgr->players)[0]->musicRunningTime = mpmgr->svi.musicRunningTime;
 			++i;
 		}
 

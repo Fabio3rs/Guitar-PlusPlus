@@ -787,8 +787,6 @@ void CMenu::update()
 					opt.status = 4;
 					opt.strEditPoint = static_cast<int>(xtest);
 
-					controls.update();
-
 					if (params.size() <= 3) params.push_back(CLuaH::customParam((double)opt.status));
 
 					if (opt.group >= 0)
@@ -1172,13 +1170,6 @@ void CMenu::shortcutCallback(int key, int scancode, int action, int mods)
 			{
 				controls.update();
 				int ch = 0;
-
-				{
-					int chtmp = keyTest(GLFW_KEY_SPACE);
-
-					if (chtmp != 0)
-						ch = chtmp;
-				}
 
 				{
 					int chtmp = keyTest(GLFW_KEY_BACKSPACE);

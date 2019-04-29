@@ -7,17 +7,18 @@
 #include <memory>
 #include <deque>
 #include <vector>
-#include "CLuaFunctions.hpp"
-#include "CMenu.h"
-#include "CEngine.h"
-#include "CGamePlay.h"
 #include <exception>
 #include <atomic>
 #include <thread>
 #include <mutex>
+#include "CShader.h"
+#include "CMenu.h"
+#include "CEngine.h"
 #include "GPPOBJ.h"
 #include "CSaveSystem.h"
-#include "CShader.h"
+#include "CGamePlay.h"
+#include "CLuaFunctions.hpp"
+#include "CPlayer.h"
 
 class gameException : public std::exception{
 	std::string str;
@@ -60,13 +61,13 @@ public:
 		}
 	};
 
+	typedef std::function<void(const std::string &name)> func_t;
+
 	CMenu devMenus, uiRenameMenu;
 
 	std::string glanguage;
 
 	CSaveSystem::CSave mainSave;
-
-	typedef std::function<void(const std::string &name)> func_t;
 
 	bool gppTextureKeepBuffer, drawGamePlayBackground, showTextsTest;
 	float songVolume;
@@ -268,15 +269,14 @@ public:
 
 	bool botEnabled, usarPalheta;
 
-	static void charterModule(const std::string &name);
+	std::string defaultGuitar;
 
 	static std::string ip, port;
 
-	static void testClient(const std::string &name);
-
 	static std::mutex playersMutex;
 
-	std::string defaultGuitar;
+	static void charterModule(const std::string &name);
+	static void testClient(const std::string &name);
 
 	double gameplayRunningTime;
 	bool gamePlayPlusEnabled;
@@ -288,6 +288,9 @@ public:
 	void initialLoad();
 	void initialLoad2();
 
+
+	void selectPlayerMenu();
+
 protected:
 	static int registerFunctions(CLuaH::luaState &Lstate);
 	static int registerGlobals(CLuaH::luaState &L);
@@ -298,6 +301,8 @@ protected:
 	static int getGamePlayPlusState(lua_State *L);
 
 private:
+	std::shared_ptr<CPlayer> mainPlayer;
+
 	GPPOBJ testobj;
 
 	static void callbackRenderFrame();
