@@ -404,6 +404,7 @@ public:
 
 	CPlayer(const char *name);
 	~CPlayer();
+	void resetSongThings();
 
 	inline CPlayer() : CPlayer("default")
 	{

@@ -216,6 +216,7 @@ void GPPGame::loadThread(CGamePlay &module, loadThreadData &l)
 
 	for (auto &p : module.players)
 	{
+		p->resetSongThings();
 		p->loadSong(song);
 	}
 
@@ -232,6 +233,7 @@ void GPPGame::loadMarathonThread(CGamePlay &module, loadThreadData &l)
 	//module.players[1].loadSong(song);
 	for (auto &p : module.players)
 	{
+		p->resetSongThings();
 		tmpPlayers.push_back("");
 	}
 

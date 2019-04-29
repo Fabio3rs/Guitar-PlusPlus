@@ -1015,7 +1015,8 @@ bool CPlayer::NotesData::loadChart(const char *chartFile)
 	return true;
 }
 
-void CPlayer::NotesData::unloadChart(){
+void CPlayer::NotesData::unloadChart()
+{
 	notePos = 0;
 	lastNotePicked = -1;
 	longNoteComb = 0;
@@ -1034,11 +1035,8 @@ void CPlayer::NotesData::unloadChart(){
 		LNID = -1;
 	}
 
-	if (gNotes.size() > 0){
-		gNotes.clear();
-		chartFileName = "";
-	}
-
+	gNotes.clear();
+	chartFileName.clear();
 	BPM.clear();
 	gPlus.clear();
 }
@@ -1341,4 +1339,38 @@ CPlayer::~CPlayer()
 	CEngine::engine().unloadSoundStream(instrumentSound);
 	CEngine::engine().unloadSoundStream(songAudioID);
 
+}
+
+void CPlayer::resetSongThings()
+{
+	CEngine::engine().unloadSoundStream(instrumentSound);
+	CEngine::engine().unloadSoundStream(songAudioID);
+	buffer.clear();
+	Notes.unloadChart();
+
+	songAudioID = -1;
+	points = 0.0;
+	combo = 0;
+
+	correctNotesMarathon = 0;
+
+	memset(notesSlide, -1, sizeof(notesSlide));
+	memset(lastFretsPressed, 0, sizeof(lastFretsPressed));
+	memset(fretsPressed, 0, sizeof(fretsPressed));
+	memset(fretsPressedTime, 0, sizeof(fretsPressedTime));
+
+	instrumentSound = 0;
+	strklinenttime = -5.0;
+
+	BPMNowBuffer = 0;
+
+	plusThunterStrikeStart = plusPower = plusParticleEffectPosition = maxPlusPower = plusLoadF = plusLoadB = plusLoadInterval = 0.0;
+	plusCircleBuffer = plusLoadBuffer = publicApprovBuffer = correctNotesBuffer = multiplierBuffer = ~0uL;
+
+	correctNotes = 0;
+	strklinent = ~(static_cast<size_t>(0));
+	musicRunningTime = 0.0;
+	points = 0.0;
+	combo = 0;
+	plusEnabled = false;
 }
