@@ -63,7 +63,9 @@ public:
 
 	typedef std::function<void(const std::string &name)> func_t;
 
-	CMenu devMenus, uiRenameMenu;
+	CMenu devMenus, uiRenameMenu, uiCreateProfile;
+
+	int uiCreateUITextID, uiCreateUIPathID;
 
 	std::string glanguage;
 
@@ -180,6 +182,7 @@ public:
 	CMenu &newNamedMenu(const std::string &name);
 
 	void loadBasicSprites();
+	void loadBasicSounds();
 
 	void setMainMenu(CMenu &m);
 	CMenu *getMainMenu();

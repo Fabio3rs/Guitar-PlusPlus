@@ -154,6 +154,8 @@ int main(int argc, char* argv[])
 
 				case 1:
 					{
+					game.loadBasicSounds();
+
 						{
 							CMenu::menuOpt opt;
 
@@ -519,6 +521,7 @@ int main(int argc, char* argv[])
 					{
 						auto &menu = game.loadTexture("data/sprites", "menu.tga");
 						game.uiRenameMenu.qbgd.Text = game.loadTexture("data/sprites", "interfacebg.tga").getTextId();
+						game.uiCreateProfile.qbgd.Text = game.uiRenameMenu.qbgd.Text;
 					}
 					break;
 

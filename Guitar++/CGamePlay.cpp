@@ -3187,6 +3187,12 @@ void CGamePlay::marathonUpdate()
 void CGamePlay::resetModule()
 {
 	fretboardLightFade = 20.0;
+
+	for (auto &p : players)
+	{
+		p->resetSongThings();
+	}
+
 	players.clear();
 	chartInstruments.clear();
 

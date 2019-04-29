@@ -583,19 +583,23 @@ void GPPGame::selectPlayerMenu()
 		static auto menuNewPlayer = [](const std::string &name)
 		{
 			std::cout << selectPlayerMenu.getUIListSize() << std::endl;
-			auto &gpp = GPPGame::GuitarPP();
+			auto &game = GuitarPP();
 
 			if (selectPlayerMenu.getUIListSize() == 0)
 			{
 				{
-					int r = selectPlayerMenu.pushUserInterface(gpp.uiRenameMenu);
+					int r = selectPlayerMenu.pushUserInterface(game.uiCreateProfile);
 
-					CMenu *instM = gpp.devMenus.getUiAt(r).m.get();
+					CMenu *instM = game.devMenus.getUiAt(r).m.get();
 
 					if (instM)
 					{
-						//instM->options[uiRenameMenuText].preText = gpp.devMenus.devEditMenu->options[op].text;
-						//instM->options[uiRenameMenuText].externalPreTextRef = &(gpp.devMenus.devEditMenu->options[op].text);
+						instM->options[game.uiCreateUITextID].posUpdateCppCallback = [](CMenu &m, CMenu::menuOpt &opt)
+						{
+							auto &game = GuitarPP();
+							m.options[game.uiCreateUIPathID].text = "Path: /" + opt.preText;
+							return 0;
+						};
 					}
 				}
 			}
@@ -2873,6 +2877,19 @@ void GPPGame::loadBasicSprites()
 
 }
 
+void GPPGame::loadBasicSounds()
+{
+	auto &engine = CEngine::engine();
+	engine.loadSoundStream("data/sounds/erro-verde.wav", errorsSound[0]);
+	engine.loadSoundStream("data/sounds/erro-vermelho.wav", errorsSound[1]);
+	engine.loadSoundStream("data/sounds/erro-amarelo.wav", errorsSound[2]);
+	engine.loadSoundStream("data/sounds/erro-azul.wav", errorsSound[3]);
+	engine.loadSoundStream("data/sounds/erro-laranja.wav", errorsSound[4]);
+
+	engine.loadSoundStream("data/sounds/fretboard-inicio.wav", startSound);
+	engine.loadSoundStream("data/sounds/fretboard-fimdamusica.wav", endSound);
+}
+
 bool GPPGame::CTheme::load()
 {
 	const std::string path = std::string("data/themes/") + themeName;
@@ -4177,45 +4194,51 @@ int GPPGame::getGamePlayPlusState(lua_State *L)
 	return p.rtn();
 }
 
-GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu")
+GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu"), uiCreateProfile("uiCreateProfileMenu")
 {
 	songVolume = 0.8f;
 	drawGamePlayBackground = true;
 	showTextsTest = true;
 
-	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerFunctions);
-	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerGlobals);
+	for (auto &es : errorsSound)
+	{
+		es = 0;
+	}
+
+	startSound = endSound = 0;
+
+	{
+		auto &LuaF = CLuaFunctions::LuaF();
+		LuaF.registerLuaFuncsAPI(registerFunctions);
+		LuaF.registerLuaFuncsAPI(registerGlobals);
+	}
 
 	gameplayRunningTime = 0.0;
 
 	mainSave.loadn("data/saves/mains");
 	devMenus.gameMenu = true;
 	uiRenameMenu.gameMenu = true;
+	uiCreateProfile.gameMenu = true;
 	gamePlayPlusEnabled = false;
 
 	hyperSpeed = 1.0;
 
 	botEnabled = false;
 	usarPalheta = true;
-	CLuaFunctions::GameVariables::gv().pushVar("botEnabled", botEnabled);
-	CLuaFunctions::GameVariables::gv().pushVar("usarPalheta", usarPalheta);
-	CLuaFunctions::GameVariables::gv().pushVar("multiplayerClientIP", ip);
-	CLuaFunctions::GameVariables::gv().pushVar("multiplayerPort", port);
-	CLuaFunctions::GameVariables::gv().pushVar("defaultGuitar", defaultGuitar);
 
-	CEngine::engine().loadSoundStream("data/sounds/erro-verde.wav", errorsSound[0]);
-	CEngine::engine().loadSoundStream("data/sounds/erro-vermelho.wav", errorsSound[1]);
-	CEngine::engine().loadSoundStream("data/sounds/erro-amarelo.wav", errorsSound[2]);
-	CEngine::engine().loadSoundStream("data/sounds/erro-azul.wav", errorsSound[3]);
-	CEngine::engine().loadSoundStream("data/sounds/erro-laranja.wav", errorsSound[4]);
+	{
+		auto &gv = CLuaFunctions::GameVariables::gv();
 
-	CEngine::engine().loadSoundStream("data/sounds/fretboard-inicio.wav", startSound);
-	CEngine::engine().loadSoundStream("data/sounds/fretboard-fimdamusica.wav", endSound);
+		gv.pushVar("botEnabled", botEnabled);
+		gv.pushVar("usarPalheta", usarPalheta);
+		gv.pushVar("multiplayerClientIP", ip);
+		gv.pushVar("multiplayerPort", port);
+		gv.pushVar("defaultGuitar", defaultGuitar);
+	}
 
 	CEngine::engine().renderFrameCallback = callbackRenderFrame;
 
 	windowCFGs = getWindowDefaults();
-
 	mainSave.addVariableAttData("windowCFGs", windowCFGs, true);
 	mainSave.addVariableAttData("glanguage", glanguage, true);
 
@@ -4255,6 +4278,8 @@ GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(n
 		uiRenameMenu.qbgd.Text = 0;
 	}
 
+	uiCreateProfile.qbgd = uiRenameMenu.qbgd;
+
 	{
 		CMenu::menuOpt opt;
 
@@ -4270,6 +4295,7 @@ GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(n
 		CEngine::colorRGBToArray(0x3F51B5, opt.color);
 
 		uiRenameMenu.addOpt(opt);
+		uiCreateProfile.addOpt(opt);
 	}
 
 	{
@@ -4284,6 +4310,21 @@ GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(n
 		opt.type = CMenu::menusOPT::text_input;
 
 		uiRenameMenuText = uiRenameMenu.addOpt(opt);
+		uiCreateUITextID = uiCreateProfile.addOpt(opt);
+	}
+
+	{
+		CMenu::menuOpt opt;
+
+		opt.text = "Path:";
+		opt.y = -0.05;
+		opt.x = 0.0;
+		opt.size = 0.075;
+		opt.group = 1;
+		opt.status = 0;
+		opt.type = CMenu::menusOPT::static_text;
+
+		uiCreateUIPathID = uiCreateProfile.addOpt(opt);
 	}
 
 
@@ -4303,6 +4344,7 @@ GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(n
 		opt.color[2] = 0.0;
 
 		uiRenameMenu.addOpt(opt);
+		uiCreateProfile.addOpt(opt);
 	}
 
 	CEngine::engine().errorCallbackFun = logError;
