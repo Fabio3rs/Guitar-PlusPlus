@@ -661,7 +661,7 @@ void CGamePlay::renderIndivdualStrikeButton3DStrike(int id, double pos, unsigned
 	}
 }
 
-void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player)
+/*void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Texture, int state, CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
 
@@ -686,7 +686,7 @@ void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Tex
 	TempStruct3D.TextureY1 = 1.0 - fretsText.FretIMGPos[fretsText.sAIDTI(state, id)].y * fretsText.lineFretSize;
 	TempStruct3D.TextureY2 = TempStruct3D.TextureY1 - fretsText.lineFretSize;
 
-	TempStruct3D.x1 = xdata[id]/*position + (double(id) * size / 1.15)*/;
+	TempStruct3D.x1 = xdata[id]/*position + (double(id) * size / 1.15)*-/;
 	TempStruct3D.x2 = TempStruct3D.x1 + size;
 	TempStruct3D.x3 = TempStruct3D.x1 + size;
 	TempStruct3D.x4 = TempStruct3D.x1;
@@ -702,7 +702,7 @@ void CGamePlay::renderIndivdualStrikeButton(int id, double pos, unsigned int Tex
 	TempStruct3D.z4 = TempStruct3D.z3;
 
 	CEngine::engine().Render3DQuad(TempStruct3D);
-}
+}*/
 
 
 double CGamePlay::getRunningMusicTime(CPlayer &player)

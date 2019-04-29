@@ -33,7 +33,7 @@
 class CFiledtor
 {
 public:
-	void operator() (FILE *p) const
+	void operator() (FILE *p) const noexcept
 	{
 		fclose(p);
 	}
@@ -595,7 +595,7 @@ public:
 	bool loadMusicStream(const char *fileName, int &handle);
 	bool playSoundStream(int handle);
 	bool pauseSoundStream(int handle);
-	bool unloadSoundStream(int &handle);
+	bool unloadSoundStream(int &handle) noexcept;
 	void setSoundTime(int handle, double time);
 	double getSoundTime(int handle);
 	double getSoundVolume(int handle);

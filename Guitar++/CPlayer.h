@@ -36,7 +36,7 @@ struct lineData
 	double bottom;
 };
 
-struct fretsPosition{
+/*struct fretsPosition{
 	double lineFretSize, columnSize;
 	unsigned int notesTexture, strikeLineTexture;
 
@@ -99,7 +99,7 @@ struct fretsPosition{
 
 		notesTexture = strikeLineTexture = 0;
 	}
-};
+};*/
 
 extern std::atomic<int> palhetaNpKey;
 
@@ -159,11 +159,13 @@ public:
 
 			int type;
 
-			inline bool operator <(const NoteInt &b) const {
+			inline bool operator <(const NoteInt &b) const noexcept
+			{
 				return time < b.time;
 			}
 
-			inline bool operator >(const NoteInt &b) const {
+			inline bool operator >(const NoteInt &b) const noexcept
+			{
 				return time > b.time;
 			}
 
@@ -179,7 +181,7 @@ public:
 				archive(time, lTime, type);
 			}
 
-			NoteInt()
+			NoteInt() noexcept
 			{
 				time = 0uLL;
 				lTime = 0uLL;
@@ -193,11 +195,13 @@ public:
 
 			int type;
 
-			inline bool operator <(const Note &b) const{
+			inline bool operator <(const Note &b) const noexcept
+			{
 				return time < b.time;
 			}
 
-			inline bool operator >(const Note &b) const{
+			inline bool operator >(const Note &b) const noexcept
+			{
 				return time > b.time;
 			}
 
@@ -213,21 +217,21 @@ public:
 				archive(time, lTime, type);
 			}
 
-			Note(NoteInt &&n)
+			Note(NoteInt &&n) noexcept
 			{
 				time = static_cast<double>(n.time);
 				lTime = static_cast<double>(n.lTime);
 				type = n.type;
 			}
 
-			Note(const NoteInt &n)
+			Note(const NoteInt &n) noexcept
 			{
 				time = static_cast<double>(n.time);
 				lTime = static_cast<double>(n.lTime);
 				type = n.type;
 			}
 
-			Note()
+			Note() noexcept
 			{
 				time = 0.0;
 				lTime = 0.0;
@@ -241,11 +245,11 @@ public:
 
 			size_t firstNote, lastNote;
 
-			inline bool operator <(const plusNote &b) const{
+			inline bool operator <(const plusNote &b) const noexcept{
 				return time < b.time;
 			}
 
-			inline bool operator >(const plusNote &b) const{
+			inline bool operator >(const plusNote &b) const noexcept {
 				return time > b.time;
 			}
 
@@ -261,7 +265,8 @@ public:
 				archive(time, lTime, type, firstNote, lastNote);
 			}
 
-			plusNote(){
+			plusNote() noexcept
+			{
 				time = 0.0;
 				lTime = 0.0;
 				//unmodifiedTime = 0.0;
@@ -291,9 +296,9 @@ public:
 		void *i;
 		bool ready;
 
-		inline MPInfo()
+		inline MPInfo() noexcept
 		{
-			i = 0;
+			i = nullptr;
 			ready = false;
 		}
 
@@ -342,21 +347,21 @@ public:
 
 	bool usarPalheta;
 
-	void addPointsByNoteDoed();
 	void addPointsByDoingLongNote();
+	void processErrorNonPickedB(size_t pos);
+	void doNote(size_t i);
 	double comboToMultiplier();
 	double comboToMultiplierWM();
 
 	double experience;
 	int getLevel();
+
+
 	void resetData();
-	void updateControls();
+
 	void breakCombo();
 	void processError();
-	void processErrorNonPickedB(size_t pos);
 	void releaseSong();
-
-	void doNote(size_t i);
 
 	std::deque <lineData> tailsData;
 
@@ -403,7 +408,7 @@ public:
 	CGuitars::CGuitar *guitar;
 
 	CPlayer(const char *name);
-	~CPlayer();
+	~CPlayer() noexcept;
 	void resetSongThings();
 
 	inline CPlayer() : CPlayer("default")

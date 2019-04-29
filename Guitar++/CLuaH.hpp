@@ -26,102 +26,11 @@ public:
 		nullinit<T> &operator=(const T &l){ i = l; return *this; }
 		nullinit<T> &operator=(nullinit<T> &l){ i = l; return *this; }
 
-		nullinit(const T &l) : i(l){};
-		nullinit() : i((T)0){};
-		nullinit(T l) : i(l){};
-		nullinit(const nullinit<T>&l) : i(l){};
+		nullinit(const T &l) noexcept : i(l){};
+		nullinit() noexcept : i((T)0){};
+		nullinit(T l) noexcept : i(l){};
+		nullinit(const nullinit<T>&l) noexcept : i(l){};
 	};
-
-	/*struct stringHash
-	{
-		std::string str;
-		uint64_t hash64;
-
-		inline bool operator==(const stringHash &hs) const
-		{
-			return hash64 == hs.hash64 && gppCalc == hs.gppCalc && str.size() == hs.str.size();
-		}
-
-		inline stringHash &operator=(const std::string &s)
-		{
-			set(s);
-			return *this;
-		}
-
-		inline bool operator>(const stringHash &hs) const
-		{
-			return hash64 > hs.hash64 && str.size() > hs.str.size();
-		}
-
-		inline bool operator<(const stringHash &hs) const
-		{
-			return hash64 < hs.hash64 && str.size() < hs.str.size();
-		}
-
-		void set(const std::string &s)
-		{
-			str = s;
-			hash64 = ~(0uL);
-			static double sqrt12 = sqrt(12);
-
-			static uint64_t keys[255] = {0};
-			static bool bkeyssetted = false;
-
-			if (!bkeyssetted)
-			{
-				uint64_t i = 1;
-				for (auto &k : keys)
-				{
-					k = static_cast<uint64_t>(sqrt12 * 1.0 / (static_cast<double>(i) * 2.0 + 3.0) * pow(3.0, static_cast<double>(i)) * pow(s.size() + 1, rand() % 255));
-
-					k ^= rand();
-					k <<= 16;
-					k ^= rand();
-					k <<= 16;
-					k ^= rand();
-					k <<= 16;
-					k ^= rand();
-					k <<= 16;
-
-					k ^= ~(rand() % (s.size() + 1));
-
-					k <<= 8;
-
-					k ^= ~(rand() % (s.size() + 1));
-
-					i *= 3;
-				}
-
-				bkeyssetted = true;
-			}
-
-			for (int i = 0, size = str.size(); i < size; ++i)
-			{
-				uint64_t pVal = keys[str[i]];
-				std::cout << str[i] << "   " << pVal << std::endl;
-
-				uint64_t sv = (i + 1) * s[i] + i;
-				
-				hash64 ^= pVal * sv;
-				
-				hash64 <<= 1;
-
-				gppCalc += str[i];
-			}
-		}
-
-		inline stringHash(const std::string &s)
-		{
-			set(s);
-			gppCalc = 0;
-		}
-
-		inline stringHash()
-		{
-			hash64 = 0;
-			gppCalc = 0;
-		}
-	};*/
 
 	/*
 	* luaScript can't be duplicated
@@ -156,9 +65,9 @@ public:
 		bool												callbacksAdded;
 		bool												hooksAdded;
 
-		void unload(); // clean lua state, containers, etc.
+		void unload() noexcept; // clean lua state, containers, etc.
 
-		luaScript &operator=(luaScript &&script);
+		luaScript &operator=(luaScript &&script) noexcept;
 		luaScript &operator=(const luaScript &script) = delete; // No copy constructor!!!
 
 		luaScript clone();
@@ -166,7 +75,7 @@ public:
 		std::vector<char> dumpBytecode();
 
 		luaScript(const luaScript &L) = delete;
-		luaScript(luaScript &&L);
+		luaScript(luaScript &&L) noexcept;
 		luaScript();
 		~luaScript();
 	};
@@ -198,6 +107,41 @@ public:
 		{
 			archive(type, str, num, boolean, function, inumber);
 		}
+
+		luaVarData &operator=(const luaVarData &m) = default;
+		luaVarData &operator=(luaVarData &&m) noexcept
+		{
+			if (this == std::addressof(m)) return *this;
+
+			type = std::move(m.type);
+			str = std::move(m.str);
+			num = std::move(m.num);
+			boolean = std::move(m.boolean);
+			function = std::move(m.function);
+			inumber = std::move(m.inumber);
+
+			m.type = LUA_TNUMBER;
+			m.num = 0.0;
+
+			return *this;
+		}
+
+		luaVarData() : type(LUA_TNUMBER), num(0.0) {}
+		luaVarData(const luaVarData&) = default;
+		luaVarData(luaVarData &&m) noexcept
+		{
+			if (this == std::addressof(m)) return;
+
+			type = std::move(m.type);
+			str = std::move(m.str);
+			num = std::move(m.num);
+			boolean = std::move(m.boolean);
+			function = std::move(m.function);
+			inumber = std::move(m.inumber);
+
+			m.type = LUA_TNUMBER;
+			m.num = 0.0;
+		}
 	};
 	
 	struct luaScriptGlobals;
@@ -212,7 +156,7 @@ public:
 	public:
 		void loadTableWOPush(lua_State *L);
 
-		void clear()
+		void clear() noexcept
 		{
 			tableData.clear();
 			customParam();
@@ -235,52 +179,63 @@ public:
 			return tableData;
 		}
 
-		int getType() const{
+		int getType() const noexcept
+		{
 			return p.type;
 		}
 
-		const std::string &getString() const{
+		const std::string &getString() const noexcept
+		{
 			return p.str;
 		}
 
-		const double getNumber() const{
+		const double getNumber() const noexcept
+		{
 			return ((p.type == (LUA_TNUMBER | 0xF0000000))? p.inumber : p.num);
 		}
 
-		const bool getBoolean() const{
+		const bool getBoolean() const noexcept
+		{
 			return p.boolean != 0;
 		}
 
-		const int getFunctionRef() const{
+		const int getFunctionRef() const noexcept
+		{
 			return p.function;
 		}
 
-		void set(const std::string &s){
+		void set(const std::string &s)
+		{
 			p.str = s;
 			p.type = LUA_TSTRING;
 		}
 
-		void set(const char *s){
+		void set(const char *s)
+		{
 			p.str = s;
 			p.type = LUA_TSTRING;
 		}
 
-		void set(double n){
+		void set(double n) noexcept
+		{
 			p.num = n;
 			p.type = LUA_TNUMBER;
 		}
 
-		void set(int64_t n){
+		void set(int64_t n) noexcept
+		{
 			p.inumber = n;
 			p.type = LUA_TNUMBER | 0xF0000000;
 		}
 
-		void set(bool n){
+		void set(bool n) noexcept
+		{
 			p.boolean = n;
 			p.type = LUA_TBOOLEAN;
 		}
 
-		void pushToLuaStack(lua_State *L) const {
+		void pushToLuaStack(lua_State *L) const
+		{
 			switch (p.type)
 			{
 			case LUA_TNIL:
@@ -387,12 +342,13 @@ public:
 			}
 		}
 
-		void getFromArgs(CLuaH::luaState &L, int idx)
+		void getFromArgs(CLuaH::luaState &L, int idx) noexcept
 		{
 			getFromArgs(L.get(), idx);
 		}
 
-		customParam(){
+		customParam() noexcept
+		{
 			p.type = LUA_TNIL;
 			p.num = 0.0;
 			p.inumber = 0;
@@ -400,12 +356,13 @@ public:
 			p.function = NULL;
 		}
 
-		customParam(const luaVarData &data)
+		customParam(const luaVarData &data) noexcept
 		{
 			p = data;
 		}
 
-		customParam(const std::string &s){
+		customParam(const std::string &s)
+		{
 			p.num = 0.0;
 			p.boolean = NULL;
 			p.function = NULL;
@@ -414,7 +371,8 @@ public:
 			p.inumber = 0;
 		}
 
-		customParam(const char *s){
+		customParam(const char *s)
+		{
 			p.num = 0.0;
 			p.boolean = NULL;
 			p.function = NULL;
@@ -423,7 +381,8 @@ public:
 			p.inumber = 0;
 		}
 
-		customParam(double n){
+		customParam(double n) noexcept
+		{
 			p.boolean = NULL;
 			p.function = NULL;
 			p.num = n;
@@ -431,7 +390,8 @@ public:
 			p.inumber = 0;
 		}
 
-		customParam(int n){
+		customParam(int n) noexcept
+		{
 			p.boolean = NULL;
 			p.function = NULL;
 			p.num = n;
@@ -439,7 +399,8 @@ public:
 			p.inumber = n;
 		}
 
-		customParam(int64_t n){
+		customParam(int64_t n) noexcept
+		{
 			p.boolean = NULL;
 			p.function = NULL;
 			p.num = 0.0;
@@ -447,12 +408,34 @@ public:
 			p.inumber = n;
 		}
 
-		customParam(bool n){
+		customParam(bool n) noexcept
+		{
 			p.num = 0.0;
 			p.function = NULL;
 			p.boolean = n;
 			p.type = LUA_TBOOLEAN;
 			p.inumber = 0;
+		}
+
+		customParam &operator=(const customParam&) = default;
+
+		customParam &operator=(customParam &&m) noexcept
+		{
+			if (this == std::addressof(m)) return *this;
+
+			p = std::move(m.p);
+			tableData = std::move(m.tableData);
+
+			return *this;
+		}
+
+		customParam(const customParam&) = default;
+		customParam(customParam &&m) noexcept
+		{
+			if (this == std::addressof(m)) return;
+
+			p = std::move(m.p);
+			tableData = std::move(m.tableData);
 		}
 	};
 
@@ -520,12 +503,12 @@ public:
 	/*
 	* Run a internal event (calls him specifics callbacks)
 	*/
-	void						runInternalEvent(luaScript &L, const std::string &name);
+	void						runInternalEvent(luaScript &L, const std::string &name) noexcept;
 
 	/*
 	* Run a internal with parameteres (calls him specifics callbacks)
 	*/
-	void						runInternalEventWithParams(luaScript &L, const std::string &name, const multiCallBackParams_t &params);
+	void						runInternalEventWithParams(luaScript &L, const std::string &name, const multiCallBackParams_t &params) noexcept;
 
 	luaScript					&getScript(const std::string &path, const std::string &f)
 	{
@@ -538,9 +521,9 @@ public:
 	luaScript &getLuaStateScript(lua_State *L);
 
 	static std::string getGlobalVarAsString(luaScript &l, const std::string &varname);
-	static const char *getGlobalVarAsString(luaScript &l, const char *varname);
+	static const char *getGlobalVarAsString(luaScript &l, const char *varname) noexcept;
 
-	void unloadAll();
+	void unloadAll() noexcept;
 
 private:
 	//std::vector < luaScript* > lastScript;
@@ -556,7 +539,7 @@ private:
 	void catchErrorString(lua_State *L);
 	void catchErrorString(const luaScript &L);
 
-	CLuaH();
+	CLuaH() noexcept;
 };
 
 

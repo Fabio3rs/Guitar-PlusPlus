@@ -27,12 +27,12 @@ public:
 		CLuaH::luaScript luaF;
 
 	public:
-		inline const std::string &getPath()
+		inline const std::string &getPath() noexcept
 		{
 			return path;
 		}
 
-		inline const std::string &getInternalName()
+		inline const std::string &getInternalName() noexcept
 		{
 			return internalName;
 		}
@@ -42,7 +42,7 @@ public:
 		void load();
 		void unload();
 
-		CGuitar();
+		CGuitar() noexcept;
 	};
 
 	static CGuitars &inst();

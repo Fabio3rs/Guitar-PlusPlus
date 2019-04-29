@@ -1027,16 +1027,18 @@ void CPlayer::NotesData::unloadChart()
 		fretNotePickedTime = 0.0;
 	}
 
-	for (auto &inLN : inLongNote){
+	for (auto &inLN : inLongNote)
+	{
 		inLN = false;
 	}
 
-	for (auto &LNID : longNoteID){
+	for (auto &LNID : longNoteID)
+	{
 		LNID = -1;
 	}
 
-	gNotes.clear();
 	chartFileName.clear();
+	gNotes.clear();
 	BPM.clear();
 	gPlus.clear();
 }
@@ -1072,18 +1074,6 @@ CPlayer::NotesData::NotesData()
 	{
 		LNID = -1;
 	}
-}
-
-void CPlayer::updateControls()
-{
-	if (playerType & (int)playerTypes::local_main || playerType & (int)playerTypes::local){
-		//Controls.updateInst();
-	}
-}
-
-void CPlayer::addPointsByNoteDoed()
-{
-
 }
 
 void CPlayer::addPointsByDoingLongNote()
@@ -1334,7 +1324,7 @@ CPlayer::CPlayer(const char *name)
 	experience = 100.0;
 }
 
-CPlayer::~CPlayer()
+CPlayer::~CPlayer() noexcept
 {
 	CEngine::engine().unloadSoundStream(instrumentSound);
 	CEngine::engine().unloadSoundStream(songAudioID);

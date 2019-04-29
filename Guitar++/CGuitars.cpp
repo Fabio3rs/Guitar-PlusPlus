@@ -79,7 +79,7 @@ void CGuitars::CGuitar::unload()
 
 }
 
-CGuitars::CGuitar::CGuitar()
+CGuitars::CGuitar::CGuitar() noexcept
 {
 	loaded = false;
 	textureID = 0;

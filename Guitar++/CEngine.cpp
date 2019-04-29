@@ -302,7 +302,7 @@ bool CEngine::loadSoundStream(const char *fileName, int &handle, bool decode)
 	return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0), BASS_POS_BYTE) && (handle != 0);
 }
 
-bool CEngine::unloadSoundStream(int &handle)
+bool CEngine::unloadSoundStream(int &handle) noexcept
 {
 	if (handle == 0)
 		return false;
@@ -864,7 +864,8 @@ int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg)
 	return GL_TRUE;
 }
 
-unsigned int CEngine::loadTexture(const char *textureFileName, GLFWimage *eimg){
+unsigned int CEngine::loadTexture(const char *textureFileName, GLFWimage *eimg)
+{
 	GLuint Text;
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);

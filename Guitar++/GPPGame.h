@@ -89,31 +89,37 @@ public:
 		gppTexture(const gppTexture&) = delete;
 
 	public:
-		unsigned int getTextId() const{
+		unsigned int getTextId() const noexcept
+		{
 			return text;
 		}
 
-		std::string getTexturePath() const{
+		std::string getTexturePath() const noexcept
+		{
 			return textPath;
 		}
 
-		std::string getTextureName() const{
+		std::string getTextureName() const noexcept
+		{
 			return textName;
 		}
 
-		std::string getGTextureName() const{
+		std::string getGTextureName() const
+		{
 			return (getTexturePath() + "/" + getTextureName());
 		}
 
-		int getImgWidth() const{
+		int getImgWidth() const noexcept
+		{
 			return imgData.Width;
 		}
 
-		int getImgHeight() const{
+		int getImgHeight() const noexcept
+		{
 			return imgData.Height;
 		}
 
-		inline CEngine::GLFWimage &getImageData()
+		inline CEngine::GLFWimage &getImageData() noexcept
 		{
 			return imgData;
 		}
@@ -127,25 +133,31 @@ public:
 			textName = texture;
 		}
 
-		gppTexture &operator = (gppTexture &&m)
+		gppTexture &operator = (gppTexture &&m) noexcept
 		{
+			if (this == std::addressof(m)) return *this;
+
 			text = std::move(m.text);
 			textPath = std::move(m.textPath);
 			textName = std::move(m.textName);
 			imgData = std::move(m.imgData);
 			associatedToScript = std::move(m.associatedToScript);
 
+			if (m.text)
+				m.text = 0;
+
 			return *this;
 		};
 
 		gppTexture(gppTexture&&) = default;
 
-		gppTexture()
+		gppTexture() noexcept
 		{
 			text = 0;
 		}
 
-		~gppTexture(){
+		~gppTexture() noexcept
+		{
 			text = 0;
 			// TODO CEngine::engine().unloadTexture(id);
 		}
@@ -199,7 +211,7 @@ public:
 
 	std::map <std::string, CGamePlay> gameModules;
 
-	std::map <std::string, fretsPosition> frets;
+	//std::map <std::string, fretsPosition> frets;
 
 	void setDevMode(bool mode);
 

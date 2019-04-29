@@ -21,6 +21,7 @@
 #include "CGPPFileMGR.h"
 #include "CChart.h"
 #include "CShader.h"
+#include "CControls.h"
 
 int main(int argc, char* argv[])
 {
@@ -138,7 +139,7 @@ int main(int argc, char* argv[])
 
 		while ((wOpened = CEngine::engine().windowOpened()) && ((CEngine::engine().getTime() - ltime) < 3.0 || loadLoop < 100))
 		{
-			if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
+			if (CControls::controls().keyEscape())
 			{
 				break;
 			}
