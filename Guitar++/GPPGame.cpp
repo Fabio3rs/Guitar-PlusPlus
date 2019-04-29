@@ -582,7 +582,6 @@ void GPPGame::selectPlayerMenu()
 
 		static auto menuNewPlayer = [](const std::string &name)
 		{
-			std::cout << selectPlayerMenu.getUIListSize() << std::endl;
 			auto &game = GuitarPP();
 
 			if (selectPlayerMenu.getUIListSize() == 0)

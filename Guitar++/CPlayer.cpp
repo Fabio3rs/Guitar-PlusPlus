@@ -1368,6 +1368,12 @@ void CPlayer::resetSongThings()
 	plusCircleBuffer = plusLoadBuffer = publicApprovBuffer = correctNotesBuffer = multiplierBuffer = ~0uL;
 
 	correctNotes = 0;
+
+	maxPlusPower = 1.0;
+	maxPublicAprov = 120.0;
+	publicAprov = maxPublicAprov / 2.0;
+
+	correctNotes = 0;
 	strklinent = ~(static_cast<size_t>(0));
 	musicRunningTime = 0.0;
 	points = 0.0;
