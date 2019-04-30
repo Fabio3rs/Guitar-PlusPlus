@@ -814,7 +814,7 @@ void GPPGame::testClient(const std::string &name)
 	CMultiplayer mp(false);
 	mp.initConnections(ip, port);
 	mp.setPlayersData(module.players);
-	mp.connectToServer(p);
+	mp.connectToServer(*module.players.back());
 
 
 	loadThreadData l;
@@ -1414,6 +1414,7 @@ void GPPGame::startModule(const std::string &name)
 	auto realname = game.getCallBackRealName(name);
 	auto &module = game.gameModules[realname];
 
+	// Menu to select the song
 	game.songToLoad = game.selectSong();
 
 	if (game.songToLoad.size() == 0)
@@ -1461,13 +1462,16 @@ void GPPGame::startModule(const std::string &name)
 
 		switch (state)
 		{
+			// Load thread state
 		case 0:
+			
 			if (!l.processing)
 				++state;
 
 			CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0, 0.1);
 			break;
 
+			// Timing and loadings
 		case 1:
 		{
 			auto &playerb = *pplayerb;
@@ -1494,12 +1498,14 @@ void GPPGame::startModule(const std::string &name)
 		}
 			break;
 
+			// Play state
 		case 2:
 		{
 			auto &playerb = *pplayerb;
 
 			module.update();
 
+			// Init camera effect
 			for (auto &pp : module.players)
 			{
 				auto &p = *pp;
@@ -1527,6 +1533,7 @@ void GPPGame::startModule(const std::string &name)
 			game.gameplayRunningTime = playerb.musicRunningTime;
 			game.gamePlayPlusEnabled = playerb.plusEnabled;
 
+			// Countdown
 			if (!songTimeFixed && (engine.getTime() - startTime) > 0.5)
 			{
 				engine.setSoundTime(module.getBPlayer().songAudioID, playerb.musicRunningTime);
@@ -1544,9 +1551,11 @@ void GPPGame::startModule(const std::string &name)
 
 			/////////////////
 
+			// Rendering gameplay
 			module.render();
 			module.renderLyrics();
 
+			// First gameplay frame things
 			if (firstStartFrame)
 			{
 				CLuaH::Lua().runEvent(firstStartFrameSE);
@@ -1558,9 +1567,9 @@ void GPPGame::startModule(const std::string &name)
 
 			if (musicstartedg == 0) musicstartedg = 1;
 
+			// Info text show and effect
 			if ((startTime - time) > 0.0)
 			{
-
 				fadeoutdsc = engine.getTime();
 				fonts.drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.15, 0.0, 0.3);
 				musicstartedg = 0;
@@ -1579,6 +1588,7 @@ void GPPGame::startModule(const std::string &name)
 				if (fadeoutdscAlphaCalc < 1.0) engine.setColor(1.0, 1.0, 1.0, 1.0);
 			}
 
+			// Music states: play
 			if (musicstartedg == 1)
 			{
 				CEngine::engine().setSoundVolume(module.getBPlayer().songAudioID, game.songVolume);
@@ -1593,6 +1603,7 @@ void GPPGame::startModule(const std::string &name)
 				musicstartedg = 2;
 			}
 
+			// Handles ESC and if true, goto state 3 (Pauses game)
 			if (controls.keyEscape())
 			{
 				state++;
@@ -1600,8 +1611,10 @@ void GPPGame::startModule(const std::string &name)
 		}
 			break;
 
+			// Pause state
 		case 3:
 		{
+			// Pauses audio
 			if (musicstartedg == 2)
 			{
 				for (auto &pp : module.players)
@@ -1616,12 +1629,15 @@ void GPPGame::startModule(const std::string &name)
 
 			songTimeFixed = false;
 
+			// 
 			openMenuTime = engine.getTime();
 
+			// Pause menu
 			game.openMenus(&module.moduleMenu);
 
 			if (module.moduleMenu.options[module.exitModuleOpt].status & 1)
 			{
+				// Exit gameplay
 				module.resetModule();
 				return;
 			}
@@ -1634,10 +1650,12 @@ void GPPGame::startModule(const std::string &name)
 				p.startTime += time - openMenuTime;
 			}
 
+			// Back to gameplay
 			state = 2;
 		}
 			break;
 
+			// Bug state
 		default:
 			break;
 		}
