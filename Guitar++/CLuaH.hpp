@@ -57,7 +57,7 @@ public:
 		std::map < std::string, std::string >				savedValues;
 		std::string											filePath;
 		std::string											fileName;
-		std::map < std::string, int >						callbacks;
+		std::map < int, int >								callbacks;
 		std::map < std::string, int >						cheats;
 		std::map < uintptr_t, int >							hooks;
 
@@ -80,12 +80,7 @@ public:
 		~luaScript();
 	};
 
-	struct callBacksStruct{
-		std::string name;
-	};
-
 	std::map < std::string, std::map<std::string, luaScript> >				files; /* std::map<pathForScripts, std::map<scriptName, scriptData>> */
-	std::map <std::string, callBacksStruct>									callbacks;
 
 	struct luaVarData
 	{
@@ -489,26 +484,24 @@ public:
 	/*
 	* Run a especific event (calls him specifics callbacks)
 	*/
-	void						runEvent(const std::string &name);
-	void						runCheatEvent(const std::string &name);
-	void						runHookEvent(uintptr_t address);
-	void						runEventFromContainer(const std::string &name, scriptStorage &storage);
+	void						runEvent(int id);
+	void						runEventFromContainer(int id, scriptStorage &storage);
 	
 	/*
 	* Run a especific with parameteres (calls him specifics callbacks)
 	*/
-	void						runEventWithParams(const std::string &name, const multiCallBackParams_t &params);
-	void						runEventWithParamsFromContainer(const std::string &name, const multiCallBackParams_t &params, scriptStorage &storage);
+	void						runEventWithParams(int id, const multiCallBackParams_t &params);
+	void						runEventWithParamsFromContainer(int id, const multiCallBackParams_t &params, scriptStorage &storage);
 
 	/*
 	* Run a internal event (calls him specifics callbacks)
 	*/
-	void						runInternalEvent(luaScript &L, const std::string &name) noexcept;
+	void						runInternalEvent(luaScript &L, int id) noexcept;
 
 	/*
 	* Run a internal with parameteres (calls him specifics callbacks)
 	*/
-	void						runInternalEventWithParams(luaScript &L, const std::string &name, const multiCallBackParams_t &params) noexcept;
+	void						runInternalEventWithParams(luaScript &L, int id, const multiCallBackParams_t &params) noexcept;
 
 	luaScript					&getScript(const std::string &path, const std::string &f)
 	{
@@ -518,14 +511,19 @@ public:
 	/*
 	* Get last runned (or running) script
 	*/
-	luaScript &getLuaStateScript(lua_State *L);
+	luaScript					&getLuaStateScript(lua_State *L);
 
-	static std::string getGlobalVarAsString(luaScript &l, const std::string &varname);
-	static const char *getGlobalVarAsString(luaScript &l, const char *varname) noexcept;
+	static std::string			getGlobalVarAsString(luaScript &l, const std::string &varname);
+	static const char*			getGlobalVarAsString(luaScript &l, const char *varname) noexcept;
 
-	void unloadAll() noexcept;
+	void						unloadAll() noexcept;
+
+	int							idForCallbackEvent(const std::string &s);
 
 private:
+	static int destroyScriptInstance;
+
+	std::map < std::string, nullinit<int> >									callbacksNamesID;
 	//std::vector < luaScript* > lastScript;
 
 	CLuaH(const CLuaH&) = delete;

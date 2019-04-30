@@ -3,6 +3,8 @@
 #include "CLuaFunctions.hpp"
 #include "CLog.h"
 
+int CGuitars::addGuitarScriptEvent = 0, CGuitars::loadGuitarScriptEvent = 0, CGuitars::unloadingGuitarScriptEvent = 0;
+
 void CGuitars::unload()
 {
 	guitars.clear();
@@ -25,7 +27,7 @@ CGuitars::CGuitar &CGuitars::addGuitar(const std::string &path, const std::strin
 
 		CLuaH::Lua().runScript(newGuitar.luaF);
 
-		CLuaH::Lua().runInternalEventWithParams(newGuitar.luaF, "addGuitar", g);
+		CLuaH::Lua().runInternalEventWithParams(newGuitar.luaF, addGuitarScriptEvent, g);
 	}
 	else
 	{
@@ -63,7 +65,7 @@ void CGuitars::CGuitar::load()
 
 		gameplayBar.load((path + "/" + internalName).c_str(), gameplayBarName);
 
-		CLuaH::Lua().runInternalEventWithParams(luaF, "loadGuitar", g);
+		CLuaH::Lua().runInternalEventWithParams(luaF, loadGuitarScriptEvent, g);
 	}
 }
 
@@ -72,7 +74,7 @@ void CGuitars::CGuitar::unload()
 	if (!loaded)
 	{
 		CLuaH::multiCallBackParams_t g = { path, internalName };
-		CLuaH::Lua().runInternalEventWithParams(luaF, "unloadingGuitar", g);
+		CLuaH::Lua().runInternalEventWithParams(luaF, unloadingGuitarScriptEvent, g);
 		gameplayBar.unload();
 		loaded = false;
 	}
@@ -210,6 +212,11 @@ CGuitars &CGuitars::inst()
 
 CGuitars::CGuitars()
 {
+	auto &Lua = CLuaH::Lua();
+	addGuitarScriptEvent = Lua.idForCallbackEvent("addGuitar");
+	loadGuitarScriptEvent = Lua.idForCallbackEvent("loadGuitar");
+	unloadingGuitarScriptEvent = Lua.idForCallbackEvent("unloadingGuitar");
+
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerFunctions);
 	CLuaFunctions::LuaF().registerLuaFuncsAPI(registerGlobals);
 

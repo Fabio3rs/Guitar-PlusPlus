@@ -2773,7 +2773,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	m.push_back(player.plname);
 
-	lua.runEventWithParams("preRenderPlayer", m);
+	lua.runEventWithParams(preRenderPlayerSEvent, m);
 
 	{
 		/*CEngine::cameraSET usingCamera;
@@ -3161,7 +3161,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	}
 	/////////////***************************************
 
-	lua.runEventWithParams("posRenderPlayer", m);
+	lua.runEventWithParams(posRenderPlayerSEvent, m);
 }
 
 void CGamePlay::update()
@@ -3262,6 +3262,11 @@ CGamePlay &CGamePlay::gamePlay()
 
 CGamePlay::CGamePlay() : engine(CEngine::engine())
 {
+	auto &Lua = CLuaH::Lua();
+	preRenderPlayerSEvent = Lua.idForCallbackEvent("preRenderPlayer");
+	posRenderPlayerSEvent = Lua.idForCallbackEvent("posRenderPlayer");
+
+
 	fretboardLightFade = 20.0;
 	bRenderHUD = true;
 	bIsACharterGP = false;

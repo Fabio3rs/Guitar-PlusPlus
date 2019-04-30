@@ -1549,7 +1549,7 @@ void GPPGame::startModule(const std::string &name)
 
 			if (firstStartFrame)
 			{
-				CLuaH::Lua().runEvent("firstStartFrame");
+				CLuaH::Lua().runEvent(firstStartFrameSE);
 				engine.playSoundStream(GuitarPP().startSound);
 				firstStartFrame = false;
 			}
@@ -2825,9 +2825,8 @@ Clear screen buffer
 */
 void GPPGame::clearScreen()
 {
-	CLuaH::Lua().runEvent("preClearScreen");
 	CEngine::engine().clearScreen();
-	CLuaH::Lua().runEvent("posClearScreen");
+	CLuaH::Lua().runEvent(posClearScreenSE);
 }
 
 /*
@@ -2835,9 +2834,9 @@ Swap video buffer to screen
 */
 void GPPGame::renderFrame()
 {
-	CLuaH::Lua().runEvent("preRenderFrame");
+	CLuaH::Lua().runEvent(preRenderFrameSE);
 	CEngine::engine().renderFrame();
-	CLuaH::Lua().runEvent("posRenderFrame");
+	CLuaH::Lua().runEvent(posRenderFrameSE);
 }
 
 GPPGame &GPPGame::GuitarPP()
@@ -2871,7 +2870,7 @@ const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const s
 
 void GPPGame::loadBasicSprites()
 {
-	CLuaH::Lua().runEvent("preLoadSprites");
+	CLuaH::Lua().runEvent(preLoadSpritesSE);
 	SPR["palheta"] = CEngine::engine().loadTexture("data/sprites/palheta.tga");
 
 }
@@ -3904,15 +3903,15 @@ std::vector <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void
 
 					waitForTime = engine.getTime() + 0.5;
 
-					lua.runEvent("menusGoBack");
+					lua.runEvent(menusGoBackSE);
 					break;
 				}
 
 				if (opt.menusXRef.size() > 1)
 				{
 					menusStack.push_back(create_menu(opt.menusXRef));
-					lua.runEvent("menusCustomMultiMenu");
-					lua.runEvent("menusNext");
+					lua.runEvent(menusCMMenuSE);
+					lua.runEvent(menusNextSE);
 					waitForTime = engine.getTime() + 0.5;
 					waitReleaseKeys = true;
 					break;
@@ -3928,7 +3927,7 @@ std::vector <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void
 							auto function = getCallback(opt.menusXRef[0]);
 							if (function)
 							{
-								lua.runEvent("menusGameCallbackNext");
+								lua.runEvent(menusGameCbNextSE);
 								function(opt.menusXRef[0]);
 							}
 							else
@@ -3942,7 +3941,7 @@ std::vector <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void
 
 							param.push_back(e.what());
 
-							lua.runEventWithParams("catchedException", param);
+							lua.runEventWithParams(catchedExceptionSE, param);
 						}
 
 						menusStack.pop_back();
@@ -3967,7 +3966,7 @@ std::vector <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void
 							waitReleaseKeys = true;
 						}
 
-						lua.runEvent("menusNext");
+						lua.runEvent(menusNextSE);
 					}
 
 					waitForTime = engine.getTime() + 0.01;
@@ -4036,11 +4035,13 @@ void GPPGame::teste(const std::string &name)
 	std::cout << name << std::endl;;
 }
 
+int GPPGame::CTheme::applyThemeSE = 0;
+
 void GPPGame::CTheme::apply()
 {
 	const std::string path = std::string("data/themes/") + themeName;
 
-	CLuaH::Lua().runInternalEvent(CLuaH::Lua().getScript(path, "Theme.lua"), "applyTheme");
+	CLuaH::Lua().runInternalEvent(CLuaH::Lua().getScript(path, "Theme.lua"), applyThemeSE);
 }
 
 GPPGame::CTheme::CTheme(const std::string &theme)
@@ -4062,7 +4063,7 @@ Lua events and creates window
 */
 int GPPGame::createWindow()
 {
-	CLuaH::Lua().runEvent("preCreateWindow");
+	CLuaH::Lua().runEvent(preCreateWindowSE);
 	std::string title = "Guitar++";
 
 	// Custom title
@@ -4101,7 +4102,7 @@ int GPPGame::createWindow()
 	}
 
 
-	CLuaH::Lua().runEvent("posCreateWindow");
+	CLuaH::Lua().runEvent(posCreateWindowSE);
 
 	return CEngine::engine().windowOpened();
 }
@@ -4193,6 +4194,11 @@ int GPPGame::getGamePlayPlusState(lua_State *L)
 	return p.rtn();
 }
 
+int GPPGame::firstStartFrameSE = 0, GPPGame::preCreateWindowSE = 0, GPPGame::posCreateWindowSE = 0,
+GPPGame::preLoadSpritesSE = 0, GPPGame::posClearScreenSE = 0,
+GPPGame::preRenderFrameSE = 0, GPPGame::posRenderFrameSE = 0, GPPGame::menusGoBackSE = 0,
+GPPGame::menusCMMenuSE = 0, GPPGame::menusNextSE = 0, GPPGame::menusGameCbNextSE = 0, GPPGame::catchedExceptionSE = 0;
+
 GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu"), uiCreateProfile("uiCreateProfileMenu")
 {
 	songVolume = 0.8f;
@@ -4210,6 +4216,24 @@ GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(n
 		auto &LuaF = CLuaFunctions::LuaF();
 		LuaF.registerLuaFuncsAPI(registerFunctions);
 		LuaF.registerLuaFuncsAPI(registerGlobals);
+
+		auto &Lua = CLuaH::Lua();
+		CTheme::applyThemeSE = Lua.idForCallbackEvent("applyTheme");
+		firstStartFrameSE = Lua.idForCallbackEvent("firstStartFrame");
+		preCreateWindowSE = Lua.idForCallbackEvent("preCreateWindow");
+		posCreateWindowSE = Lua.idForCallbackEvent("posCreateWindow");
+		preLoadSpritesSE = Lua.idForCallbackEvent("preLoadSprites");
+		posClearScreenSE = Lua.idForCallbackEvent("posClearScreen");
+		preRenderFrameSE = Lua.idForCallbackEvent("preRenderFrame");
+		posRenderFrameSE = Lua.idForCallbackEvent("posRenderFrame");
+		posClearScreenSE = Lua.idForCallbackEvent("posClearScreen");
+		menusGoBackSE = Lua.idForCallbackEvent("menusGoBack");
+		menusCMMenuSE = Lua.idForCallbackEvent("menusCustomMultiMenu");
+		menusNextSE = Lua.idForCallbackEvent("menusNext");
+		posClearScreenSE = Lua.idForCallbackEvent("posClearScreen");
+		menusGameCbNextSE = Lua.idForCallbackEvent("menusGameCallbackNext");
+		catchedExceptionSE = Lua.idForCallbackEvent("catchedException");
+		
 	}
 
 	gameplayRunningTime = 0.0;

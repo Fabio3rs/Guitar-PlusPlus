@@ -591,7 +591,7 @@ void CMenu::update()
 	CLuaH::multiCallBackParams_t menucallback;
 	menucallback.push_back(CLuaH::customParam(menuName));
 
-	CLuaH::Lua().runEventWithParams(std::string("pre") + menuName + std::string("update"), menucallback);
+	///CLuaH::Lua().runEventWithParams(std::string("pre") + menuName + std::string("update"), menucallback);
 
 	auto textSizeInScreen = [](const std::string &s, double size)
 	{
@@ -948,11 +948,11 @@ void CMenu::update()
 			opt.posUpdateCppCallback(*this, opt);
 		
 		if (params.size() <= 3) params.push_back(CLuaH::customParam(-1.0));
-		CLuaH::Lua().runEventWithParams(opt.optionName, params);
+		///CLuaH::Lua().runEventWithParams(opt.optionName, params);
 		++i;
 	}
 
-	CLuaH::Lua().runEventWithParams(std::string("pos") + menuName + std::string("update"), menucallback);
+	///CLuaH::Lua().runEventWithParams(std::string("pos") + menuName + std::string("update"), menucallback);
 
 	bool erase = false;
 	//auto er = uiList.begin();

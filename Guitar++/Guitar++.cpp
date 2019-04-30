@@ -53,6 +53,8 @@ int main(int argc, char* argv[])
 		// Run all scripts in quere
 		lua.runScripts();
 
+		const int mainMenuSettedSE = lua.idForCallbackEvent("mainMenuSetted"), atExitSE = lua.idForCallbackEvent("atExit");
+
 		// Window
 		game.createWindow();
 
@@ -515,7 +517,7 @@ int main(int argc, char* argv[])
 					}
 
 					game.setMainMenu(mainMenu);
-					lua.runEvent("mainMenuSetted");
+					lua.runEvent(mainMenuSettedSE);
 					break;
 
 				case 4:
@@ -689,7 +691,7 @@ int main(int argc, char* argv[])
 		game.selectPlayerMenu();
 		game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, false);
 
-		lua.runEvent("atExit");
+		lua.runEvent(atExitSE);
 		guitars.unload();
 		lua.unloadAll();
 	} catch (const std::exception &e)

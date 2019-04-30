@@ -63,7 +63,7 @@ bool CCampaing::loadCampaingF(const std::string &filepath)
 		}
 
 		CLuaH::Lua().runScriptsFromStorage(campaingScripts);
-		CLuaH::Lua().runEventFromContainer("campaingLoad", campaingScripts);
+		CLuaH::Lua().runEventFromContainer(campaingLoadSE, campaingScripts);
 	}
 	catch (const std::exception &e)
 	{
@@ -172,7 +172,7 @@ int CCampaing::newCampaing()
 	}
 
 	CLuaH::Lua().runScriptsFromStorage(campaingScripts);
-	CLuaH::Lua().runEventFromContainer("campaingInit", campaingScripts);
+	CLuaH::Lua().runEventFromContainer(campaingInitSE, campaingScripts);
 
 	saveCampaingF();
 
@@ -400,19 +400,19 @@ int CCampaing::campaingDrawScreen()
 
 	auto preFun = [&]()
 	{
-		CLuaH::Lua().runEventFromContainer("campaingMenuPreFun", mgr.campaingScripts);
+		CLuaH::Lua().runEventFromContainer(campaingMenuPreFunSE, mgr.campaingScripts);
 		return 0;
 	};
 
 	auto midFun = [&]()
 	{
-		CLuaH::Lua().runEventFromContainer("campaingMenuMidFun", mgr.campaingScripts);
+		CLuaH::Lua().runEventFromContainer(campaingMenuMidFunSE, mgr.campaingScripts);
 		return 0;
 	};
 
 	auto posFun = [&]()
 	{
-		CLuaH::Lua().runEventFromContainer("campaingMenuPosFun", mgr.campaingScripts);
+		CLuaH::Lua().runEventFromContainer(campaingMenuPosFunSE, mgr.campaingScripts);
 		return 0;
 	};
 
@@ -425,7 +425,7 @@ int CCampaing::campaingDrawScreen()
 			break;
 		}
 
-		CLuaH::Lua().runEventFromContainer("campaingDrawScreenUpdate", mgr.campaingScripts);
+		CLuaH::Lua().runEventFromContainer(campaingDScreenUpdateSE, mgr.campaingScripts);
 
 		GuitarPP.renderFrame();
 
@@ -481,8 +481,22 @@ void CCampaing::campaingPlayLoop(const std::string &n)
 	GPPGame::startMarathonModule(n);
 }
 
+int CCampaing::campaingLoadSE = 0, CCampaing::campaingInitSE = 0, CCampaing::campaingMenuPreFunSE = 0, CCampaing::campaingMenuMidFunSE = 0,
+	CCampaing::campaingMenuPosFunSE = 0, CCampaing::campaingDScreenUpdateSE = 0, CCampaing::campaingMainMenuOpenSE = 0;
+
 CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings")
 {
+	auto &Lua = CLuaH::Lua();
+	campaingLoadSE = Lua.idForCallbackEvent("campaingLoad");
+	campaingInitSE = Lua.idForCallbackEvent("campaingInit");
+	campaingMenuPreFunSE = Lua.idForCallbackEvent("campaingMenuPreFun");
+	campaingMenuMidFunSE = Lua.idForCallbackEvent("campaingMenuMidFun");
+	campaingMenuPosFunSE = Lua.idForCallbackEvent("campaingMenuPosFun");
+	campaingInitSE = Lua.idForCallbackEvent("campaingInit");
+	campaingInitSE = Lua.idForCallbackEvent("campaingInit");
+	campaingDScreenUpdateSE = Lua.idForCallbackEvent("campaingDrawScreenUpdate");
+	campaingMainMenuOpenSE = Lua.idForCallbackEvent("campaingMainMenuOpen");
+
 	auto &contOptions = GPPGame::GuitarPP().newNamedMenu("continueCampaingOptions");
 
 	contOptions.openCallback = [](CMenu &m)
@@ -490,7 +504,7 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings")
 		m.resetData();
 		m.resetBtns();
 
-		CLuaH::Lua().runEventWithParamsFromContainer("campaingMainMenuOpen", { CLuaH::customParam(&m) }, campaingMGR().campaingScripts);
+		CLuaH::Lua().runEventWithParamsFromContainer(campaingMainMenuOpenSE, { CLuaH::customParam(&m) }, campaingMGR().campaingScripts);
 		return 0;
 	};
 

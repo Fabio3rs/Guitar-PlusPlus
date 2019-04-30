@@ -12,6 +12,7 @@ class CGamePlay;
 
 class CGuitars
 {
+	static int addGuitarScriptEvent, loadGuitarScriptEvent, unloadingGuitarScriptEvent;
 
 public:
 	class CGuitar

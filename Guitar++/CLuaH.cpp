@@ -299,7 +299,7 @@ int CLuaH::runScriptWithArgs(luaScript &lua, int args)
 	return false;
 }
 
-void CLuaH::runEvent(const std::string &name)
+void CLuaH::runEvent(int id)
 {
 	for (auto &pathScripts : Lua().files)
 	{
@@ -309,7 +309,7 @@ void CLuaH::runEvent(const std::string &name)
 
 			if (scripts.second.callbacksAdded)
 			{
-				auto it = scripts.second.callbacks.find(name);
+				auto it = scripts.second.callbacks.find(id);
 
 				if (it != scripts.second.callbacks.end())
 				{
@@ -329,26 +329,7 @@ void CLuaH::runEvent(const std::string &name)
 	}
 }
 
-void CLuaH::runHookEvent(uintptr_t address)
-{
-	for (auto &pathScripts : Lua().files)
-	{
-		for (auto &scripts : pathScripts.second)
-		{
-			int luaindex = 0;
-
-			if (scripts.second.hooksAdded && (luaindex = scripts.second.hooks[address]) != 0){
-				lua_State *pState = scripts.second.luaState.get();
-
-				lua_rawgeti(pState, LUA_REGISTRYINDEX, luaindex);
-				if (runScript(scripts.second) != 0)
-					catchErrorString(scripts.second);
-			}
-		}
-	}
-}
-
-void CLuaH::runEventFromContainer(const std::string &name, scriptStorage &storage)
+void CLuaH::runEventFromContainer(int id, scriptStorage &storage)
 {
 	for (auto &scripts : storage)
 	{
@@ -356,7 +337,7 @@ void CLuaH::runEventFromContainer(const std::string &name, scriptStorage &storag
 
 		if (scripts.callbacksAdded)
 		{
-			auto it = scripts.callbacks.find(name);
+			auto it = scripts.callbacks.find(id);
 
 			if (it != scripts.callbacks.end())
 			{
@@ -375,73 +356,22 @@ void CLuaH::runEventFromContainer(const std::string &name, scriptStorage &storag
 	}
 }
 
-
-void CLuaH::runCheatEvent(const std::string &name)
-{
-	if (name.size() < 1)
-	{
-		return;
-	}
-
-	for (auto &pathScripts : Lua().files)
-	{
-		for (auto &scripts : pathScripts.second)
-		{
-			int luaindex = 0;
-
-			if (scripts.second.cheatsAdded)
-			{
-				for (auto &cname : scripts.second.cheats)
-				{
-					if ((luaindex = cname.second) != 0)
-					{
-						int size = cname.first.size();
-
-						bool canExecuteCallback = true;
-
-						for (int i = size - 1; i >= 0; --i)
-						{
-							if (name[i] != cname.first[size - (i + 1)])
-							{
-								canExecuteCallback = false;
-								break;
-							}
-						}
-
-						if (canExecuteCallback)
-						{
-							lua_State *pState = scripts.second.luaState.get();
-
-							lua_rawgeti(pState, LUA_REGISTRYINDEX, luaindex);
-							if (runScript(scripts.second) != 0)
-							{
-								catchErrorString(scripts.second);
-							}
-							else
-							{
-
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
 /*
 * Run a especific with parameteres (calls him specifics callbacks)
 */
-void CLuaH::runEventWithParams(const std::string &name, const multiCallBackParams_t &params)
+void CLuaH::runEventWithParams(int id, const multiCallBackParams_t &params)
 {
 	for (auto &pathScripts : Lua().files)
 	{
 		for (auto &scripts : pathScripts.second)
 		{
-			if (scripts.second.callbacksAdded && scripts.second.callbacks[name] != 0){
+			auto it = scripts.second.callbacks.find(id);
+
+			if (scripts.second.callbacksAdded && it != scripts.second.callbacks.end())
+			{
 				lua_State *pState = scripts.second.luaState.get();
 
-				lua_rawgeti(pState, LUA_REGISTRYINDEX, scripts.second.callbacks[name]);
+				lua_rawgeti(pState, LUA_REGISTRYINDEX, (*it).second);
 
 				for (auto &p : params){
 					p.pushToLuaStack(pState);
@@ -449,7 +379,7 @@ void CLuaH::runEventWithParams(const std::string &name, const multiCallBackParam
 
 				if (runScriptWithArgs(scripts.second, params.size()) != 0){
 					std::string errors = "Event name ";
-					errors += name;
+					errors += /*TODO*/ std::to_string(id);
 					errors += " num params: ";
 					errors += std::to_string(params.size());
 					errors += " data: ";
@@ -511,23 +441,27 @@ void CLuaH::runEventWithParams(const std::string &name, const multiCallBackParam
 	}
 }
 
-void CLuaH::runEventWithParamsFromContainer(const std::string & name, const multiCallBackParams_t & params, scriptStorage &storage)
+void CLuaH::runEventWithParamsFromContainer(int id, const multiCallBackParams_t & params, scriptStorage &storage)
 {
 	for (auto &scripts : storage)
 	{
-		if (scripts.callbacksAdded && scripts.callbacks[name] != 0) {
+		auto it = scripts.callbacks.find(id);
+		
+		if (scripts.callbacksAdded && it != scripts.callbacks.end())
+		{
 			lua_State *pState = scripts.luaState.get();
 
-			lua_rawgeti(pState, LUA_REGISTRYINDEX, scripts.callbacks[name]);
+			lua_rawgeti(pState, LUA_REGISTRYINDEX, (*it).second);
 
 			for (auto &p : params)
 			{
 				p.pushToLuaStack(pState);
 			}
 
-			if (runScriptWithArgs(scripts, params.size()) != 0) {
+			if (runScriptWithArgs(scripts, params.size()) != 0)
+			{
 				std::string errors = "Event name ";
-				errors += name;
+				errors += std::to_string(id);
 				errors += " num params: ";
 				errors += std::to_string(params.size());
 				errors += " data: ";
@@ -618,11 +552,11 @@ void CLuaH::runScripts(){
 /*
 * Run a internal event (calls him specifics callbacks)
 */
-void CLuaH::runInternalEvent(luaScript &L, const std::string &name) noexcept
+void CLuaH::runInternalEvent(luaScript &L, int id) noexcept
 {
 	if (L.callbacksAdded)
 	{
-		auto it = L.callbacks.find(name);
+		auto it = L.callbacks.find(id);
 		if (it != L.callbacks.end())
 		{
 			lua_State *pState = L.luaState.get();
@@ -633,11 +567,11 @@ void CLuaH::runInternalEvent(luaScript &L, const std::string &name) noexcept
 	}
 }
 
-void CLuaH::runInternalEventWithParams(luaScript &L, const std::string &name, const multiCallBackParams_t &params) noexcept
+void CLuaH::runInternalEventWithParams(luaScript &L, int id, const multiCallBackParams_t &params) noexcept
 {
 	if (L.callbacksAdded)
 	{
-		auto it = L.callbacks.find(name);
+		auto it = L.callbacks.find(id);
 		if (it != L.callbacks.end())
 		{
 			lua_State *pState = L.luaState.get();
@@ -742,7 +676,7 @@ void CLuaH::luaScript::unload() noexcept
 {
 	if (luaState != nullptr)
 	{
-		CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
+		CLuaH::Lua().runInternalEvent(*this, destroyScriptInstance);
 
 		luaState = nullptr;
 	}
@@ -802,7 +736,7 @@ CLuaH::luaScript::~luaScript()
 	{
 		try
 		{
-			CLuaH::Lua().runInternalEvent(*this, "destroyScriptInstance");
+			CLuaH::Lua().runInternalEvent(*this, destroyScriptInstance);
 		}
 		catch (...)
 		{
@@ -817,12 +751,28 @@ void CLuaH::unloadAll() noexcept
 
 }
 
+int CLuaH::idForCallbackEvent(const std::string &s)
+{
+	nullinit<int> &r = callbacksNamesID[s];
+
+	if (r() == 0)
+	{
+		r() = callbacksNamesID.size();
+	}
+
+	return r();
+}
+
+int CLuaH::destroyScriptInstance = 0;
+
 CLuaH::CLuaH() noexcept
 {
 	registerCustomFunctions = true;
 	inited = true;/*loadFiles("LuaScripts");
 
 	runScripts();*/
+
+	destroyScriptInstance = idForCallbackEvent("destroyScriptInstance");
 }
 
 void CLuaH::customParam::loadTableWOPush(lua_State *L)

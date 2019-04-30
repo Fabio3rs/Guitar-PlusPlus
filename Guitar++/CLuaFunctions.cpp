@@ -951,10 +951,12 @@ int CLuaFunctions::setCallBackToEvent(lua_State *L)
 		std::string eventName = "teste";
 		eventName = lua_tostring(L, 1);
 
+		int id = CLuaH::Lua().idForCallbackEvent(eventName);
+
 		lua_pushvalue(L, 2);
 		int	fnRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
-		CLuaH::Lua().getLuaStateScript(L).callbacks[eventName] = fnRef;
+		CLuaH::Lua().getLuaStateScript(L).callbacks[id] = fnRef;
 		CLuaH::Lua().getLuaStateScript(L).callbacksAdded = true;
 	}
 
@@ -1138,7 +1140,9 @@ int CLuaFunctions::newMenuOption(lua_State *L)
 		int	fnRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
 		// event menuOptionName
-		CLuaH::Lua().getLuaStateScript(L).callbacks[GPPGame::GuitarPP().getMenuByName(menuName).getNameFromOpt(optID)] = fnRef;
+
+		int id = CLuaH::Lua().idForCallbackEvent(GPPGame::GuitarPP().getMenuByName(menuName).getNameFromOpt(optID));
+		CLuaH::Lua().getLuaStateScript(L).callbacks[id] = fnRef;
 	}
 	return p.rtn();
 }

@@ -49,6 +49,10 @@ class GPPGame{
 
 	bool devMode;
 
+	// Script events
+	static int firstStartFrameSE, preCreateWindowSE, posCreateWindowSE, preLoadSpritesSE, posClearScreenSE,
+		preRenderFrameSE, posRenderFrameSE, menusGoBackSE, menusCMMenuSE, menusNextSE, menusGameCbNextSE, catchedExceptionSE;
+
 public:
 	class MessageTypes
 	{
@@ -179,6 +183,8 @@ public:
 		const CLuaH::luaScript *main;
 
 		CTheme(const CTheme&) = delete;
+
+		static int applyThemeSE;
 
 	public:
 		void apply();

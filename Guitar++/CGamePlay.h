@@ -23,6 +23,9 @@ class CCharter;
 
 class CGamePlay{
 	friend CCharter;
+
+	int preRenderPlayerSEvent, posRenderPlayerSEvent;
+
 	bool bIsACharterGP;
 
 	bool showBPMVlaues;

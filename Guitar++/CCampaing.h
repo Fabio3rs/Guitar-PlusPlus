@@ -15,6 +15,8 @@
 
 class CCampaing
 {
+	static int campaingLoadSE, campaingInitSE, campaingMenuPreFunSE, campaingMenuMidFunSE, campaingMenuPosFunSE, campaingDScreenUpdateSE, campaingMainMenuOpenSE;
+
 	bool campaingLoaded;
 	std::string loadedCampaingFilepath;
 	const std::string campaingScriptsDirectory;
