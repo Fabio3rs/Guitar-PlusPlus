@@ -51,7 +51,8 @@ class GPPGame{
 
 	// Script events
 	static int firstStartFrameSE, preCreateWindowSE, posCreateWindowSE, preLoadSpritesSE, posClearScreenSE,
-		preRenderFrameSE, posRenderFrameSE, menusGoBackSE, menusCMMenuSE, menusNextSE, menusGameCbNextSE, catchedExceptionSE;
+		preRenderFrameSE, posRenderFrameSE, menusGoBackSE, menusCMMenuSE, menusNextSE, menusGameCbNextSE, catchedExceptionSE,
+		joystickStateCbSE;
 
 public:
 	class MessageTypes
@@ -328,6 +329,7 @@ private:
 
 	static void callbackRenderFrame();
 	static void callbackKeys(int key, int scancode, int action, int mods);
+	static void callbackJoystick(int jid, int eventId);
 
 	struct loadThreadData
 	{

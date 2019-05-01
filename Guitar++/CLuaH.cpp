@@ -588,12 +588,11 @@ void CLuaH::runInternalEventWithParams(luaScript &L, int id, const multiCallBack
 	}
 }
 
-CLuaH::luaScript::luaScript(){
+CLuaH::luaScript::luaScript() noexcept
+{
 	luaState = nullptr;
 	runAgain = true;
-	cheatsAdded = false;
 	callbacksAdded = false;
-	hooksAdded = false;
 }
 
 CLuaH::luaScript &CLuaH::luaScript::operator=(luaScript &&script) noexcept
@@ -681,9 +680,7 @@ void CLuaH::luaScript::unload() noexcept
 		luaState = nullptr;
 	}
 
-	cheatsAdded = false;
 	callbacksAdded = false;
-	hooksAdded = false;
 	savedValues.clear();
 	filePath.clear();
 	fileName.clear();
@@ -701,9 +698,7 @@ CLuaH::luaScript::luaScript(luaScript &&L) noexcept
 
 	L.luaState = nullptr;
 
-	cheatsAdded = L.cheatsAdded;
 	callbacksAdded = L.callbacksAdded;
-	hooksAdded = L.hooksAdded;
 }
 
 CLuaH::luaScript &CLuaH::getLuaStateScript(lua_State *L)
@@ -730,7 +725,7 @@ const char *CLuaH::getGlobalVarAsString(luaScript &l, const char *varname) noexc
 	return lua_tostring(L, -1);
 }
 
-CLuaH::luaScript::~luaScript()
+CLuaH::luaScript::~luaScript() noexcept
 {
 	if (luaState)
 	{
@@ -742,6 +737,8 @@ CLuaH::luaScript::~luaScript()
 		{
 
 		}
+
+		customPtr = nullptr;
 	}
 }
 

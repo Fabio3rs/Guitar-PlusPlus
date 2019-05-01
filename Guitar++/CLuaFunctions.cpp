@@ -1333,19 +1333,6 @@ void CLuaFunctions::registerFunctions(CLuaH::luaState &Lstate)
 	}
 }
 
-
-template<class T> void setLuaGlobal(lua_State *L, const std::string &name, const T &value)
-{
-	CLuaH::customParam(value).pushToLuaStack(L);
-	lua_setglobal(L.get(), name.c_str());
-}
-
-template<class T> void setLuaGlobal(CLuaH::luaState &L, const std::string &name, const T &value)
-{
-	CLuaH::customParam(value).pushToLuaStack(L);
-	lua_setglobal(L.get(), name.c_str());
-}
-
 #include <bass.h>
 #include <bass_fx.h>
 

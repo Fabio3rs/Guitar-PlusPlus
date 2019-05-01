@@ -719,15 +719,16 @@ double CGamePlay::pos2Alpha(double pos)
 {
 	double result = 0.0;
 
-	double minPosMinAlpha = 1.5, maxPosMaxAlpha = 0.6, dif = minPosMinAlpha - maxPosMaxAlpha;
-
-	if (pos > minPosMinAlpha){
-		return 0.0;
-	}
+	const double minPosMinAlpha = 1.6/*1.5*/, maxPosMaxAlpha = 0.6, dif = minPosMinAlpha - maxPosMaxAlpha;
 
 	if (pos < maxPosMaxAlpha)
 	{
 		return 1.0;
+	}
+
+	if (pos > minPosMinAlpha)
+	{
+		return 0.0;
 	}
 
 	result = (1.0 / dif) * (minPosMinAlpha - pos);
@@ -2264,38 +2265,39 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 	fretboardLData.texture = FretBoardStruct.Text = Text;
 
-	for (int i = -2; i < 9; i++)
+	double edif = 0.0;
+
+	double x2mx1nsize = (x2 - x1) * (-size);
+
+	for (int i = -2; i < 12; i++)
 	{
-		FretBoardStruct.z1 = (x2 - x1) * (-size) * i - cCalc;
+		FretBoardStruct.z1 = x2mx1nsize * i - cCalc;
 		FretBoardStruct.z2 = FretBoardStruct.z1;
-		FretBoardStruct.z3 = FretBoardStruct.z1 + (x2 - x1) * (-size);
+		FretBoardStruct.z3 = FretBoardStruct.z1 + x2mx1nsize;
 		FretBoardStruct.z4 = FretBoardStruct.z3;
 
 		FretBoardStruct.alphaBottom = pos2Alpha(-FretBoardStruct.z3 / 5.5);
 		FretBoardStruct.alphaTop = pos2Alpha(-FretBoardStruct.z2 / 5.5);
 
-		bool cont = false, cont2 = false;
+		bool cont = false;
 
-		if (FretBoardStruct.alphaBottom < 0.0)
+		if (FretBoardStruct.alphaBottom <= 0.0)
 		{
 			FretBoardStruct.alphaBottom = 0.0;
+
+			FretBoardStruct.z3 = 1.6 * -5.5;
+			FretBoardStruct.z4 = FretBoardStruct.z3;
+
+			FretBoardStruct.TextureY2 = ((FretBoardStruct.z3 - FretBoardStruct.z1) / x2mx1nsize);
 			cont = true;
 		}
 
-		if (FretBoardStruct.alphaTop < 0.0)
-		{
-			FretBoardStruct.alphaTop = 0.0;
-			cont2 = true;
-		}
-
-		if (cont && cont2)
-		{
-			continue;
-		}
-
-		//CFonts::fonts().draw3DTextInScreen("TESTE", CFonts::fonts().getCenterPos(sizeof("TESTE") - 1, 0.2, x1 + (x2 - x1) / 2.0), -0.4992, FretBoardStruct.z1, 0.2, 0.0, -0.2);
-
 		CEngine::pushQuad(fretboardLData, FretBoardStruct);
+
+		if (cont)
+		{
+			break;
+		}
 	}
 
 	CEngine::engine().drawTrianglesWithAlpha(fretboardLData);

@@ -16,14 +16,27 @@ class CControls{
 	int escCB;
 	static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
+	int lastJID, lastJEvent;
+
 public:
 	static CControls &controls();
 
+	enum JOYSTICK_STATE { JOYSTICK_CONNECTED = GLFW_CONNECTED, JOYSTICK_DISCONNECTED = GLFW_DISCONNECTED };
+
 	unsigned int lastChar;
-	std::function<void(unsigned int)> textCallback;
-	std::function<void(int key, int scancode, int action, int mods)> keyCallback;
+	std::function<void(unsigned int)>											textCallback;
+	std::function<void(int key, int scancode, int action, int mods)>			keyCallback;
+	std::function<void(int jid, int eventId)>									joystickCallback;
 
 	int keyEscape() { int r = escCB; escCB = 0; return r; };
+
+	const unsigned char *			getJoystickButtons(int jid, int &count) const;
+	const unsigned char *			getJoystickHats(int jid, int &count) const;
+	bool							isJoystickPresent(int jid) const;
+	const char *					getJoystickName(int jid) const;
+	bool							isJoystickGamepad(int jid) const;
+	const char *					getGamepadName(int jid) const;
+	int								getGamepadState(int jid) const;
 
 	void init();
 	void update();

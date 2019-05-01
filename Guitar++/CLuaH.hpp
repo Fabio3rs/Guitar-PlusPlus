@@ -58,12 +58,8 @@ public:
 		std::string											filePath;
 		std::string											fileName;
 		std::map < int, int >								callbacks;
-		std::map < std::string, int >						cheats;
-		std::map < uintptr_t, int >							hooks;
 
-		bool												cheatsAdded;
 		bool												callbacksAdded;
-		bool												hooksAdded;
 
 		void unload() noexcept; // clean lua state, containers, etc.
 
@@ -76,8 +72,8 @@ public:
 
 		luaScript(const luaScript &L) = delete;
 		luaScript(luaScript &&L) noexcept;
-		luaScript();
-		~luaScript();
+		luaScript() noexcept;
+		~luaScript() noexcept;
 	};
 
 	std::map < std::string, std::map<std::string, luaScript> >				files; /* std::map<pathForScripts, std::map<scriptName, scriptData>> */

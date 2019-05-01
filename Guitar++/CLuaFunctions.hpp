@@ -240,4 +240,16 @@ private:
 	~CLuaFunctions() = default;
 };
 
+template<class T> inline void setLuaGlobal(lua_State *L, const std::string &name, const T &value)
+{
+	CLuaH::customParam(value).pushToLuaStack(L);
+	lua_setglobal(L.get(), name.c_str());
+}
+
+template<class T> inline void setLuaGlobal(CLuaH::luaState &L, const std::string &name, const T &value)
+{
+	CLuaH::customParam(value).pushToLuaStack(L);
+	lua_setglobal(L.get(), name.c_str());
+}
+
 #endif

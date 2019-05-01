@@ -2267,6 +2267,12 @@ void GPPGame::callbackKeys(int key, int scancode, int action, int mods)
 	}
 }
 
+void GPPGame::callbackJoystick(int jid, int eventId)
+{
+	auto &game = GPPGame::GuitarPP();
+	//CLuaH::Lua().runEvent(game.joystickStateCbSE);
+}
+
 void GPPGame::continueCampaing(const std::string &name)
 {
 	auto createMMenu = []()
@@ -4095,9 +4101,12 @@ int GPPGame::createWindow()
 
 	CEngine::engine().openWindow(title.c_str(), getWindowConfig().w, getWindowConfig().h, getWindowConfig().fullscreen);
 	CEngine::engine().activateAlphaTest(true);
-	CControls::controls().init();
 
-	CControls::controls().keyCallback = callbackKeys;
+	auto &controls = CControls::controls();
+	controls.init();
+
+	controls.keyCallback = callbackKeys;
+	controls.joystickCallback = callbackJoystick;
 
 	if (getWindowConfig().VSyncMode >= 0 && getWindowConfig().VSyncMode <= 2)
 	{
@@ -4162,6 +4171,8 @@ int GPPGame::registerFunctions(CLuaH::luaState &Lstate)
 
 int GPPGame::registerGlobals(CLuaH::luaState &L)
 {
+	setLuaGlobal(L, "JOYSTICK_CONNECTED", CControls::JOYSTICK_STATE::JOYSTICK_CONNECTED);
+	setLuaGlobal(L, "JOYSTICK_DISCONNECTED", CControls::JOYSTICK_STATE::JOYSTICK_DISCONNECTED);
 
 	return 0;
 }
@@ -4215,7 +4226,8 @@ int GPPGame::getGamePlayPlusState(lua_State *L)
 int GPPGame::firstStartFrameSE = 0, GPPGame::preCreateWindowSE = 0, GPPGame::posCreateWindowSE = 0,
 GPPGame::preLoadSpritesSE = 0, GPPGame::posClearScreenSE = 0,
 GPPGame::preRenderFrameSE = 0, GPPGame::posRenderFrameSE = 0, GPPGame::menusGoBackSE = 0,
-GPPGame::menusCMMenuSE = 0, GPPGame::menusNextSE = 0, GPPGame::menusGameCbNextSE = 0, GPPGame::catchedExceptionSE = 0;
+GPPGame::menusCMMenuSE = 0, GPPGame::menusNextSE = 0, GPPGame::menusGameCbNextSE = 0, GPPGame::catchedExceptionSE = 0,
+GPPGame::joystickStateCbSE = 0;
 
 GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu"), uiCreateProfile("uiCreateProfileMenu")
 {
@@ -4251,7 +4263,7 @@ GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(n
 		posClearScreenSE = Lua.idForCallbackEvent("posClearScreen");
 		menusGameCbNextSE = Lua.idForCallbackEvent("menusGameCallbackNext");
 		catchedExceptionSE = Lua.idForCallbackEvent("catchedException");
-		
+		joystickStateCbSE = Lua.idForCallbackEvent("joystickStateCallback");
 	}
 
 	gameplayRunningTime = 0.0;
