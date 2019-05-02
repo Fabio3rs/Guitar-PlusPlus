@@ -10,7 +10,8 @@
 #include "utf8.h"
 #include "CLog.h"
 
-CFonts &CFonts::fonts(){
+CFonts &CFonts::fonts()
+{
 	static CFonts fn;
 	return fn;
 }
@@ -37,7 +38,7 @@ CFonts::Font::fontTexture::fontTexture(const std::string &path, const std::strin
 	GPPGame::GuitarPP().gppTextureKeepBuffer = preValue;
 }
 
-CFonts::Font::fontTexture::fontTexture()
+CFonts::Font::fontTexture::fontTexture() noexcept
 {
 	lines = columns = 0;
 }
@@ -58,10 +59,10 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 
 	tex.lines = 1;
 
-	auto it = textChars.begin();
-
-	for (auto ch = utf8::next(it, textChars.end()); it != textChars.end(); ch = utf8::next(it, textChars.end()))
+	for (auto it = textChars.begin(); it != textChars.end(); /***/)
 	{
+		auto ch = utf8::next(it, textChars.end());
+
 		switch (ch)
 		{
 		case '\n':
@@ -97,12 +98,12 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 
 	tex.lines = 1;
 
-	auto it = textChars.begin();
-
 	std::vector<int32_t> charTemp;
 
-	for (auto ch = utf8::next(it, textChars.end()); it != textChars.end(); ch = utf8::next(it, textChars.end()))
+	for (auto it = textChars.begin(); it != textChars.end(); /***/)
 	{
+		auto ch = utf8::next(it, textChars.end());
+
 		switch (ch)
 		{
 		case '\n':
@@ -137,7 +138,7 @@ void CFonts::Font::registerTexture(const std::string &path, const std::string &t
 
 void CFonts::Font::chartbl::setTextID(const fontTexture &texture)
 {
-	textID = GPPGame::GuitarPP().gTextures[texture.getName()].getTextId();
+	textID = GPPGame::GuitarPP().getTextureId(texture.getName());
 }
 
 void CFonts::Font::chartbl::internalProcessTexture(int ch)
@@ -149,6 +150,8 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch)
 		unsigned char rgba[4];
 	};
 #pragma pack(pop)
+
+	static_assert(sizeof(RGBA) == 4, __FILE__ " is not 4 bytes");
 
 	RGBA *imgRGBA = (RGBA*)text.getImageData().Data.get();
 
@@ -318,12 +321,9 @@ void CFonts::draw3DTextInScreen(const std::string &str, const double posX1, cons
 
 	int i = 0;
 
-	const std::string st = str + " ";
-
-	auto it = st.begin();
-
-	for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
+	for (auto it = str.begin(); it != str.end(); /***/)
 	{
+		auto ch = utf8::next(it, str.end());
 		auto &chData = fontToUse.chars[ch];
 
 		if (chData.getText()){
@@ -405,12 +405,11 @@ void CFonts::addTextAlert(textAlert &&t)
 
 size_t CFonts::utf8Size(const std::string &s)
 {
-	std::string st = s + " ";
-	auto it = st.begin();
 	size_t size = 0;
 
-	for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
+	for (auto it = s.begin(); it != s.end(); /***/)
 	{
+		auto ch = utf8::next(it, s.end());
 		size++;
 	}
 
@@ -545,14 +544,13 @@ void CFonts::drawTextInScreenWithBuffer(const std::string &str, const double pos
 
 	int i = 0;
 
-	const std::string st = str + " ";
 	static CEngine::dTriangleWithAlpha *buffer = nullptr;
 	static unsigned int lasttext = 0;
 
-	auto it = st.begin();
-
-	for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
+	for (auto it = str.begin(); it != str.end(); /***/)
 	{
+		auto ch = utf8::next(it, str.end());
+
 		auto &chData = fontToUse.chars[ch];
 
 		if (iswblank(ch))
@@ -638,14 +636,11 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 
 	int i = 0;
 
-	const std::string st = str + " ";
-
-	auto it = st.begin();
-
 	double lastL = 1.0;
 
-	for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
+	for (auto it = str.begin(); it != str.end(); /***/)
 	{
+		auto ch = utf8::next(it, str.end());
 		auto &chData = fontToUse.chars[ch];
 
 		if (iswblank(ch))
@@ -661,11 +656,14 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1, const 
 			const double sizeFromChar = 1.0 / (double)fontsTextData.getcolumns();
 			const double sizeOfLine = 1.0 / (double)fontsTextData.getlines();
 
-			if (chData.getAlign() > 0.15)
-				CharPos += -(chData.getAlign() * size) + sizeDiv10_0;
+			//if (i > 0)
+			{
+				if (chData.getAlign() > 0.15)
+					CharPos += -(chData.getAlign() * size) + sizeDiv10_0;
 
-			if (chData.getAlign() < 0.1)
-				CharPos += sizeDiv20_0;
+				if (chData.getAlign() < 0.1)
+					CharPos += sizeDiv20_0;
+			}
 			/*if (lastL < 0.8)
 				CharPos += -(chData.getAlign() * size);
 			else
@@ -737,16 +735,13 @@ double CFonts::getXSizeInScreen(const std::string &text, double size, const std:
 	const double sizeDiv2_0 = size / 2.0, sizeDiv12_0 = size / 12.0, sizeDiv10_0 = size / 10.0, sizeDiv20_0 = size / 20.0;
 	double CharPos = 0.0;
 
-	const std::string st = text + " ";
-
 	auto &engine = CEngine::engine();
 
 	try {
 
-		auto it = st.begin();
-
-		for (auto ch = utf8::next(it, st.end()); it != st.end(); ch = utf8::next(it, st.end()))
+		for (auto it = text.begin(); it != text.end(); /***/)
 		{
+			auto ch = utf8::next(it, text.end());
 			auto &chData = fontToUse.chars[ch];
 
 			if (iswblank(ch))

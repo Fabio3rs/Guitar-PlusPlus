@@ -226,6 +226,8 @@ public:
 	void parseParameters(int argc, char *argv[]);
 	
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
+	int loadTextureGetId(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
+	unsigned int getTextureId(const std::string &name) const noexcept;
 	const CTheme &loadThemes(const std::string &theme, CLuaH::luaScript *luaScript = nullptr);
 	const std::string addGameCallbacks(const std::string &n, func_t function);
 

@@ -26,10 +26,15 @@ public:
 		std::string msg;
 		std::function<bool(textAlert&)> callback;
 
-		textAlert()
+		textAlert() noexcept
 		{
 			status = 0;
 			startTime = 0.0;
+		}
+
+		~textAlert() noexcept
+		{
+
 		}
 	};
 
@@ -41,17 +46,17 @@ public:
 			int lines, columns;
 
 		public:
-			std::string getName() const
+			const std::string &getName() const noexcept
 			{
 				return name;
 			}
 
-			inline int getlines() const
+			inline int getlines() const noexcept
 			{
 				return lines;
 			}
 
-			inline int getcolumns() const
+			inline int getcolumns() const noexcept
 			{
 				return columns;
 			}
@@ -60,7 +65,8 @@ public:
 			void load(const std::string &path, const std::string &name);
 
 			fontTexture(const std::string &path, const std::string &name);
-			fontTexture();
+			fontTexture() noexcept;
+			~fontTexture() noexcept { }
 		};
 
 
@@ -76,46 +82,54 @@ public:
 		public:
 			void internalProcessTexture(int ch);
 
-			inline double getAlign() const
+			inline double getAlign() const noexcept
 			{
 				return align;
 			}
 
-			inline double getSize() const
+			inline double getSize() const noexcept
 			{
 				return size;
 			}
 
-			inline void setLine(int l){
+			inline void setLine(int l) noexcept
+			{
 				line = l;
 			}
 
-			inline int getline() const{
+			inline int getline() const noexcept
+			{
 				return line;
 			}
 
-			inline void setPos(int p){
+			inline void setPos(int p) noexcept
+			{
 				pos = p;
 			}
 
-			inline int getPos() const{
+			inline int getPos() const noexcept
+			{
 				return pos;
 			}
 
-			inline void setText(const fontTexture &texture){
+			inline void setText(const fontTexture &texture)
+			{
 				textureLst = &texture;
 				setTextID(texture);
 			}
 
-			inline const fontTexture *getText() const{
+			inline const fontTexture *getText() const noexcept
+			{
 				return textureLst;
 			}
 
-			inline unsigned int getTextID() const{
+			inline unsigned int getTextID() const noexcept
+			{
 				return textID;
 			}
 
-			chartbl(){
+			chartbl() noexcept
+			{
 				pos = -1;
 				line = 0;
 				textureLst = nullptr;

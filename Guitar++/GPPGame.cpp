@@ -1571,7 +1571,9 @@ void GPPGame::startModule(const std::string &name)
 			if ((startTime - time) > 0.0)
 			{
 				fadeoutdsc = engine.getTime();
-				fonts.drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.15, 0.0, 0.3);
+				std::string count = std::to_string((int)(startTime - time));
+
+				fonts.drawTextInScreenWithBuffer(count, fonts.getCenterPos(count, 0.3, 0.0), 0.0, 0.3);
 				musicstartedg = 0;
 			}
 
@@ -2183,8 +2185,10 @@ void GPPGame::startMarathonModule(const std::string &name)
 			{
 
 				fadeoutdsc = engine.getTime();
-				
-				fonts.drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
+
+				std::string count = std::to_string((int)(startTime - time));
+
+				fonts.drawTextInScreenWithBuffer(count, fonts.getCenterPos(count, 0.3, 0.0), 0.0, 0.3);
 				musicstartedg = 0;
 			}
 
@@ -2765,7 +2769,9 @@ void GPPGame::campaingPlayModule(const std::string &name)
 
 				fadeoutdsc = engine.getTime();
 
-				fonts.drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
+				std::string count = std::to_string((int)(startTime - time));
+
+				fonts.drawTextInScreenWithBuffer(count, fonts.getCenterPos(count, 0.3, 0.0), 0.0, 0.3);
 				musicstartedg = 0;
 			}
 
@@ -2890,6 +2896,16 @@ const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const s
 
 	gTextures[(path + "/" + texture)] = std::move(gppTexture(path, texture));
 	return gTextures[(path + "/" + texture)];
+}
+
+unsigned int GPPGame::getTextureId(const std::string &name) const noexcept
+{
+	auto it = gTextures.find(name);
+
+	if (it != gTextures.end())
+		return (*it).second.getTextId();
+
+	return 0;
 }
 
 void GPPGame::loadBasicSprites()

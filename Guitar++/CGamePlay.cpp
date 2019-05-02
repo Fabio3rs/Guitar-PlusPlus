@@ -2228,7 +2228,7 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 	fretboardLData.useColors = true;
 	fretboardLData.autoEnDisaColors = false;
 
-	double size = 2.1 * 1.33333333;
+	const double size = 2.1 * 1.33333333;
 
 	auto positionCalcByT = [this, size](double p, double prop)
 	{
@@ -2265,9 +2265,7 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2, double x3
 
 	fretboardLData.texture = FretBoardStruct.Text = Text;
 
-	double edif = 0.0;
-
-	double x2mx1nsize = (x2 - x1) * (-size);
+	const double x2mx1nsize = (x2 - x1) * (-size);
 
 	for (int i = -2; i < 12; i++)
 	{
