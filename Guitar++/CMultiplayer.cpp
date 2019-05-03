@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include "CMultiplayer.h"
 #include "GPPGame.h"
 
@@ -217,5 +218,5 @@ CMultiplayer::~CMultiplayer()
 	mpmgr = nullptr;
 
 }
-
+#endif
 

@@ -24,17 +24,17 @@ class gameException : public std::exception{
 	std::string str;
 
 public:
-	const char *what() const
+	const char *what() const noexcept
 	{
 		return str.c_str();
 	}
 
-	inline gameException(const std::string &s) : std::exception(s.c_str()), str(s)
+	inline gameException(const std::string &s) noexcept : std::exception(), str(s)
 	{
 
 	}
 
-	inline gameException()
+	inline gameException() noexcept
 	{
 
 	}
@@ -316,8 +316,8 @@ public:
 	void selectPlayerMenu();
 
 protected:
-	static int registerFunctions(CLuaH::luaState &Lstate);
-	static int registerGlobals(CLuaH::luaState &L);
+	static int registerFunctions(CLuaH::luaState_t &Lstate);
+	static int registerGlobals(CLuaH::luaState_t &L);
 
 	static int loadSingleTexture(lua_State *L);
 	static int getGameplayRunningTime(lua_State *L);

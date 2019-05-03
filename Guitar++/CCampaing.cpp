@@ -123,7 +123,7 @@ int CCampaing::getCampaingList(lua_State *L)
 	return p.rtn();
 }
 
-int CCampaing::registerLuaFunctions(CLuaH::luaState &Lstate)
+int CCampaing::registerLuaFunctions(CLuaH::luaState_t &Lstate)
 {
 	lua_State *L = Lstate.get();
 

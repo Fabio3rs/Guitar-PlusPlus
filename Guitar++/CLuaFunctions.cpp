@@ -4,12 +4,12 @@
 #include <iostream>
 #include "CLog.h"
 
-void CLuaFunctions::registerLuaFuncsAPI(std::function<int(CLuaH::luaState &)> fun)
+void CLuaFunctions::registerLuaFuncsAPI(std::function<int(CLuaH::luaState_t &)> fun)
 {
 	registerFunctionsAPICBs.push_back(fun);
 }
 
-void CLuaFunctions::registerLuaGlobalsAPI(std::function<int(CLuaH::luaState &)> fun)
+void CLuaFunctions::registerLuaGlobalsAPI(std::function<int(CLuaH::luaState_t &)> fun)
 {
 	registerGlobalsAPICBs.push_back(fun);
 }
@@ -1288,7 +1288,7 @@ int CLuaFunctions::getGameCallback(lua_State *L)
 	return p.rtn();
 }
 
-void CLuaFunctions::registerFunctions(CLuaH::luaState &Lstate)
+void CLuaFunctions::registerFunctions(CLuaH::luaState_t &Lstate)
 {
 	lua_State *L = Lstate.get();
 
@@ -1339,7 +1339,7 @@ void CLuaFunctions::registerFunctions(CLuaH::luaState &Lstate)
 /*
 * Register default game globals
 */
-void CLuaFunctions::registerGlobals(CLuaH::luaState &L)
+void CLuaFunctions::registerGlobals(CLuaH::luaState_t &L)
 {
 	setLuaGlobal(L, "TESTE", "abcde");
 	setLuaGlobal(L, "VSYNC_OFF", 0);

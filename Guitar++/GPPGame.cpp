@@ -610,7 +610,9 @@ void GPPGame::selectPlayerMenu()
 	}
 
 	{
-		std::atomic<bool> processingLoadDir = true;
+		std::atomic<bool> processingLoadDir;
+		processingLoadDir = true;
+		
 		std::mutex getDirLoadMutex;
 		std::thread getDirLoad([&]()
 		{
@@ -748,6 +750,7 @@ void GPPGame::setDevMode(bool mode)
 
 void GPPGame::testClient(const std::string &name)
 {
+#ifdef COMPILEMP
 	CPlayer p("pato voador");
 	/*
 	while (CEngine::engine().windowOpened())
@@ -1035,14 +1038,14 @@ void GPPGame::testClient(const std::string &name)
 	}
 
 	if (load.joinable()) load.join();
+#else
 
-
-
-
+#endif
 }
 
 void GPPGame::serverModule(const std::string &name)
 {
+#ifdef COMPILEMP
 	auto &game = GPPGame::GuitarPP();
 	auto realname = game.getCallBackRealName(name);
 	auto &module = game.gameModules[realname];
@@ -1402,6 +1405,9 @@ void GPPGame::serverModule(const std::string &name)
 	}
 
 	if (load.joinable()) load.join();
+#else
+
+#endif
 }
 
 void GPPGame::startModule(const std::string &name)
@@ -3203,7 +3209,9 @@ std::string GPPGame::selectSong()
 	}
 
 	{
-		std::atomic<bool> processingLoadDir = true;
+		std::atomic<bool> processingLoadDir;
+		processingLoadDir = true;
+		
 		std::mutex getDirLoadMutex;
 		std::thread getDirLoad([&]()
 		{
@@ -3481,7 +3489,9 @@ void GPPGame::addSongListToMenu(CMenu &selectSongMenu, std::map<int, std::string
 	}
 
 	{
-		std::atomic<bool> processingLoadDir = true;
+		std::atomic<bool> processingLoadDir;
+		processingLoadDir = true;
+		
 		std::mutex getDirLoadMutex;
 		std::thread getDirLoad([&]()
 		{
@@ -4173,7 +4183,7 @@ void GPPGame::logError(int code, const std::string &e)
 std::string GPPGame::ip = "127.0.0.1";
 std::string GPPGame::port = "7777";
 
-int GPPGame::registerFunctions(CLuaH::luaState &Lstate)
+int GPPGame::registerFunctions(CLuaH::luaState_t &Lstate)
 {
 	lua_State *L = Lstate.get();
 	
@@ -4185,7 +4195,7 @@ int GPPGame::registerFunctions(CLuaH::luaState &Lstate)
 	return 0;
 }
 
-int GPPGame::registerGlobals(CLuaH::luaState &L)
+int GPPGame::registerGlobals(CLuaH::luaState_t &L)
 {
 	setLuaGlobal(L, "JOYSTICK_CONNECTED", CControls::JOYSTICK_STATE::JOYSTICK_CONNECTED);
 	setLuaGlobal(L, "JOYSTICK_DISCONNECTED", CControls::JOYSTICK_STATE::JOYSTICK_DISCONNECTED);

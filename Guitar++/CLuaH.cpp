@@ -11,9 +11,9 @@
 #include <dirent.h>
 #include "Lua/lstate.h"
 
-CLuaH::luaState CLuaH::make_luaState()
+CLuaH::luaState_t CLuaH::make_luaState()
 {
-	return luaState(luaL_newstate());
+	return luaState_t(luaL_newstate());
 }
 
 void CLuaH::loadGlobalTable(lua_State *L, customParam &tableData)
@@ -120,7 +120,7 @@ CLuaH::luaScript CLuaH::newScriptR(const std::string &memf, const std::string &n
 	int load_result = luaL_loadbuffer(lData.luaState.get(), memf.c_str(), memf.size(), name.c_str());
 
 	if (load_result != 0){
-		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState.get()) +
+		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string(reinterpret_cast<uintptr_t>(lData.luaState.get())) +
 			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
 			std::string(") failed to load with result ") + std::to_string(load_result);
 
@@ -158,7 +158,7 @@ CLuaH::luaScript CLuaH::newScriptRBuffer(const char *memf, size_t sz, const std:
 	int load_result = luaL_loadbuffer(lData.luaState.get(), memf, sz, name.c_str());
 
 	if (load_result != 0) {
-		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState.get()) +
+		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string(reinterpret_cast<uintptr_t>(lData.luaState.get())) +
 			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
 			std::string(") failed to load with result ") + std::to_string(load_result);
 
@@ -196,7 +196,7 @@ CLuaH::luaScript CLuaH::newScriptRBuffer(const std::vector<char> &vec, const std
 	int load_result = luaL_loadbuffer(lData.luaState.get(), &vec[0], vec.size(), name.c_str());
 
 	if (load_result != 0) {
-		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string((unsigned int)lData.luaState.get()) +
+		CLog::log() << std::string("luaL_loadbuffer(") + std::to_string(reinterpret_cast<uintptr_t>(lData.luaState.get())) +
 			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
 			std::string(") failed to load with result ") + std::to_string(load_result);
 
@@ -236,7 +236,7 @@ CLuaH::luaScript CLuaH::newScript(const std::string &path, const std::string &f)
 	int load_result = luaL_loadfile(lData.luaState.get(), std::string(lData.filePath + barra + lData.fileName).c_str());
 
 	if (load_result != 0){
-		CLog::log() << std::string("luaL_loadfile(") + std::to_string((unsigned int)lData.luaState.get()) +
+		CLog::log() << std::string("luaL_loadfile(") + std::to_string(reinterpret_cast<uintptr_t>(lData.luaState.get())) +
 			std::string(", ") + std::string(lData.filePath + barra + lData.fileName) +
 			std::string(") failed to load with result ") + std::to_string(load_result);
 
@@ -661,7 +661,7 @@ std::vector<char> CLuaH::luaScript::dumpBytecode()
 
 	if (dump_result != 0)
 	{
-		CLog::log() << std::string("lua_dump(") + std::to_string((unsigned int)L) +
+		CLog::log() << std::string("lua_dump(") + std::to_string(reinterpret_cast<uintptr_t>(L)) +
 			std::string(", ") + std::string(filePath + "/" + fileName) +
 			std::string(") failed to load with result ") + std::to_string(dump_result);
 

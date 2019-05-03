@@ -3,8 +3,6 @@
 #include "GPPGame.h"
 #include "CFonts.h"
 #include <array>
-
-#include <Windows.h>
 #include <GLFW/glfw3.h>
 
 int gpppowi(int b, int e)
@@ -2908,7 +2906,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		//engine.activateStencilTest(true);
 		//engine.activate3DRender(false);
 
-		//engine.startShadowCapture(); // na verdade isso aqui é a delimitação da área de renderização da sombra
+		//engine.startShadowCapture(); // na verdade isso aqui \E9 a delimita\E7\E3o da \E1rea de renderiza\E7\E3o da sombra
 
 		//renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], fretboardText);
 

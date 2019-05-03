@@ -1,6 +1,6 @@
 #pragma once
-#ifndef _LUA_HOOKER_CLUAFUNCTIONS_HPP_
-#define _LUA_HOOKER_CLUAFUNCTIONS_HPP_
+#ifndef LUA_HOOKER_CLUAFUNCTIONS_HPP
+#define LUA_HOOKER_CLUAFUNCTIONS_HPP
 
 #include <memory>
 #include <map>
@@ -12,8 +12,8 @@
 #include <algorithm>
 
 class CLuaFunctions{
-	std::deque < std::function<int(CLuaH::luaState &)> > registerFunctionsAPICBs;
-	std::deque < std::function<int(CLuaH::luaState &)> > registerGlobalsAPICBs;
+	std::deque < std::function<int(CLuaH::luaState_t &)> > registerFunctionsAPICBs;
+	std::deque < std::function<int(CLuaH::luaState_t &)> > registerGlobalsAPICBs;
 	std::deque < std::function<void(void)> > frameUpdateAPICBs;
 
 public:
@@ -29,6 +29,7 @@ public:
 		LuaParams &operator<<(const std::string &param);
 		LuaParams &operator<<(double param);
 		LuaParams &operator<<(int param);
+		LuaParams &operator<<(unsigned int param) { *this << static_cast<int64_t>(param); }
 		LuaParams &operator<<(int64_t param);
 		LuaParams &operator<<(bool param);
 		LuaParams &operator<<(size_t param);
@@ -223,15 +224,15 @@ public:
 	/*
 	* Register custom functions lua state
 	*/
-	void registerFunctions(CLuaH::luaState &Lstate);
+	void registerFunctions(CLuaH::luaState_t &Lstate);
 
 	/*
 	* Register default game globals
 	*/
-	void registerGlobals(CLuaH::luaState &L);
+	void registerGlobals(CLuaH::luaState_t &L);
 
-	void registerLuaFuncsAPI(std::function<int(CLuaH::luaState &)> fun);
-	void registerLuaGlobalsAPI(std::function<int(CLuaH::luaState &)> fun);
+	void registerLuaFuncsAPI(std::function<int(CLuaH::luaState_t &)> fun);
+	void registerLuaGlobalsAPI(std::function<int(CLuaH::luaState_t &)> fun);
 	void registerFrameUpdateAPI(std::function<void(void)> fun);
 
 private:
@@ -240,13 +241,13 @@ private:
 	~CLuaFunctions() = default;
 };
 
-template<class T> inline void setLuaGlobal(lua_State *L, const std::string &name, const T &value)
+template<class T> static inline void setLuaGlobal(lua_State *L, const std::string &name, const T &value)
 {
 	CLuaH::customParam(value).pushToLuaStack(L);
-	lua_setglobal(L.get(), name.c_str());
+	lua_setglobal(L, name.c_str());
 }
 
-template<class T> inline void setLuaGlobal(CLuaH::luaState &L, const std::string &name, const T &value)
+template<class T> static inline void setLuaGlobal(CLuaH::luaState_t &L, const std::string &name, const T &value)
 {
 	CLuaH::customParam(value).pushToLuaStack(L);
 	lua_setglobal(L.get(), name.c_str());

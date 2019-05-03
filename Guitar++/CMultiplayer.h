@@ -2,8 +2,8 @@
 #ifndef __GUITARPP_CMULTIPLAYER_H__
 #define __GUITARPP_CMULTIPLAYER_H__
 
+#ifdef _WIN32
 #include <thread>
-#include "CSocket.h"
 #include <string>
 #include <vector>
 #include <atomic>
@@ -12,6 +12,8 @@
 #include <memory>
 #include <map>
 #include "CPlayer.h"
+#include "CSocket.h"
+#define COMPILEMP
 
 class CMultiplayer
 {
@@ -125,6 +127,6 @@ public:
 	CMultiplayer(bool bIsServer = false);
 	~CMultiplayer();
 };
-
+#endif
 
 #endif

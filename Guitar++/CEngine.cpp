@@ -968,7 +968,13 @@ void CEngine::GLFWerrorfun(int error, const char *description)
 	if (engine().errorCallbackFun)
 		engine().errorCallbackFun(error, description);
 	else
+    {
+        #ifdef _WIN32
 		MessageBoxA(0, description, std::to_string(error).c_str(), 0);
+        #else
+        
+        #endif
+    }
 }
 
 bool CEngine::windowOpened(){
@@ -1074,7 +1080,12 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen)
 	{
 		/* Problem: glewInit failed, something is seriously wrong. */
 		GLFWerrorfun(err, (char*)glewGetErrorString(err));
-		MessageBoxA(0, (char*)glewGetErrorString(err), "Error: %s\n", 0);
+		
+        #ifdef _WIN32
+        MessageBoxA(0, (char*)glewGetErrorString(err), "Error: %s\n", 0);
+        #else
+        
+        #endif
 	}
 
 	if (glUseProgram)

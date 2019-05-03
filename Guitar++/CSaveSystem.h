@@ -194,7 +194,7 @@ public:
 			v.type = 0;
 
 			values[name] = v;
-			return true;
+			return;
 		}
 
 		CSave(const std::string &savepath);

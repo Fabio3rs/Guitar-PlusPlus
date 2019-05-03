@@ -212,3 +212,4 @@ ModelManifest.xml
 *.opendb
 /.vs/Guitar++/v15
 /.vs/Guitar++/v15
+/Guitar++/gccout

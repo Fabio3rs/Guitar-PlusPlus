@@ -460,7 +460,8 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 		};
 
 		for (size_t i = 0, size = Nts.size(); i < size; i++) {
-			if (isnan(Nts[i].time) || isnan(Nts[i].lTime)) {
+			if (std::isnan(Nts[i].time) || std::isnan(Nts[i].lTime))
+            {
 				continue;
 			}
 

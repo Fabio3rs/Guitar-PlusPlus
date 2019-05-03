@@ -169,7 +169,7 @@ int CLanguageManager::translateString(lua_State * L)
 	return p.rtn();
 }
 
-int CLanguageManager::registerFunctions(CLuaH::luaState &Lstate)
+int CLanguageManager::registerFunctions(CLuaH::luaState_t &Lstate)
 {
 	lua_State *L = Lstate.get();
 
@@ -178,7 +178,7 @@ int CLanguageManager::registerFunctions(CLuaH::luaState &Lstate)
 	return 0;
 }
 
-int CLanguageManager::registerGlobals(CLuaH::luaState &L)
+int CLanguageManager::registerGlobals(CLuaH::luaState_t &L)
 {
 	return 0;
 }

@@ -214,6 +214,7 @@ void CPlayer::update()
 	}
 	else
 	{
+#ifdef COMPILEMP
 		auto &pData = CMultiplayer::sgetPlData();
 
 		CMultiplayer::playersData pdata;
@@ -268,10 +269,12 @@ void CPlayer::update()
 					fretsPressedTime[i] = timeC;
 			}
 		}
+#endif
 	}
 }
 
-std::string CPlayer::smartSongSearch(const std::string &path){
+std::string CPlayer::smartSongSearch(const std::string &path)
+{
 	auto file_exists = [](const std::string &fileName){
 		return std::fstream(fileName).is_open();
 	};
@@ -281,8 +284,8 @@ std::string CPlayer::smartSongSearch(const std::string &path){
 	const std::string songsFormats[] = {
 		path + ".ogg",
 		path + ".mp3",
-		"Song.ogg",
-		"Song.mp3"
+		"song.ogg",
+		"song.mp3"
 	};
 
 	for (auto &str : songsFormats){
@@ -354,7 +357,8 @@ int CPlayer::getLevel()
 	return static_cast<int>(log(experience));
 }
 
-bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
+bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile)
+{
 	typedef std::map < std::string, std::map<std::string, std::deque<std::string>> > parsedChart;
 	chartFileName = chartFile;
 	plusPos = 0;
@@ -378,7 +382,8 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 	noteContainer Nts;
 	BPMContainer BPMs;
 
-	auto parseFeedBackChart = [](parsedChart &data, std::string chartFile){
+	auto parseFeedBackChart = [](parsedChart &data, std::string chartFile)
+	{
 		std::ifstream chart(chartFile);
 		char temp[1024];
 
@@ -388,12 +393,20 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 		{
 			if (chart.fail())
 				return;
-
+			
+			{
+				char *tln = strchr(temp, '\n');
+				if (tln) *tln = '\0';
+				tln = strchr(temp, '\r');
+				if (tln) *tln = '\0';
+			}
+			
 			std::string str = temp;
-
+			
 			str = trim(str);
 
-			if (str.c_str()[0] == '['){
+			if (str.c_str()[0] == '[')
+			{
 				myScope = str;
 			}
 			else{
@@ -440,11 +453,17 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 			int i = 0;
 			for (auto &inst : SyncTrack.second){
 				if (sscanf(inst.c_str(), "%31s %d", c, &i) == 2){
-					if (std::string(c) == "B"){
+					if (std::string(c) == "B")
+					{
 						SyncTrackBPM bp;
 						bp.BPM = i;
-						bp.offset = std::stod(SyncTrack.first);
-
+						try 
+						{
+							bp.offset = std::stod(SyncTrack.first);
+						}catch (const std::exception &e)
+						{
+							CLog::log().multiRegister(__FILE__ " exception: %0 LINE %1", e, (int)__LINE__);
+						}
 						BPMs.push_back(bp);
 					}
 				}
@@ -725,7 +744,14 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 
 		auto &Song = chartMap["[Song]"];
 		
-		chartResolutionProp = std::stod(Song["Resolution"][0]) / 192.0;
+		try 
+		{
+			chartResolutionProp = std::stod(Song["Resolution"][0]) / 192.0;
+		}catch (const std::exception &e)
+		{
+			chartResolutionProp = 1.0;
+			CLog::log().multiRegister(__FILE__ " exception: %0 LINE %1", e, (int)__LINE__);
+		}
 		songName = chk(Song["Name"], 0u);
 		songArtist = chk(Song["Artist"], 0u);
 		songCharter = chk(Song["Charter"], 0u);
@@ -783,7 +809,8 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile){
 	};
 
 	for (size_t i = 0, size = Nts.size(); i < size; i++) {
-		if (isnan(Nts[i].time) || isnan(Nts[i].lTime)) {
+		if (std::isnan(Nts[i].time) || std::isnan(Nts[i].lTime))
+        {
 			continue;
 		}
 
@@ -957,7 +984,8 @@ bool CPlayer::NotesData::loadChart(const char *chartFile)
 		if(textArray[i].name[0] == 'N'){
 			scanResult = sscanf(textArray[i].content.c_str(), "%d %lf %lf", &ntIDInfo, &ntInfoTime, &ntInfoLTime);
 			
-			if(isnan(ntInfoTime) || isnan(ntInfoLTime)){
+			if(std::isnan(ntInfoTime) || std::isnan(ntInfoLTime))
+            {
 				continue;
 			}
 

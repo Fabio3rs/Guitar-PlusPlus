@@ -44,13 +44,13 @@ public:
 		}
 	};
 
-	using luaState = std::unique_ptr<lua_State, CloseLuaState>;
+	using luaState_t = std::unique_ptr<lua_State, CloseLuaState>;
 
-	static luaState											make_luaState();
+	static luaState_t										make_luaState();
 	
 	struct luaScript
 	{
-		luaState											luaState;
+		luaState_t											luaState;
 		bool												runAgain;
 
 		void												*customPtr;
@@ -279,7 +279,7 @@ public:
 			}
 		}
 
-		void pushToLuaStack(CLuaH::luaState &L) const
+		void pushToLuaStack(CLuaH::luaState_t &L) const
 		{
 			pushToLuaStack(L.get());
 		}
@@ -333,7 +333,7 @@ public:
 			}
 		}
 
-		void getFromArgs(CLuaH::luaState &L, int idx) noexcept
+		void getFromArgs(CLuaH::luaState_t &L, int idx) noexcept
 		{
 			getFromArgs(L.get(), idx);
 		}
