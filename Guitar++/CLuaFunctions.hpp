@@ -28,11 +28,11 @@ public:
 
 		LuaParams &operator<<(const std::string &param);
 		LuaParams &operator<<(double param);
-		LuaParams &operator<<(int param);
-		LuaParams &operator<<(unsigned int param) { *this << static_cast<int64_t>(param); }
+		LuaParams &operator<<(int32_t param);
+		LuaParams &operator<<(uint32_t param);
 		LuaParams &operator<<(int64_t param);
 		LuaParams &operator<<(bool param);
-		LuaParams &operator<<(size_t param);
+		LuaParams &operator<<(uint64_t param);
 
 		LuaParams &operator>>(std::string &param);
 		LuaParams &operator>>(double &param);
