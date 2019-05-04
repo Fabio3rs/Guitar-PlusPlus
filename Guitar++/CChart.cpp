@@ -109,13 +109,15 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 		}
 	};
 
-	auto BPMRead = [](BPMContainer &BPMs, parsedChart &chartMap) {
+	auto BPMRead = [](BPMContainer &BPMs, parsedChart &chartMap)
+	{
 		for (auto &SyncTrack : chartMap["[SyncTrack]"])
 		{
 			char c[32] = { 0 };
 			int i = 0;
 			for (auto &inst : SyncTrack.second) {
-				if (sscanf(inst.c_str(), "%31s %d", c, &i) == 2) {
+				if (sscanf(inst.c_str(), "%31s %d", c, &i) == 2)
+				{
 					if (std::string(c) == "B") {
 						SyncTrackBPM bp;
 						bp.BPM = i;

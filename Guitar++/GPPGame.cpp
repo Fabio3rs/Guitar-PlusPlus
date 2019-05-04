@@ -326,7 +326,7 @@ std::deque<std::string> GPPGame::getDirectory(const char *dir, bool getFiles, bo
 		{
 			std::string name = rrd->d_name;
 
-			if (name != ".." && name != ".")
+			if (name != "." && name != "..")
 			{
 				if (getDirectories && (rrd->d_type & DT_DIR) != 0)
 				{
@@ -356,7 +356,7 @@ std::string GPPGame::caseInsensitiveSearchDir(const char *dir, bool files, bool 
 		{
 			std::string name = rrd->d_name;
 
-			if (name != ".." && name != ".")
+			if (name != "." && name != "..")
 			{
 				if (directories && (rrd->d_type & DT_DIR) != 0)
 				{

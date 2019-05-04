@@ -1246,7 +1246,7 @@ void CGamePlay::renderTailsBuffer(CPlayer &player)
 	}
 }
 
-void CGamePlay::addTailToBuffer(CPlayer::NotesData::Note &note, double pos1, double pos2, double runningTime, CPlayer &player)
+void CGamePlay::addTailToBuffer(const CPlayer::NotesData::Note &note, double pos1, double pos2, double runningTime, CPlayer &player)
 {
 	//double runningTime = getRunningMusicTime(player);
 	double rtime = runningTime - pos1;
@@ -1309,7 +1309,8 @@ void CGamePlay::renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player
 	}
 }
 
-void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
+void CGamePlay::renderNote(const CPlayer::NotesData::Note &note, CPlayer &player)
+{
 	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
 	double dif = time - ltimet;
 	bool bAddTailToBuffer = false;
@@ -1326,17 +1327,12 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 		if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
 		{
 			unsigned int texture = /*fretsText.notesTexture*/1;
-			/*if (note.type & notesFlags::nf_doing_slide){
-				time = ltimet;
-			}*/
 
 			if (note.lTime > 0.0 && note.type & notesFlags::nf_doing_slide && !(note.type & notesFlags::losted))
 			{
 				bAddTailToBuffer = true;
 				lt = ltimet;
 				tlng = time - ltimet + note.lTime;
-				//engine.bindVBOBuffer(0);
-				//renderIndividualLine(i, ltimet, time - ltimet + note.lTime, GPPGame::GuitarPP().lineText, player);
 			}
 			else if (note.type & notesFlags::nf_slide && !(note.type & notesFlags::nf_slide_picked))
 			{
@@ -1351,14 +1347,6 @@ void CGamePlay::renderNote(CPlayer::NotesData::Note &note, CPlayer &player){
 			{
 				texture = /*GPPGame::GuitarPP().HOPOSText*/-1;
 			}
-
-			/*if (note.type & notesFlags::plus_mid || note.type & notesFlags::plus_end){
-			texture = CTheme::inst().SPR["PlusNote"];
-			}*/
-
-			// CFonts::fonts().draw3DTextInScreen("TESTE", CFonts::fonts().getCenterPos(sizeof("TESTE") - 1, 0.2, x1 + (x2 - x1) / 2.0), -0.4992, FretBoardStruct.z1, 0.2, 0.0, -0.2);
-
-			//renderTimeOnNote(time, time, player);
 
 			if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, note.type, player);
 		}
@@ -1715,12 +1703,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 			bool bLongNPicked = (note.type & notesFlags::nf_slide_picked) != 0 && endNoteTime >= 0.03;
 			if ((note.type & notesFlags::nf_picked) == 0 || noteTime >= -0.0025 || bLongNPicked)
 			{
-				player.buffer.push_front(note);
-
-				if (note.type & notesFlags::nf_open)
-				{
-					player.buffer.front().type |= player.notesEnumWithOpenNotes;
-				}
+				player.buffer.push_back(&note);
 			}
 		}
 
@@ -2446,8 +2429,10 @@ void CGamePlay::renderNoteShadowHpStyle(CPlayer &player)
 
 	//CFonts::fonts().drawTextInScreen(std::to_string(hopostp.size()), 0.0, 0.5, 0.1);
 
-	for (auto &note : player.buffer)
+	for (auto it = player.buffer.rbegin(); it != player.buffer.rend(); it++)
 	{
+		const auto &note = **it;
+
 		double rtime = time - note.time;
 		for (int i = 0; i < 5; ++i)
 		{
@@ -2853,8 +2838,11 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		}
 
 		//engine.clearAccmumaltionBuffer();
-		for (auto &n : player.buffer)
+
+		for (auto it = player.buffer.rbegin(); it != player.buffer.rend(); it++)
 		{
+			const auto &n = **it;
+
 			renderNote(n, player);
 			//renderNoteShadow(n, player);
 		}

@@ -328,7 +328,7 @@ public:
 
 	int BPMNowBuffer;
 
-	std::deque<NotesData::Note> buffer;
+	std::vector<const NotesData::Note*> buffer;
 
 	double spectrumLines[8];
 
