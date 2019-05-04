@@ -320,7 +320,8 @@ bool CPlayer::loadSongOnlyChart(const std::string &path){
 	return true;
 }
 
-bool CPlayer::loadSong(const std::string &path){
+bool CPlayer::loadSong(const std::string &path)
+{
 	std::string fullFilePath = (std::string("data/songs/") + path + std::string("/") + smartChartSearch(path));
 
 	CLog::log().multiRegister("Smart chart search result: %0", fullFilePath);
@@ -345,14 +346,17 @@ bool CPlayer::loadSong(const std::string &path){
 		Notes.songFullPath = (std::string("data/songs/") + path + std::string("/") + smartSongSearch(path));
 
 		CLog::log() << "loadSoundStream result: " + std::to_string(CEngine::engine().loadSoundStream(Notes.songFullPath.c_str(), songAudioID));
-
+		std::string fullPath = std::string("data/songs/") + path;
+		
 		if (Notes.instrument == "[ExpertSingle]")
 		{
-			CLog::log() << "loadSoundStream instrumentSound result: " + std::to_string(CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/guitar.ogg")).c_str(), instrumentSound));
+			CLog::log() << "loadSoundStream instrumentSound result: " +
+				std::to_string(CEngine::engine().loadSoundStream((fullPath + std::string("/") + GPPGame::caseInsensitiveSearchDir(fullPath.c_str(), true, false, "guitar.ogg")).c_str(), instrumentSound));
 		}
 		else if (Notes.instrument == "[ExpertDoubleBass]")
 		{
-			CLog::log() << "loadSoundStream instrumentSound result: " + std::to_string(CEngine::engine().loadSoundStream((std::string("data/songs/") + path + std::string("/rhythm.ogg")).c_str(), instrumentSound));
+			CLog::log() << "loadSoundStream instrumentSound result: " +
+				std::to_string(CEngine::engine().loadSoundStream((fullPath + std::string("/") + GPPGame::caseInsensitiveSearchDir(fullPath.c_str(), true, false, "rhythm.ogg")).c_str(), instrumentSound));
 		}
 	}
 

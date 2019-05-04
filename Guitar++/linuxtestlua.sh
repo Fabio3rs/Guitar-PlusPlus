@@ -2,6 +2,6 @@ cd gccout
 for f in $(ls ../Lua/*.c); 
 do 
   echo $f;
-  gcc -g $f -c -w; 
+  gcc -O3 $f -c -w; 
 done;
 
