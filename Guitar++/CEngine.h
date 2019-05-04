@@ -21,14 +21,12 @@
 #include <functional>
 #include <array>
 #include <iostream>
+#include <dirent.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/simd/matrix.h>
-
-
-
 
 class CFiledtor
 {
@@ -39,7 +37,17 @@ public:
 	}
 };
 
+class direntclose
+{
+public:
+	void operator() (DIR *p) const noexcept
+	{
+		closedir(p);
+	}
+};
+
 typedef std::unique_ptr < FILE, CFiledtor > cfile_ptr;
+typedef std::unique_ptr < DIR, direntclose > udirent_t;
 
 #ifndef GLFW_KEY_MENU
 /* The unknown key */
@@ -234,6 +242,11 @@ public:
 	static cfile_ptr make_cfile(const char *name, const char *mode)
 	{
 		return cfile_ptr(fopen(name, mode));
+	}
+
+	static udirent_t make_dirent(const char *dir)
+	{
+		return std::unique_ptr< DIR, direntclose >(opendir(dir));
 	}
 
 	inline const double *getProjMatrix() const { return projMatrix.data();  }

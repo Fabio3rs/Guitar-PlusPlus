@@ -58,14 +58,23 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 			if (chart.fail())
 				return;
 
+			{
+				char *tln = strchr(temp, '\n');
+				if (tln) *tln = '\0';
+				tln = strchr(temp, '\r');
+				if (tln) *tln = '\0';
+			}
+			
 			std::string str = temp;
 
 			str = trim(str);
 
-			if (str.c_str()[0] == '[') {
+			if (str.c_str()[0] == '[')
+			{
 				myScope = str;
 			}
-			else {
+			else
+			{
 				size_t s = str.find_first_of('='), sB, sC;
 				size_t d = str.find_first_not_of('	');
 

@@ -2,15 +2,6 @@
 #ifndef _GUITAR_PP_CGPPGAME_h_
 #define _GUITAR_PP_CGPPGAME_h_
 
-#include <string>
-#include <map>
-#include <memory>
-#include <deque>
-#include <vector>
-#include <exception>
-#include <atomic>
-#include <thread>
-#include <mutex>
 #include "CShader.h"
 #include "CMenu.h"
 #include "CEngine.h"
@@ -19,6 +10,16 @@
 #include "CGamePlay.h"
 #include "CLuaFunctions.hpp"
 #include "CPlayer.h"
+#include <map>
+#include <deque>
+#include <mutex>
+#include <atomic>
+#include <cctype>
+#include <string>
+#include <memory>
+#include <vector>
+#include <thread>
+#include <exception>
 
 class gameException : public std::exception{
 	std::string str;
@@ -308,6 +309,20 @@ public:
 	std::deque<std::string> marathonSongsList;
 
 	static std::deque<std::string> getDirectory(const char *dir, bool getFiles, bool getDirectories);
+	static std::string caseInsensitiveSearchDir(const char *dir, bool files, bool directories, const std::string &searchName);
+
+	static inline bool caseInSensStringCompare(const std::string &str1, const std::string &str2)
+	{
+		return ((str1.size() == str2.size()) &&
+			std::equal(str1.begin(), str1.end(), str2.begin(), [](const char &c1, const char &c2)
+		{
+			if (c1 == c2)
+				return true;
+			else if (std::toupper(c1) == std::toupper(c2))
+				return true;
+			return false;
+		}));
+	}
 
 	void initialLoad();
 	void initialLoad2();

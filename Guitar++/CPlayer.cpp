@@ -26,8 +26,10 @@
 const int CPlayer::notesEnum = nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
 const int CPlayer::notesEnumWithOpenNotes = nf_green | nf_red | nf_yellow | nf_blue | nf_orange | nf_open;
 
-std::string CPlayer::smartChartSearch(const std::string &path){
-	auto file_exists = [](const std::string &fileName){
+std::string CPlayer::smartChartSearch(const std::string &path)
+{
+	auto file_exists = [](const std::string &fileName)
+	{
 		return std::fstream(fileName).is_open();
 	};
 
@@ -37,17 +39,19 @@ std::string CPlayer::smartChartSearch(const std::string &path){
 		path + ".gpp",
 		path + ".chart",
 		"Chart.gpp",
-		"chart.gpp",
 		"Notes.gpp",
-		"notes.gpp",
 		"Chart.chart",
-		"notes.chart",
-		"chart.chart"
+		"notes.chart"
 	};
 
-	for (auto &str : chartFormats){
-		if (file_exists(fullPath + std::string("/") + str))
-			return str;
+	std::string tmp;
+
+	for (auto &str : chartFormats)
+	{
+		tmp = GPPGame::caseInsensitiveSearchDir(fullPath.c_str(), true, false, str);
+
+		if (tmp.size() > 0)
+			return tmp;
 	}
 
 	return "";
@@ -288,9 +292,14 @@ std::string CPlayer::smartSongSearch(const std::string &path)
 		"song.mp3"
 	};
 
-	for (auto &str : songsFormats){
-		if (file_exists(fullPath + std::string("/") + str))
-			return str;
+	std::string tmp;
+
+	for (auto &str : songsFormats)
+	{
+		tmp = GPPGame::caseInsensitiveSearchDir(fullPath.c_str(), true, false, str);
+
+		if (tmp.size() > 0)
+			return tmp;
 	}
 
 	return "";
@@ -369,10 +378,12 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile)
 	struct SyncTrackBPM{
 		double BPM, offset;
 
-		bool operator <(const SyncTrackBPM &b) const{
+		bool operator <(const SyncTrackBPM &b) const noexcept
+		{
 			return offset < b.offset;
 		}
-		bool operator >(const SyncTrackBPM &b) const{
+		bool operator >(const SyncTrackBPM &b) const noexcept
+		{
 			return offset > b.offset;
 		}
 	};

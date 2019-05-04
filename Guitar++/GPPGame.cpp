@@ -316,13 +316,13 @@ std::deque<std::string> GPPGame::getDirectory(const char *dir, bool getFiles, bo
 {
 	std::deque<std::string> result;
 
-	DIR *direntd = opendir(dir);
+	udirent_t direntd = CEngine::make_dirent(dir);
 	dirent *rrd = nullptr;
 
 	if (direntd)
 	{
-		rrd = readdir(direntd);
-		while ((rrd = readdir(direntd)) != nullptr)
+		rrd = readdir(direntd.get());
+		while ((rrd = readdir(direntd.get())) != nullptr)
 		{
 			std::string name = rrd->d_name;
 
@@ -339,10 +339,45 @@ std::deque<std::string> GPPGame::getDirectory(const char *dir, bool getFiles, bo
 				}
 			}
 		}
-		closedir(direntd);
 	}
 
 	return result;
+}
+
+std::string GPPGame::caseInsensitiveSearchDir(const char *dir, bool files, bool directories, const std::string &searchName)
+{
+	udirent_t direntd = CEngine::make_dirent(dir);
+	dirent *rrd = nullptr;
+
+	if (direntd)
+	{
+		rrd = readdir(direntd.get());
+		while ((rrd = readdir(direntd.get())) != nullptr)
+		{
+			std::string name = rrd->d_name;
+
+			if (name != ".." && name != ".")
+			{
+				if (directories && (rrd->d_type & DT_DIR) != 0)
+				{
+					if (caseInSensStringCompare(name, searchName))
+					{
+						return name;
+					}
+				}
+
+				if (files && (rrd->d_type & DT_DIR) == 0)
+				{
+					if (caseInSensStringCompare(name, searchName))
+					{
+						return name;
+					}
+				}
+			}
+		}
+	}
+
+	return std::string();
 }
 
 void GPPGame::initialLoad()
