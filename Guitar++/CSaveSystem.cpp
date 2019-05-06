@@ -7,7 +7,7 @@ CSaveSystem &CSaveSystem::saveSystem()
 	return savesystemmgr;
 }
 
-bool CSaveSystem::CSave::loads()
+bool CSaveSystem::CSave::loads() noexcept
 {
 	try{
 		std::fstream svfstream(fpath, std::ios::in | std::ios::binary);
@@ -38,7 +38,7 @@ bool CSaveSystem::CSave::loads()
 	return true;
 }
 
-bool CSaveSystem::CSave::saves()
+bool CSaveSystem::CSave::saves() noexcept
 {
 	try{
 		std::fstream svfstream(fpath, std::ios::out | std::ios::trunc | std::ios::binary);
@@ -77,6 +77,19 @@ bool CSaveSystem::CSave::saves()
 	return true;
 }
 
+bool CSaveSystem::CSave::createNew() noexcept
+{
+	if (fpath.size() == 0)
+		return false;
+
+	if (std::fstream(fpath, std::ios::out | std::ios::trunc | std::ios::binary).is_open())
+		loaded = true;
+	else
+		loaded = false;
+
+	return loaded;
+}
+
 bool CSaveSystem::CSave::loadn(const std::string &savepath)
 {
 	fpath = savepath;
@@ -86,7 +99,7 @@ bool CSaveSystem::CSave::loadn(const std::string &savepath)
 CSaveSystem::CSave::CSave(const std::string &savepath)
 {
 	fpath = savepath;
-
+	loaded = false;
 }
 
 CSaveSystem::CSaveSystem()

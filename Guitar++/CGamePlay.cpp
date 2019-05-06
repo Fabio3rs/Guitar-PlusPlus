@@ -1355,7 +1355,8 @@ void CGamePlay::renderNote(const CPlayer::NotesData::Note &note, CPlayer &player
 	if (bAddTailToBuffer) addTailToBuffer(note, lt, tlng, ltimet, player);
 }
 
-void CGamePlay::renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player){
+void CGamePlay::renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player)
+{
 	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
 	double dif = time - ltimet;
 	double lt = 0.0, tlng = 0.0;

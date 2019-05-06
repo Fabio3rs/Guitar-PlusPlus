@@ -4329,7 +4329,17 @@ GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(n
 
 	gameplayRunningTime = 0.0;
 
-	mainSave.loadn("data/saves/mains");
+	if (!mainSave.loadn("data/saves/mains"))
+	{
+		CLog::log() << "data/saves/mains error";
+
+		{
+			if (mainSave.createNew())
+				CLog::log() << "data/saves/mains clean";
+			else
+				CLog::log() << "data/saves/mains recreate error";
+		}
+	}
 	devMenus.gameMenu = true;
 	uiRenameMenu.gameMenu = true;
 	uiCreateProfile.gameMenu = true;

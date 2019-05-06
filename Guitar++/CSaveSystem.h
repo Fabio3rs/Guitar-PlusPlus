@@ -78,9 +78,10 @@ public:
 
 	public:
 
-		bool loads();
+		bool loads() noexcept;
 		bool loadn(const std::string &savepath);
-		bool saves();
+		bool saves() noexcept;
+		bool createNew() noexcept;
 
 		template <class T>
 		inline T getVarContent(const std::string &var)
@@ -198,7 +199,7 @@ public:
 		}
 
 		CSave(const std::string &savepath);
-		CSave() = default;
+		CSave() { loaded = false; };
 	};
 
 
