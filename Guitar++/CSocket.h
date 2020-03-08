@@ -8,8 +8,21 @@
 #include <string>
 #include <iostream>
 #include <deque>
+
+#ifdef WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#else
+#include <unistd.h>
+#include <sys/types.h> 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h> 
+#include <error.h>
+
+typedef int SOCKET;
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <thread>
@@ -38,100 +51,105 @@ public:
 	}
 };
 
-class CSock{
-	WSADATA wsaData;
-	
-public:
-	struct addrinfo *result;
-	
-	CSock(){
-		result = (addrinfo*)WSAStartup(MAKEWORD(2,2), &wsaData);
-		
-		if(result != 0){
-			throw SocketError((std::string("WSAStartup failed: ") + std::to_string((uint32_t)result)).c_str());
-		}
-	}
-	
-	~CSock(){
-		
-	}
-};
-
 typedef void (*clientReceiveData_fun)(SOCKET ServerSock, const char *data, size_t size);
 
-class CClientSock : CSock{
-	struct addrinfo *ptr, hints;
-	SOCKET ConnectSocket;
-	int iResult;
-	
+class socket_unique
+{
+	SOCKET p;
 public:
-	int receiveDataFromServer(char *buffer, size_t bufferSize){
-		return recv(ConnectSocket, buffer, bufferSize, 0);
-	}
-	
-	int sendToServer(const char *data, size_t size){
-		return send(ConnectSocket, data, size, 0);
+	SOCKET get() const
+	{
+		return p;
 	}
 
-	void init(const char *server, const char *port){
-		ConnectSocket = INVALID_SOCKET;
-		ZeroMemory(&hints, sizeof(hints));
-		hints.ai_family = AF_INET;
-		hints.ai_socktype = SOCK_STREAM;
-		hints.ai_protocol = IPPROTO_TCP;
+	socket_unique &operator=(const socket_unique &s) = delete;
 
-		iResult = getaddrinfo(server, port, &hints, &result);
-		// std::cout << iResult << std::endl;
-
-
-		for (ptr = result; ptr != NULL; ptr = ptr->ai_next){
-			ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype,
-				ptr->ai_protocol);
-			if (ConnectSocket == INVALID_SOCKET) {
-				printf("socket failed with error: %d\n", WSAGetLastError());
-				WSACleanup();
-				return;
-			}
-
-			// Connect to server.
-			iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
-			if (iResult == SOCKET_ERROR) {
-				closesocket(ConnectSocket);
-				ConnectSocket = INVALID_SOCKET;
-				continue;
-			}
-			// std::cout << "Connected\n";
-			break;
-		}
-
-
-		//Sleep(1000);
-		// iResult = send(ConnectSocket, "bytes do pato de teste", sizeof("bytes do pato de teste"), 0);
-		// std::cout << iResult << " bytes sended\n";
-	}
-	
-	CClientSock(const char *server, const char *port) : CClientSock(){
-		init(server, port);
+	socket_unique &operator=(socket_unique &&s)
+	{
+		p = std::move(s.p);
+		s.p = -1;
+		return *this;
 	}
 
-	CClientSock() : CSock(){
+	socket_unique(const socket_unique &s) = delete;
+	socket_unique(socket_unique &&s) : p(std::move(s.p))
+	{
+		s.p = -1;
+	}
 
+	socket_unique(SOCKET s) : p(s)
+	{
+		
+	}
+
+	socket_unique() : p(-1) {}
+
+	~socket_unique()
+	{
+		if (p != -1)
+			close(p);
 	}
 };
 
-class CServerSock : CSock{
+class CClientSock
+{
+	bool success;
+	int sockfd, portno, n;
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+public:
+	ssize_t send(const char *data, size_t size)
+	{
+		return write(sockfd, data, size);
+	}
+
+	ssize_t receive(char *data, size_t size)
+	{
+		return read(sockfd, data, size);
+	}
+
+	CClientSock(const char *host, int port)
+	{
+		success = false;
+
+		portno = port;
+		sockfd = socket(AF_INET, SOCK_STREAM, 0);
+		if (sockfd < 0) 
+			throw SocketError("ERROR opening socket");
+		server = gethostbyname(host);
+		if (server == NULL) {
+			fprintf(stderr,"ERROR, no such host\n");
+			return;
+		}
+		bzero((char *) &serv_addr, sizeof(serv_addr));
+		serv_addr.sin_family = AF_INET;
+		bcopy((char *)server->h_addr, 
+			(char *)&serv_addr.sin_addr.s_addr,
+			server->h_length);
+		serv_addr.sin_port = htons(portno);
+		if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+			throw SocketError("ERROR connecting");
+	}
+
+	~CClientSock()
+	{
+		close(sockfd);
+	}
+};
+
+class CServerSock{
 public:
 	struct ServerThreads;
-	typedef void (*serverReceiveData_fun)(CServerSock::ServerThreads*, std::unique_ptr<char[]> &data, size_t size);
+	typedef void (*client_connect)(CServerSock*, socket_unique &&socketid);
 
 private:
-	struct addrinfo *ptr, hints;
-	int serverResult;
-	SOCKET ListenSocket;
+	int sockfd, newsockfd, portno, pid;
+    socklen_t clilen;
+    struct sockaddr_in serv_addr, cli_addr;
+	
 	std::thread pMainServerThread;
-	serverReceiveData_fun ClientResponseFun;
+	client_connect clientConnectFun;
 	std::atomic<bool> continueMainThread;
-	std::atomic<bool> continueOthersThreads;
 	bool socketSuccess;
 	
 	const static size_t receiveBufferSize = 1024 * 1024 * 4; // 4MB
@@ -144,221 +162,84 @@ public:
 	void stop()
 	{
 		continueMainThread = false;
-		continueOthersThreads = false;
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-		std::cout << "Parando threads de clientes\n";
-
-		for (auto &thrs : Threads)
-		{
-			std::cout << "1\n";
-
-			try{
-				if (thrs.running)
-				{
-					std::this_thread::sleep_for(std::chrono::milliseconds(50));
-				}
-
-				shutdown(thrs.ClientSocket, SD_SEND);
-				closesocket(thrs.ClientSocket);
-			}
-			catch (...){
-
-			}
-
-			try{
-				if (thrs.pThread->joinable())
-				{
-					thrs.pThread->join();
-				}
-			}
-			catch (...){
-
-			}
-		}
-
-		std::cout << "Threads de clientes parados\n";
 	}
 
-	const bool success(){
-		return socketSuccess;
-	}
-
-	struct ServerThreads{
-		std::unique_ptr<std::thread> pThread;
-		CServerSock *ServerPtr;
-		SOCKET ClientSocket;
-		//KeyPair ServerKeys;
-		//KeyPair ClientKeys;
-		std::string user, password;
-		bool clientKeySetted, running, logged;
-		
-		serverReceiveData_fun fun;
-		
-		ServerThreads(ServerThreads &&thr)
-		{
-			if (this == &thr)
-				return;
-
-			pThread = nullptr;
-			pThread = (std::move(thr.pThread));
-			ServerPtr = std::move(thr.ServerPtr);
-			ClientSocket = std::move(thr.ClientSocket);
-			user = std::move(thr.user);
-			password = std::move(thr.password);
-			clientKeySetted = std::move(thr.clientKeySetted);
-			running = std::move(thr.running);
-			fun = std::move(thr.fun);
-			logged = std::move(thr.logged);
-		}
-
-		ServerThreads()/* : ServerKeys(genRSAKeys()), ClientKeys(ServerKeys)*/{
-			clientKeySetted = false;
-			logged = false;
-			running = true;
-			ClientSocket = NULL;
-			fun = (serverReceiveData_fun)nullptr;
-		}
-
-		~ServerThreads(){
-
-		}
-	};
-	
-	std::deque<ServerThreads> Threads;
-	
-	static void clientSockMGRThread(ServerThreads *pThisThreadInfo)
+	const bool success()
 	{
-		//std::cout << "Entering the client thread...\n";
-		std::unique_ptr<char[]> buffer = nullptr;
-		try{
-			buffer = std::make_unique<char[]>(receiveBufferSize);
-
-			int bytesReceived;
-		
-			pThisThreadInfo->ServerPtr->sendToClient(pThisThreadInfo->ClientSocket, "OK Signal", sizeof("OK Signal"));
-
-			while (pThisThreadInfo->running && pThisThreadInfo->ServerPtr->continueOthersThreads){
-				bytesReceived = recv(pThisThreadInfo->ClientSocket, buffer.get(), receiveBufferSize, 0);
-				
-				//std::cout << "received " << bytesReceived << "bytes\n";
-
-				if (bytesReceived == 0xFFFFFFFF)
-				{
-					break;
-				}
-				
-				if (pThisThreadInfo->fun != nullptr && bytesReceived != 0)
-				{
-					pThisThreadInfo->fun(pThisThreadInfo, buffer, bytesReceived);
-				}
-			}
-		}catch(std::exception &e){
-			std::cout << e.what() << std::endl;
-		}catch(...){
-			
-		}
-
-		shutdown(pThisThreadInfo->ClientSocket, SD_SEND);
-		closesocket(pThisThreadInfo->ClientSocket);
-		std::cout << "Client disconnected.\n";
-
-		pThisThreadInfo->running = false;
+		return socketSuccess;
 	}
 	
 	static void mainServerThreadFunction(CServerSock *pThisServerInst)
 	{
-		// std::cout << "Entering the thread...\n";
-		
-		while (pThisServerInst->continueMainThread){
-			SOCKET ClientSocket = accept(pThisServerInst->ListenSocket, NULL, NULL);
-			if(ClientSocket == INVALID_SOCKET){
-				/* TODO */
-				std::cout << "'accept' failed\n";
-				pThisServerInst->continueMainThread = false;
+		std::cout << "Entering the mainServerThreadFunction thread...\n";
+		CServerSock &sv = *pThisServerInst;
+		listen(sv.sockfd, 5);
+		sv.clilen = sizeof(sv.cli_addr);
+		while (sv.continueMainThread)
+		{
+			int newsockfd = accept(sv.sockfd, 
+				(struct sockaddr *) &sv.cli_addr, &sv.clilen);
+			if (newsockfd < 0) 
 				break;
-			}else{
-				std::cout << "new client connected\n";
-				ServerThreads thr;
-				pThisServerInst->Threads.push_back(std::move(thr));
-				auto &NewThread = pThisServerInst->Threads.back();
-				NewThread.ClientSocket = ClientSocket;
-				NewThread.fun = pThisServerInst->ClientResponseFun;
-				NewThread.ServerPtr = pThisServerInst;
-				
-				// std::cout << "Starting new thread...\n";
-				NewThread.pThread = std::make_unique<std::thread>(clientSockMGRThread, &NewThread);
+			
+			if (sv.continueMainThread)
+			{
+				socket_unique s(newsockfd);
+				sv.clientConnectFun(pThisServerInst, std::move(s));
 			}
 		}
-		// std::cout << "Exiting thread...\n";
+		close(sv.sockfd);
+		std::cout << "Exiting mainServerThreadFunction thread...\n";
 	}
 
-	static int sendToClient(SOCKET sock, const char *data, size_t size){
+	static int sendToClient(SOCKET sock, const char *data, size_t size)
+	{
 		return send(sock, data, size, 0);
 	}
 	
-	void init(const char *port, serverReceiveData_fun Callback){
+	void init(const char *port, client_connect Callback)
+	{
+		std::cout << "Trying to init server port " << port << std::endl;
 		continueMainThread = true;
 		socketSuccess = true;
-		ClientResponseFun = Callback;
-		ZeroMemory(&hints, sizeof(hints));
-		hints.ai_family = AF_INET;
-		hints.ai_socktype = SOCK_STREAM;
-		hints.ai_protocol = IPPROTO_TCP;
-		hints.ai_flags = AI_PASSIVE;
-
-		serverResult = getaddrinfo(NULL, port, &hints, &result);
-		if (serverResult != 0){
-			WSACleanup();
-			std::cout << "getaddrinfo failed: " << serverResult << std::endl;
-			socketSuccess = false;
-			//throw SocketError((std::string("getaddrinfo failed: ") + std::to_string(serverResult)).c_str());
-		}
-
-		ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-		if (ListenSocket == INVALID_SOCKET){
-			std::cout << "socket failed: " << WSAGetLastError() << std::endl;
-			socketSuccess = false;
-		}
-
-		serverResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
-		if (serverResult == SOCKET_ERROR){
-			std::cout << "bind failed: " << WSAGetLastError() << std::endl;
-			socketSuccess = false;
-		}
-
-		if (listen(ListenSocket, SOMAXCONN) == SOCKET_ERROR){
-			std::cout << "listen failed: " << WSAGetLastError() << std::endl;
-			socketSuccess = false;
-		}
-
+		clientConnectFun = Callback;
+		sockfd = socket(AF_INET, SOCK_STREAM, 0);
+		if (sockfd < 0) 
+		bzero((char *) &serv_addr, sizeof(serv_addr));
+		portno = std::stoi(port);
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_addr.s_addr = INADDR_ANY;
+		serv_addr.sin_port = htons(portno);
+		if (bind(sockfd, (struct sockaddr *) &serv_addr,
+				sizeof(serv_addr)) < 0) 
+				throw SocketError("ERROR on binding");
+				
 		pMainServerThread = std::thread(mainServerThreadFunction, this);
 	}
 
-	CServerSock(const char *port, serverReceiveData_fun Callback) : CSock(){
-		continueOthersThreads = true;
+	CServerSock(const char *port, client_connect Callback)
+	{
 		init(port, Callback);
 	}
 	
-	CServerSock() : CSock(){
-		continueMainThread = true;
+	CServerSock()
+	{
 		socketSuccess = false;
-		continueOthersThreads = true;
 	}
 
 	~CServerSock()/* : ~CSock()*/{
 		continueMainThread = false;
-		continueOthersThreads = false;
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
+		shutdown(sockfd, SHUT_RD);
+		close(sockfd);
 		std::cout << "Parando main...\n";
 
-		closesocket(ListenSocket);
-		WSACleanup();
-
-		if (pMainServerThread.joinable()){
+		if (pMainServerThread.joinable())
+		{
 			pMainServerThread.join();
 		}
 	}
