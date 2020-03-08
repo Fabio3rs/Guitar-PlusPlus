@@ -260,6 +260,8 @@ protected:
 	static int keepCampaingMenuStack(lua_State *L);
 	static int exitCampaingScreen(lua_State *L);
 
+	static int getSchedule(lua_State *L);
+
 	static int campaingLoop();
 	static int campaingDrawScreen();
 

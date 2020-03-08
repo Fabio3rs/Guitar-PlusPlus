@@ -392,10 +392,13 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile)
 		}
 	};
 
-	typedef std::deque<Note> noteContainer;
+	typedef std::vector<Note> noteContainer;
 	typedef std::vector<SyncTrackBPM> BPMContainer;
 	noteContainer Nts;
 	BPMContainer BPMs;
+
+	Nts.reserve(2000);
+	BPMs.reserve(64);
 
 	auto parseFeedBackChart = [](parsedChart &data, std::string chartFile)
 	{

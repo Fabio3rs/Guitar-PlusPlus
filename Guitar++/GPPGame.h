@@ -20,6 +20,8 @@
 #include <vector>
 #include <thread>
 #include <exception>
+#include <future>
+#include "CMultiThreadPool.h"
 
 class gameException : public std::exception{
 	std::string str;
@@ -55,7 +57,13 @@ class GPPGame{
 		preRenderFrameSE, posRenderFrameSE, menusGoBackSE, menusCMMenuSE, menusNextSE, menusGameCbNextSE, catchedExceptionSE,
 		joystickStateCbSE;
 
+    std::atomic<bool>           forceTextToLoad;
+    std::mutex                  mstreamming_block;
+    std::condition_variable     cstreamming_block;
+
 public:
+    std::atomic<std::thread::id> mainthread;
+
 	class MessageTypes
 	{
 		std::string fontName;
@@ -81,9 +89,12 @@ public:
 	float songVolume;
 
 	// Texture instance manager
+    // Need optimizations
 	class gppTexture{
 		friend GPPGame;
 		unsigned int text;
+        bool lasync;
+        std::atomic<bool> asyncFl;
 		std::string textPath;
 		std::string textName;
 
@@ -93,10 +104,53 @@ public:
 
 		// DO NOT DUPLICATE THE TEXTURE INSTANCE!!!!!!!
 		gppTexture(const gppTexture&) = delete;
+        std::future<bool> ft;
+
+        static bool loadAsync(gppTexture *ths)
+        {
+            if (ths->textName.size() == 0)
+            {
+                std::cout << "ths->textName.size() == 0\n";
+                return 0;
+            }
+            bool r = CEngine::engine().loadTextureAsync((ths->textPath + std::string("/") + ths->textName).c_str(), &ths->imgData);
+            ths->asyncFl = true;
+
+            if (!r)
+            {
+                std::cout << (ths->textPath + std::string("/") + ths->textName) << std::endl;
+            }
+
+            return r;
+        }
 
 	public:
 		unsigned int getTextId() const noexcept
 		{
+			return text;
+		}
+
+        unsigned int getTextIdUpdateAsync() noexcept
+		{
+            if (text == 0u && lasync)
+            {
+                ft.wait();
+                if (ft.get())
+                {
+                    if (imgData.Data.get() != nullptr)
+                    {
+                        text = CEngine::engine().uploadTextureToOGL(&imgData);
+                    }else
+                    {
+                        std::cout << "DATA NOT VALID " << textName << std::endl;
+                    }
+                    
+                }else
+                {
+                    std::cout << "ft.get() 0\n";
+                }
+            }
+
 			return text;
 		}
 
@@ -130,23 +184,57 @@ public:
 			return imgData;
 		}
 
-		gppTexture(const std::string &path, const std::string &texture)
+		gppTexture(const std::string &path, const std::string &texture, bool async = false)
 		{
+            asyncFl = false;
+            text = 0u;
+            lasync = async;
 			imgData.keepData = GPPGame::GuitarPP().gppTextureKeepBuffer;
 
-			text = CEngine::engine().loadTexture((path + std::string("/") + texture).c_str(), &imgData);
 			textPath = path;
 			textName = texture;
+
+            if (async)
+            {
+                
+            }else
+            {
+			    text = CEngine::engine().loadTexture((textPath + std::string("/") + textName).c_str(), &imgData);
+            }
 		}
+
+        void tloadAsync(const std::string &path, const std::string &texture)
+        {
+            if (text == 0u)
+            {
+                asyncFl = false;
+                imgData.keepData = GPPGame::GuitarPP().gppTextureKeepBuffer;
+
+                textPath = path;
+                textName = texture;
+
+                if (lasync)
+                {
+                    ft = std::async(std::launch::async, loadAsync, this);
+                }
+            }
+        }
 
 		gppTexture &operator = (gppTexture &&m) noexcept
 		{
 			if (this == std::addressof(m)) return *this;
-
+            
 			text = std::move(m.text);
 			textPath = std::move(m.textPath);
 			textName = std::move(m.textName);
 			imgData = std::move(m.imgData);
+			ft = std::move(m.ft);
+            asyncFl = (bool)m.asyncFl;
+            lasync = m.lasync;
+
+            if (text != 0)
+                lasync = false;
+
 			associatedToScript = std::move(m.associatedToScript);
 
 			if (m.text)
@@ -155,10 +243,15 @@ public:
 			return *this;
 		};
 
-		gppTexture(gppTexture&&) = default;
+		gppTexture(gppTexture &&m)
+        {
+            *this = std::move(m);
+        }
 
 		gppTexture() noexcept
 		{
+            asyncFl = false;
+            lasync = false;
 			text = 0;
 		}
 
@@ -168,6 +261,49 @@ public:
 			// TODO CEngine::engine().unloadTexture(id);
 		}
 	};
+
+    struct loadTextureBatch
+    {
+        std::string path;
+        std::string texture;
+        CLuaH::luaScript *luaScript;
+
+        std::function<void(loadTextureBatch *)> targetFun;
+        void *userptr;
+        std::string username;
+
+
+        double addedTime;
+        gppTexture *text;
+
+        loadTextureBatch()
+        {
+            luaScript = nullptr;
+            text = nullptr;
+            userptr = nullptr;
+            addedTime = 0.0;
+        }
+
+        loadTextureBatch(std::string pa, std::string tx, void *up, std::function<void(loadTextureBatch *)> tf, const std::string &usrnm = "", CLuaH::luaScript *ls = nullptr)
+        {
+            path = pa;
+            texture = tx;
+            userptr = up;
+            targetFun = tf;
+            username = usrnm;
+
+            luaScript = ls;
+            text = nullptr;
+            addedTime = 0.0;
+        }
+    };
+
+    CMultiThreadPool<loadTextureBatch, 200> futureTextureLoad;
+
+	bool loadTextureSingleAsync(const loadTextureBatch &tData);
+    void forceTexturesToLoad();
+
+    void streammingProcess();
 
 	struct gameWindow{
 		int h, w, AA, colorBits, VSyncMode;
@@ -225,8 +361,39 @@ public:
 
 	std::map<std::string, bool>				 cmdparams;
 	void parseParameters(int argc, char *argv[]);
+
+    struct loadModelBatch
+    {
+        GPPOBJ *obj;
+        std::future<bool> ft;
+        std::string path;
+        std::string model;
+
+        loadModelBatch(loadModelBatch&& m)
+        {
+            path = std::move(m.path);
+            model = std::move(m.model);
+            obj = std::move(m.obj);
+            ft = std::move(m.ft);
+        }
+
+        loadModelBatch()
+        {
+            obj = nullptr;
+        }
+
+        loadModelBatch(const char *pa, const char *md, GPPOBJ &o)
+        {
+            path = pa;
+            model = md;
+            obj = &o;
+        }
+    };
 	
+    void textureBatchLoad(const std::vector<std::pair<std::string, std::string>> texts);
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
+	bool loadModelBatchAsync(std::deque<loadModelBatch> &batch);
+	bool loadTextureBatchAsync(std::deque<loadTextureBatch> &batch);
 	int loadTextureGetId(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
 	unsigned int getTextureId(const std::string &name) const noexcept;
 	const CTheme &loadThemes(const std::string &theme, CLuaH::luaScript *luaScript = nullptr);

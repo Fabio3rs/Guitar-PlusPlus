@@ -4,14 +4,16 @@
 #include <string>
 #include <array>
 #include <vector>
+#include <atomic>
+#include <future>
 #include "CEngine.h"
 #include "CLuaH.hpp"
 
 class GPPOBJ{
 	std::vector<int8_t> data;
 	CEngine::staticDrawBuffer vbodata;
-
-	bool mtlLoaded;
+    
+	bool mtlLoaded, modelLoaded;
 
 	struct loadedTextures
 	{
@@ -85,6 +87,7 @@ public:
 
 	void draw(unsigned int texture, bool autoBindZeroVBO = true);
 	void onlyDraw(bool autoBindZeroVBO = true) const;
+	void loadTextureList(const std::string &path, const std::string &file);
 	void load(const std::string &path, const std::string &file);
 
 	gppVec3f boxTestForMtl(const std::string &mtl);
@@ -92,6 +95,7 @@ public:
 	void unload();
 
 
+	GPPOBJ(GPPOBJ&&) = default;
 	//GPPOBJ(const std::string &path);
 	GPPOBJ();
 	~GPPOBJ();

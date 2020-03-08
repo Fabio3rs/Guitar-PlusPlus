@@ -23,6 +23,8 @@
 #include "CShader.h"
 #include "CControls.h"
 
+#include "CMultiplayer.h"
+
 int main(int argc, char* argv[])
 {
 	///startGambiarras();
@@ -670,6 +672,13 @@ int main(int argc, char* argv[])
 
 		GPPGame::GuitarPP().setVSyncMode(1);
 
+		/*CMultiplayer mp;
+
+		std::cout << "Trying to start mp\n\n";
+		mp.startServer("7777");
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		mp.clientConnect("127.0.0.1", "7777");*/
+
 		{
 			//CCampaing::campaingMGR().loadedCampaingFilepath = "./data/saves/campaings/campaingZoeira/save";
 			cfile_ptr svfstream(CEngine::make_cfile("./data/saves/campaings/campaingZoeira/save", "rb"));
@@ -678,13 +687,13 @@ int main(int argc, char* argv[])
 			{
 				svfstream.reset();
 
-				CCampaing::campaingMGR().newCampaing();
+				CCampaing::campaingMGR().loadCampaingF("./data/saves/campaings/campaingZoeira/save");
 			}
 			else
 			{
 				svfstream.reset();
 
-				CCampaing::campaingMGR().loadCampaingF("./data/saves/campaings/campaingZoeira/save");
+				CCampaing::campaingMGR().newCampaing();
 			}
 		}
 

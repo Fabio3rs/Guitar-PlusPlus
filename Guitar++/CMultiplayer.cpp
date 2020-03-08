@@ -1,3 +1,91 @@
+#include "CMultiplayer.h"
+
+static CMultiplayer *server = nullptr;
+
+void CMultiplayer::mpclientconnectcb(CServerSock *sv, socket_unique &&socketid)
+{
+	std::cout << "connected client";
+
+	char buffer[1024] = { 0 };
+
+	int64_t readr = read(socketid.get(), buffer, 10);
+
+	std::cout << buffer << std::endl;
+	{
+		server->testclientthr = std::move(std::thread(clientmgrthread, server, std::move(socketid)));
+	}
+	std::cout << "aaaaaaaaaaaaaaaaaaaaaaaa" << "\n";
+}
+
+bool CMultiplayer::startServer(const char *port)
+{
+	server = this;
+	sv.init(port, mpclientconnectcb);
+
+	serverRunning = true;
+
+}
+
+void CMultiplayer::clientmgrthread(CMultiplayer *mp, socket_unique &&socketid)
+{
+	std::cout << "clientmgrthread\n";
+	while (mp->serverRunning)
+	{
+		if (mp->notifyTest)
+		{
+			std::cout << "writenotify\n";
+			write(socketid.get(), "notify", sizeof("notify"));
+			std::cout << "writednotify\n";
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			break;
+		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+}
+
+SOCKET CMultiplayer::clientConnect(const char *host, const char *port)
+{
+	std::cout << "SOCKET CMultiplayer::clientConnect(const char *host, const char *port)\n";
+	CClientSock cli(host, std::stoi(port));
+
+	cli.send("aaaaaaaaaaaa", 4);	
+	char buffer[1024] = { 0 };
+	std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+		if (!server->notifyTest)
+		{
+			server->notifyTest = true;
+		}
+
+	for (int i = 0; i < 1000; i++)
+	{
+		int64_t readr = cli.receive(buffer, sizeof(buffer));
+		if (readr > 0)
+		{
+			std::cout << readr << "   " << buffer << std::endl;
+		}else if(readr < 0)
+		{
+			std::cout << "error\n";
+			break;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(2));
+	}
+	std::cout << "RETURN SOCKET CMultiplayer::clientConnect(const char *host, const char *port)\n";
+}
+
+CMultiplayer::CMultiplayer()
+{
+	serverRunning = false;
+	continueClThread = false;
+}
+
+CMultiplayer::~CMultiplayer()
+{
+	
+}
+
+
 #ifdef _WIN32
 #include "CMultiplayer.h"
 #include "GPPGame.h"

@@ -21,6 +21,8 @@
 #include <functional>
 #include <array>
 #include <iostream>
+#include <mutex>
+#include <future>
 #include <dirent.h>
 
 #include <glm/glm.hpp>
@@ -292,8 +294,9 @@ public:
 	void closeStream(GLFWstream *stream);
 	long tellStream(GLFWstream *stream);
 	int seekStream(GLFWstream *stream, long offset, int whence);
-	int loadTexture2D(const char *name, int flags, GLFWimage *eimg = nullptr);
-	int loadTextureImage2D(GLFWimage *img, int flags);
+	int loadTexture2D(const char *name, int flags, GLFWimage *eimg = nullptr, bool glUpload = true);
+	int loadTextureImage2D(GLFWimage *img, int flags, bool glUpload = true);
+	int loadTextureImage2DFinish(GLFWimage *img, int flags);
 	void freeImage(GLFWimage *img);
 
 
@@ -421,6 +424,8 @@ private:
 	glm::mat<4, 4, double> lookAtMatrix;
 
 public:
+    static std::mutex m_gl_mutex;
+
 	double volumeMaster;
 
 	const glm::mat<4, 4, double> &getLookAtMatrix() const { return lookAtMatrix; }
@@ -568,6 +573,8 @@ public:
 
 	/**/
 	unsigned int loadTexture(const char *texturePath, GLFWimage *eimg = nullptr);
+	bool loadTextureAsync(const char *texturePath, GLFWimage *eimg = nullptr);
+	unsigned int uploadTextureToOGL(GLFWimage *eimg);
 	void bindTexture(unsigned int text);
 
 	void glEnable(int num);

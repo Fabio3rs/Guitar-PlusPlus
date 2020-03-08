@@ -14,6 +14,7 @@
 #include <cmath>
 #include <algorithm>
 #include <fstream>
+#include <mutex>
 
 //#include <GL/glu.h>
 #include "internal.h"
@@ -22,6 +23,7 @@
 #include <bass_fx.h>
 
 static const double perspectiveMaxDist = 500000.0;
+std::mutex CEngine::m_gl_mutex;
 
 //========================================================================
 // GLFW - An OpenGL framework
@@ -616,9 +618,9 @@ static int HalveImage(GLubyte *src, int *width, int *height,
 	return GL_TRUE;
 }
 
-int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
-	GLint   UnpackAlignment/*, GenMipMap*/;
-	int     level, format, AutoGen, newsize, n;
+int CEngine::loadTextureImage2D(GLFWimage *img, int flags, bool glUpload)
+{
+	int     format, newsize, n;
 	std::unique_ptr<unsigned char[]> data;
 
 	// TODO: Use GL_MAX_TEXTURE_SIZE or GL_PROXY_TEXTURE_2D to determine
@@ -662,14 +664,17 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 		img->Data = std::move(data);
 	}
 
-	// Set unpack alignment to one byte
-	glGetIntegerv(GL_UNPACK_ALIGNMENT, &UnpackAlignment);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	if (img->keepData)
+	{
+		newsize = img->Width * img->Height * img->BytesPerPixel;
+		img->tmpData = std::make_unique<unsigned char[]>(newsize);
 
-	// Should we use automatic mipmap generation?
-	AutoGen = (flags & GLFW_BUILD_MIPMAPS_BIT)/* &&
-											  _glfwWin.has_GL_SGIS_generate_mipmap*/;
+		memcpy(img->tmpData.get(), img->Data.get(), newsize);
+	}
 
+    if (glUpload)
+        loadTextureImage2DFinish(img, flags);
+    
 	// Enable automatic mipmap generation
 	/*if (AutoGen)
 	{
@@ -680,7 +685,18 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 	}*/
 
 	// Format specification is different for OpenGL 1.0
-	if (glMajor == 1 && glMinor == 0)
+	
+
+	return GL_TRUE;
+}
+
+int CEngine::loadTextureImage2DFinish(GLFWimage *img, int flags)
+{
+	GLint   UnpackAlignment/*, GenMipMap*/;
+
+    int format = 0, AutoGen;
+
+    if (glMajor == 1 && glMinor == 0)
 	{
 		format = img->BytesPerPixel;
 	}
@@ -689,16 +705,17 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 		format = img->Format;
 	}
 
-	if (img->keepData)
-	{
-		newsize = img->Width * img->Height * img->BytesPerPixel;
-		img->tmpData = std::make_unique<unsigned char[]>(newsize);
+	// Set unpack alignment to one byte
+	glGetIntegerv(GL_UNPACK_ALIGNMENT, &UnpackAlignment);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-		memcpy(img->tmpData.get(), img->Data.get(), newsize);
-	}
+	// Should we use automatic mipmap generation?
+	AutoGen = (flags & GLFW_BUILD_MIPMAPS_BIT)/* &&
+											  _glfwWin.has_GL_SGIS_generate_mipmap*/;
+
 
 	// Upload to texture memeory
-	level = 0;
+	int level = 0;
 	do
 	{
 		// Upload this mipmap level
@@ -725,10 +742,11 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags){
 	// Restore old unpack alignment
 	glPixelStorei(GL_UNPACK_ALIGNMENT, UnpackAlignment);
 
-	return GL_TRUE;
+    return GL_TRUE;
 }
 
-void CEngine::freeImage(GLFWimage *img){
+void CEngine::freeImage(GLFWimage *img)
+{
 	// Free memory
 	img->Data.reset();
 
@@ -820,9 +838,10 @@ void CEngine::RenderMulti3DQuad(const std::deque<RenderDoubleStruct> &quad3DData
 	glBindBuffer(GL_ARRAY_BUFFER_ARB, 0);*/
 }
 
-int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg)
+int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg, bool glUpload)
 {
-	GLFWimage img;
+    GLFWimage tmpimg;
+	GLFWimage &img = glUpload? tmpimg : *eimg;
 
 	// Force rescaling if necessary
 	/*if (!_glfwWin.has_GL_ARB_texture_non_power_of_two)
@@ -838,11 +857,14 @@ int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg)
 
 	if (eimg)
 		img.keepData = eimg->keepData;
-
-	if (!loadTextureImage2D(&img, flags))
+    
+	if (!loadTextureImage2D(&img, flags, glUpload))
 	{
 		return GL_FALSE;
 	}
+
+    if (!glUpload)
+        return GL_TRUE;
 
 	if (eimg)
 	{
@@ -876,6 +898,36 @@ unsigned int CEngine::loadTexture(const char *textureFileName, GLFWimage *eimg)
 	glBindTexture(GL_TEXTURE_2D, Text);
 
 	if (loadTexture2D(textureFileName, 0, eimg) && glIsTexture(Text)){
+		return Text;
+	}
+
+	return 0;
+}
+
+bool CEngine::loadTextureAsync(const char *textureFileName, GLFWimage *eimg)
+{
+    if (loadTexture2D(textureFileName, 0, eimg, false) /*&& glIsTexture(Text)*/)
+    {
+		return true;
+	}
+
+    return false;
+}
+
+
+unsigned int CEngine::uploadTextureToOGL(GLFWimage *eimg)
+{
+    GLuint Text;
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glGenTextures(1, &Text);
+	glBindTexture(GL_TEXTURE_2D, Text);
+
+	if (loadTextureImage2DFinish(eimg, 0) && glIsTexture(Text))
+    {
 		return Text;
 	}
 

@@ -9,6 +9,15 @@ void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file)
 {
 	mtlLib.clear();
 
+    static auto defaultFunTextLoad = [](GPPGame::loadTextureBatch *t)
+    {
+        static std::mutex m;
+        std::lock_guard<std::mutex> lck(m);
+        GPPOBJ *ths = reinterpret_cast<GPPOBJ*>(t->userptr);
+
+        ths->mtlLib[t->username].textureID = t->text->getTextId();
+    };
+
 	std::fstream mtl(path + "/" + file, std::ios::in | std::ios::binary);
 
 	if (!mtl.is_open())
@@ -44,7 +53,8 @@ void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file)
 						mtl.textureName += ".tga";
 					}
 
-					mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
+					//mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
+                    GPPGame::GuitarPP().loadTextureSingleAsync(GPPGame::loadTextureBatch(path, mtl.textureName, this, defaultFunTextLoad, usingmtl));
 				}
 
 				usingmtl = bufferMtlName.data();
@@ -56,7 +66,8 @@ void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file)
 			{
 				auto &mtl = mtlLib[usingmtl];
 				mtl.textureName = bufferMtlName.data();
-				mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
+				//mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
+                GPPGame::GuitarPP().loadTextureSingleAsync(GPPGame::loadTextureBatch(path, mtl.textureName, this, defaultFunTextLoad, usingmtl));
 				newmtllt = true;
 				continue;
 			}
@@ -73,8 +84,15 @@ void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file)
 			mtl.textureName += ".tga";
 		}
 
-		mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
+		//mtl.textureID = GPPGame::GuitarPP().loadTexture(path, mtl.textureName).getTextId();
+        GPPGame::GuitarPP().loadTextureSingleAsync(GPPGame::loadTextureBatch(path, mtl.textureName, this, defaultFunTextLoad, usingmtl));
 	}
+}
+
+void GPPOBJ::loadTextureList(const std::string &path, const std::string &file)
+{
+	lastPath = path;
+	loadMtlLibData(path, file);
 }
 
 bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, const std::string &objName, bool loadMtlLib)
@@ -84,10 +102,12 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, c
 	if (!obj.is_open())
 		return false;
 
+    if (mtlLib.size() > 0)
+    {
+        GPPGame::GuitarPP().forceTexturesToLoad();
+    }
+
 	multiData.clear();
-
-	loadMtlLibData(path, "garage_gpp.mtl");
-
 	modelData mData;
 
 	std::deque<modelPartIndex> modelPartIndexes;
@@ -307,8 +327,10 @@ void GPPOBJ::onlyDraw(bool autoBindZeroVBO) const
 
 void GPPOBJ::load(const std::string &path, const std::string &file)
 {
+    modelLoaded = false;
 	lastPath = path;
 	loadInternalObj(path, file);
+    modelLoaded = true;
 }
 
 gppVec3f GPPOBJ::boxTestForMtl(const std::string &mtl)
@@ -339,6 +361,7 @@ void GPPOBJ::unload()
 	//vbodata.pointer = nullptr;
 	//vbodata.destroy();
 	multiData.clear();
+    modelLoaded = false;
 }
 
 /*GPPOBJ::GPPOBJ(const std::string &path) : GPPOBJ()
@@ -351,6 +374,7 @@ GPPOBJ::GPPOBJ()
 {
 	keepModelDataLoaded = false;
 	mtlLoaded = false;
+    modelLoaded = false;
 }
 
 GPPOBJ::~GPPOBJ()

@@ -382,58 +382,87 @@ std::string GPPGame::caseInsensitiveSearchDir(const char *dir, bool files, bool 
 
 void GPPGame::initialLoad()
 {
+    testobj.loadTextureList("test", "garage_gpp.mtl");
+
 	testobj.load("test", "garage_gpp.obj");
 
-	int itext = 0;
+    auto defaultTextLoadFun = [](loadTextureBatch *t)
+    {
+        unsigned int *i = reinterpret_cast<unsigned int*>(t->userptr);
+        *i = t->text->getTextId();
+    };
 
-	for (auto &s : strumsTexture3D)
-	{
-		s = loadTexture("data/sprites", "strum" + std::to_string(itext++) + ".tga").getTextId();
-	}
 
-	itext = 0;
+    {
+        std::deque<loadModelBatch> batch;
 
-	for (auto &s : hopoTexture3D)
-	{
-		s = loadTexture("data/sprites", "hopo" + std::to_string(itext++) + ".tga").getTextId();
-	}
+        batch.push_back(loadModelBatch("data/models", "GPP_Note.obj", noteOBJ));
+        batch.push_back(loadModelBatch("data/models", "TriggerBase.obj", triggerBASEOBJ));
+        batch.push_back(loadModelBatch("data/models", "Trigger.obj", triggerOBJ));
+        batch.push_back(loadModelBatch("data/models", "pylmbar.obj", pylmbarOBJ));
+        batch.push_back(loadModelBatch("data/models", "GPP_Opennote.obj", openNoteOBJ));
+        
+        loadModelBatchAsync(batch);
+    }
 
-	itext = 0;
+    try {
+        int itext = 0;
 
-	for (auto &s : tapTexture3D)
-	{
-		s = loadTexture("data/sprites", "tap" + std::to_string(itext++) + ".tga").getTextId();
-	}
+        for (auto &s : strumsTexture3D)
+        {
+            loadTextureSingleAsync(loadTextureBatch("data/sprites", "strum" + std::to_string(itext++) + ".tga", &s, defaultTextLoadFun));
+        }
 
-	itext = 0;
+        itext = 0;
 
-	for (auto &sb : sbaseTexture3D)
-	{
-		sb = loadTexture("data/sprites", "base" + std::to_string(itext++) + ".tga").getTextId();
-	}
+        for (auto &s : hopoTexture3D)
+        {
+            loadTextureSingleAsync(loadTextureBatch("data/sprites", "hopo" + std::to_string(itext++) + ".tga", &s, defaultTextLoadFun));
+        }
 
-	itext = 0;
+        itext = 0;
 
-	for (auto &st : striggerTexture3D)
-	{
-		st = loadTexture("data/sprites", "trigger" + std::to_string(itext++) + ".tga").getTextId();
+        for (auto &s : tapTexture3D)
+        {
+            loadTextureSingleAsync(loadTextureBatch("data/sprites", "tap" + std::to_string(itext++) + ".tga", &s, defaultTextLoadFun));
+        }
 
-		//std::cout << st << std::endl;
-	}
+        itext = 0;
 
-	openNoteTexture3D = loadTexture("data/sprites", "Opennote.tga").getTextId();
-	openNoteHOPOTexture3D = loadTexture("data/sprites", "OpennoteHOPO.tga").getTextId();
-	openNotePTexture3D = loadTexture("data/sprites", "OpennoteP.tga").getTextId();
-	openNoteHOPOPTexture3D = loadTexture("data/sprites", "OpennoteHOPOP.tga").getTextId();
+        for (auto &sb : sbaseTexture3D)
+        {
+            loadTextureSingleAsync(loadTextureBatch("data/sprites", "base" + std::to_string(itext++) + ".tga", &sb, defaultTextLoadFun));
+        }
+
+        itext = 0;
+
+        for (auto &st : striggerTexture3D)
+        {
+            loadTextureSingleAsync(loadTextureBatch("data/sprites", "trigger" + std::to_string(itext++) + ".tga", &st, defaultTextLoadFun));
+        }
+
+        loadTextureSingleAsync(loadTextureBatch("data/sprites", "Opennote.tga", &openNoteTexture3D, defaultTextLoadFun));
+        loadTextureSingleAsync(loadTextureBatch("data/sprites", "OpennoteHOPO.tga", &openNoteHOPOTexture3D, defaultTextLoadFun));
+        loadTextureSingleAsync(loadTextureBatch("data/sprites", "OpennoteP.tga", &openNotePTexture3D, defaultTextLoadFun));
+        loadTextureSingleAsync(loadTextureBatch("data/sprites", "OpennoteHOPOP.tga", &openNoteHOPOPTexture3D, defaultTextLoadFun));
+
+    }catch (const std::exception &ex)
+    {
+        std::cout << ex.what() << std::endl;
+    }
 }
 
 void GPPGame::initialLoad2()
 {
-	noteOBJ.load("data/models", "GPP_Note.obj");
-	triggerBASEOBJ.load("data/models", "TriggerBase.obj");
-	triggerOBJ.load("data/models", "Trigger.obj");
-	pylmbarOBJ.load("data/models", "pylmbar.obj");
-	openNoteOBJ.load("data/models", "GPP_Opennote.obj");
+    /*std::deque<loadModelBatch> batch;
+
+    batch.push_back(loadModelBatch("data/models", "GPP_Note.obj", noteOBJ));
+    batch.push_back(loadModelBatch("data/models", "TriggerBase.obj", triggerBASEOBJ));
+    batch.push_back(loadModelBatch("data/models", "Trigger.obj", triggerOBJ));
+    batch.push_back(loadModelBatch("data/models", "pylmbar.obj", pylmbarOBJ));
+    batch.push_back(loadModelBatch("data/models", "GPP_Opennote.obj", openNoteOBJ));
+    
+    loadModelBatchAsync(batch);*/
 }
 
 void GPPGame::selectPlayerMenu()
@@ -1077,25 +1106,7 @@ void GPPGame::testClient(const std::string &name)
 
 #endif
 }
-
-void GPPGame::serverModule(const std::string &name)
-{
-#ifdef COMPILEMP
-	auto &game = GPPGame::GuitarPP();
-	auto realname = game.getCallBackRealName(name);
-	auto &module = game.gameModules[realname];
-	module.players.clear();
-
-	CMultiplayer mp(true);
-	mp.initConnections(ip, port);
-	mp.setPlayersData(module.players);
-
-	module.setHyperSpeed(2.5 * game.hyperSpeed);
-
-	game.setVSyncMode(0);
-
-	module.players.push_back(game.mainPlayer);
-
+/*
 
 	module.getBPlayer().playerCamera.center.x = -0.6;
 	module.getBPlayer().playerCamera.eye.x = -0.4;
@@ -1103,276 +1114,164 @@ void GPPGame::serverModule(const std::string &name)
 	module.getBPlayer().playerHudOffsetY = 0.1;
 	module.getBPlayer().playerCamera.eye.z = 2.55;
 
-	module.getBPlayer().multiPlayerInfo.i = 0;
-	module.getBPlayer().multiPlayerInfo.ready = true;
+*/
+void GPPGame::serverModule(const std::string &name)
+{
+	int state = 0;
+	auto &game = GPPGame::GuitarPP();
+	auto &engine = CEngine::engine();
+	auto &fonts = CFonts::fonts();
+	auto &controls = CControls::controls();
+	auto realname = game.getCallBackRealName(name);
+	auto &module = game.gameModules[realname];
 
-	module.getBPlayer().enableBot = GPPGame::GuitarPP().botEnabled;
+	// Menu to select the song
+	game.songToLoad = game.selectSong();
 
-
-	std::atomic<int> state;
-	state = 0;
-
-	auto searchPlayerByMPInfo = [&module](void *m)
+	if (game.songToLoad.size() == 0)
 	{
-		for (int i = 0, size = module.players.size(); i < size; i++)
-		{
-			if (module.getPlayer(i).multiPlayerInfo.i == m)
-			{
-				return i;
-			}
-		}
-
-		return -1;
-	};
-
-	auto mpcallback = [&](void *ptr, char *data, size_t size)
-	{
-		int p = searchPlayerByMPInfo(ptr);
-
-		/*if (p == -1 && state == 0)
-		{
-			std::lock_guard<std::mutex> l(playersMutex);
-			module.players.push_back(CPlayer("newPlayer"));
-			module.getBPlayer().multiPlayerInfo.i = ptr;
-			module.getBPlayer().bRenderP = false;
-		}*/
-
-		if (state == 1)
-		{
-			/*if (strcmp(data, "ready") == 0)
-			{
-				std::lock_guard<std::mutex> l(playersMutex);
-
-				int p = searchPlayerByMPInfo(ptr);
-
-				if (p != -1)
-				{
-					module.players[p].multiPlayerInfo.ready = true;
-				}
-			}
-			*/
-		}
-
-		return 0;
-	};
-
-	mp.setGameCallback(mpcallback);
-
-	while (CEngine::engine().windowOpened())
-	{
-		GPPGame::GuitarPP().clearScreen();
-
-		if (CEngine::engine().getKey('C'))
-		{
-			state = 1;
-			break;
-		}
-
-		CFonts::fonts().drawTextInScreenWithBuffer("waiting for players", -0.4, 0.0, 0.1);
-
-		{
-			std::lock_guard<std::mutex> l(playersMutex);
-			CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(module.players.size()), -0.2, -0.1, 0.1);
-		}
-
-		GPPGame::GuitarPP().renderFrame();
+		return;
 	}
 
-	/*
-	{
-	module.players.push_back(CPlayer("xi 3"));
-	auto &playerCamera = module.getBPlayer().playerCamera;
+	module.setHyperSpeed(2.5 * game.hyperSpeed);
 
-	//module.getBPlayer().Notes.instrument = "[ExpertDoubleBass]";
+	module.players.push_back(game.mainPlayer);
+	module.getBPlayer().playerCamera.center.x = -0.6;
+	module.getBPlayer().playerCamera.eye.x = -0.4;
+	module.getBPlayer().playerHudOffsetX = 1.82;
+	module.getBPlayer().playerHudOffsetY = 0.1;
+	module.getBPlayer().playerCamera.eye.z = 2.55;
+	module.getBPlayer().enableBot = true;
 
-	playerCamera.eye.x = 0.65;
-	playerCamera.eye.y = 0.2;
-	playerCamera.eye.z = 2.3;
-	playerCamera.center.x = 1.3;
-	playerCamera.center.y = -0.2;
-	playerCamera.center.z = 0;
-	playerCamera.up.x = 0;
-	playerCamera.up.y= 1;
-	playerCamera.up.z = 0;
-	}
-
-	{
-	module.players.push_back(CPlayer("xi 2"));
-
-	//module.getBPlayer().Notes.instrument = "[ExpertDoubleBass]";
-
-	auto &playerCamera = module.getBPlayer().playerCamera;
-
-	playerCamera.eye.x = -0.65;
-	playerCamera.eye.y = 0.2;
-	playerCamera.eye.z = 2.3;
-	playerCamera.center.x = -1.3;
-	playerCamera.center.y = -0.2;
-	playerCamera.center.z = 0;
-	playerCamera.up.x = 0;
-	playerCamera.up.y= 1;
-	playerCamera.up.z = 0;
-	}
-	*/
-
-	//module.getBPlayer().Notes.instrument = "[ExpertDoubleBass]";
-
-	loadThreadData l;
-
-	l.processing = true;
-	bool allPlayersReady = false;
-
-	std::thread load(loadThread, std::ref(module), std::ref(l));
-
+	module.players.push_back(std::make_shared<CPlayer>("testp"));
+	module.getBPlayer().enableBot = true;
+	
 	module.getBPlayer().playerCamera.center.x = 0.6;
 	module.getBPlayer().playerCamera.eye.x = 0.4;
 	module.getBPlayer().playerCamera.eye.z = 2.55;
 	module.getBPlayer().playerHudOffsetX = -0.42;
 	module.getBPlayer().playerHudOffsetY = 0.1;
-	module.getBPlayer().remoteControls = true;
+	//module.getBPlayer().remoteControls = true;
 
-	int r = 0;
+	loadThreadData l;
 
-	while (CEngine::engine().windowOpened() && (l.processing || !allPlayersReady))
+	l.processing = true;
+
+	std::thread load(loadThread, std::ref(module), std::ref(l));
+
+	callOnDctor<void(void)> exitguard([&load]()
 	{
-		GPPGame::GuitarPP().clearScreen();
+		if (load.joinable()) load.join();
+	});
 
-		CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0, 0.1);
-		CFonts::fonts().drawTextInScreenWithBuffer("players Ready: " + std::to_string(r), -0.4, -0.2, 0.1);
+	game.HUDText = game.loadTexture("data/sprites", "HUD.tga").getTextId();
+	game.fretboardText = game.loadTexture("data/sprites", "fretboard.tga").getTextId();
+	game.lineText = game.loadTexture("data/sprites", "line.tga").getTextId();
+	game.HOPOSText = -1/*GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId()*/;
+	game.pylmBarText = game.loadTexture("data/sprites", "pylmbar.tga").getTextId();
 
-		{
-			std::lock_guard<std::mutex> l(playersMutex);
-
-			allPlayersReady = true;
-			r = 0;
-
-			for (int i = 0, size = module.players.size(); i < size; i++)
-			{
-				if (!module.getPlayer(i).multiPlayerInfo.ready)
-				{
-					allPlayersReady = false;
-				}
-				else
-				{
-					++r;
-				}
-			}
-		}
-
-		GPPGame::GuitarPP().renderFrame();
-	}
-
-	for (auto &pp : module.players)
-	{
-		auto &p = *pp;
-		p.startTime = CEngine::engine().getTime() + 3.0;
-		p.musicRunningTime = -3.0;
-		mp.svi.musicRunningTime = p.musicRunningTime;
-	}
-
-	GPPGame::GuitarPP().HUDText = GPPGame::GuitarPP().loadTexture("data/sprites", "HUD.tga").getTextId();
-	GPPGame::GuitarPP().fretboardText = GPPGame::GuitarPP().loadTexture("data/sprites", "fretboard.tga").getTextId();
-	GPPGame::GuitarPP().lineText = GPPGame::GuitarPP().loadTexture("data/sprites", "line.tga").getTextId();
-	GPPGame::GuitarPP().HOPOSText = -1/*GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId()*/;
-	GPPGame::GuitarPP().pylmBarText = GPPGame::GuitarPP().loadTexture("data/sprites", "pylmbar.tga").getTextId();
-
-	double startTime = module.getBPlayer().startTime = CEngine::engine().getTime() + 3.0;
-	double openMenuTime = 0.0;
-	module.getBPlayer().musicRunningTime = -3.0;
+	double startTime = 0.0, openMenuTime = 0.0, fadeoutdsc = engine.getTime();
+	int musicstartedg = 0;
+	bool firstStartFrame = true;
 
 	bool enterInMenu = false, esc = false;
-	int musicstartedg = 0;
 
 	bool songTimeFixed = false;
 
-	//CLog::log() << std::to_string(module.getBPlayer().enableBot) + "bot que voa";
+	std::string songName, songArtist, songCharter;
 
-	/*std::cout << "Plus in chart: " << module.getBPlayer().Notes.gPlus.size() << std::endl;
+	CPlayer *pplayerb = &module.getBPlayer();
 
-	if (module.getBPlayer().Notes.gPlus.size())
+	game.setVSyncMode(0);
+
+	while (engine.windowOpened())
 	{
-		std::cout << "Plus 0 time: " << module.getBPlayer().Notes.gPlus[0].time << std::endl;
-		std::cout << "Plus 0 duration: " << module.getBPlayer().Notes.gPlus[0].lTime << std::endl;
-	}*/
+		game.clearScreen();
 
-	bool firstStartFrame = true;
-
-	auto &playerb = module.getBPlayer();
-	std::string songName = playerb.Notes.songName, songArtist = playerb.Notes.songArtist, songCharter = playerb.Notes.songCharter;
-
-	double fadeoutdsc = CEngine::engine().getTime();
-
-	mp.svi.startSong = true;
-
-	while (CEngine::engine().windowOpened())
-	{
-		GPPGame::GuitarPP().clearScreen();
-		mp.svi.musicRunningTime = module.getBPlayer().musicRunningTime;
-
-		if (CEngine::engine().getKey(GLFW_KEY_ESCAPE))
+		switch (state)
 		{
-			esc = true;
-		}
-		else if (esc)
+			// Load thread state
+		case 0:
+			
+			if (!l.processing)
+				++state;
+
+			CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0, 0.1);
+			break;
+
+			// Timing and loadings
+		case 1:
 		{
-			enterInMenu = true;
-		}
-		else
-		{
-			enterInMenu = false;
-		}
+			CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0, 0.1);
 
-
-
-		if (enterInMenu)
-		{
-			if (musicstartedg == 2)
-			{
-				for (auto &pp : module.players)
-				{
-					auto &p = *pp;
-					p.instrumentPause();
-				}
-
-				CEngine::engine().pauseSoundStream(module.getBPlayer().songAudioID);
-				musicstartedg = 0;
-			}
-
-			songTimeFixed = false;
-
-			openMenuTime = CEngine::engine().getTime();
-
-			game.openMenus(&module.moduleMenu);
-
-			if (module.moduleMenu.options[module.exitModuleOpt].status & 1)
-			{
-				module.resetModule();
-				break;
-			}
-
-			double time = CEngine::engine().getTime();
+			auto &playerb = *pplayerb;
+			songName = playerb.Notes.songName; songArtist = playerb.Notes.songArtist; songCharter = playerb.Notes.songCharter;
+			module.getBPlayer().guitar = CGuitars::inst().getGuitarIfExists(game.defaultGuitar);
 
 			for (auto &pp : module.players)
 			{
 				auto &p = *pp;
-				p.startTime += time - openMenuTime;
+				p.startTime = engine.getTime() + 3.0;
+				p.musicRunningTime = -3.0;
 			}
 
-			enterInMenu = false;
-			esc = false;
+			startTime = playerb.startTime = engine.getTime() + 3.0;
+			playerb.musicRunningTime = -3.0;
+
+			if (playerb.guitar)
+				playerb.guitar->load();
+
+			playerb.enableBot = game.botEnabled;
+			playerb.playerCamera.center.y = 1.0;
+			playerb.playerCamera.eye.z += 2.0;
+			state++;
 		}
-		else
+			break;
+
+			// Play state
+		case 2:
 		{
+			auto &playerb = *pplayerb;
+
 			module.update();
 
-			if (!songTimeFixed && (CEngine::engine().getTime() - startTime) > 0.5)
+			// Init camera effect
+			for (auto &pp : module.players)
 			{
-				CEngine::engine().setSoundTime(module.getBPlayer().songAudioID, module.getBPlayer().musicRunningTime);
+				auto &p = *pp;
+				if (p.targetCamera.center.y < p.playerCamera.center.y)
+				{
+					p.playerCamera.center.y -= engine.getDeltaTime() * 0.5;
+				}
+
+				if (p.targetCamera.center.y > p.playerCamera.center.y)
+				{
+					p.playerCamera.center.y = p.targetCamera.center.y;
+				}
+
+				if (p.targetCamera.eye.z < p.playerCamera.eye.z)
+				{
+					p.playerCamera.eye.z -= engine.getDeltaTime() * 0.75;
+				}
+
+				if (p.targetCamera.eye.z > p.playerCamera.eye.z)
+				{
+					p.playerCamera.eye.z = p.targetCamera.eye.z;
+				}
+			}
+
+			game.gameplayRunningTime = playerb.musicRunningTime;
+			game.gamePlayPlusEnabled = playerb.plusEnabled;
+
+			// Countdown
+			if (!songTimeFixed && (engine.getTime() - startTime) > 0.5)
+			{
+				engine.setSoundTime(module.getBPlayer().songAudioID, playerb.musicRunningTime);
 
 				for (auto &pp : module.players)
 				{
 					auto &p = *pp;
-					CEngine::engine().setSoundTime(p.instrumentSound, p.musicRunningTime);
+					engine.setSoundTime(p.instrumentSound, p.musicRunningTime);
 				}
 
 				//std::cout << "First note position: " << module.getBPlayer().Notes.gNotes[0].time << std::endl;
@@ -1380,48 +1279,52 @@ void GPPGame::serverModule(const std::string &name)
 				songTimeFixed = true;
 			}
 
+			/////////////////
+
+			// Rendering gameplay
 			module.render();
 			module.renderLyrics();
 
-
-			//CFonts::fonts().drawTextInScreen("BASS" + std::to_string(CEngine::engine().getSoundTime(module.getBPlayer().songAudioID)), 0.52, -0.4, 0.1);
-			//CFonts::fonts().drawTextInScreen("SONG" + std::to_string(CEngine::engine().getTime() - startTime), 0.52, -0.52, 0.1);
-
+			// First gameplay frame things
 			if (firstStartFrame)
 			{
-				CEngine::engine().playSoundStream(GuitarPP().startSound);
+				CLuaH::Lua().runEvent(firstStartFrameSE);
+				engine.playSoundStream(GuitarPP().startSound);
 				firstStartFrame = false;
 			}
 
-			double time = CEngine::engine().getTime();
+			double time = engine.getTime();
 
 			if (musicstartedg == 0) musicstartedg = 1;
 
+			// Info text show and effect
 			if ((startTime - time) > 0.0)
 			{
+				fadeoutdsc = engine.getTime();
+				std::string count = std::to_string((int)(startTime - time));
 
-				fadeoutdsc = CEngine::engine().getTime();
-				CFonts::fonts().drawTextInScreenWithBuffer(std::to_string((int)(startTime - time)), -0.3, 0.0, 0.3);
+				fonts.drawTextInScreenWithBuffer(count, fonts.getCenterPos(count, 0.3, 0.0), 0.0, 0.3);
 				musicstartedg = 0;
 			}
 
-			double fadeoutdscAlphaCalc = 1.0 - ((CEngine::engine().getTime() - fadeoutdsc) / 3.0);
+			double fadeoutdscAlphaCalc = 1.0 - ((engine.getTime() - fadeoutdsc) / 3.0);
 
 			if (fadeoutdscAlphaCalc >= 0.0)
 			{
-				if (fadeoutdscAlphaCalc < 1.0) CEngine::engine().setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc);
+				if (fadeoutdscAlphaCalc < 1.0) engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc);
 
-				CFonts::fonts().drawTextInScreen(songName, -0.9, 0.7, 0.1);
-				CFonts::fonts().drawTextInScreen(songArtist, -0.88, 0.62, 0.08);
-				CFonts::fonts().drawTextInScreen(songCharter, -0.88, 0.54, 0.08);
+				fonts.drawTextInScreen(songName, -0.9, 0.7, 0.1);
+				fonts.drawTextInScreen(songArtist, -0.88, 0.62, 0.08);
+				fonts.drawTextInScreen(songCharter, -0.88, 0.54, 0.08);
 
-				if (fadeoutdscAlphaCalc < 1.0) CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+				if (fadeoutdscAlphaCalc < 1.0) engine.setColor(1.0, 1.0, 1.0, 1.0);
 			}
 
+			// Music states: play
 			if (musicstartedg == 1)
 			{
 				CEngine::engine().setSoundVolume(module.getBPlayer().songAudioID, game.songVolume);
-				CEngine::engine().playSoundStream(module.getBPlayer().songAudioID);
+				engine.playSoundStream(module.getBPlayer().songAudioID);
 
 				for (auto &pp : module.players)
 				{
@@ -1431,18 +1334,66 @@ void GPPGame::serverModule(const std::string &name)
 
 				musicstartedg = 2;
 			}
+
+			// Handles ESC and if true, goto state 3 (Pauses game)
+			if (controls.keyEscape())
+			{
+				state++;
+			}
+		}
+			break;
+
+			// Pause state
+		case 3:
+		{
+			// Pauses audio
+			if (musicstartedg == 2)
+			{
+				for (auto &pp : module.players)
+				{
+					auto &p = *pp;
+					p.instrumentPause();
+				}
+
+				engine.pauseSoundStream(module.getBPlayer().songAudioID);
+				musicstartedg = 0;
+			}
+
+			songTimeFixed = false;
+
+			// 
+			openMenuTime = engine.getTime();
+
+			// Pause menu
+			game.openMenus(&module.moduleMenu);
+
+			if (module.moduleMenu.options[module.exitModuleOpt].status & 1)
+			{
+				// Exit gameplay
+				module.resetModule();
+				return;
+			}
+
+			double time = engine.getTime();
+
+			for (auto &pp : module.players)
+			{
+				auto &p = *pp;
+				p.startTime += time - openMenuTime;
+			}
+
+			// Back to gameplay
+			state = 2;
+		}
+			break;
+
+			// Bug state
+		default:
+			break;
 		}
 
-
-
-
-		GPPGame::GuitarPP().renderFrame();
+		game.renderFrame();
 	}
-
-	if (load.joinable()) load.join();
-#else
-
-#endif
 }
 
 void GPPGame::startModule(const std::string &name)
@@ -1515,6 +1466,8 @@ void GPPGame::startModule(const std::string &name)
 			// Timing and loadings
 		case 1:
 		{
+			CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0, 0.1);
+
 			auto &playerb = *pplayerb;
 			songName = playerb.Notes.songName; songArtist = playerb.Notes.songArtist; songCharter = playerb.Notes.songCharter;
 			module.getBPlayer().guitar = CGuitars::inst().getGuitarIfExists(game.defaultGuitar);
@@ -2144,7 +2097,53 @@ void GPPGame::startMarathonModule(const std::string &name)
 
 				//static const unsigned int cityTextID = game.loadTexture("test", "city.tga").getTextId();
 				engine.activateNormals(true);
-				game.testobj.draw(0);
+				
+				{
+					auto lmb = []()
+					{
+						static std::deque<GPPOBJ> objs;
+						static int ij = 0;
+						static double ld = CEngine::engine().getTime();
+
+						if (objs.size() == 0)
+						{
+							auto files = getDirectory("testmdl", true, false);
+
+							auto extension_from_filename = [](const std::string &fname)
+							{
+								size_t s;
+								return std::string(((s = fname.find_first_of('.')) != fname.npos) ? (&fname.c_str()[++s]) : (""));
+							};
+
+							for (auto &f : files)
+							{
+								if (extension_from_filename(f) == "obj")
+								{
+									objs.push_back(GPPOBJ());
+									objs.back().load("testmdl", f);
+								}
+
+							}
+						}
+
+						if (objs.size() > ij)
+						{
+							objs[ij].draw(0);
+
+							if (CEngine::engine().getTime() - ld > 0.5)
+							{
+								ij++;
+								ld = CEngine::engine().getTime();
+							}
+						}
+					};
+
+					engine.renderAt(3.0, 0.0, -2.0);
+					lmb();
+					engine.renderAt(0.0, 0.0, 0.0);
+				}
+
+				//game.testobj.draw(0);
 				engine.activateNormals(false);
 
 				engine.activateLighting(false);
@@ -2908,6 +2907,8 @@ void GPPGame::renderFrame()
 	CLuaH::Lua().runEvent(preRenderFrameSE);
 	CEngine::engine().renderFrame();
 	CLuaH::Lua().runEvent(posRenderFrameSE);
+    
+    streammingProcess();
 }
 
 GPPGame &GPPGame::GuitarPP()
@@ -2923,20 +2924,253 @@ double GPPGame::getWindowProportion()
 
 const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript)
 {
-	auto &textInst = gTextures[(path + "/" + texture)];
+    static std::mutex mx;
+    
+    {
+        std::lock_guard<std::mutex> lck(mx);
+        auto &textInst = gTextures[(path + "/" + texture)];
 
-	if (luaScript)
-	{
-		textInst.associatedToScript[luaScript] = true;
-	}
+        if (luaScript)
+        {
+            textInst.associatedToScript[luaScript] = true;
+        }
 
-	if (textInst.getTextId())
-	{
-		return gTextures[(path + "/" + texture)];
-	}
+        if (textInst.getTextId())
+        {
+            return gTextures[(path + "/" + texture)];
+        }
+    }
+    
+    std::lock_guard<std::mutex> lck(mx);
+    gppTexture gpptxt(path, texture);
 
-	gTextures[(path + "/" + texture)] = std::move(gppTexture(path, texture));
+	gTextures[(path + "/" + texture)] = std::move(gpptxt);
 	return gTextures[(path + "/" + texture)];
+}
+
+void GPPGame::forceTexturesToLoad()
+{
+    std::cout << "GPPGame::forceTexturesToLoad()" << std::endl;
+    forceTextToLoad = true;
+
+    if (std::this_thread::get_id() == mainthread)
+    {
+        streammingProcess();
+    }
+    else if (futureTextureLoad.getNumElements() > 0)
+    {
+        std::unique_lock<std::mutex> lock(mstreamming_block);
+        do
+        {
+            std::cout << "cstreamming_block.wait(lock);" << std::endl;
+            cstreamming_block.wait(lock);
+        } while (forceTextToLoad);
+    }
+    
+}
+
+bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
+{
+    if (futureTextureLoad.getAddedElementsNum() > 0)
+    {
+        for (int i = 0, size = futureTextureLoad.getNumElements(); i < size; i++)
+        {
+            loadTextureBatch *a = futureTextureLoad.get(i);
+            if (a)
+            {
+                if (a->path == tData.path && a->text == tData.text)
+                {
+                    if (a->userptr == tData.userptr && a->username == tData.username)
+                    {
+                        return true;
+                    }else
+                    {
+                        loadTextureBatch *t = futureTextureLoad.newElement();
+                        if (t == nullptr)
+                        {
+                            // TODO
+                            std::cout << "futureTextureLoad.newElement() FAILED  futureTextureLoad.getNumElements(): " << futureTextureLoad.getNumElements() << std::endl;
+                            return false;
+                        }
+
+                        loadTextureBatch b = *a;
+                        b.userptr = tData.userptr;
+                        b.username = tData.username;
+
+                        *t = std::move(b);
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    {
+        loadTextureBatch *t = futureTextureLoad.newElement();
+        if (t == nullptr)
+        {
+            // TODO
+            std::cout << "futureTextureLoad.newElement() FAILED  futureTextureLoad.getNumElements(): " << futureTextureLoad.getNumElements() << std::endl;
+            return false;
+        }
+
+        loadTextureBatch &b = *t;
+        b = tData;
+
+        if (b.texture.size() != 0)
+        {
+            auto &textInst = gTextures[(b.path + "/" + b.texture)];
+
+            if (b.luaScript)
+            {
+                textInst.associatedToScript[b.luaScript] = true;
+            }
+
+            if (textInst.getTextId())
+            {
+                if (b.targetFun)
+                {
+                    b.targetFun(&b);
+                    futureTextureLoad.removeElement(t);
+                    return true;
+                }
+                else
+                {
+                    std::cout << "Target fun 0" << std::endl;
+                }
+                
+            }else
+            {
+                gppTexture gpptxt(b.path, b.texture, true);
+
+	            textInst = std::move(gpptxt);
+            }
+            
+            textInst.tloadAsync(b.path, b.texture);
+            b.text = &textInst;
+        }
+    }
+    return true;
+}
+
+void GPPGame::streammingProcess()
+{
+    if (futureTextureLoad.getAddedElementsNum() > 0)
+    {
+        std::unique_lock<std::mutex> lock(mstreamming_block);
+        bool ftload = forceTextToLoad;
+        
+        for (int i = 0, size = futureTextureLoad.getNumElements(); i < size; i++)
+        {
+            loadTextureBatch *a = futureTextureLoad.get(i);
+            if (a)
+            {
+                if (a->text)
+                {
+                    if (a->text->asyncFl || ftload)
+                    {
+                        unsigned int tmp = a->text->getTextIdUpdateAsync();
+
+                        if (a->targetFun)
+                        {
+                            a->targetFun(a);
+                        }else
+                        {
+                            std::cout << "targetfun zero\n";
+                        }
+                        
+
+                        futureTextureLoad.removeElement(a);
+                    }
+                }
+            }
+        }
+
+        if (forceTextToLoad)
+        {
+            forceTextToLoad = false;
+            cstreamming_block.notify_all();
+        }
+    }else
+    {
+        if (forceTextToLoad)
+        {
+            std::unique_lock<std::mutex> lock(mstreamming_block);
+            forceTextToLoad = false;
+            cstreamming_block.notify_all();
+        }
+    }
+}
+
+bool GPPGame::loadTextureBatchAsync(std::deque<loadTextureBatch> &batch)
+{
+    for (auto &b : batch)
+    {
+        if (b.texture.size() != 0)
+        {
+            auto &textInst = gTextures[(b.path + "/" + b.texture)];
+
+            if (b.luaScript)
+            {
+                textInst.associatedToScript[b.luaScript] = true;
+            }
+
+            if (textInst.getTextId())
+            {
+                std::cout << textInst.textName << std::endl;
+
+                if (b.targetFun)
+                {
+                    b.targetFun(&b);
+                }
+            }else
+            {
+                gppTexture gpptxt(b.path, b.texture, true);
+
+	            textInst = std::move(gpptxt);
+            }
+            
+            textInst.tloadAsync(b.path, b.texture);
+            b.text = &textInst;
+        }
+    }
+
+    for (auto &b : batch)
+    {
+        auto &textInst = gTextures[(b.path + "/" + b.texture)];
+
+        if (textInst.getTextId() == 0)
+        {
+            unsigned int tid = textInst.getTextIdUpdateAsync();
+            
+            std::cout << "textInst.getTextId(): " << textInst.textName << std::endl;
+            
+            if (b.targetFun)
+            {
+                b.targetFun(&b);
+            }
+        }
+    }
+
+    return true;
+}
+
+bool singleModelLoadAsync(GPPGame::loadModelBatch *l)
+{
+    l->obj->load(l->path, l->model);
+}
+
+bool GPPGame::loadModelBatchAsync(std::deque<loadModelBatch> &batch)
+{
+    for (auto &b : batch)
+    {
+        //if (b.obj->)
+        {
+            b.ft = std::async(std::launch::async, singleModelLoadAsync, &b);
+        }
+    }
+
+    return true;
 }
 
 unsigned int GPPGame::getTextureId(const std::string &name) const noexcept
@@ -4148,6 +4382,7 @@ Lua events and creates window
 */
 int GPPGame::createWindow()
 {
+    mainthread = std::this_thread::get_id();
 	CLuaH::Lua().runEvent(preCreateWindowSE);
 	std::string title = "Guitar++";
 
@@ -4329,7 +4564,7 @@ GPPGame::GPPGame() : glanguage("PT-BR"), gppTextureKeepBuffer(false), devMenus(n
 
 	gameplayRunningTime = 0.0;
 
-	if (!mainSave.loadn("data/saves/mains"))
+	//if (!mainSave.loadn("data/saves/mains"))
 	{
 		CLog::log() << "data/saves/mains error";
 
