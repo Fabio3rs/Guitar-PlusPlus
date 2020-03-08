@@ -15,6 +15,8 @@ class GPPOBJ{
     
 	bool mtlLoaded, modelLoaded;
 
+    std::mutex mtx;
+
 	struct loadedTextures
 	{
 		std::string path, name;
@@ -95,7 +97,19 @@ public:
 	void unload();
 
 
-	GPPOBJ(GPPOBJ&&) = default;
+	GPPOBJ(GPPOBJ&& o)
+    {
+        std::cout << "Moved " << lastPath << std::endl;
+        lastPath = std::move(o.lastPath);
+        multiData = std::move(o.multiData);
+        mtlLib = std::move(o.mtlLib);
+        //mtx = std::move(o.mtx);
+        vbodata = std::move(o.vbodata);
+        data = std::move(o.data);
+        mtlLoaded = o.mtlLoaded;
+        modelLoaded = o.modelLoaded;
+        keepModelDataLoaded = o.keepModelDataLoaded;
+    }
 	//GPPOBJ(const std::string &path);
 	GPPOBJ();
 	~GPPOBJ();

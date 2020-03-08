@@ -10,16 +10,23 @@
 #include <mutex>
 #include <atomic>
 #include <thread>
+#include <cmath>
 
 template <class poolData_t, const size_t numElements>
 class CMultiThreadPool
 {
+    typedef poolData_t pdata_t;
 	std::bitset<numElements> bits;
-	std::unique_ptr<poolData_t[]> pool;
+	std::unique_ptr<uint8_t[]> pool;
 	std::atomic<size_t> firstFreeElement;
 	std::atomic<size_t> addedElements;
-
+    
 	std::mutex mut;
+
+    pdata_t *plget()
+    {
+        return reinterpret_cast<pdata_t*>(pool.get());
+    }
 
 	size_t findFreeElement()
 	{
@@ -96,7 +103,7 @@ public:
 		{
 			if (bits[i] != 0)
 			{
-				return &(pool.get()[i]);
+				return &(plget()[i]);
 			}
 
 			return nullptr;
@@ -114,7 +121,7 @@ public:
 			{
 				bits[firstFreeElement] = 1;
 
-				result = &(pool.get()[firstFreeElement]);
+				result = &(plget()[firstFreeElement]);
 
 				if (retId != nullptr)
 				{
@@ -135,7 +142,7 @@ public:
 
 				bits[i] = 1;
 
-				result = &(pool.get()[i]);
+				result = &(plget()[i]);
 
 				if (retId != nullptr)
 				{
@@ -148,8 +155,10 @@ public:
 
 		if (result != nullptr)
 		{
+            new (result) poolData_t();
 			auto &data = (*result);
-			data = std::move(poolData_t());
+
+			//data = std::move(poolData_t());
 
 			++addedElements;
 		}
@@ -203,7 +212,17 @@ public:
 
 	CMultiThreadPool()
 	{
-		pool = std::unique_ptr<poolData_t[]>(new poolData_t[numElements]);
+        //std::cout <<  "pdata_t " << sizeof(pdata_t) << std::endl;
+		pool = std::unique_ptr<uint8_t[]>(std::make_unique<uint8_t[]>(sizeof(pdata_t) * numElements));
+        memset(pool.get(), 0, sizeof(pdata_t) * numElements);
+
+        /*std::cout << "Teste pool\n";
+        for (int i = 0; i < numElements; i++)
+        {
+            new (&(plget()[i])) poolData_t();
+        }
+        std::cout << "Teste pool END\n";*/
+
 		firstFreeElement = 0;
 		addedElements = 0;
 
@@ -212,6 +231,11 @@ public:
 			bits[i] = 0;
 		}*/
 	}
+
+    /*~CMultiThreadPool()
+    {
+        // TODO
+    }*/
 };
 
 #endif

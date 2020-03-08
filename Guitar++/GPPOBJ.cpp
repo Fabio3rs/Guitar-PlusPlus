@@ -7,15 +7,22 @@
 
 void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file)
 {
+    std::lock_guard<std::mutex> lck(mtx);
 	mtlLib.clear();
 
     static auto defaultFunTextLoad = [](GPPGame::loadTextureBatch *t)
     {
-        static std::mutex m;
-        std::lock_guard<std::mutex> lck(m);
-        GPPOBJ *ths = reinterpret_cast<GPPOBJ*>(t->userptr);
+        //static std::mutex m;
+        /*try
+        {
+            GPPOBJ *ths = reinterpret_cast<GPPOBJ*>(t->userptr);
+            std::lock_guard<std::mutex> lck(ths->mtx);
 
-        ths->mtlLib[t->username].textureID = t->text->getTextId();
+            ths->mtlLib[t->username].textureID = t->text->getTextId();
+        }catch(const std::exception &e)
+        {
+            std::cout << e.what() << std::endl;
+        }*/
     };
 
 	std::fstream mtl(path + "/" + file, std::ios::in | std::ios::binary);
@@ -102,11 +109,18 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, c
 	if (!obj.is_open())
 		return false;
 
-    if (mtlLib.size() > 0)
     {
-        GPPGame::GuitarPP().forceTexturesToLoad();
-    }
+        int mtlsize = 0;
+        {
+            std::lock_guard<std::mutex> lck(mtx);
+            mtlsize = mtlLib.size();
+        }
 
+        if (mtlsize > 0)
+        {
+            GPPGame::GuitarPP().forceTexturesToLoad();
+        }
+    }
 	multiData.clear();
 	modelData mData;
 
@@ -265,7 +279,8 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, c
 
 		if (mtlLoaded)
 		{
-			adata.textureID = mtlLib[part.name].textureID;
+            const std::string &name = mtlLib[part.name].textureName;
+			adata.textureID = GPPGame::GuitarPP().loadTexture(path, name).getTextId();/*mtlLib[part.name].textureID*/;
 
 			if (adata.textureID == 0)
 			{

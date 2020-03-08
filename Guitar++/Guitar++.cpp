@@ -28,7 +28,8 @@
 int main(int argc, char* argv[])
 {
 	///startGambiarras();
-	try{
+	//try
+    {
 		CEngine::engine().errorCallbackFun = GPPGame::logError;
 		CLog::log();
 		CEngine::engine().init();
@@ -703,10 +704,10 @@ int main(int argc, char* argv[])
 		lua.runEvent(atExitSE);
 		guitars.unload();
 		lua.unloadAll();
-	} catch (const std::exception &e)
-	{
-		CLog::log() << e.what();
-	}
+	}// catch (const std::exception &e)
+	//{
+	//	CLog::log() << e.what();
+	//}
 	return 0;
 }
 
