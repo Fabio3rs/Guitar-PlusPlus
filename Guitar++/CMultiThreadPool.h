@@ -210,6 +210,16 @@ public:
 		}
 	}
 
+    void clear()
+    {
+		std::lock_guard<std::mutex> lock(mut);
+        
+        for (int i = 0; i < numElements; i++)
+        {
+            removeElementByIndex(i, true);
+        }
+    }
+
 	CMultiThreadPool()
 	{
         //std::cout <<  "pdata_t " << sizeof(pdata_t) << std::endl;
@@ -232,10 +242,10 @@ public:
 		}*/
 	}
 
-    /*~CMultiThreadPool()
+    ~CMultiThreadPool()
     {
-        // TODO
-    }*/
+        clear();
+    }
 };
 
 #endif
