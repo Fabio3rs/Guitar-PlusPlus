@@ -199,6 +199,13 @@ public:
                 
             }else
             {
+                if (std::this_thread::get_id() != GuitarPP().mainthread)
+                {
+                    std::cout << "(std::this_thread::get_id() != GuitarPP().mainthread) - texture " << texture << std::endl;
+                    return;
+                }
+
+                
 			    text = CEngine::engine().loadTexture((textPath + std::string("/") + textName).c_str(), &imgData);
             }
 		}

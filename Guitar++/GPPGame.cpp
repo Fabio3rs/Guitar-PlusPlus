@@ -382,9 +382,10 @@ std::string GPPGame::caseInsensitiveSearchDir(const char *dir, bool files, bool 
 
 void GPPGame::initialLoad()
 {
+    static std::deque<loadModelBatch> modelBatch;
     testobj.loadTextureList("test", "garage_gpp.mtl");
 
-	testobj.load("test", "garage_gpp.obj");
+	//testobj.load("test", "garage_gpp.obj");
 
     auto defaultTextLoadFun = [](loadTextureBatch *t)
     {
@@ -394,15 +395,15 @@ void GPPGame::initialLoad()
 
 
     {
-        std::deque<loadModelBatch> batch;
 
-        batch.push_back(loadModelBatch("data/models", "GPP_Note.obj", noteOBJ));
-        batch.push_back(loadModelBatch("data/models", "TriggerBase.obj", triggerBASEOBJ));
-        batch.push_back(loadModelBatch("data/models", "Trigger.obj", triggerOBJ));
-        batch.push_back(loadModelBatch("data/models", "pylmbar.obj", pylmbarOBJ));
-        batch.push_back(loadModelBatch("data/models", "GPP_Opennote.obj", openNoteOBJ));
+        modelBatch.push_back(loadModelBatch("test", "garage_gpp.obj", testobj));
+        modelBatch.push_back(loadModelBatch("data/models", "GPP_Note.obj", noteOBJ));
+        modelBatch.push_back(loadModelBatch("data/models", "TriggerBase.obj", triggerBASEOBJ));
+        modelBatch.push_back(loadModelBatch("data/models", "Trigger.obj", triggerOBJ));
+        modelBatch.push_back(loadModelBatch("data/models", "pylmbar.obj", pylmbarOBJ));
+        modelBatch.push_back(loadModelBatch("data/models", "GPP_Opennote.obj", openNoteOBJ));
         
-        loadModelBatchAsync(batch);
+        loadModelBatchAsync(modelBatch);
     }
 
     try {
@@ -2950,7 +2951,6 @@ const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const s
 
 void GPPGame::forceTexturesToLoad()
 {
-    std::cout << "GPPGame::forceTexturesToLoad()" << std::endl;
     forceTextToLoad = true;
 
     if (std::this_thread::get_id() == mainthread)
@@ -2962,15 +2962,18 @@ void GPPGame::forceTexturesToLoad()
         std::unique_lock<std::mutex> lock(mstreamming_block);
         do
         {
-            std::cout << "cstreamming_block.wait(lock);" << std::endl;
             cstreamming_block.wait(lock);
         } while (forceTextToLoad);
     }
-    
 }
 
 bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
 {
+    if (forceTextToLoad && std::this_thread::get_id() == GuitarPP().mainthread)
+    {
+        //streammingProcess();
+    }
+    
     if (futureTextureLoad.getAddedElementsNum() > 0)
     {
         for (int i = 0, size = futureTextureLoad.getNumElements(); i < size; i++)
@@ -3037,6 +3040,8 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
                 else
                 {
                     std::cout << "Target fun 0" << std::endl;
+                    futureTextureLoad.removeElement(t);
+                    return false;
                 }
                 
             }else
@@ -3057,7 +3062,7 @@ void GPPGame::streammingProcess()
 {
     if (futureTextureLoad.getAddedElementsNum() > 0)
     {
-        std::unique_lock<std::mutex> lock(mstreamming_block);
+        //std::unique_lock<std::mutex> lock(mstreamming_block);
         bool ftload = forceTextToLoad;
         
         for (int i = 0, size = futureTextureLoad.getNumElements(); i < size; i++)
@@ -3142,8 +3147,6 @@ bool GPPGame::loadTextureBatchAsync(std::deque<loadTextureBatch> &batch)
         if (textInst.getTextId() == 0)
         {
             unsigned int tid = textInst.getTextIdUpdateAsync();
-            
-            std::cout << "textInst.getTextId(): " << textInst.textName << std::endl;
             
             if (b.targetFun)
             {
