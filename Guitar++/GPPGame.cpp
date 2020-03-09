@@ -2970,7 +2970,9 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
 {
     if (forceTextToLoad && std::this_thread::get_id() == GuitarPP().mainthread)
     {
-        //streammingProcess();
+        // Some thread is waiting the textures to load
+        // Request the upload to OpenGL now.
+        textureStreammingProcess();
     }
     
     if (futureTextureLoad.getAddedElementsNum() > 0)
@@ -3058,7 +3060,7 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
     return true;
 }
 
-void GPPGame::streammingProcess()
+void GPPGame::textureStreammingProcess()
 {
     if (futureTextureLoad.getAddedElementsNum() > 0)
     {
@@ -3105,6 +3107,11 @@ void GPPGame::streammingProcess()
             cstreamming_block.notify_all();
         }
     }
+}
+
+void GPPGame::streammingProcess()
+{
+    textureStreammingProcess();
 }
 
 bool GPPGame::loadTextureBatchAsync(std::deque<loadTextureBatch> &batch)

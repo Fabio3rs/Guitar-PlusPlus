@@ -311,6 +311,7 @@ public:
 	bool loadTextureSingleAsync(const loadTextureBatch &tData);
     void forceTexturesToLoad();
 
+    void textureStreammingProcess();
     void streammingProcess();
 
 	struct gameWindow{
