@@ -2925,10 +2925,10 @@ double GPPGame::getWindowProportion()
 
 const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript)
 {
-    static std::mutex mx;
+    //static std::mutex mx;
+    std::lock_guard<std::mutex> lck(gppTextMtx);
     
     {
-        std::lock_guard<std::mutex> lck(mx);
         auto &textInst = gTextures[(path + "/" + texture)];
 
         if (luaScript)
@@ -2942,7 +2942,6 @@ const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const s
         }
     }
     
-    std::lock_guard<std::mutex> lck(mx);
     gppTexture gpptxt(path, texture);
 
 	gTextures[(path + "/" + texture)] = std::move(gpptxt);
@@ -3022,6 +3021,7 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
 
         if (b.texture.size() != 0)
         {
+            std::lock_guard<std::mutex> lck(gppTextMtx);
             auto &textInst = gTextures[(b.path + "/" + b.texture)];
 
             if (b.luaScript)
