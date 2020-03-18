@@ -380,31 +380,42 @@ std::string GPPGame::caseInsensitiveSearchDir(const char *dir, bool files, bool 
 	return std::string();
 }
 
+void defaultTextLoadFun(GPPGame::loadTextureBatch *t)
+{
+    unsigned int *i = reinterpret_cast<unsigned int*>(t->userptr);
+    *i = t->text->getTextId();
+};
+
 void GPPGame::initialLoad()
 {
-    static std::deque<loadModelBatch> modelBatch;
+    //static std::deque<loadModelBatch> modelBatch;
     testobj.loadTextureList("test", "garage_gpp.mtl");
+    forceTexturesToLoad();
 
 	//testobj.load("test", "garage_gpp.obj");
-
-    auto defaultTextLoadFun = [](loadTextureBatch *t)
-    {
-        unsigned int *i = reinterpret_cast<unsigned int*>(t->userptr);
-        *i = t->text->getTextId();
-    };
-
+    std::deque<loadModelBatch> modelBatch;
 
     {
-
         modelBatch.push_back(loadModelBatch("test", "garage_gpp.obj", testobj));
         modelBatch.push_back(loadModelBatch("data/models", "GPP_Note.obj", noteOBJ));
         modelBatch.push_back(loadModelBatch("data/models", "TriggerBase.obj", triggerBASEOBJ));
         modelBatch.push_back(loadModelBatch("data/models", "Trigger.obj", triggerOBJ));
         modelBatch.push_back(loadModelBatch("data/models", "pylmbar.obj", pylmbarOBJ));
         modelBatch.push_back(loadModelBatch("data/models", "GPP_Opennote.obj", openNoteOBJ));
+        //testobj.load("test", "garage_gpp.obj");
         
+        /*triggerBASEOBJ.load("data/models", "TriggerBase.obj");
+        pylmbarOBJ.load("data/models", "pylmbar.obj");
+        openNoteOBJ.load("data/models", "GPP_Opennote.obj");
+        triggerOBJ.load("data/models", "Trigger.obj");
+        noteOBJ.load("data/models", "GPP_Note.obj");*/
+
         loadModelBatchAsync(modelBatch);
+
+        //modelBatch[0].ft.wait();
     }
+
+    forceTexturesToLoad();
 
     try {
         int itext = 0;
@@ -1428,12 +1439,29 @@ void GPPGame::startModule(const std::string &name)
 	{
 		if (load.joinable()) load.join();
 	});
+    
+    auto defaultTextLoadFun = [](loadTextureBatch *t)
+    {
+        if (t)
+        {
+            unsigned int *i = reinterpret_cast<unsigned int*>(t->userptr);
 
-	game.HUDText = game.loadTexture("data/sprites", "HUD.tga").getTextId();
-	game.fretboardText = game.loadTexture("data/sprites", "fretboard.tga").getTextId();
-	game.lineText = game.loadTexture("data/sprites", "line.tga").getTextId();
+            if (i && t->text)
+                *i = t->text->getTextId();
+        }
+    };
+    
+    game.loadTextureSingleAsync(loadTextureBatch("data/sprites", "HUD.tga", &game.HUDText, defaultTextLoadFun));
+    game.loadTextureSingleAsync(loadTextureBatch("data/sprites", "fretboard.tga", &game.fretboardText, defaultTextLoadFun));
+    game.loadTextureSingleAsync(loadTextureBatch("data/sprites", "line.tga", &game.lineText, defaultTextLoadFun));
+
+    game.loadTextureSingleAsync(loadTextureBatch("data/sprites", "pylmbar.tga", &game.pylmBarText, defaultTextLoadFun));
+    
+	//game.HUDText = game.loadTexture("data/sprites", "HUD.tga").getTextId();
+	//game.fretboardText = game.loadTexture("data/sprites", "fretboard.tga").getTextId();
+	//game.lineText = game.loadTexture("data/sprites", "line.tga").getTextId();
 	game.HOPOSText = -1/*GPPGame::GuitarPP().loadTexture("data/sprites", "HOPOS.tga").getTextId()*/;
-	game.pylmBarText = game.loadTexture("data/sprites", "pylmbar.tga").getTextId();
+	//game.pylmBarText = game.loadTexture("data/sprites", "pylmbar.tga").getTextId();
 
 	double startTime = 0.0, openMenuTime = 0.0, fadeoutdsc = engine.getTime();
 	int musicstartedg = 0;
@@ -1458,7 +1486,7 @@ void GPPGame::startModule(const std::string &name)
 			// Load thread state
 		case 0:
 			
-			if (!l.processing)
+			if (!l.processing && game.getNumTexturesToLoad() == 0)
 				++state;
 
 			CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0, 0.1);
@@ -1489,6 +1517,7 @@ void GPPGame::startModule(const std::string &name)
 			playerb.enableBot = game.botEnabled;
 			playerb.playerCamera.center.y = 1.0;
 			playerb.playerCamera.eye.z += 2.0;
+
 			state++;
 		}
 			break;
@@ -2950,13 +2979,17 @@ const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const s
 
 void GPPGame::forceTexturesToLoad()
 {
+    std::cout << "futureTextureLoad.getNumElements()  " << futureTextureLoad.getNumElements() << std::endl;
+    if (futureTextureLoad.getNumElements() == 0)
+        return;
+
     forceTextToLoad = true;
 
     if (std::this_thread::get_id() == mainthread)
     {
         streammingProcess();
     }
-    else if (futureTextureLoad.getNumElements() > 0)
+    else
     {
         std::unique_lock<std::mutex> lock(mstreamming_block);
         do
@@ -2972,6 +3005,7 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
     {
         // Some thread is waiting the textures to load
         // Request the upload to OpenGL now.
+        CLog::log().multiRegister("Streamming process: force textures to load");
         textureStreammingProcess();
     }
     
@@ -3035,6 +3069,7 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
             {
                 if (b.targetFun)
                 {
+                    CLog::log().multiRegister("Texture loaded: calling function %0", textInst.getTextureName());
                     b.targetFun(&b);
                     futureTextureLoad.removeElement(t);
                     return true;
@@ -3053,6 +3088,7 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
 	            textInst = std::move(gpptxt);
             }
             
+            CLog::log().multiRegister("textInst.tloadAsync %0 %1", b.path, b.texture);
             textInst.tloadAsync(b.path, b.texture);
             b.text = &textInst;
         }
@@ -3062,9 +3098,12 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
 
 void GPPGame::textureStreammingProcess()
 {
+    if (forceTextToLoad)
+        std::cout << "Streamming process: force textures to load " << futureTextureLoad.getAddedElementsNum() << std::endl;
+
     if (futureTextureLoad.getAddedElementsNum() > 0)
     {
-        //std::unique_lock<std::mutex> lock(mstreamming_block);
+        std::unique_lock<std::mutex> lock(mstreamming_block);
         bool ftload = forceTextToLoad;
         
         for (int i = 0, size = futureTextureLoad.getNumElements(); i < size; i++)
@@ -3080,6 +3119,7 @@ void GPPGame::textureStreammingProcess()
 
                         if (a->targetFun)
                         {
+                            CLog::log().multiRegister("Texture loaded: calling function %0", a->texture);
                             a->targetFun(a);
                         }else
                         {
@@ -3097,6 +3137,7 @@ void GPPGame::textureStreammingProcess()
         {
             forceTextToLoad = false;
             cstreamming_block.notify_all();
+            CLog::log().multiRegister("cstreamming_block.notify_all()");
         }
     }else
     {
@@ -3105,6 +3146,7 @@ void GPPGame::textureStreammingProcess()
             std::unique_lock<std::mutex> lock(mstreamming_block);
             forceTextToLoad = false;
             cstreamming_block.notify_all();
+            CLog::log().multiRegister("cstreamming_block.notify_all() empty");
         }
     }
 }
@@ -3112,6 +3154,12 @@ void GPPGame::textureStreammingProcess()
 void GPPGame::streammingProcess()
 {
     textureStreammingProcess();
+}
+
+
+int GPPGame::getNumTexturesToLoad()
+{
+    return futureTextureLoad.getAddedElementsNum();
 }
 
 bool GPPGame::loadTextureBatchAsync(std::deque<loadTextureBatch> &batch)
@@ -3167,7 +3215,19 @@ bool GPPGame::loadTextureBatchAsync(std::deque<loadTextureBatch> &batch)
 
 bool singleModelLoadAsync(GPPGame::loadModelBatch *l)
 {
-    l->obj->load(l->path, l->model);
+    try
+    {
+        //std::cout << l->path << "/" << l->model << std::endl;
+        CLog::log().multiRegister("Loading model async %0/%1", l->path, l->model);
+        l->obj->loadInternalObj(l->path, l->model);
+        //std::cout << "END" << l->path << "/" << l->model << std::endl;
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << e.what() << '\n';
+    }
+
+    return true;
 }
 
 bool GPPGame::loadModelBatchAsync(std::deque<loadModelBatch> &batch)
@@ -3185,6 +3245,7 @@ bool GPPGame::loadModelBatchAsync(std::deque<loadModelBatch> &batch)
 
 unsigned int GPPGame::getTextureId(const std::string &name) const noexcept
 {
+    std::lock_guard<std::mutex> lck(gppTextMtx);
 	auto it = gTextures.find(name);
 
 	if (it != gTextures.end())

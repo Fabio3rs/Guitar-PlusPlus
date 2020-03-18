@@ -90,7 +90,7 @@ public:
 
 	// Texture instance manager
     // Need optimizations
-    std::mutex gppTextMtx;
+    mutable std::mutex gppTextMtx;
 	class gppTexture{
 		friend GPPGame;
 		unsigned int text;
@@ -313,6 +313,7 @@ public:
 
     void textureStreammingProcess();
     void streammingProcess();
+    int getNumTexturesToLoad();
 
 	struct gameWindow{
 		int h, w, AA, colorBits, VSyncMode;

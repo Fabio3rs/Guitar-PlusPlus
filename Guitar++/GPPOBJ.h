@@ -84,6 +84,7 @@ class GPPOBJ{
 
 public:
 	bool loadInternalObj(const std::string &path, const std::string &file, const std::string &objName = "", bool loadMtlLib = false);
+	bool loadInternalObjthr(const std::string &path, const std::string &file, const std::string &objName = "", bool loadMtlLib = false);
 
 	bool keepModelDataLoaded;
 
