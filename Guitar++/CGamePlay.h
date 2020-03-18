@@ -46,6 +46,7 @@ class CGamePlay{
 	double time2Position(double Time, CPlayer &player);
 	void renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player);
 	void renderNote(const CPlayer::NotesData::Note &note, CPlayer &player);
+	void renderNotePlayer(CPlayer &player);
 	void renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player);
 	void renderNoteShadowHpStyle(CPlayer &player);
 	void renderIndividualLine(int id, double pos1, double pos2, unsigned int Texture, CPlayer &player);

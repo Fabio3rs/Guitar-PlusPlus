@@ -1355,6 +1355,31 @@ void CGamePlay::renderNote(const CPlayer::NotesData::Note &note, CPlayer &player
 	if (bAddTailToBuffer) addTailToBuffer(note, lt, tlng, ltimet, player);
 }
 
+void CGamePlay::renderNotePlayer(CPlayer &player)
+{
+	auto &notes = player.Notes;
+	auto &gNotes = player.Notes.gNotes;
+    double musicTime = getRunningMusicTime(player);
+
+    for (size_t i = notes.notePos, size = gNotes.size(); i < size; i++)
+	{
+		auto &note = gNotes[i];
+		double noteTime = note.time - musicTime;
+		double endNoteTime = noteTime + note.lTime;
+
+		if (noteTime <= 5.0)
+		{
+			double endNoteTime = noteTime + note.lTime;
+
+			bool bLongNPicked = (note.type & notesFlags::nf_slide_picked) != 0 && endNoteTime >= 0.03;
+			if ((note.type & notesFlags::nf_picked) == 0 || noteTime >= -0.0025 || bLongNPicked)
+			{
+			    renderNote(note, player);
+			}
+		}
+    }
+}
+
 void CGamePlay::renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player)
 {
 	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
@@ -1704,7 +1729,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 			bool bLongNPicked = (note.type & notesFlags::nf_slide_picked) != 0 && endNoteTime >= 0.03;
 			if ((note.type & notesFlags::nf_picked) == 0 || noteTime >= -0.0025 || bLongNPicked)
 			{
-				player.buffer.push_back(&note);
+				//player.buffer.push_back(&note);
 			}
 		}
 
@@ -2840,13 +2865,15 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 		//engine.clearAccmumaltionBuffer();
 
-		for (auto it = player.buffer.rbegin(); it != player.buffer.rend(); it++)
+		/*for (auto it = player.buffer.rbegin(); it != player.buffer.rend(); it++)
 		{
 			const auto &n = **it;
 
 			renderNote(n, player);
 			//renderNoteShadow(n, player);
-		}
+		}*/
+
+        renderNotePlayer(player);
 	};
 
 	if (!fading)
@@ -2866,70 +2893,9 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	static float floorShadow[4][4];
 
-	//float matrix[4][4];
-
 	float lightPosition[4] = { 0, 0, 2.5, 1.0 };
-	// A*x + B*y + C*z + D = 0
-	//std::array<float, 4> groundPlane = CEngine::planeEquation({ 0.0f, -0.499f, 0.0f }, { 0, 1, 0 });
-
-	//CEngine::shadowMatrix(matrix, groundPlane.data(), l0.position);
-
-	/*
-	xyz -1 -0.5 -1
-	A    0   1  0
-	n    0 -0.5 0
-	*/
-
-	/*engine.activateStencilTest(true);
-	engine.startShadowCapture();
-
-	renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], fretboardText);
-
-	engine.endShadowCapture();
-
-	*/
+    
 	CEngine::enableColorsPointer(false);
-
-	{
-
-		//engine.activateStencilTest(true);
-		//engine.activate3DRender(false);
-
-		//engine.startShadowCapture(); // na verdade isso aqui \E9 a delimita\E7\E3o da \E1rea de renderiza\E7\E3o da sombra
-
-		//renderFretBoard(player, fretboardData[0], fretboardData[1], fretboardData[2], fretboardData[3], fretboardText);
-
-		//engine.endShadowCapture();
-
-		//CEngine::pushMatrix();
-
-		//engine.renderDarkCube();
-		/*CEngine::multiplyMatrix((float*)matrix);
-
-		engine.setColor(0.0, 0.0, 0.0, 0.5);
-
-		if (player.guitar == nullptr)
-		{
-			renderPylmBar();
-		}
-		else
-		{
-			renderPlayerPylmBar(player);
-		}
-
-		for (auto &n : player.buffer)
-		{
-			//renderNoteShadow(n, player);
-		}
-
-		CEngine::popMatrix();
-		CEngine::engine().matrixReset();*/
-
-		//engine.activateStencilTest(false);
-
-		//engine.activate3DRender(true);
-	}
-
 
 	engine.activateNormals(true);
 
@@ -3080,31 +3046,51 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		double circlePublicAprov = (player.publicAprov / player.maxPublicAprov);
 		double circleLoadPercent = player.plusLoadB;
 		double circlePercent = (player.plusPower / player.maxPlusPower);
+        unsigned int multiplyerBuffer = 0;
+        unsigned int correctNotesBuffer = 0;
+        double correctNotes = 0.0;
+        size_t gNotesSize = 0;
+        unsigned int publicApprovBuffer = 0;
+        unsigned int plusLoadBuffer = 0;
+        unsigned int plusCircleBuffer = 0;
+
+        {
+            multiplyerBuffer = player.multiplierBuffer;
+            correctNotesBuffer = player.correctNotesBuffer;
+            correctNotes = player.correctNotes;
+            gNotesSize = player.Notes.gNotes.size();
+            publicApprovBuffer = player.publicApprovBuffer;
+            plusLoadBuffer = player.plusLoadBuffer;
+            plusCircleBuffer = player.plusCircleBuffer;
+        }
 
 		engine.setColor(1.0, 1.0, 1.0, 1.0);
 
-		if (circleMultiPercent > 0.0){
+		if (circleMultiPercent > 0.0)
+        {
 			double zeroToOne = circleMultiPercent;
 
 			engine.setColor(0.0, 0.4, 1.0, 1.0);
-			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleMultiPercent, 0.01, 0.041, 200, player.multiplierBuffer);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleMultiPercent, 0.01, 0.041, 200, multiplyerBuffer);
 		}
 
-		if (player.Notes.gNotes.size() > 0){
-			double musicTotalCorrect = (player.correctNotes / player.Notes.gNotes.size());
+		if (gNotesSize > 0)
+        {
+			double musicTotalCorrect = (correctNotes / gNotesSize);
 
 			if (musicTotalCorrect > 0.0)
 			{
 				engine.setColor(0.4, 1.0, 0.4, 1.0);
-				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, musicTotalCorrect, 0.05, 0.041, 400, player.correctNotesBuffer);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, musicTotalCorrect, 0.05, 0.041, 400, correctNotesBuffer);
 			}
 		}
 
-		if (circlePublicAprov > 0.0){
+		if (circlePublicAprov > 0.0)
+        {
 			double zeroToOne = circlePublicAprov;
 
 			engine.setColor(1.0 - 1.0 * zeroToOne, 1.0 * zeroToOne, 0.0, 1.0);
-			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePublicAprov, 0.09, 0.041, 600, player.publicApprovBuffer);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePublicAprov, 0.09, 0.041, 600, publicApprovBuffer);
 		}
 
 		if (circleLoadPercent > circlePercent){
@@ -3112,14 +3098,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 				double zeroToOne = circleLoadPercent;
 
 				engine.setColor(0.4, 1.0, 0.4, 1.0);
-				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, player.plusLoadBuffer);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, plusLoadBuffer);
 			}
 
 			if (circlePercent > 0.0){
 				double zeroToOne = circlePercent;
 
 				engine.setColor(0.0, 1.0, 1.0, 1.0);
-				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, player.plusCircleBuffer);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, plusCircleBuffer);
 			}
 		}
 		else{
@@ -3127,14 +3113,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 				double zeroToOne = circlePercent;
 
 				engine.setColor(0.0, 1.0, 1.0, 1.0);
-				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, player.plusCircleBuffer);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, plusCircleBuffer);
 			}
 
 			if (circleLoadPercent > 0.0){
 				double zeroToOne = circleLoadPercent;
 
 				engine.setColor(0.4, 1.0, 0.4, 1.0);
-				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, player.plusLoadBuffer);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, plusLoadBuffer);
 			}
 		}
 
