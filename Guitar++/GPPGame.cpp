@@ -11,6 +11,7 @@
 #include "CFonts.h"
 #include "CCharter.h"
 #include "CMultiplayer.h"
+#include <new>
 
 std::mutex GPPGame::playersMutex;
 
@@ -1408,8 +1409,54 @@ void GPPGame::serverModule(const std::string &name)
 	}
 }
 
+std::atomic<bool> pausegplay;
+std::atomic<bool> continuegplay;
+
+void updateGamePLay(GPPGame &game, CGamePlay &module)
+{
+    module.startUpdateDelta();
+    while (continuegplay)
+    {
+        if (pausegplay)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        else
+        {
+		    module.update();
+            std::this_thread::sleep_for(std::chrono::microseconds(200));
+        }
+    }
+}
+
+bool thrw = false;
+
+/*void* operator new(std::size_t sz)
+{
+    if (sz > 57000)
+    {
+        std::printf("global op new called, size = %zu\n", sz);
+
+        if (thrw)
+            throw std::logic_error("Memory leak?");
+    }
+
+    void *ptr = std::malloc(sz);
+    if (ptr)
+        return ptr;
+    else
+        throw std::bad_alloc{};
+}
+void operator delete(void* ptr) noexcept
+{
+    //std::puts("global op delete called");
+    std::free(ptr);
+}*/
+
 void GPPGame::startModule(const std::string &name)
 {
+    continuegplay = true;
+    pausegplay = true;
 	int state = 0;
 	auto &game = GPPGame::GuitarPP();
 	auto &engine = CEngine::engine();
@@ -1434,10 +1481,13 @@ void GPPGame::startModule(const std::string &name)
 	l.processing = true;
 
 	std::thread load(loadThread, std::ref(module), std::ref(l));
+	std::thread updateThread(updateGamePLay, std::ref(game), std::ref(module));
 
-	callOnDctor<void(void)> exitguard([&load]()
+	callOnDctor<void(void)> exitguard([&load, &updateThread]()
 	{
+        continuegplay = false;
 		if (load.joinable()) load.join();
+        if (updateThread.joinable()) updateThread.join();
 	});
     
     auto defaultTextLoadFun = [](loadTextureBatch *t)
@@ -1518,6 +1568,7 @@ void GPPGame::startModule(const std::string &name)
 			playerb.playerCamera.center.y = 1.0;
 			playerb.playerCamera.eye.z += 2.0;
 
+            pausegplay = false;
 			state++;
 		}
 			break;
@@ -1527,7 +1578,7 @@ void GPPGame::startModule(const std::string &name)
 		{
 			auto &playerb = *pplayerb;
 
-			module.update();
+			//module.update();
 
 			// Init camera effect
 			for (auto &pp : module.players)
@@ -1567,11 +1618,16 @@ void GPPGame::startModule(const std::string &name)
 					auto &p = *pp;
 					engine.setSoundTime(p.instrumentSound, p.musicRunningTime);
 				}
-
 				//std::cout << "First note position: " << module.getBPlayer().Notes.gNotes[0].time << std::endl;
 
 				songTimeFixed = true;
 			}
+
+                
+            if (engine.getFPS() < 70 && songTimeFixed)
+            {
+                thrw = true;
+            }
 
 			/////////////////
 
@@ -1632,6 +1688,7 @@ void GPPGame::startModule(const std::string &name)
 			// Handles ESC and if true, goto state 3 (Pauses game)
 			if (controls.keyEscape())
 			{
+                pausegplay = true;
 				state++;
 			}
 		}
@@ -1676,6 +1733,7 @@ void GPPGame::startModule(const std::string &name)
 				p.startTime += time - openMenuTime;
 			}
 
+            pausegplay = false;
 			// Back to gameplay
 			state = 2;
 		}
@@ -4069,16 +4127,17 @@ std::vector <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void
 				{
 					if (opt.menusXRef.size() > 0)
 					{
-						try{
+						//try
+                        {
 							auto function = getCallback(opt.menusXRef[0]);
 							if (function)
 							{
 								function(opt.menusXRef[0]);
 							}
 						}
-						catch (const std::exception &e){
+						/*catch (const std::exception &e){
 							CLog::log() << e.what();
-						}
+						}*/
 					}
 				}
 			}
@@ -4313,7 +4372,8 @@ std::vector <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void
 
 					if (m && !m->gameMenu)
 					{
-						try{
+						//try
+                        {
 							auto function = getCallback(opt.menusXRef[0]);
 							if (function)
 							{
@@ -4325,14 +4385,14 @@ std::vector <CMenu*> GPPGame::openMenus(CMenu *startMenu, std::function<int(void
 								CLog::log() << (opt.menusXRef[0] + " is null");
 							}
 						}
-						catch (const std::exception &e){
+						/*catch (const std::exception &e){
 							CLog::log() << e.what();
 							CLuaH::multiCallBackParams_t param;
 
 							param.push_back(e.what());
 
 							lua.runEventWithParams(catchedExceptionSE, param);
-						}
+						}*/
 
 						menusStack.pop_back();
 

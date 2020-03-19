@@ -99,8 +99,8 @@ void CPlayer::update()
 	{
 		std::copy(fretsPressed, fretsPressed + 5, lastFretsPressed);
 
-		if (GPPGame::GuitarPP().showTextsTest)
-			CFonts::fonts().drawTextInScreen("BOT PLAYING", -1.65, -0.9, 0.05);
+		//if (GPPGame::GuitarPP().showTextsTest)
+		//	CFonts::fonts().drawTextInScreen("BOT PLAYING", -1.65, -0.9, 0.05);
 
 		for (int i = 0; i < 5; ++i)
 		{

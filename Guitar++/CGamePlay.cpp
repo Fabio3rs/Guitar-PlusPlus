@@ -1398,9 +1398,8 @@ void CGamePlay::renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player)
 	}
 }
 
-void CGamePlay::updatePlayer(CPlayer &player)
+void CGamePlay::updatePlayer(CPlayer &player, double deltatime)
 {
-	player.tailsData.clear();
 	auto &notes = player.Notes;
 	auto &gNotes = player.Notes.gNotes;
 	auto &engine = CEngine::engine();
@@ -1409,7 +1408,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	if (player.plusEnabled)
 	{
-		player.plusPower -= CEngine::engine().getDeltaTime() * 0.05;
+		player.plusPower -= deltatime * 0.05;
 
 		if (player.plusPower <= 0.0)
 		{
@@ -1421,8 +1420,6 @@ void CGamePlay::updatePlayer(CPlayer &player)
 	player.rangle = ((int)(CEngine::engine().getTime() * 400.0) % 360);
 
 	player.update();
-
-	if (!bIsACharterGP) player.musicRunningTime += engine.getDeltaTime() * gSpeed;
 
 	player.buffer.clear();
 
@@ -1483,7 +1480,7 @@ void CGamePlay::updatePlayer(CPlayer &player)
 
 	if (player.plusLoadF != player.plusLoadB)
 	{
-		player.plusLoadB += (player.plusLoadF - player.plusLoadB) * CEngine::engine().getDeltaTime() * 10.0;
+		player.plusLoadB += (player.plusLoadF - player.plusLoadB) * deltatime * 10.0;
 	}
 
 	bool inslide = false, inslide2 = false;
@@ -2547,6 +2544,7 @@ void shadowMatrix(float m[4][4],
 
 void CGamePlay::renderPlayer(CPlayer &player)
 {
+	player.tailsData.clear();
 	lightData l0;
 
 	auto &engine = CEngine::engine();
@@ -3046,22 +3044,12 @@ void CGamePlay::renderPlayer(CPlayer &player)
 		double circlePublicAprov = (player.publicAprov / player.maxPublicAprov);
 		double circleLoadPercent = player.plusLoadB;
 		double circlePercent = (player.plusPower / player.maxPlusPower);
-        unsigned int multiplyerBuffer = 0;
-        unsigned int correctNotesBuffer = 0;
         double correctNotes = 0.0;
         size_t gNotesSize = 0;
-        unsigned int publicApprovBuffer = 0;
-        unsigned int plusLoadBuffer = 0;
-        unsigned int plusCircleBuffer = 0;
 
         {
-            multiplyerBuffer = player.multiplierBuffer;
-            correctNotesBuffer = player.correctNotesBuffer;
             correctNotes = player.correctNotes;
             gNotesSize = player.Notes.gNotes.size();
-            publicApprovBuffer = player.publicApprovBuffer;
-            plusLoadBuffer = player.plusLoadBuffer;
-            plusCircleBuffer = player.plusCircleBuffer;
         }
 
 		engine.setColor(1.0, 1.0, 1.0, 1.0);
@@ -3071,7 +3059,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 			double zeroToOne = circleMultiPercent;
 
 			engine.setColor(0.0, 0.4, 1.0, 1.0);
-			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleMultiPercent, 0.01, 0.041, 200, multiplyerBuffer);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleMultiPercent, 0.01, 0.041, 200, player.multiplierBuffer);
 		}
 
 		if (gNotesSize > 0)
@@ -3081,7 +3069,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 			if (musicTotalCorrect > 0.0)
 			{
 				engine.setColor(0.4, 1.0, 0.4, 1.0);
-				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, musicTotalCorrect, 0.05, 0.041, 400, correctNotesBuffer);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, musicTotalCorrect, 0.05, 0.041, 400, player.correctNotesBuffer);
 			}
 		}
 
@@ -3090,7 +3078,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 			double zeroToOne = circlePublicAprov;
 
 			engine.setColor(1.0 - 1.0 * zeroToOne, 1.0 * zeroToOne, 0.0, 1.0);
-			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePublicAprov, 0.09, 0.041, 600, publicApprovBuffer);
+			engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePublicAprov, 0.09, 0.041, 600, player.publicApprovBuffer);
 		}
 
 		if (circleLoadPercent > circlePercent){
@@ -3098,14 +3086,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 				double zeroToOne = circleLoadPercent;
 
 				engine.setColor(0.4, 1.0, 0.4, 1.0);
-				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, plusLoadBuffer);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, player.plusLoadBuffer);
 			}
 
 			if (circlePercent > 0.0){
 				double zeroToOne = circlePercent;
 
 				engine.setColor(0.0, 1.0, 1.0, 1.0);
-				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, plusCircleBuffer);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, player.plusCircleBuffer);
 			}
 		}
 		else{
@@ -3113,14 +3101,14 @@ void CGamePlay::renderPlayer(CPlayer &player)
 				double zeroToOne = circlePercent;
 
 				engine.setColor(0.0, 1.0, 1.0, 1.0);
-				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, plusCircleBuffer);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circlePercent, 0.13, 0.04, 1000, player.plusCircleBuffer);
 			}
 
 			if (circleLoadPercent > 0.0){
 				double zeroToOne = circleLoadPercent;
 
 				engine.setColor(0.4, 1.0, 0.4, 1.0);
-				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, plusLoadBuffer);
+				engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04, 1000, player.plusLoadBuffer);
 			}
 		}
 
@@ -3140,20 +3128,36 @@ void CGamePlay::renderPlayer(CPlayer &player)
 void CGamePlay::update()
 {
 	std::lock_guard<std::mutex> l(GPPGame::playersMutex);
+
+    double now = CEngine::engine().getTime();
+    double delta = now - updateLastTimeCalled;
+    updateLastTimeCalled = now;
+	////////////////////////////////////////
+
 	for (auto &pp : players)
 	{
 		auto &p = *pp;
-		if (p.bUpdateP) updatePlayer(p);
+		if (p.bUpdateP)
+        {
+            if (!bIsACharterGP) p.musicRunningTime += delta * gSpeed;
+            updatePlayer(p, delta);
+        }
 	}
 }
 
 void CGamePlay::marathonUpdate()
 {
+    double now = CEngine::engine().getTime();
+    double delta = now - updateLastTimeCalled;
+    updateLastTimeCalled = now;
+	////////////////////////////////////////
+
 	//std::lock_guard<std::mutex> l(GPPGame::playersMutex);
 	for (auto &pp : players)
 	{
 		auto &p = *pp;
-		if (p.bUpdateP && !p.isSongChartFinished()) updatePlayer(p);
+        if (!bIsACharterGP) p.musicRunningTime += delta * gSpeed;
+		if (p.bUpdateP && !p.isSongChartFinished()) updatePlayer(p, delta);
 	}
 }
 
@@ -3223,7 +3227,28 @@ void CGamePlay::render()
 	//*******************************************************************************************************
 
 	if (game.showTextsTest)
+    {
 		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(engine.getFPS()) + " FPS", 0.8, 0.8, 0.1);
+
+        static int lastInternalFPS = 0;
+        static double lastInternalFPST = engine.getTime();
+
+        double gtime = engine.getTime();
+
+        if ((gtime - lastInternalFPST) > 1.0)
+        {
+            lastInternalFPST = gtime;
+            lastInternalFPS = (int)(1.0 / (gtime - updateLastTimeCalled));
+        }
+		
+        CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(lastInternalFPS) + "i FPS", 0.8, 0.6, 0.1);
+    }
+}
+
+
+void CGamePlay::startUpdateDelta()
+{
+    updateLastTimeCalled = CEngine::engine().getTime();
 }
 
 /*
@@ -3238,7 +3263,7 @@ CGamePlay::CGamePlay() : engine(CEngine::engine())
 	auto &Lua = CLuaH::Lua();
 	preRenderPlayerSEvent = Lua.idForCallbackEvent("preRenderPlayer");
 	posRenderPlayerSEvent = Lua.idForCallbackEvent("posRenderPlayer");
-
+    updateLastTimeCalled = 0.0;
 
 	fretboardLightFade = 20.0;
 	bRenderHUD = true;
