@@ -278,12 +278,38 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, c
 		if (mtlLoaded)
 		{
             const std::string &name = mtlLib[part.name].textureName;
-			adata.textureID = GPPGame::GuitarPP().loadTexture(path, name).getTextId();/*mtlLib[part.name].textureID*/;
+            
+            if (name.size() > 0)
+            {
+                adata.textureID = GPPGame::GuitarPP().loadTexture(path, name).getTextId();
 
-			if (adata.textureID == 0)
-			{
-				CLog::log().multiRegister("adata.textureID == 0 %0", part.name);
-			}
+                if (adata.textureID == 0)
+                {
+                    const GPPGame::gppTexture &gpText = GPPGame::GuitarPP().loadTexture(path, name);
+                    
+                    double times = CEngine::engine().getTime(), timeout = 5.0;
+
+                    if (gpText.isAsyncRunning())
+                    {
+                        do
+                        {
+                            std::this_thread::yield();
+                        } while (gpText.isAsyncRunning() && (CEngine::engine().getTime() - times) < timeout);
+                    }
+                    
+                    if ((CEngine::engine().getTime() - times) > timeout)
+                    {
+                        std::cout << "Texture load timeout " << path << "/" << name << std::endl;
+                    }
+
+                    adata.textureID = GPPGame::GuitarPP().loadTexture(path, name).getTextId();
+                }
+
+                if (adata.textureID == 0)
+                {
+                    CLog::log().multiRegister("adata.textureID == 0 %0", part.name);
+                }
+            }
 		}
 		else
 		{

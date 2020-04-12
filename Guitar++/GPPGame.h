@@ -130,6 +130,11 @@ public:
         }
 
 	public:
+        bool isAsyncRunning() const noexcept
+        {
+            return lasync && !asyncFl;
+        }
+
 		unsigned int getTextId() const noexcept
 		{
 			return text;
