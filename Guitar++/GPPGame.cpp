@@ -397,12 +397,15 @@ void GPPGame::initialLoad()
     std::deque<loadModelBatch> modelBatch;
 
     {
-        modelBatch.push_back(loadModelBatch("test", "garage_gpp.obj", testobj));
-        modelBatch.push_back(loadModelBatch("data/models", "GPP_Note.obj", noteOBJ));
-        modelBatch.push_back(loadModelBatch("data/models", "TriggerBase.obj", triggerBASEOBJ));
-        modelBatch.push_back(loadModelBatch("data/models", "Trigger.obj", triggerOBJ));
-        modelBatch.push_back(loadModelBatch("data/models", "pylmbar.obj", pylmbarOBJ));
-        modelBatch.push_back(loadModelBatch("data/models", "GPP_Opennote.obj", openNoteOBJ));
+        loadSingleModelAsync(loadModelBatch("test", "garage_gpp.obj", testobj));
+        loadSingleModelAsync(loadModelBatch("data/models", "GPP_Note.obj", noteOBJ));
+        loadSingleModelAsync(loadModelBatch("data/models", "TriggerBase.obj", triggerBASEOBJ));
+        loadSingleModelAsync(loadModelBatch("data/models", "Trigger.obj", triggerOBJ));
+        loadSingleModelAsync(loadModelBatch("data/models", "pylmbar.obj", pylmbarOBJ));
+        loadSingleModelAsync(loadModelBatch("data/models", "GPP_Opennote.obj", openNoteOBJ));
+
+
+        
         //testobj.load("test", "garage_gpp.obj");
         
         /*triggerBASEOBJ.load("data/models", "TriggerBase.obj");
@@ -411,12 +414,12 @@ void GPPGame::initialLoad()
         triggerOBJ.load("data/models", "Trigger.obj");
         noteOBJ.load("data/models", "GPP_Note.obj");*/
 
-        loadModelBatchAsync(modelBatch);
+        //loadModelBatchAsync(modelBatch);
 
         //modelBatch[0].ft.wait();
     }
 
-    forceTexturesToLoad();
+    //forceTexturesToLoad();
 
     try {
         int itext = 0;
@@ -1429,30 +1432,6 @@ void updateGamePLay(GPPGame &game, CGamePlay &module)
     }
 }
 
-bool thrw = false;
-
-/*void* operator new(std::size_t sz)
-{
-    if (sz > 57000)
-    {
-        std::printf("global op new called, size = %zu\n", sz);
-
-        if (thrw)
-            throw std::logic_error("Memory leak?");
-    }
-
-    void *ptr = std::malloc(sz);
-    if (ptr)
-        return ptr;
-    else
-        throw std::bad_alloc{};
-}
-void operator delete(void* ptr) noexcept
-{
-    //std::puts("global op delete called");
-    std::free(ptr);
-}*/
-
 void GPPGame::startModule(const std::string &name)
 {
     continuegplay = true;
@@ -1526,7 +1505,35 @@ void GPPGame::startModule(const std::string &name)
 	CPlayer *pplayerb = &module.getBPlayer();
 
 	game.setVSyncMode(0);
+    
+    CEngine::RenderDoubleStruct RenderData;
 
+			RenderData.x1 = -1.3;
+			RenderData.x2 = 1.3;
+			RenderData.x3 = 1.3;
+			RenderData.x4 = -1.3;
+
+	RenderData.y1 = 1.0;
+	RenderData.y2 = 1.0;
+	RenderData.y3 = -1.0;
+	RenderData.y4 = -1.0;
+
+	RenderData.z1 = 0.0;
+	RenderData.z2 = 0.0;
+	RenderData.z3 = 0.0;
+	RenderData.z4 = 0.0;
+
+	RenderData.TextureX1 = 0.0;
+	RenderData.TextureX2 = 1.0;
+	RenderData.TextureY1 = 1.0;
+	RenderData.TextureY2 = 0.0;
+    
+
+    unsigned int bgVideoText = engine.genNewGLTexture();
+    RenderData.Text = bgVideoText;
+
+    bool updatedTestBG = false;
+    
 	while (engine.windowOpened())
 	{
 		game.clearScreen();
@@ -1622,15 +1629,23 @@ void GPPGame::startModule(const std::string &name)
 
 				songTimeFixed = true;
 			}
+            
+            if (module.renderBackground())
+			{
+				CEngine::cameraSET usingCamera;
+				usingCamera.eye.x = 0.0;
+				usingCamera.eye.y = 0.0;
+				usingCamera.eye.z = 2.3;
+				usingCamera.center.x = 0;
+				usingCamera.center.y = 0;
+				usingCamera.center.z = 0.0;
+				usingCamera.up.x = 0;
+				usingCamera.up.y = 1;
+				usingCamera.up.z = 0;
 
-                
-            if (engine.getFPS() < 70 && songTimeFixed)
-            {
-                thrw = true;
-            }
-
-			/////////////////
-
+				engine.setCamera(usingCamera);
+			}
+            
 			// Rendering gameplay
 			module.render();
 			module.renderLyrics();
@@ -3086,6 +3101,7 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
                         {
                             // TODO
                             std::cout << "futureTextureLoad.newElement() FAILED  futureTextureLoad.getNumElements(): " << futureTextureLoad.getNumElements() << std::endl;
+                            
                             return false;
                         }
 
@@ -3207,6 +3223,18 @@ void GPPGame::textureStreammingProcess()
             CLog::log().multiRegister("cstreamming_block.notify_all() empty");
         }
     }
+
+    if (futureModelLoad.getNumElements() > 0)
+    {
+        for (int i = 0, size = futureModelLoad.getNumElements(); i < size; i++)
+        {
+            loadModelBatch *a = futureModelLoad.get(i);
+            if (a && a->asyncend)
+            {
+                futureModelLoad.removeElementByIndex(i);
+            }
+        }
+    }
 }
 
 void GPPGame::streammingProcess()
@@ -3285,6 +3313,35 @@ bool singleModelLoadAsync(GPPGame::loadModelBatch *l)
         std::cout << e.what() << '\n';
     }
 
+    l->asyncend = true;
+    return true;
+}
+
+bool GPPGame::loadSingleModelAsync(loadModelBatch batch)
+{
+    {
+        /*int percent = futureTextureLoad.getNumElements() * 0.8;
+        if (futureTextureLoad.getAddedElementsNum() > percent && std::this_thread::get_id() == GuitarPP().mainthread)
+        {
+            CLog::log().multiRegister("Streamming process: force textures to load");
+            textureStreammingProcess();
+        }*/
+
+        loadModelBatch *t = futureModelLoad.newElement();
+        if (t == nullptr)
+        {
+            // TODO
+            std::cout << "futureModelLoad.newElement() FAILED  futureModelLoad.getNumElements(): " << futureModelLoad.getNumElements() << std::endl;
+            return false;
+        }
+
+        *t = std::move(batch);
+        //t->model = std::move(batch.model);
+        //t->path = std::move(batch.path);
+        t->asyncend = false;
+        t->ft = std::async(std::launch::async, singleModelLoadAsync, t);
+    }
+
     return true;
 }
 
@@ -3293,6 +3350,9 @@ bool GPPGame::loadModelBatchAsync(std::deque<loadModelBatch> &batch)
     for (auto &b : batch)
     {
         //if (b.obj->)
+
+
+
         {
             b.ft = std::async(std::launch::async, singleModelLoadAsync, &b);
         }

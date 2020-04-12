@@ -690,6 +690,32 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags, bool glUpload)
 	return GL_TRUE;
 }
 
+
+unsigned int CEngine::genNewGLTexture()
+{
+    GLuint Text;
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glGenTextures(1, &Text);
+	glBindTexture(GL_TEXTURE_2D, Text);
+
+    return Text;
+}
+
+void CEngine::uploadBytesToGl(unsigned int text, const char *bytes, int width, int height)
+{
+    bindTexture(text);
+    //std::cout << glGetError();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+			width, height, 0, GL_RGB,
+			GL_UNSIGNED_BYTE, (const void*)bytes);
+
+            //std::cout << "  text " << text << glGetError() << std::endl;
+}
+
 int CEngine::loadTextureImage2DFinish(GLFWimage *img, int flags)
 {
 	GLint   UnpackAlignment/*, GenMipMap*/;

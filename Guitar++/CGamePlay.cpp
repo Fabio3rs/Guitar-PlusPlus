@@ -1421,7 +1421,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime)
 
 	player.update();
 
-	player.buffer.clear();
+	//player.buffer.clear();
 
 	double musicTime = getRunningMusicTime(player);
 
@@ -2437,7 +2437,7 @@ void CGamePlay::loadSongLyrics(const std::string &song)
 
 void CGamePlay::renderNoteShadowHpStyle(CPlayer &player)
 {
-	double size = 0.2;
+	/*double size = 0.2;
 	double position = -0.51;
 
 	CEngine::RenderDoubleStruct TempStruct3D;
@@ -2459,9 +2459,9 @@ void CGamePlay::renderNoteShadowHpStyle(CPlayer &player)
 		double rtime = time - note.time;
 		for (int i = 0; i < 5; ++i)
 		{
-			if (note.type & /*(int)pow(2, i)*/notesFlagsConst[i])
+			if (note.type & notesFlagsConst[i])
 			{
-				double x = 0, y = -0.42/*62*/, z = 0;
+				double x = 0, y = -0.42, z = 0;
 
 				{
 					double nCalc = rtime * speedMp;
@@ -2487,15 +2487,6 @@ void CGamePlay::renderNoteShadowHpStyle(CPlayer &player)
 				TempStruct3D.z3 = z + size * 2.0;
 				TempStruct3D.z4 = TempStruct3D.z3;
 
-
-				/*double alpha = pos2Alpha(-TempStruct3D.z1 / 5.8);
-
-
-				if (alpha <= 0.0)
-				{
-					continue;
-				}*/
-
 				CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 
 				CEngine::engine().Render3DQuad(TempStruct3D);
@@ -2505,7 +2496,7 @@ void CGamePlay::renderNoteShadowHpStyle(CPlayer &player)
 
 
 	CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
-	hopostp.clear();
+	hopostp.clear();*/
 }
 
 void CGamePlay::setHyperSpeed(double s)
@@ -3132,6 +3123,14 @@ void CGamePlay::update()
     double now = CEngine::engine().getTime();
     double delta = now - updateLastTimeCalled;
     updateLastTimeCalled = now;
+    iFPSCount++;
+
+    if (now - lastiFPSUpdated > 1.0)
+    {
+        iFPS = iFPSCount;
+        iFPSCount = 0;
+        lastiFPSUpdated = now;
+    }
 	////////////////////////////////////////
 
 	for (auto &pp : players)
@@ -3150,6 +3149,14 @@ void CGamePlay::marathonUpdate()
     double now = CEngine::engine().getTime();
     double delta = now - updateLastTimeCalled;
     updateLastTimeCalled = now;
+    iFPSCount++;
+
+    if (now - lastiFPSUpdated > 1.0)
+    {
+        iFPS = iFPSCount;
+        iFPSCount = 0;
+        lastiFPSUpdated = now;
+    }
 	////////////////////////////////////////
 
 	//std::lock_guard<std::mutex> l(GPPGame::playersMutex);
@@ -3180,52 +3187,14 @@ void CGamePlay::resetModule()
 
 void CGamePlay::render()
 {
-	//CEngine::RenderDoubleStruct RenderData;
-
 	auto &game = GPPGame::GuitarPP();
 	auto &engine = CEngine::engine();
-	/*auto &menu = game.loadTexture("data/sprites", "5168047.tga");
-
-	double prop = (double)menu.getImgWidth() / (double)menu.getImgHeight();
-
-	CEngine::engine().setScale(1.5, 1.5, 1.0);
-
-	double y = 0.3;
-
-	RenderData.x1 = -prop;
-	RenderData.x2 = prop;
-	RenderData.x3 = prop;
-	RenderData.x4 = -prop;
-
-	RenderData.y1 = 1.0 + y;
-	RenderData.y2 = 1.0 + y;
-	RenderData.y3 = -1.0 + y;
-	RenderData.y4 = -1.0 + y;
-
-	RenderData.z1 = 0.0;
-	RenderData.z2 = 0.0;
-	RenderData.z3 = 0.0;
-	RenderData.z4 = 0.0;
-
-	RenderData.TextureX1 = 0.0;
-	RenderData.TextureX2 = 1.0;
-	RenderData.TextureY1 = 1.0;
-	RenderData.TextureY2 = 0.0;
-
-	RenderData.Text = menu.getTextId();*/
-
-	//CEngine::engine().Render2DQuad(RenderData);
-
-	//CEngine::engine().matrixReset();
-
-	//*******************************************************************************************************
-
+	
 	for (auto &p : players)
 	{
 		if (p->bRenderP) renderPlayer(*p);
 	}
-	//*******************************************************************************************************
-
+    
 	if (game.showTextsTest)
     {
 		CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(engine.getFPS()) + " FPS", 0.8, 0.8, 0.1);
@@ -3241,26 +3210,123 @@ void CGamePlay::render()
             lastInternalFPS = (int)(1.0 / (gtime - updateLastTimeCalled));
         }
 		
-        CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(lastInternalFPS) + "i FPS", 0.8, 0.6, 0.1);
+        CFonts::fonts().drawTextInScreenWithBuffer(std::to_string(iFPS) + "i FPS", 0.8, 0.6, 0.1);
     }
 }
 
+bool CGamePlay::renderBackground()
+{
+	{
+			/////////////////
+            /*const char *frmbgtest = vid.getFrame(updatedTestBG);
+            if (updatedTestBG)
+            {
+                engine.uploadBytesToGl(bgVideoText, frmbgtest, vid.width, vid.height);
+            }
+            
+            engine.Render2DQuad(RenderData);*/
+
+		engine.activate3DRender(true);
+		engine.activateLighting(true);
+
+		{
+			double centerx = 0.0;
+			double centerz = -650.0;
+
+			double rtime = getBPlayer().musicRunningTime / 10.0;
+			double eyexcam = sin(0) * 1.0 + centerx + sin(rtime) * 1.0;
+			double eyezcam = cos(0) * 1.0 + centerz + cos(rtime) * 1.0;
+
+			CEngine::cameraSET usingCamera;
+            
+			usingCamera.eye.x = 3.0 + sin(rtime);
+			usingCamera.eye.y = 2.5;
+			usingCamera.eye.z = 1.0 + cos(rtime);
+			usingCamera.center.x = 3.0;
+			usingCamera.center.y = 0.5;
+			usingCamera.center.z = -5;
+			usingCamera.up.x = 0;
+			usingCamera.up.y = 1;
+			usingCamera.up.z = 0;
+
+			engine.setCamera(usingCamera);
+		}
+
+		{
+			lightData l;
+
+			for (auto &t : l.ambientLight)
+			{
+				t = 0.1f;
+			}
+
+			for (auto &t : l.direction)
+			{
+				t = 2.5f;
+			}
+
+			for (auto &t : l.position)
+			{
+			    t = 0.0f;
+			}
+
+			for (auto &t : l.specularLight)
+			{
+				t = 0.2f;
+			}
+            
+			for (auto &t : l.diffuseLight)
+			{
+				t = 0.2f;
+			}
+
+			l.specularLight[1] = 1.0f;
+			l.specularLight[2] = 1.0f;
+			l.diffuseLight[0] = 1.0f;
+			l.diffuseLight[1] = 1.0f;
+			l.ambientLight[3] = 0.1f;
+
+			CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
+
+			l.angle = 180.0f;
+			l.direction[0] = 3.0f;
+			l.direction[1] = -0.5f;
+			l.direction[2] = -1.5f;
+
+			l.position[0] = 3.0f;
+			l.position[1] = 2.7f;
+			l.position[2] = -1.5f;
+			l.position[3] = 1.0f;
+
+			engine.activateLight(0, false);
+			engine.activateLight(1, true);
+			engine.setLight(l, 1);
+		}
+
+		engine.activateNormals(true);
+		GPPGame::GuitarPP().testobj.draw(0);
+		engine.activateNormals(false);
+
+		engine.activateLighting(false);
+		engine.activate3DRender(false);
+
+		engine.matrixReset();
+
+		engine.clear3DBuffer();
+	}
+    return true;
+}
 
 void CGamePlay::startUpdateDelta()
 {
     updateLastTimeCalled = CEngine::engine().getTime();
 }
 
-/*
-CGamePlay &CGamePlay::gamePlay()
-{
-	static CGamePlay game;
-	return game;
-}*/
-
 CGamePlay::CGamePlay() : engine(CEngine::engine())
 {
 	auto &Lua = CLuaH::Lua();
+    iFPS = 0;
+    iFPSCount = 0;
 	preRenderPlayerSEvent = Lua.idForCallbackEvent("preRenderPlayer");
 	posRenderPlayerSEvent = Lua.idForCallbackEvent("posRenderPlayer");
     updateLastTimeCalled = 0.0;

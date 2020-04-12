@@ -299,6 +299,8 @@ public:
 	int loadTextureImage2DFinish(GLFWimage *img, int flags);
 	void freeImage(GLFWimage *img);
 
+    unsigned int genNewGLTexture();
+    void uploadBytesToGl(unsigned int text, const char *bytes, int width, int height);
 
 	int getKey(int key) const;
 	void Rotate(double a, double x, double y, double z);

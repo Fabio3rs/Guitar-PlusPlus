@@ -378,6 +378,18 @@ public:
         std::future<bool> ft;
         std::string path;
         std::string model;
+        bool asyncend;
+
+        loadModelBatch &operator=(loadModelBatch&& m)
+        {
+            path = std::move(m.path);
+            model = std::move(m.model);
+            obj = std::move(m.obj);
+            ft = std::move(m.ft);
+            asyncend = m.asyncend;
+
+            return *this;
+        }
 
         loadModelBatch(loadModelBatch&& m)
         {
@@ -385,11 +397,13 @@ public:
             model = std::move(m.model);
             obj = std::move(m.obj);
             ft = std::move(m.ft);
+            asyncend = m.asyncend;
         }
 
         loadModelBatch()
         {
             obj = nullptr;
+            asyncend = false;
         }
 
         loadModelBatch(const char *pa, const char *md, GPPOBJ &o)
@@ -397,12 +411,16 @@ public:
             path = pa;
             model = md;
             obj = &o;
+            asyncend = false;
         }
     };
+
+    CMultiThreadPool<loadModelBatch, 200> futureModelLoad;
 	
     void textureBatchLoad(const std::vector<std::pair<std::string, std::string>> texts);
 	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
 	bool loadModelBatchAsync(std::deque<loadModelBatch> &batch);
+    bool loadSingleModelAsync(loadModelBatch batch);
 	bool loadTextureBatchAsync(std::deque<loadTextureBatch> &batch);
 	int loadTextureGetId(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
 	unsigned int getTextureId(const std::string &name) const noexcept;
@@ -507,6 +525,8 @@ public:
 
 	void selectPlayerMenu();
 
+	GPPOBJ testobj;
+
 protected:
 	static int registerFunctions(CLuaH::luaState_t &Lstate);
 	static int registerGlobals(CLuaH::luaState_t &L);
@@ -518,8 +538,6 @@ protected:
 
 private:
 	std::shared_ptr<CPlayer> mainPlayer;
-
-	GPPOBJ testobj;
 
 	static void callbackRenderFrame();
 	static void callbackKeys(int key, int scancode, int action, int mods);

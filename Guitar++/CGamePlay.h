@@ -30,7 +30,8 @@ class CGamePlay{
 
 	bool showBPMVlaues;
 
-    double updateLastTimeCalled;
+    double updateLastTimeCalled, lastiFPSUpdated;
+    int iFPS, iFPSCount;
 
 	void renderFretBoard(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text);
 	void renderFretBoardShadow(CPlayer &player, double x1, double x2, double x3, double x4, unsigned int Text);
@@ -139,6 +140,8 @@ public:
 	void update();
 	void marathonUpdate();
 	void render();
+
+    bool renderBackground();
 
 	bool bRenderHUD;
 

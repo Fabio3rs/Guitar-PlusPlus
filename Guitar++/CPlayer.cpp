@@ -1381,7 +1381,7 @@ void CPlayer::resetSongThings()
 {
 	CEngine::engine().unloadSoundStream(instrumentSound);
 	CEngine::engine().unloadSoundStream(songAudioID);
-	buffer.clear();
+	//buffer.clear();
 	Notes.unloadChart();
 
 	songAudioID = -1;
