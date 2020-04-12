@@ -176,8 +176,15 @@ public:
 	{
 		if (element != nullptr)
 		{
-			if (callDector)
-				(*element).~poolData_t();
+            try
+            {
+                if (callDector)
+                    (*element).~poolData_t();
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
 
 			uintptr_t ptrstart = reinterpret_cast<uintptr_t>(pool.get());
 			uintptr_t ptrpoint = reinterpret_cast<uintptr_t>(element);
@@ -198,8 +205,15 @@ public:
 
 		if (element != nullptr)
 		{
-			if (callDector)
-				(*element).~poolData_t();
+			try
+            {
+                if (callDector)
+                    (*element).~poolData_t();
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
 
 			bits[i] = 0;
 

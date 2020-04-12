@@ -37,11 +37,8 @@ int main(int argc, char* argv[])
 		auto &lngmgr = CLanguageManager::langMGR();
 
 		auto &game = GPPGame::GuitarPP();
-		auto &guitars = CGuitars::inst();
 
 		game.parseParameters(argc, argv);
-		
-		auto &campaingMgr = CCampaing::campaingMGR();
 
 		auto &lua = CLuaH::Lua();
 
@@ -60,6 +57,9 @@ int main(int argc, char* argv[])
 
 		// Window
 		game.createWindow();
+		
+		auto &guitars = CGuitars::inst();
+		auto &campaingMgr = CCampaing::campaingMGR();
 
 		CLog::log().multiRegister("Shaders status: %0", ShaderProject::CShader::inst().isShadersEnabled());
 
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
 
 		ltime = CEngine::engine().getTime();
 
-		while ((wOpened = CEngine::engine().windowOpened()) && ((CEngine::engine().getTime() - ltime) < 3.0 || loadLoop < 100))
+		while ((wOpened = CEngine::engine().windowOpened()) && ((CEngine::engine().getTime() - ltime) < 3.0 || loadLoop < 100) || game.getNumTexturesToLoad() > 0)
 		{
 			if (CControls::controls().keyEscape())
 			{
@@ -659,11 +659,24 @@ int main(int argc, char* argv[])
 			CEngine::engine().Render2DQuad(lgrdata);
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t + 0.1));
-			CFonts::fonts().drawTextInScreenWithBuffer(str2nibblePresents, CFonts::fonts().getCenterPos(str2nibblePresents, 0.1, 0.0), -0.6, 0.1);
+			CFonts::fonts().drawTextInScreenWithBuffer(str2nibblePresents + std::to_string(game.getNumTexturesToLoad()), CFonts::fonts().getCenterPos(str2nibblePresents, 0.1, 0.0), -0.6, 0.1);
 			
 
 			CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 			game.renderFrame();
+
+            if (game.futureTextureLoad.getAddedElementsNum() > 0 && t > 5)
+            {
+                for (int i = 0, size = game.futureTextureLoad.getNumElements(); i < size; i++)
+                {
+                    GPPGame::loadTextureBatch *a = game.futureTextureLoad.get(i);
+
+                    if (a)
+                    {
+                        CLog::log().multiRegister("%0 %1 %2", a->path, a->path, i);
+                    }
+                }
+            }
 		}
 
 		if (!wOpened)

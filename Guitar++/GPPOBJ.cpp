@@ -109,18 +109,6 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, c
 	if (!obj.is_open())
 		return false;
 
-    {
-        int mtlsize = 0;
-        {
-            std::lock_guard<std::mutex> lck(mtx);
-            mtlsize = mtlLib.size();
-        }
-
-        if (mtlsize > 0)
-        {
-            GPPGame::GuitarPP().forceTexturesToLoad();
-        }
-    }
 	multiData.clear();
 	modelData mData;
 
@@ -263,6 +251,16 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file, c
 	{
 		data.insert(data.end(), ptr, ptr + size);
 	};
+
+    if (mtlLib.size() > 0)
+    {
+        GPPGame::GuitarPP().forceTexturesToLoad();
+        /*auto &game = GPPGame::GuitarPP();
+        while (game.futureTextureLoad.getAddedElementsNum() > 0)
+        {
+            std::this_thread::yield();
+        }*/
+    }
 
 	for (auto &part : modelPartIndexes)
 	{

@@ -391,10 +391,9 @@ void GPPGame::initialLoad()
 {
     //static std::deque<loadModelBatch> modelBatch;
     testobj.loadTextureList("test", "garage_gpp.mtl");
-    forceTexturesToLoad();
+    //forceTexturesToLoad();
 
 	//testobj.load("test", "garage_gpp.obj");
-    std::deque<loadModelBatch> modelBatch;
 
     {
         loadSingleModelAsync(loadModelBatch("test", "garage_gpp.obj", testobj));
@@ -3027,33 +3026,85 @@ double GPPGame::getWindowProportion()
 
 const GPPGame::gppTexture &GPPGame::loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript)
 {
-    //static std::mutex mx;
-    std::lock_guard<std::mutex> lck(gppTextMtx);
-    
     {
-        auto &textInst = gTextures[(path + "/" + texture)];
-
-        if (luaScript)
+        std::lock_guard<std::mutex> lck(gppTextMtx);
+        
         {
-            textInst.associatedToScript[luaScript] = true;
+            auto &textInst = gTextures[(path + "/" + texture)];
+
+            if (luaScript)
+            {
+                textInst.associatedToScript[luaScript] = true;
+            }
+
+            if (textInst.getTextId())
+            {
+                return textInst;
+            }
         }
+    }
 
-        if (textInst.getTextId())
+    {
+        if (std::this_thread::get_id() != GuitarPP().mainthread)
         {
+            gppTexture *pText = nullptr;
+
+            {
+                std::lock_guard<std::mutex> lck(gppTextMtx);
+                pText = std::addressof(gTextures[(path + "/" + texture)]);
+            }
+
+            if (!pText->lasync)
+            {
+                pText->lasync = true;
+
+                //std::cout << "(std::this_thread::get_id() != GuitarPP().mainthread) - loadTexture " << path << "/" << texture << std::endl;
+
+                int waitVar = 0;
+
+                loadTextureBatch lb;
+                lb.luaScript = luaScript;
+                lb.path = path;
+                lb.texture = texture;
+                lb.userptr = &waitVar;
+
+                lb.targetFun = [](loadTextureBatch *l)
+                {
+                    int *i = reinterpret_cast<int*>(l->userptr);
+                    *i = 1;
+                };
+                
+                if (loadTextureSingleAsync(lb))
+                {
+                    if (pText->ft.valid())
+                    {
+                        pText->ft.wait();
+                    }
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                    
+                }
+            }
+            
+            return *pText;
+        }
+        else
+        {
+            std::lock_guard<std::mutex> lck(gppTextMtx);
+            gppTexture gpptxt(path, texture);
+            gpptxt.load();
+            gTextures[(path + "/" + texture)] = std::move(gpptxt);
+
             return gTextures[(path + "/" + texture)];
         }
     }
     
-    gppTexture gpptxt(path, texture);
-
-	gTextures[(path + "/" + texture)] = std::move(gpptxt);
 	return gTextures[(path + "/" + texture)];
 }
 
 void GPPGame::forceTexturesToLoad()
 {
-    std::cout << "futureTextureLoad.getNumElements()  " << futureTextureLoad.getNumElements() << std::endl;
-    if (futureTextureLoad.getNumElements() == 0)
+    if (futureTextureLoad.getAddedElementsNum() == 0)
         return;
 
     forceTextToLoad = true;
@@ -3068,6 +3119,9 @@ void GPPGame::forceTexturesToLoad()
         do
         {
             cstreamming_block.wait(lock);
+
+            if (futureTextureLoad.getAddedElementsNum() == 0)
+                return;
         } while (forceTextToLoad);
     }
 }
@@ -3096,6 +3150,8 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
                         return true;
                     }else
                     {
+                        // Mutex to protect the operations on loadTextureBatch - futureTextureLoad
+                        std::lock_guard<std::mutex> lck(mtGppTextMtx);
                         loadTextureBatch *t = futureTextureLoad.newElement();
                         if (t == nullptr)
                         {
@@ -3118,6 +3174,8 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
     }
 
     {
+        // Mutex to protect the operations on loadTextureBatch - futureTextureLoad
+        std::lock_guard<std::mutex> lck(mtGppTextMtx);
         loadTextureBatch *t = futureTextureLoad.newElement();
         if (t == nullptr)
         {
@@ -3128,7 +3186,7 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
 
         loadTextureBatch &b = *t;
         b = tData;
-
+        
         if (b.texture.size() != 0)
         {
             std::lock_guard<std::mutex> lck(gppTextMtx);
@@ -3139,7 +3197,7 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
                 textInst.associatedToScript[b.luaScript] = true;
             }
 
-            if (textInst.getTextId())
+            if (textInst.getTextId() != 0u)
             {
                 if (b.targetFun)
                 {
@@ -3172,12 +3230,16 @@ bool GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData)
 
 void GPPGame::textureStreammingProcess()
 {
-    if (forceTextToLoad)
-        std::cout << "Streamming process: force textures to load " << futureTextureLoad.getAddedElementsNum() << std::endl;
+    const int elementsPerFrame = 50;
+    int elementsLoadedNow = 0;
 
     if (futureTextureLoad.getAddedElementsNum() > 0)
     {
-        std::unique_lock<std::mutex> lock(mstreamming_block);
+        // Mutex to protect the operations on loadTextureBatch - futureTextureLoad
+        std::lock_guard<std::mutex> lck(mtGppTextMtx);
+
+        //
+        //std::unique_lock<std::mutex> lock(mstreamming_block);
         bool ftload = forceTextToLoad;
         
         for (int i = 0, size = futureTextureLoad.getNumElements(); i < size; i++)
@@ -3200,9 +3262,23 @@ void GPPGame::textureStreammingProcess()
                             std::cout << "targetfun zero\n";
                         }
                         
+                        futureTextureLoad.removeElement(a);
 
+                        elementsLoadedNow++;
+
+                        if (!ftload && elementsPerFrame <= elementsLoadedNow)
+                        {
+                            break;
+                        }
+                    } else if (a->text->getTextId() == ~0u)
+                    {
                         futureTextureLoad.removeElement(a);
                     }
+                }
+                else
+                {
+                    // Remove elements without a texture pointer
+                    futureTextureLoad.removeElement(a);
                 }
             }
         }
@@ -3213,18 +3289,19 @@ void GPPGame::textureStreammingProcess()
             cstreamming_block.notify_all();
             CLog::log().multiRegister("cstreamming_block.notify_all()");
         }
-    }else
+    }
+    else
     {
         if (forceTextToLoad)
         {
-            std::unique_lock<std::mutex> lock(mstreamming_block);
+            //std::unique_lock<std::mutex> lock(mstreamming_block);
             forceTextToLoad = false;
             cstreamming_block.notify_all();
             CLog::log().multiRegister("cstreamming_block.notify_all() empty");
         }
     }
 
-    if (futureModelLoad.getNumElements() > 0)
+    if (futureModelLoad.getAddedElementsNum() > 0)
     {
         for (int i = 0, size = futureModelLoad.getNumElements(); i < size; i++)
         {

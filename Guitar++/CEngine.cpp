@@ -957,7 +957,7 @@ unsigned int CEngine::uploadTextureToOGL(GLFWimage *eimg)
 		return Text;
 	}
 
-	return 0;
+	return 0u;
 }
 
 double calcDist(double x1, double y1, double x2, double y2){

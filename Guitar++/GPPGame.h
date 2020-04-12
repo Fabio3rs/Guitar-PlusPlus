@@ -91,6 +91,7 @@ public:
 	// Texture instance manager
     // Need optimizations
     mutable std::mutex gppTextMtx;
+    mutable std::mutex mtGppTextMtx;
 	class gppTexture{
 		friend GPPGame;
 		unsigned int text;
@@ -109,18 +110,21 @@ public:
 
         static bool loadAsync(gppTexture *ths)
         {
+            ths->text = 0u;
+
             if (ths->textName.size() == 0)
             {
                 std::cout << "ths->textName.size() == 0\n";
                 return 0;
             }
             bool r = CEngine::engine().loadTextureAsync((ths->textPath + std::string("/") + ths->textName).c_str(), &ths->imgData);
-            ths->asyncFl = true;
 
             if (!r)
             {
-                std::cout << (ths->textPath + std::string("/") + ths->textName) << std::endl;
+                ths->text = ~0u;
             }
+            
+            ths->asyncFl = true;
 
             return r;
         }
@@ -141,14 +145,15 @@ public:
                     if (imgData.Data.get() != nullptr)
                     {
                         text = CEngine::engine().uploadTextureToOGL(&imgData);
-                    }else
+                    }
+                    else
                     {
-                        std::cout << "DATA NOT VALID " << textName << std::endl;
+                        text = ~0u;
                     }
                     
                 }else
                 {
-                    std::cout << "ft.get() 0\n";
+                    text = ~0u;
                 }
             }
 
@@ -205,11 +210,13 @@ public:
                     std::cout << "(std::this_thread::get_id() != GuitarPP().mainthread) - texture " << texture << std::endl;
                     return;
                 }
-                
-
-			    text = CEngine::engine().loadTexture((textPath + std::string("/") + textName).c_str(), &imgData);
             }
 		}
+
+        void load()
+        {
+			text = CEngine::engine().loadTexture((textPath + std::string("/") + textName).c_str(), &imgData);
+        }
 
         void tloadAsync(const std::string &path, const std::string &texture)
         {
