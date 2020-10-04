@@ -1,25 +1,15 @@
-#########################
-# customise these
-CPPFILES := *.c
-PROG := prog
-CFLAGS := -Wall -Wextra -g
-LDFLAGS :=
-########################
+SRC_DIR := .
+OBJ_DIR := ./obj
+SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)
+OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRC_FILES))
+INCLUDES := -I../cereal/include -I../glm -I../glfw-3.3.2/include
+LDFLAGS := 
+CPPFLAGS := $(INCLUDES) -g
+CXXFLAGS := -g
 
-# -MMD generates dependencies while compiling
-CFLAGS += -MMD
-CC := g++
+main.exe: $(OBJ_FILES)
+	g++ $(LDFLAGS) -o $@ $^
 
-OBJFILES := $(CPPFILES:.cpp=.o)
-OBJFILES += $(CFILES:Lua/.c=.o)
-DEPFILES := $(CPPFILES:.cpp=.d)
-DEPFILES := $(CFILES:Lua/.c=.d)
-
-$(PROG): $(OBJFILES)
-    $(LINK.o) $(LDFLAGS) -o $@ $^
-
-clean:
-    m -f $(PROG) $(OBJFILES) $(DEPFILES)
-
--include $(DEPFILES)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	g++ $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
