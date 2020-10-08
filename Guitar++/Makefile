@@ -7,9 +7,9 @@ C_FILES := $(wildcard $(SRC_DIR)/Lua/*.c)
 OBJ_FILES :=  $(patsubst $(LSRC_DIR)/%.c,$(LOBJ_DIR)/%.o,$(C_FILES)) $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(CPP_FILES))
 INCLUDES := -I../cereal/include -I../glm -I../bass
 LDFLAGS := -lpthread -lGL -lGLEW -L../bass -lbass -lbass_fx -lglfw3 -ldl -lX11
-CPPFLAGS := $(INCLUDES) -g -pipe
-CFLAGS := -g -pipe
-CXXFLAGS := -g
+CPPFLAGS := -O3 $(INCLUDES) -g -pipe
+CFLAGS := -O3 -g -pipe
+CXXFLAGS := -O3 -g
 
 GuitarPP: $(OBJ_FILES)
 	g++ -o $@ $(LOBJ_DIR)/*.o $(OBJ_DIR)/*.o $(LDFLAGS) 
