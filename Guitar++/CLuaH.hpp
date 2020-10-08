@@ -343,8 +343,8 @@ public:
 			p.type = LUA_TNIL;
 			p.num = 0.0;
 			p.inumber = 0;
-			p.boolean = NULL;
-			p.function = NULL;
+			p.boolean = false;
+			p.function = 0;
 		}
 
 		customParam(const luaVarData &data) noexcept
@@ -355,8 +355,8 @@ public:
 		customParam(const std::string &s)
 		{
 			p.num = 0.0;
-			p.boolean = NULL;
-			p.function = NULL;
+			p.boolean = false;
+			p.function = 0;
 			p.str = s;
 			p.type = LUA_TSTRING;
 			p.inumber = 0;
@@ -365,8 +365,8 @@ public:
 		customParam(const char *s)
 		{
 			p.num = 0.0;
-			p.boolean = NULL;
-			p.function = NULL;
+			p.boolean = false;
+			p.function = 0;
 			p.str = s;
 			p.type = LUA_TSTRING;
 			p.inumber = 0;
@@ -374,8 +374,8 @@ public:
 
 		customParam(double n) noexcept
 		{
-			p.boolean = NULL;
-			p.function = NULL;
+			p.boolean = false;
+			p.function = 0;
 			p.num = n;
 			p.type = LUA_TNUMBER;
 			p.inumber = 0;
@@ -383,8 +383,8 @@ public:
 
 		customParam(int n) noexcept
 		{
-			p.boolean = NULL;
-			p.function = NULL;
+			p.boolean = false;
+			p.function = 0;
 			p.num = n;
 			p.type = (LUA_TNUMBER | 0xF0000000);
 			p.inumber = n;
@@ -392,8 +392,8 @@ public:
 
 		customParam(int64_t n) noexcept
 		{
-			p.boolean = NULL;
-			p.function = NULL;
+			p.boolean = false;
+			p.function = 0;
 			p.num = 0.0;
 			p.type = (LUA_TNUMBER | 0xF0000000);
 			p.inumber = n;
@@ -402,7 +402,7 @@ public:
 		customParam(bool n) noexcept
 		{
 			p.num = 0.0;
-			p.function = NULL;
+			p.function = 0;
 			p.boolean = n;
 			p.type = LUA_TBOOLEAN;
 			p.inumber = 0;
