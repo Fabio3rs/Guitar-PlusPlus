@@ -116,9 +116,9 @@ CPlayer::NotesData::Note CGamePlay::getBPMAtStruct(CPlayer &player, double time)
 	return result;
 }
 
-std::deque<CPlayer::NotesData::Note>::iterator CGamePlay::getBPMAtIt(CPlayer &player, double time)
+std::vector<CPlayer::NotesData::Note>::iterator CGamePlay::getBPMAtIt(CPlayer &player, double time)
 {
-	std::deque<CPlayer::NotesData::Note>::iterator result;
+	std::vector<CPlayer::NotesData::Note>::iterator result;
 
 	for (auto it = player.Notes.BPM.begin(); it != player.Notes.BPM.end(); it++)
 	{
@@ -409,7 +409,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player)
 
 		if (showBPMVlaues)
 		{
-			std::deque<CPlayer::NotesData::Note>::iterator nullit;
+			std::vector<CPlayer::NotesData::Note>::iterator nullit;
 
 			if (minTime < 0.0)
 				minTime = 0.0;
@@ -1520,6 +1520,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime)
 					player.plusPower += player.maxPlusPower / 5.0;
 					++notes.plusPos;
 					player.plusThunterStrikeStart = engine.getTime();
+					player.bPlusStrike = true;
 				}
 			}
 
@@ -2540,8 +2541,6 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	auto &engine = CEngine::engine();
 
-	bool fading = false;
-
 	/*static OutputSurface_t surf = []() { OutputSurface_t result;
 	memset(&result, 0, sizeof(result)); return result; }();
 	
@@ -2603,17 +2602,23 @@ void CGamePlay::renderPlayer(CPlayer &player)
 
 	engine.draw2DLine(player.spectrumLines, 4);
 	*/
-	if (fretboardLightFade > 1.0)
+	if (bFretboardLightFading)
 	{
-		fretboardLightFade -= engine.getDeltaTime() * 4.0;
-		fading = true;
+		if (fretboardLightFade > 1.0)
+		{
+			fretboardLightFade -= engine.getDeltaTime() * 4.0;
+		}
+		else
+		{
+			bFretboardLightFading = false;
+		}
 	}
 
 	for (auto &t : l0.ambientLight)
 	{
 		t = 0.2f;
 
-		if (fretboardLightFade > 1.0)
+		if (bFretboardLightFading)
 		{
 			t /= fretboardLightFade;
 		}
@@ -2651,69 +2656,77 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	l0.position[1] = 0.0f;
 	l0.position[2] = 2.5f;
 
-	if (fretboardLightFade > 1.0)
+	if (bFretboardLightFading)
 	{
 		l0.position[2] -= fretboardLightFade - 1.0;
 	}
 
 	auto &lua = CLuaH::Lua();
 
-	double difftime = engine.getTime() - player.plusThunterStrikeStart;
-
 	bool renablel0 = false;
 
-	if (difftime <= 4.0 && difftime > 0.0)
+	if (player.bPlusStrike)
 	{
-		difftime /= 4.0;
-
-		engine.activateLighting(true);
-
-		lightData l;
-
-		for (auto &t : l.ambientLight)
+		double difftime = engine.getTime() - player.plusThunterStrikeStart;
+		
+		if (difftime > 4.0)
 		{
-			t = static_cast<float>(difftime);
+			player.bPlusStrike = false;
 		}
-
-		for (auto &t : l.direction)
+		
+		if (difftime > 0.0)
 		{
-			t = 2.5f;
+			difftime /= 4.0;
+
+			engine.activateLighting(true);
+
+			lightData l;
+
+			for (auto &t : l.ambientLight)
+			{
+				t = static_cast<float>(difftime);
+			}
+
+			for (auto &t : l.direction)
+			{
+				t = 2.5f;
+			}
+
+			for (auto &t : l.position)
+			{
+				t = 0.0f;
+			}
+
+			for (auto &t : l.specularLight)
+			{
+				t = 1.0f;
+			}
+
+			for (auto &t : l.diffuseLight)
+			{
+				t = 0.2f;
+			}
+
+			l.specularLight[2] = 1.0f;
+			l.specularLight[3] = 1.0f - static_cast<float>(difftime);
+			l.diffuseLight[2] = 1.0f;
+			l.diffuseLight[3] = 1.0f - static_cast<float>(difftime);
+			l.ambientLight[3] = static_cast<float>(difftime);
+
+			l.angle = 100.0f;
+			l.direction[0] = 0.0f;
+			l.direction[1] = -0.5f;
+			l.direction[2] = -5.0f;
+
+			l.position[3] = 1.0f;
+			l.position[1] = 0.0f;
+			l.position[2] = 2.5f;
+
+			engine.activateLight(0, false);
+			engine.activateLight(1, true);
+			engine.setLight(l, 1);
+			renablel0 = true;
 		}
-
-		for (auto &t : l.position)
-		{
-			t = 0.0f;
-		}
-
-		for (auto &t : l.specularLight)
-		{
-			t = 1.0f;
-		}
-
-		for (auto &t : l.diffuseLight)
-		{
-			t = 0.2f;
-		}
-
-		l.specularLight[2] = 1.0f;
-		l.specularLight[3] = 1.0f - static_cast<float>(difftime);
-		l.diffuseLight[2] = 1.0f;
-		l.diffuseLight[3] = 1.0f - static_cast<float>(difftime);
-		l.ambientLight[3] = static_cast<float>(difftime);
-
-		l.angle = 100.0f;
-		l.direction[0] = 0.0f;
-		l.direction[1] = -0.5f;
-		l.direction[2] = -5.0f;
-
-		l.position[3] = 1.0f;
-		l.position[1] = 0.0f;
-		l.position[2] = 2.5f;
-
-		engine.activateLight(0, false);
-		engine.activateLight(1, true);
-		engine.setLight(l, 1);
-		renablel0 = true;
 	}
 
 	if (player.plusEnabled)
@@ -2816,7 +2829,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
 	CEngine::enableColorsPointer(true);
 
 	//engine.setColor(1.0, 1.0, 1.0, 1.0);
-	if (fading)
+	if (bFretboardLightFading)
 	{
 		engine.activateLighting(true);
 		engine.activateLight(1, false);
@@ -2865,7 +2878,7 @@ void CGamePlay::renderPlayer(CPlayer &player)
         renderNotePlayer(player);
 	};
 
-	if (!fading)
+	if (!bFretboardLightFading)
 	{
 		engine.activateLighting(true);
 
@@ -3171,6 +3184,7 @@ void CGamePlay::marathonUpdate()
 void CGamePlay::resetModule()
 {
 	fretboardLightFade = 20.0;
+	bFretboardLightFading = true;
 
 	for (auto &p : players)
 	{
@@ -3332,6 +3346,7 @@ CGamePlay::CGamePlay() : engine(CEngine::engine())
     updateLastTimeCalled = 0.0;
 
 	fretboardLightFade = 20.0;
+	bFretboardLightFading = true;
 	bRenderHUD = true;
 	bIsACharterGP = false;
 	showBPMVlaues = false;

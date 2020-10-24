@@ -251,7 +251,7 @@ void CCharter::preRender()
 			}
 		}
 
-		typedef std::deque<CPlayer::NotesData::Note> notesType;
+		typedef std::vector<CPlayer::NotesData::Note> notesType;
 
 		auto searchNoteAt = [roundTo, BPMDiv32](notesType &gNotes, double time, notesType::iterator &beforeTime, notesType::iterator &afterTime)
 		{

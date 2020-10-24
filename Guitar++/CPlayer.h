@@ -276,9 +276,9 @@ public:
 			}
 		};
 
-		std::deque<Note> gNotes;
-		std::deque<Note> BPM;
-		std::deque<plusNote> gPlus;
+		std::vector<Note> gNotes;
+		std::vector<Note> BPM;
+		std::vector<plusNote> gPlus;
 
 		bool loadChart(const char *chartFile);
 		bool loadFeedbackChart(const char *chartFile);
@@ -363,7 +363,7 @@ public:
 	void processError();
 	void releaseSong();
 
-	std::deque <lineData> tailsData;
+	std::vector <lineData> tailsData;
 
 	bool plusEnabled;
 
@@ -401,7 +401,7 @@ public:
 
 	CEngine::cameraSET playerCamera, targetCamera;
 
-	bool bRenderP, bUpdateP;
+	bool bRenderP, bUpdateP, bPlusStrike;
 
 	CParticle playerParticles;
 

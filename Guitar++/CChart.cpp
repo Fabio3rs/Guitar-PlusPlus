@@ -42,7 +42,7 @@ bool CChart::parseFeebackChart(std::istream &chartStream)
 		}
 	};
 
-	typedef std::deque<Note_t> noteContainer;
+	typedef std::vector<Note_t> noteContainer;
 	typedef std::vector<SyncTrackBPM> BPMContainer;
 	BPMContainer BPMs;
 
@@ -599,11 +599,16 @@ CChart::CChart()
 	chartData.chartResolutionProp = 1.0;
 	chartData.chartOffset = 0.0;
 	chartData.gameCompiledDateTime = (__DATE__ " " __TIME__);
+	
+	BPM.reserve(200);
 }
 
 CChart::instrumentNotes::instrumentNotes()
 {
 	present = false;
+	
+	gPlus.reserve(200);
+	gNotes.reserve(10000);
 }
 
 void CChart::instrumentNotes::deducePlusLastNotes()

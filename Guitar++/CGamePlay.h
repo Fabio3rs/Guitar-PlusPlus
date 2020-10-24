@@ -60,7 +60,7 @@ class CGamePlay{
 	double getBPMAt(CPlayer &player, double time);
 	size_t getBPMAtI(CPlayer &player, double time);
 	CPlayer::NotesData::Note getBPMAtStruct(CPlayer &player, double time);
-	std::deque<CPlayer::NotesData::Note>::iterator getBPMAtIt(CPlayer &player, double time);
+	std::vector<CPlayer::NotesData::Note>::iterator getBPMAtIt(CPlayer &player, double time);
 	void alertLVLUP(CPlayer &player);
 	void alertNotesStreak(CPlayer &player);
 	static bool alertTest(CFonts::textAlert &t);
@@ -81,7 +81,7 @@ class CGamePlay{
 	CEngine &engine;
 
 public:
-	bool enableTails;
+	bool enableTails, bFretboardLightFading;
 	double fretboardLightFade;
 
 	double fretboardPositionCalcByT(double time, double prop, double *max = nullptr);

@@ -567,7 +567,7 @@ bool CPlayer::NotesData::loadFeedbackChart(const char *chartFile)
 				BPMStepCalc = 60.0 / b.lTime;
 			}
 
-			BPMStepCalc /= 2.05;
+			BPMStepCalc /= 2.08;
 
 			if ((note.time - gNotes[i].time) >= BPMStepCalc)
 			{
@@ -1093,6 +1093,7 @@ void CPlayer::resetData()
 {
 	correctNotes = 0;
 	bRenderP = bUpdateP = true;
+	bPlusStrike = false;
 }
 
 CPlayer::NotesData::NotesData()
@@ -1103,7 +1104,10 @@ CPlayer::NotesData::NotesData()
 	chartResolutionProp = 1.0;
 	plusPos = 0;
 	BPMMinPosition = 0.0;
-
+	BPM.reserve(200);
+	gPlus.reserve(200);
+	gNotes.reserve(10000);
+	
 	instrument = "[ExpertSingle]";
 
 	for(auto &fretNotePickedTime : fretsNotePickedTime)
@@ -1314,6 +1318,7 @@ void CPlayer::instrumentPause()
 
 CPlayer::CPlayer(const char *name)
 {
+	bPlusStrike = false;
 	usarPalheta = GPPGame::GuitarPP().usarPalheta;
 	correctNotesMarathon = 0;
 	guitar = nullptr;
@@ -1368,6 +1373,7 @@ CPlayer::CPlayer(const char *name)
 	targetCamera = playerCamera;
 
 	experience = 100.0;
+	tailsData.reserve(30);
 }
 
 CPlayer::~CPlayer() noexcept
@@ -1415,4 +1421,5 @@ void CPlayer::resetSongThings()
 	points = 0.0;
 	combo = 0;
 	plusEnabled = false;
+	bPlusStrike = false;
 }

@@ -1532,6 +1532,7 @@ void GPPGame::startModule(const std::string &name)
     RenderData.Text = bgVideoText;
 
     bool updatedTestBG = false;
+    bool showTexts = true;
     
 	while (engine.windowOpened())
 	{
@@ -1660,28 +1661,35 @@ void GPPGame::startModule(const std::string &name)
 			double time = engine.getTime();
 
 			if (musicstartedg == 0) musicstartedg = 1;
-
-			// Info text show and effect
-			if ((startTime - time) > 0.0)
+			
+			if (showTexts)
 			{
-				fadeoutdsc = engine.getTime();
-				std::string count = std::to_string((int)(startTime - time));
+				// Info text show and effect
+				if ((startTime - time) > 0.0)
+				{
+					fadeoutdsc = engine.getTime();
+					std::string count = std::to_string((int)(startTime - time));
 
-				fonts.drawTextInScreenWithBuffer(count, fonts.getCenterPos(count, 0.3, 0.0), 0.0, 0.3);
-				musicstartedg = 0;
-			}
+					fonts.drawTextInScreenWithBuffer(count, fonts.getCenterPos(count, 0.3, 0.0), 0.0, 0.3);
+					musicstartedg = 0;
+				}
 
-			double fadeoutdscAlphaCalc = 1.0 - ((engine.getTime() - fadeoutdsc) / 3.0);
+				double fadeoutdscAlphaCalc = 1.0 - ((engine.getTime() - fadeoutdsc) / 3.0);
 
-			if (fadeoutdscAlphaCalc >= 0.0)
-			{
-				if (fadeoutdscAlphaCalc < 1.0) engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc);
+				if (fadeoutdscAlphaCalc >= 0.0)
+				{
+					if (fadeoutdscAlphaCalc < 1.0) engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc);
 
-				fonts.drawTextInScreen(songName, -0.9, 0.7, 0.1);
-				fonts.drawTextInScreen(songArtist, -0.88, 0.62, 0.08);
-				fonts.drawTextInScreen(songCharter, -0.88, 0.54, 0.08);
+					fonts.drawTextInScreen(songName, -0.9, 0.7, 0.1);
+					fonts.drawTextInScreen(songArtist, -0.88, 0.62, 0.08);
+					fonts.drawTextInScreen(songCharter, -0.88, 0.54, 0.08);
 
-				if (fadeoutdscAlphaCalc < 1.0) engine.setColor(1.0, 1.0, 1.0, 1.0);
+					if (fadeoutdscAlphaCalc < 1.0) engine.setColor(1.0, 1.0, 1.0, 1.0);
+				}
+				else
+				{
+					showTexts = false;
+				}
 			}
 
 			// Music states: play

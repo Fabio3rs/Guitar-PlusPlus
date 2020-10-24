@@ -31,8 +31,8 @@ class CCharter
 	int songAudioID;
 
 	CPlayer::NotesData::Note *workingNote;
-	std::deque<CPlayer::NotesData::Note>::iterator workingNoteIt;
-	std::deque<CPlayer::NotesData::Note> songBPM;
+	std::vector<CPlayer::NotesData::Note>::iterator workingNoteIt;
+	std::vector<CPlayer::NotesData::Note> songBPM;
 
 	void readSongBPM(unsigned int song);
 	double getBPMAt(double time);

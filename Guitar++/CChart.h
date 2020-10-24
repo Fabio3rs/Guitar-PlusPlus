@@ -13,7 +13,7 @@
 typedef CPlayer::NotesData::Note Note_t;
 typedef CPlayer::NotesData::NoteInt NoteInt_t;
 typedef CPlayer::NotesData::plusNote plusNote_t;
-typedef std::deque<Note_t> BPM_t;
+typedef std::vector<Note_t> BPM_t;
 
 class CChart
 {
@@ -26,8 +26,8 @@ class CChart
 
 		bool present;
 
-		std::deque<Note_t> gNotes;
-		std::deque<plusNote_t> gPlus;
+		std::vector<Note_t> gNotes;
+		std::vector<plusNote_t> gPlus;
 
 		instrumentNotes();
 
