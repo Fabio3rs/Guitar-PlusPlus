@@ -859,12 +859,12 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos, unsigned int Textu
 		CEngine::engine().matrixReset();
 }
 
-void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, int type, CPlayer &player)
+bool CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, int type, CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
 	double rtime = getRunningMusicTime(player) - pos;
 
-	bool rotated = false;
+	bool rotated = false, result = false;
 
 	if (rtime > -5.0)
 	{
@@ -911,7 +911,7 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, in
 
 		if (alpha <= 0.0)
 		{
-			return;
+			return false;
 		}
 
 		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
@@ -986,6 +986,7 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, in
 
 		//CEngine::engine().setScale(1.2, 1.2, 1.2);
 		GPPGame::GuitarPP().noteOBJ.draw(player.plusEnabled ? texts[5] : texts[id], false);
+		result = true;
 		//CEngine::engine().matrixReset();
 
 		/*if (Texture == GPPGame::GuitarPP().HOPOSText)
@@ -996,9 +997,11 @@ void CGamePlay::renderIndivdualNote(int id, double pos, unsigned int Texture, in
 
 	if (rotated)
 		CEngine::engine().matrixReset();
+		
+	return result;
 }
 
-void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlayer &player)
+bool CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlayer &player)
 {
 	CEngine::RenderDoubleStruct TempStruct3D;
 	double rtime = getRunningMusicTime(player) - pos;
@@ -1064,7 +1067,7 @@ void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlay
 
 		if (alpha <= 0.0)
 		{
-			return;
+			return false;
 		}
 
 		CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
@@ -1084,6 +1087,8 @@ void CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type, CPlay
 
 		GPPGame::GuitarPP().openNoteOBJ.draw(text, false);
 	}
+	
+	return true;
 }
 
 void CGamePlay::renderIndividualLine(int id, double pos1, double pos2, unsigned int Texture, CPlayer &player)
@@ -1309,17 +1314,21 @@ void CGamePlay::renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player
 	}
 }
 
-void CGamePlay::renderNote(const CPlayer::NotesData::Note &note, CPlayer &player)
+bool CGamePlay::renderNote(const CPlayer::NotesData::Note &note, CPlayer &player)
 {
 	double time = /*time2Position(*/note.time/*)*/, ltimet = getRunningMusicTime(player);
 	double dif = time - ltimet;
 	bool bAddTailToBuffer = false;
 	double lt = 0.0, tlng = 0.0;
+	bool result = true;
 
 	if (note.type & notesFlags::nf_open)
 	{
-		if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide)) renderOpenNote(time, 0, note.type, player);
-		return;
+		if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide))
+		{
+			result = renderOpenNote(time, 0, note.type, player);
+		}
+		return result;
 	}
 
 	for (int i = 0; i < 5; i++)
@@ -1348,11 +1357,15 @@ void CGamePlay::renderNote(const CPlayer::NotesData::Note &note, CPlayer &player
 				texture = /*GPPGame::GuitarPP().HOPOSText*/-1;
 			}
 
-			if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide)) renderIndivdualNote(i, time, texture, note.type, player);
+			if ((!(note.type & notesFlags::nf_picked) || dif > -0.5) && !(note.type & notesFlags::nf_doing_slide))
+			{
+				result = renderIndivdualNote(i, time, texture, note.type, player);
+			}
 		}
 	}
 
 	if (bAddTailToBuffer) addTailToBuffer(note, lt, tlng, ltimet, player);
+	return result;
 }
 
 void CGamePlay::renderNotePlayer(CPlayer &player)
@@ -1374,7 +1387,10 @@ void CGamePlay::renderNotePlayer(CPlayer &player)
 			bool bLongNPicked = (note.type & notesFlags::nf_slide_picked) != 0 && endNoteTime >= 0.03;
 			if ((note.type & notesFlags::nf_picked) == 0 || noteTime >= -0.0025 || bLongNPicked)
 			{
-			    renderNote(note, player);
+			    if (!renderNote(note, player))
+			    {
+			    	break;
+			    }
 			}
 		}
     }

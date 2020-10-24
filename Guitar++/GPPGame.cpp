@@ -1689,6 +1689,7 @@ void GPPGame::startModule(const std::string &name)
 				else
 				{
 					showTexts = false;
+					songTimeFixed = false;
 				}
 			}
 

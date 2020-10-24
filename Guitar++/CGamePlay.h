@@ -42,13 +42,13 @@ class CGamePlay{
 	double pos2Alpha(double pos);
 	void updatePlayer(CPlayer &player, double deltatime);
 	void renderPlayer(CPlayer &player);
-	void renderIndivdualNote(int id, double pos, unsigned int Texture, int type, CPlayer &player);
-	void renderOpenNote(double pos, unsigned int Texture, int type, CPlayer &player);
+	bool renderIndivdualNote(int id, double pos, unsigned int Texture, int type, CPlayer &player);
+	bool renderOpenNote(double pos, unsigned int Texture, int type, CPlayer &player);
 	void renderIndivdualNoteShadow(int id, double pos, unsigned int Texture, bool tail, CPlayer &player);
 	double getRunningMusicTime(CPlayer &player);
 	double time2Position(double Time, CPlayer &player);
 	void renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player);
-	void renderNote(const CPlayer::NotesData::Note &note, CPlayer &player);
+	bool renderNote(const CPlayer::NotesData::Note &note, CPlayer &player);
 	void renderNotePlayer(CPlayer &player);
 	void renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player);
 	void renderNoteShadowHpStyle(CPlayer &player);
