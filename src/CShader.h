@@ -2,187 +2,175 @@
 #ifndef GPP_GLSL_SHADERS_CLASS_CSHADER
 #define GPP_GLSL_SHADERS_CLASS_CSHADER
 #define GL_GLEXT_PROTOTYPES
-#include <deque>
-#include <cstdio>
-#include <fstream>
-#include <string>
-#include <cstring>
-#include <cstdlib>
-#include <cstdint>
-#include <cmath>
 #include <algorithm>
-#include <stdexcept>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <deque>
+#include <fstream>
 #include <functional>
-#include <memory>
 #include <map>
+#include <memory>
+#include <stdexcept>
+#include <string>
 
-namespace ShaderProject
-{
-	enum shaderTypes { FRAGMENT, VERTEX };
+namespace ShaderProject {
+enum shaderTypes { FRAGMENT, VERTEX };
 
-	struct GLvb
-	{
-		unsigned int VBO, VAO;
-	};
+struct GLvb {
+    unsigned int VBO, VAO;
+};
 
-	template<class T, const T nullValue, class Deleter>
-	class unique_object
-	{
-		T object;
-		std::function<Deleter> deleter;
+template <class T, const T nullValue, class Deleter> class unique_object {
+    T object;
+    std::function<Deleter> deleter;
 
-		unique_object &operator=(const unique_object &obj) = delete;
-		unique_object(const unique_object &obj) = delete;
-	public:
-		const T &get() const { return object; }
-		const T &operator()() const { return object; }
+    unique_object &operator=(const unique_object &obj) = delete;
+    unique_object(const unique_object &obj) = delete;
 
-		void deleteObject()
-		{
-			deleter(this->object);
-			this->object = nullValue;
-		}
+  public:
+    const T &get() const { return object; }
+    const T &operator()() const { return object; }
 
-		unique_object &operator=(unique_object &&obj)
-		{
-			if (this == std::addressof(obj))
-				return *this;
+    void deleteObject() {
+        deleter(this->object);
+        this->object = nullValue;
+    }
 
-			deleteObject();
-			object = obj.object;
-			obj.object = nullValue;
+    unique_object &operator=(unique_object &&obj) {
+        if (this == std::addressof(obj))
+            return *this;
 
-			deleter = std::move(obj.deleter);
+        deleteObject();
+        object = obj.object;
+        obj.object = nullValue;
 
-			return *this;
-		}
+        deleter = std::move(obj.deleter);
 
-		unique_object() : object(nullValue) { }
+        return *this;
+    }
 
-		unique_object(T &&value, Deleter delFun) : unique_object()
-		{
-			object = std::move(value);
-			deleter = delFun;
-		}
+    unique_object() : object(nullValue) {}
 
-		unique_object(unique_object &&obj) : unique_object() {
-			object = obj.object;
-			obj.object = nullValue;
-			deleter = std::move(obj.deleter);
-		}
+    unique_object(T &&value, Deleter delFun) : unique_object() {
+        object = std::move(value);
+        deleter = delFun;
+    }
 
-		~unique_object()
-		{
-			deleteObject();
-		}
-	};
+    unique_object(unique_object &&obj) : unique_object() {
+        object = obj.object;
+        obj.object = nullValue;
+        deleter = std::move(obj.deleter);
+    }
 
-	typedef unique_object<unsigned int, 0u, void(unsigned int)> ProgramObject;
-	typedef unique_object<unsigned int, 0u, void(unsigned int)> ShaderObject;
-	typedef unique_object<unsigned int, 0u, void(unsigned int)> VertexObject;
-	ProgramObject make_program();
-	ShaderObject make_shader(shaderTypes type);
-	VertexObject make_vertexObject(VertexObject type);
+    ~unique_object() { deleteObject(); }
+};
 
-	class CShader {
-		bool enableShaders;
-		bool usingProgram;
+typedef unique_object<unsigned int, 0u, void(unsigned int)> ProgramObject;
+typedef unique_object<unsigned int, 0u, void(unsigned int)> ShaderObject;
+typedef unique_object<unsigned int, 0u, void(unsigned int)> VertexObject;
+ProgramObject make_program();
+ShaderObject make_shader(shaderTypes type);
+VertexObject make_vertexObject(VertexObject type);
 
-		struct shaderInst {
-			shaderTypes type;
-			ShaderObject glID;
-			std::string fileName;
-			std::unique_ptr<char[]> shaderContent;
-			int shaderSize;
+class CShader {
+    bool enableShaders;
+    bool usingProgram;
 
-			template<class T>
-			inline auto fileSize(T &file) {
-				file.seekg(0, std::ios::end);
-				auto result = file.tellg();
-				file.seekg(0, std::ios::beg);
-				return result;
-			}
+    struct shaderInst {
+        shaderTypes type;
+        ShaderObject glID;
+        std::string fileName;
+        std::unique_ptr<char[]> shaderContent;
+        int shaderSize;
 
-			void compile();
-			shaderInst(const char *fName, shaderTypes shaderType);
-		};
+        template <class T> inline auto fileSize(T &file) {
+            file.seekg(0, std::ios::end);
+            auto result = file.tellg();
+            file.seekg(0, std::ios::beg);
+            return result;
+        }
 
-		struct shaderEvent {
-			ProgramObject shaderProg;
-			std::string eventName;
-			std::deque<shaderInst*> shaders;
+        void compile();
+        shaderInst(const char *fName, shaderTypes shaderType);
+    };
 
-			shaderEvent(const shaderEvent&) = delete;
-			shaderEvent(shaderEvent&&) = default;
+    struct shaderEvent {
+        ProgramObject shaderProg;
+        std::string eventName;
+        std::deque<shaderInst *> shaders;
 
-			shaderEvent &operator=(shaderEvent &&obj)
-			{
-				if (this == std::addressof(obj))
-					return *this;
+        shaderEvent(const shaderEvent &) = delete;
+        shaderEvent(shaderEvent &&) = default;
 
-				shaderProg.deleteObject();
+        shaderEvent &operator=(shaderEvent &&obj) {
+            if (this == std::addressof(obj))
+                return *this;
 
-				shaderProg = std::move(obj.shaderProg);
-				eventName = std::move(obj.eventName);
-				shaders = std::move(obj.shaders);
+            shaderProg.deleteObject();
 
-				obj.shaders.clear();
+            shaderProg = std::move(obj.shaderProg);
+            eventName = std::move(obj.eventName);
+            shaders = std::move(obj.shaders);
 
-				return *this;
-			}
+            obj.shaders.clear();
 
-			shaderEvent(const char *name);
-		};
+            return *this;
+        }
 
-		std::deque<shaderEvent> events;
-		std::deque<shaderInst> shadersList;
-	public:
-		static CShader &inst();
+        shaderEvent(const char *name);
+    };
 
-		bool isShadersEnabled() const {
-			return enableShaders;
-		}
+    std::deque<shaderEvent> events;
+    std::deque<shaderInst> shadersList;
 
-		bool isUsingProgram() const {
-			return usingProgram;
-		}
+  public:
+    static CShader &inst();
 
-		size_t eventsSize() const {
-			return events.size();
-		}
+    bool isShadersEnabled() const { return enableShaders; }
 
-		size_t shadersListSize() const {
-			return shadersList.size();
-		}
+    bool isUsingProgram() const { return usingProgram; }
 
-		void					processEvent(int id);
-		int						addEvent(const char *name);
-		void					addShaderToEvent(const char *shaderEvent, int shaderID);
-		int						newShader(const char *shaderFile, shaderTypes type, int eventToLink);
-		int						newShader(const char *shaderFile, shaderTypes type, const char *name);
-		void					linkAllShaders();
-		void					deactivateShader();
+    size_t eventsSize() const { return events.size(); }
 
-		static void bindProgram(const ProgramObject &programID);
-		static void bindProgram(unsigned int programID);
-		static ProgramObject createShaderProgram();
-		static ShaderObject compileShader(const char *shaderSource, int length, shaderTypes type);
-		static void attachShaderToProgram(const ProgramObject &programID, const ShaderObject &shaderID);
-		static void linkShaderProgram(const ProgramObject &programID);
+    size_t shadersListSize() const { return shadersList.size(); }
 
-		static int getProgramUniform(const ProgramObject &program, const char *string);
-		static void setFloatUniform(int uniform, float val);
+    void processEvent(int id);
+    int addEvent(const char *name);
+    void addShaderToEvent(const char *shaderEvent, int shaderID);
+    int newShader(const char *shaderFile, shaderTypes type, int eventToLink);
+    int newShader(const char *shaderFile, shaderTypes type, const char *name);
+    void linkAllShaders();
+    void deactivateShader();
 
-		static void vertexAttribPointerFloat(unsigned int index, int elements, bool normalized, int stride, const void *pointer);
-		static void vertexAttribPointerDouble(unsigned int index, int elements, bool normalized, int stride, const void *pointer);
-		static void bindVertexArray(const VertexObject &vertexArray);
-		static void bindVertexArray(unsigned int vertexArray);
+    static void bindProgram(const ProgramObject &programID);
+    static void bindProgram(unsigned int programID);
+    static ProgramObject createShaderProgram();
+    static ShaderObject compileShader(const char *shaderSource, int length,
+                                      shaderTypes type);
+    static void attachShaderToProgram(const ProgramObject &programID,
+                                      const ShaderObject &shaderID);
+    static void linkShaderProgram(const ProgramObject &programID);
 
-	private:
-		CShader();
-		CShader(const CShader&) = delete;
-	};
-}
+    static int getProgramUniform(const ProgramObject &program,
+                                 const char *string);
+    static void setFloatUniform(int uniform, float val);
+
+    static void vertexAttribPointerFloat(unsigned int index, int elements,
+                                         bool normalized, int stride,
+                                         const void *pointer);
+    static void vertexAttribPointerDouble(unsigned int index, int elements,
+                                          bool normalized, int stride,
+                                          const void *pointer);
+    static void bindVertexArray(const VertexObject &vertexArray);
+    static void bindVertexArray(unsigned int vertexArray);
+
+  private:
+    CShader();
+    CShader(const CShader &) = delete;
+};
+} // namespace ShaderProject
 
 #endif
-

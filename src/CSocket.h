@@ -2,247 +2,211 @@
 #ifndef __WINSOCKWRAPPER_H
 #define __WINSOCKWRAPPER_H
 #define WIN32_LEAN_AND_MEAN
-#include <string.h>
+#include <deque>
+#include <iostream>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include <string>
-#include <iostream>
-#include <deque>
 
 #ifdef WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
-#include <unistd.h>
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h> 
 #include <error.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 typedef int SOCKET;
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <thread>
-#include <cstdint>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
+#include <stdio.h>
+#include <stdlib.h>
+#include <thread>
 //#include "rsa\RSA.h"
 
 #ifdef _DEBUG_SOCK
-	#define printSOCKMSG(m) std::cout << m << std::endl;
+#define printSOCKMSG(m) std::cout << m << std::endl;
 #else
-	#define printSOCKMSG(m) NULL
+#define printSOCKMSG(m) NULL
 #endif
 
-class SocketError : std::exception{
-	std::string error;
-	
-public:
-	const char *what() const noexcept{
-		return error.c_str();
-	}
-	
-	SocketError(const char *msg) noexcept : std::exception()
-	{
-		error = msg;
-	}
+class SocketError : std::exception {
+    std::string error;
+
+  public:
+    const char *what() const noexcept { return error.c_str(); }
+
+    SocketError(const char *msg) noexcept : std::exception() { error = msg; }
 };
 
-typedef void (*clientReceiveData_fun)(SOCKET ServerSock, const char *data, size_t size);
+typedef void (*clientReceiveData_fun)(SOCKET ServerSock, const char *data,
+                                      size_t size);
 
-class socket_unique
-{
-	SOCKET p;
-public:
-	SOCKET get() const
-	{
-		return p;
-	}
+class socket_unique {
+    SOCKET p;
 
-	socket_unique &operator=(const socket_unique &s) = delete;
+  public:
+    SOCKET get() const { return p; }
 
-	socket_unique &operator=(socket_unique &&s)
-	{
-		p = std::move(s.p);
-		s.p = -1;
-		return *this;
-	}
+    socket_unique &operator=(const socket_unique &s) = delete;
 
-	socket_unique(const socket_unique &s) = delete;
-	socket_unique(socket_unique &&s) : p(std::move(s.p))
-	{
-		s.p = -1;
-	}
+    socket_unique &operator=(socket_unique &&s) {
+        p = std::move(s.p);
+        s.p = -1;
+        return *this;
+    }
 
-	socket_unique(SOCKET s) : p(s)
-	{
-		
-	}
+    socket_unique(const socket_unique &s) = delete;
+    socket_unique(socket_unique &&s) : p(std::move(s.p)) { s.p = -1; }
 
-	socket_unique() : p(-1) {}
+    socket_unique(SOCKET s) : p(s) {}
 
-	~socket_unique()
-	{
-		if (p != -1)
-			close(p);
-	}
+    socket_unique() : p(-1) {}
+
+    ~socket_unique() {
+        if (p != -1)
+            close(p);
+    }
 };
 
-class CClientSock
-{
-	bool success;
-	int sockfd, portno, n;
+class CClientSock {
+    bool success;
+    int sockfd, portno, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
-public:
-	ssize_t send(const char *data, size_t size)
-	{
-		return write(sockfd, data, size);
-	}
 
-	ssize_t receive(char *data, size_t size)
-	{
-		return read(sockfd, data, size);
-	}
+  public:
+    ssize_t send(const char *data, size_t size) {
+        return write(sockfd, data, size);
+    }
 
-	CClientSock(const char *host, int port)
-	{
-		success = false;
+    ssize_t receive(char *data, size_t size) {
+        return read(sockfd, data, size);
+    }
 
-		portno = port;
-		sockfd = socket(AF_INET, SOCK_STREAM, 0);
-		if (sockfd < 0) 
-			throw SocketError("ERROR opening socket");
-		server = gethostbyname(host);
-		if (server == NULL) {
-			fprintf(stderr,"ERROR, no such host\n");
-			return;
-		}
-		bzero((char *) &serv_addr, sizeof(serv_addr));
-		serv_addr.sin_family = AF_INET;
-		bcopy((char *)server->h_addr, 
-			(char *)&serv_addr.sin_addr.s_addr,
-			server->h_length);
-		serv_addr.sin_port = htons(portno);
-		if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
-			throw SocketError("ERROR connecting");
-	}
+    CClientSock(const char *host, int port) {
+        success = false;
 
-	~CClientSock()
-	{
-		close(sockfd);
-	}
+        portno = port;
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd < 0)
+            throw SocketError("ERROR opening socket");
+        server = gethostbyname(host);
+        if (server == NULL) {
+            fprintf(stderr, "ERROR, no such host\n");
+            return;
+        }
+        bzero((char *)&serv_addr, sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr,
+              server->h_length);
+        serv_addr.sin_port = htons(portno);
+        if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) <
+            0)
+            throw SocketError("ERROR connecting");
+    }
+
+    ~CClientSock() { close(sockfd); }
 };
 
-class CServerSock{
-public:
-	struct ServerThreads;
-	typedef void (*client_connect)(CServerSock*, socket_unique &&socketid);
+class CServerSock {
+  public:
+    struct ServerThreads;
+    typedef void (*client_connect)(CServerSock *, socket_unique &&socketid);
 
-private:
-	int sockfd, newsockfd, portno, pid;
+  private:
+    int sockfd, newsockfd, portno, pid;
     socklen_t clilen;
     struct sockaddr_in serv_addr, cli_addr;
-	
-	std::thread pMainServerThread;
-	client_connect clientConnectFun;
-	std::atomic<bool> continueMainThread;
-	bool socketSuccess;
-	
-	const static size_t receiveBufferSize = 1024 * 1024 * 4; // 4MB
 
-	/*static KeyPair genRSAKeys(){
-		return RSA::GenerateKeyPair(16);
-	}*/
+    std::thread pMainServerThread;
+    client_connect clientConnectFun;
+    std::atomic<bool> continueMainThread;
+    bool socketSuccess;
 
-public:
-	void stop()
-	{
-		continueMainThread = false;
+    const static size_t receiveBufferSize = 1024 * 1024 * 4; // 4MB
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(50));
-	}
+    /*static KeyPair genRSAKeys(){
+            return RSA::GenerateKeyPair(16);
+    }*/
 
-	const bool success()
-	{
-		return socketSuccess;
-	}
-	
-	static void mainServerThreadFunction(CServerSock *pThisServerInst)
-	{
-		std::cout << "Entering the mainServerThreadFunction thread...\n";
-		CServerSock &sv = *pThisServerInst;
-		listen(sv.sockfd, 5);
-		sv.clilen = sizeof(sv.cli_addr);
-		while (sv.continueMainThread)
-		{
-			int newsockfd = accept(sv.sockfd, 
-				(struct sockaddr *) &sv.cli_addr, &sv.clilen);
-			if (newsockfd < 0) 
-				break;
-			
-			if (sv.continueMainThread)
-			{
-				socket_unique s(newsockfd);
-				sv.clientConnectFun(pThisServerInst, std::move(s));
-			}
-		}
-		close(sv.sockfd);
-		std::cout << "Exiting mainServerThreadFunction thread...\n";
-	}
+  public:
+    void stop() {
+        continueMainThread = false;
 
-	static int sendToClient(SOCKET sock, const char *data, size_t size)
-	{
-		return send(sock, data, size, 0);
-	}
-	
-	void init(const char *port, client_connect Callback)
-	{
-		std::cout << "Trying to init server port " << port << std::endl;
-		continueMainThread = true;
-		socketSuccess = true;
-		clientConnectFun = Callback;
-		sockfd = socket(AF_INET, SOCK_STREAM, 0);
-		if (sockfd < 0) 
-		bzero((char *) &serv_addr, sizeof(serv_addr));
-		portno = std::stoi(port);
-		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_addr.s_addr = INADDR_ANY;
-		serv_addr.sin_port = htons(portno);
-		if (bind(sockfd, (struct sockaddr *) &serv_addr,
-				sizeof(serv_addr)) < 0) 
-				throw SocketError("ERROR on binding");
-				
-		pMainServerThread = std::thread(mainServerThreadFunction, this);
-	}
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
 
-	CServerSock(const char *port, client_connect Callback)
-	{
-		init(port, Callback);
-	}
-	
-	CServerSock()
-	{
-		socketSuccess = false;
-	}
+    const bool success() { return socketSuccess; }
 
-	~CServerSock()/* : ~CSock()*/{
-		continueMainThread = false;
+    static void mainServerThreadFunction(CServerSock *pThisServerInst) {
+        std::cout << "Entering the mainServerThreadFunction thread...\n";
+        CServerSock &sv = *pThisServerInst;
+        listen(sv.sockfd, 5);
+        sv.clilen = sizeof(sv.cli_addr);
+        while (sv.continueMainThread) {
+            int newsockfd =
+                accept(sv.sockfd, (struct sockaddr *)&sv.cli_addr, &sv.clilen);
+            if (newsockfd < 0)
+                break;
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            if (sv.continueMainThread) {
+                socket_unique s(newsockfd);
+                sv.clientConnectFun(pThisServerInst, std::move(s));
+            }
+        }
+        close(sv.sockfd);
+        std::cout << "Exiting mainServerThreadFunction thread...\n";
+    }
 
-		shutdown(sockfd, SHUT_RD);
-		close(sockfd);
-		std::cout << "Parando main...\n";
+    static int sendToClient(SOCKET sock, const char *data, size_t size) {
+        return send(sock, data, size, 0);
+    }
 
-		if (pMainServerThread.joinable())
-		{
-			pMainServerThread.join();
-		}
-	}
+    void init(const char *port, client_connect Callback) {
+        std::cout << "Trying to init server port " << port << std::endl;
+        continueMainThread = true;
+        socketSuccess = true;
+        clientConnectFun = Callback;
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd < 0)
+            bzero((char *)&serv_addr, sizeof(serv_addr));
+        portno = std::stoi(port);
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_addr.s_addr = INADDR_ANY;
+        serv_addr.sin_port = htons(portno);
+        if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+            throw SocketError("ERROR on binding");
+
+        pMainServerThread = std::thread(mainServerThreadFunction, this);
+    }
+
+    CServerSock(const char *port, client_connect Callback) {
+        init(port, Callback);
+    }
+
+    CServerSock() { socketSuccess = false; }
+
+    ~CServerSock() /* : ~CSock()*/ {
+        continueMainThread = false;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        shutdown(sockfd, SHUT_RD);
+        close(sockfd);
+        std::cout << "Parando main...\n";
+
+        if (pMainServerThread.joinable()) {
+            pMainServerThread.join();
+        }
+    }
 };
 
 #endif

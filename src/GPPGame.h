@@ -2,288 +2,237 @@
 #ifndef _GUITAR_PP_CGPPGAME_h_
 #define _GUITAR_PP_CGPPGAME_h_
 
-#include "CShader.h"
-#include "CMenu.h"
 #include "CEngine.h"
-#include "GPPOBJ.h"
-#include "CSaveSystem.h"
 #include "CGamePlay.h"
 #include "CLuaFunctions.hpp"
+#include "CMenu.h"
+#include "CMultiThreadPool.h"
 #include "CPlayer.h"
-#include <map>
-#include <deque>
-#include <mutex>
+#include "CSaveSystem.h"
+#include "CShader.h"
+#include "GPPOBJ.h"
 #include <atomic>
 #include <cctype>
-#include <string>
-#include <memory>
-#include <vector>
-#include <thread>
+#include <deque>
 #include <exception>
 #include <future>
-#include "CMultiThreadPool.h"
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
 
-class gameException : public std::exception{
-	std::string str;
+class gameException : public std::exception {
+    std::string str;
 
-public:
-	const char *what() const noexcept
-	{
-		return str.c_str();
-	}
+  public:
+    const char *what() const noexcept { return str.c_str(); }
 
-	inline gameException(const std::string &s) noexcept : std::exception(), str(s)
-	{
+    inline gameException(const std::string &s) noexcept
+        : std::exception(), str(s) {}
 
-	}
-
-	inline gameException() noexcept
-	{
-
-	}
+    inline gameException() noexcept {}
 };
 
-class GPPGame{
-	std::map <std::string, CMenu> gameMenus;
+class GPPGame {
+    std::map<std::string, CMenu> gameMenus;
 
-	CMenu *mainMenu;
+    CMenu *mainMenu;
 
-	CMenu *currentMenu;
+    CMenu *currentMenu{};
 
-	bool devMode;
+    bool devMode;
 
-	// Script events
-	static int firstStartFrameSE, preCreateWindowSE, posCreateWindowSE, preLoadSpritesSE, posClearScreenSE,
-		preRenderFrameSE, posRenderFrameSE, menusGoBackSE, menusCMMenuSE, menusNextSE, menusGameCbNextSE, catchedExceptionSE,
-		joystickStateCbSE;
+    // Script events
+    static int firstStartFrameSE, preCreateWindowSE, posCreateWindowSE,
+        preLoadSpritesSE, posClearScreenSE, preRenderFrameSE, posRenderFrameSE,
+        menusGoBackSE, menusCMMenuSE, menusNextSE, menusGameCbNextSE,
+        catchedExceptionSE, joystickStateCbSE;
 
-    std::atomic<bool>           forceTextToLoad;
-    std::mutex                  mstreamming_block;
-    std::condition_variable     cstreamming_block;
+    std::atomic<bool> forceTextToLoad{};
+    std::mutex mstreamming_block;
+    std::condition_variable cstreamming_block;
 
-public:
+  public:
     std::atomic<std::thread::id> mainthread;
 
-	class MessageTypes
-	{
-		std::string fontName;
-		double minTime;
+    class MessageTypes {
+        std::string fontName;
+        double minTime;
 
-		MessageTypes()
-		{
-			minTime = 0.0;
-		}
-	};
+        MessageTypes() { minTime = 0.0; }
+    };
 
-	typedef std::function<void(const std::string &name)> func_t;
+    typedef std::function<void(const std::string &name)> func_t;
 
-	CMenu devMenus, uiRenameMenu, uiCreateProfile;
+    CMenu devMenus, uiRenameMenu, uiCreateProfile;
 
-	int uiCreateUITextID, uiCreateUIPathID;
+    int uiCreateUITextID, uiCreateUIPathID;
 
-	std::string glanguage;
+    std::string glanguage;
 
-	CSaveSystem::CSave mainSave;
+    CSaveSystem::CSave mainSave;
 
-	bool gppTextureKeepBuffer, drawGamePlayBackground, showTextsTest;
-	float songVolume;
+    bool gppTextureKeepBuffer, drawGamePlayBackground, showTextsTest;
+    float songVolume;
 
-	// Texture instance manager
+    // Texture instance manager
     // Need optimizations
     mutable std::mutex gppTextMtx;
     mutable std::mutex mtGppTextMtx;
-	class gppTexture{
-		friend GPPGame;
-		unsigned int text;
+    class gppTexture {
+        friend GPPGame;
+        unsigned int text;
         bool lasync;
         std::atomic<bool> asyncFl;
-		std::string textPath;
-		std::string textName;
+        std::string textPath;
+        std::string textName;
 
-		CEngine::GLFWimage imgData;
+        CEngine::GLFWimage imgData;
 
-		std::map < CLuaH::luaScript*, bool > associatedToScript;
+        std::map<CLuaH::luaScript *, bool> associatedToScript;
 
-		// DO NOT DUPLICATE THE TEXTURE INSTANCE!!!!!!!
-		gppTexture(const gppTexture&) = delete;
+        // DO NOT DUPLICATE THE TEXTURE INSTANCE!!!!!!!
+        gppTexture(const gppTexture &) = delete;
         std::future<bool> ft;
 
-        static bool loadAsync(gppTexture *ths)
-        {
+        static bool loadAsync(gppTexture *ths) {
             ths->text = 0u;
 
-            if (ths->textName.size() == 0)
-            {
+            if (ths->textName.size() == 0) {
                 std::cout << "ths->textName.size() == 0\n";
                 return 0;
             }
-            bool r = CEngine::engine().loadTextureAsync((ths->textPath + std::string("/") + ths->textName).c_str(), &ths->imgData);
+            bool r = CEngine::engine().loadTextureAsync(
+                (ths->textPath + std::string("/") + ths->textName).c_str(),
+                &ths->imgData);
 
-            if (!r)
-            {
+            if (!r) {
                 ths->text = ~0u;
             }
-            
+
             ths->asyncFl = true;
 
             return r;
         }
 
-	public:
-        bool isAsyncRunning() const noexcept
-        {
-            return lasync && !asyncFl;
-        }
+      public:
+        bool isAsyncRunning() const noexcept { return lasync && !asyncFl; }
 
-		unsigned int getTextId() const noexcept
-		{
-			return text;
-		}
+        unsigned int getTextId() const noexcept { return text; }
 
-        unsigned int getTextIdUpdateAsync() noexcept
-		{
-            if (text == 0u && lasync)
-            {
+        unsigned int getTextIdUpdateAsync() noexcept {
+            if (text == 0u && lasync) {
                 ft.wait();
-                if (ft.get())
-                {
-                    if (imgData.Data.get() != nullptr)
-                    {
+                if (ft.get()) {
+                    if (imgData.Data.get() != nullptr) {
                         text = CEngine::engine().uploadTextureToOGL(&imgData);
-                    }
-                    else
-                    {
+                    } else {
                         text = ~0u;
                     }
-                    
-                }else
-                {
+
+                } else {
                     text = ~0u;
                 }
             }
 
-			return text;
-		}
+            return text;
+        }
 
-		std::string getTexturePath() const noexcept
-		{
-			return textPath;
-		}
+        std::string getTexturePath() const noexcept { return textPath; }
 
-		std::string getTextureName() const noexcept
-		{
-			return textName;
-		}
+        std::string getTextureName() const noexcept { return textName; }
 
-		std::string getGTextureName() const
-		{
-			return (getTexturePath() + "/" + getTextureName());
-		}
+        std::string getGTextureName() const {
+            return (getTexturePath() + "/" + getTextureName());
+        }
 
-		int getImgWidth() const noexcept
-		{
-			return imgData.Width;
-		}
+        int getImgWidth() const noexcept { return imgData.Width; }
 
-		int getImgHeight() const noexcept
-		{
-			return imgData.Height;
-		}
+        int getImgHeight() const noexcept { return imgData.Height; }
 
-		inline CEngine::GLFWimage &getImageData() noexcept
-		{
-			return imgData;
-		}
+        inline CEngine::GLFWimage &getImageData() noexcept { return imgData; }
 
-		gppTexture(const std::string &path, const std::string &texture, bool async = false)
-		{
+        gppTexture(const std::string &path, const std::string &texture,
+                   bool async = false) {
             asyncFl = false;
             text = 0u;
             lasync = async;
-			imgData.keepData = GPPGame::GuitarPP().gppTextureKeepBuffer;
+            imgData.keepData = GPPGame::GuitarPP().gppTextureKeepBuffer;
 
-			textPath = path;
-			textName = texture;
+            textPath = path;
+            textName = texture;
 
-            if (async)
-            {
-                
-            }else
-            {
-                if (std::this_thread::get_id() != GuitarPP().mainthread)
-                {
-                    std::cout << "(std::this_thread::get_id() != GuitarPP().mainthread) - texture " << texture << std::endl;
+            if (async) {
+
+            } else {
+                if (std::this_thread::get_id() != GuitarPP().mainthread) {
+                    std::cout << "(std::this_thread::get_id() != "
+                                 "GuitarPP().mainthread) - texture "
+                              << texture << std::endl;
                     return;
                 }
             }
-		}
-
-        void load()
-        {
-			text = CEngine::engine().loadTexture((textPath + std::string("/") + textName).c_str(), &imgData);
         }
 
-        void tloadAsync(const std::string &path, const std::string &texture)
-        {
-            if (text == 0u)
-            {
+        void load() {
+            text = CEngine::engine().loadTexture(
+                (textPath + std::string("/") + textName).c_str(), &imgData);
+        }
+
+        void tloadAsync(const std::string &path, const std::string &texture) {
+            if (text == 0u) {
                 asyncFl = false;
                 imgData.keepData = GPPGame::GuitarPP().gppTextureKeepBuffer;
 
                 textPath = path;
                 textName = texture;
 
-                if (lasync)
-                {
+                if (lasync) {
                     ft = std::async(std::launch::async, loadAsync, this);
                 }
             }
         }
 
-		gppTexture &operator = (gppTexture &&m) noexcept
-		{
-			if (this == std::addressof(m)) return *this;
-            
-			text = std::move(m.text);
-			textPath = std::move(m.textPath);
-			textName = std::move(m.textName);
-			imgData = std::move(m.imgData);
-			ft = std::move(m.ft);
+        gppTexture &operator=(gppTexture &&m) noexcept {
+            if (this == std::addressof(m))
+                return *this;
+
+            text = std::move(m.text);
+            textPath = std::move(m.textPath);
+            textName = std::move(m.textName);
+            imgData = std::move(m.imgData);
+            ft = std::move(m.ft);
             asyncFl = (bool)m.asyncFl;
             lasync = m.lasync;
 
             if (text != 0)
                 lasync = false;
 
-			associatedToScript = std::move(m.associatedToScript);
+            associatedToScript = std::move(m.associatedToScript);
 
-			if (m.text)
-				m.text = 0;
+            if (m.text)
+                m.text = 0;
 
-			return *this;
-		};
+            return *this;
+        };
 
-		gppTexture(gppTexture &&m)
-        {
-            *this = std::move(m);
-        }
+        gppTexture(gppTexture &&m) { *this = std::move(m); }
 
-		gppTexture() noexcept
-		{
+        gppTexture() noexcept {
             asyncFl = false;
             lasync = false;
-			text = 0;
-		}
+            text = 0;
+        }
 
-		~gppTexture() noexcept
-		{
-			text = 0;
-			// TODO CEngine::engine().unloadTexture(id);
-		}
-	};
+        ~gppTexture() noexcept {
+            text = 0;
+            // TODO CEngine::engine().unloadTexture(id);
+        }
+    };
 
-    struct loadTextureBatch
-    {
+    struct loadTextureBatch {
         std::string path;
         std::string texture;
         CLuaH::luaScript *luaScript;
@@ -292,20 +241,20 @@ public:
         void *userptr;
         std::string username;
 
-
         double addedTime;
         gppTexture *text;
 
-        loadTextureBatch()
-        {
+        loadTextureBatch() {
             luaScript = nullptr;
             text = nullptr;
             userptr = nullptr;
             addedTime = 0.0;
         }
 
-        loadTextureBatch(std::string pa, std::string tx, void *up, std::function<void(loadTextureBatch *)> tf, const std::string &usrnm = "", CLuaH::luaScript *ls = nullptr)
-        {
+        loadTextureBatch(std::string pa, std::string tx, void *up,
+                         std::function<void(loadTextureBatch *)> tf,
+                         const std::string &usrnm = "",
+                         CLuaH::luaScript *ls = nullptr) {
             path = pa;
             texture = tx;
             userptr = up;
@@ -320,80 +269,78 @@ public:
 
     CMultiThreadPool<loadTextureBatch, 200> futureTextureLoad;
 
-	bool loadTextureSingleAsync(const loadTextureBatch &tData);
+    bool loadTextureSingleAsync(const loadTextureBatch &tData);
     void forceTexturesToLoad();
 
     void textureStreammingProcess();
     void streammingProcess();
     int getNumTexturesToLoad();
 
-	struct gameWindow{
-		int h, w, AA, colorBits, VSyncMode;
-		int fullscreen;
-		std::string name; // "Guitar ++ - name"/"Guitar++"
-	};
+    struct gameWindow {
+        int h, w, AA, colorBits, VSyncMode;
+        int fullscreen;
+        std::string name; // "Guitar ++ - name"/"Guitar++"
+    };
 
-	class CTheme{
-		friend GPPGame;
-		std::string themeName;
+    class CTheme {
+        friend GPPGame;
+        std::string themeName;
 
-		bool loaded;
+        bool loaded;
 
-		bool load();
-		const CLuaH::luaScript *main;
+        bool load();
+        const CLuaH::luaScript *main{};
 
-		CTheme(const CTheme&) = delete;
+        CTheme(const CTheme &) = delete;
 
-		static int applyThemeSE;
+        static int applyThemeSE;
 
-	public:
-		void apply();
+      public:
+        void apply();
 
-		inline bool isloaded() const{ return loaded; }
+        inline bool isloaded() const { return loaded; }
 
-		CTheme(const std::string &theme);
-		CTheme(CTheme&&) = default;
-		CTheme();
-	};
+        CTheme(const std::string &theme);
+        CTheme(CTheme &&) = default;
+        CTheme();
+    };
 
-	CMenu &newMenu();
-	CMenu &newNamedMenu(const std::string &name);
+    CMenu &newMenu();
+    CMenu &newNamedMenu(const std::string &name);
 
-	void loadBasicSprites();
-	void loadBasicSounds();
+    void loadBasicSprites();
+    void loadBasicSounds();
 
-	void setMainMenu(CMenu &m);
-	CMenu *getMainMenu();
+    void setMainMenu(CMenu &m);
+    CMenu *getMainMenu();
 
-	CMenu &getMenuByName(const std::string &name);
+    CMenu &getMenuByName(const std::string &name);
 
-	// loaded game sprites - TODO: improve it
-	std::map <std::string, int> SPR;
-	std::map <std::string, gppTexture> gTextures;
-	std::map <std::string, CTheme> gThemes;
+    // loaded game sprites - TODO: improve it
+    std::map<std::string, int> SPR;
+    std::map<std::string, gppTexture> gTextures;
+    std::map<std::string, CTheme> gThemes;
 
-	std::map <std::string, func_t> gameCallbacks;
-	std::map <std::string, std::string> gameCallbacksWrapper;
+    std::map<std::string, func_t> gameCallbacks;
+    std::map<std::string, std::string> gameCallbacksWrapper;
 
-	std::map <std::string, CGamePlay> gameModules;
+    std::map<std::string, CGamePlay> gameModules;
 
-	//std::map <std::string, fretsPosition> frets;
+    // std::map <std::string, fretsPosition> frets;
 
-	void setDevMode(bool mode);
+    void setDevMode(bool mode);
 
-	std::map<std::string, bool>				 cmdparams;
-	void parseParameters(int argc, char *argv[]);
+    std::map<std::string, bool> cmdparams;
+    void parseParameters(int argc, char *argv[]);
 
-    struct loadModelBatch
-    {
+    struct loadModelBatch {
         GPPOBJ *obj;
         std::future<bool> ft;
         std::string path;
         std::string model;
         bool asyncend;
 
-        loadModelBatch &operator=(loadModelBatch&& m)
-        {
+        loadModelBatch &operator=(loadModelBatch &&m) {
             path = std::move(m.path);
             model = std::move(m.model);
             obj = std::move(m.obj);
@@ -403,8 +350,7 @@ public:
             return *this;
         }
 
-        loadModelBatch(loadModelBatch&& m)
-        {
+        loadModelBatch(loadModelBatch &&m) {
             path = std::move(m.path);
             model = std::move(m.model);
             obj = std::move(m.obj);
@@ -412,14 +358,12 @@ public:
             asyncend = m.asyncend;
         }
 
-        loadModelBatch()
-        {
+        loadModelBatch() {
             obj = nullptr;
             asyncend = false;
         }
 
-        loadModelBatch(const char *pa, const char *md, GPPOBJ &o)
-        {
+        loadModelBatch(const char *pa, const char *md, GPPOBJ &o) {
             path = pa;
             model = md;
             obj = &o;
@@ -428,169 +372,175 @@ public:
     };
 
     CMultiThreadPool<loadModelBatch, 200> futureModelLoad;
-	
-    void textureBatchLoad(const std::vector<std::pair<std::string, std::string>> texts);
-	const gppTexture &loadTexture(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
-	bool loadModelBatchAsync(std::deque<loadModelBatch> &batch);
+
+    void textureBatchLoad(
+        const std::vector<std::pair<std::string, std::string>> texts);
+    const gppTexture &loadTexture(const std::string &path,
+                                  const std::string &texture,
+                                  CLuaH::luaScript *luaScript = nullptr);
+    static bool loadModelBatchAsync(std::deque<loadModelBatch> &batch);
     bool loadSingleModelAsync(loadModelBatch batch);
-	bool loadTextureBatchAsync(std::deque<loadTextureBatch> &batch);
-	int loadTextureGetId(const std::string &path, const std::string &texture, CLuaH::luaScript *luaScript = nullptr);
-	unsigned int getTextureId(const std::string &name) const noexcept;
-	const CTheme &loadThemes(const std::string &theme, CLuaH::luaScript *luaScript = nullptr);
-	const std::string addGameCallbacks(const std::string &n, func_t function);
+    bool loadTextureBatchAsync(std::deque<loadTextureBatch> &batch);
+    int loadTextureGetId(const std::string &path, const std::string &texture,
+                         CLuaH::luaScript *luaScript = nullptr);
+    unsigned int getTextureId(const std::string &name) const noexcept;
+    const CTheme &loadThemes(const std::string &theme,
+                             CLuaH::luaScript *luaScript = nullptr);
+    const std::string addGameCallbacks(const std::string &n, func_t function);
 
-	std::string getCallBackRealName(const std::string &str);
-	std::string selectSong();
-	void addSongListToMenu(CMenu &selectSongMenu, std::map<int, std::string> &menuMusics);
+    std::string getCallBackRealName(const std::string &str);
+    std::string selectSong();
+    void addSongListToMenu(CMenu &selectSongMenu,
+                           std::map<int, std::string> &menuMusics);
 
-	static void teste(const std::string &name);
-	static void startModule(const std::string &name);
-	static void startMarathonModule(const std::string &name);
-	static void serverModule(const std::string &name);
-	static void continueCampaing(const std::string &name);
-	static void campaingPlayModule(const std::string &name);
-	static void benchmark(const std::string &name);
+    static void teste(const std::string &name);
+    static void startModule(const std::string &name);
+    static void startMarathonModule(const std::string &name);
+    static void serverModule(const std::string &name);
+    static void continueCampaing(const std::string &name);
+    static void campaingPlayModule(const std::string &name);
+    static void benchmark(const std::string &name);
 
-	void loadAllThemes();
+    void loadAllThemes();
 
-	// Window settings
-	gameWindow getWindowDefaults(bool safeMode = false);
-	void settWindowConfigs(const gameWindow &w);
+    // Window settings
+    static gameWindow getWindowDefaults(bool safeMode = false);
+    void settWindowConfigs(const gameWindow &w);
 
-	func_t getCallback(const std::string &str);
+    func_t getCallback(const std::string &str);
 
-	// Render basics
-	void clearScreen();
-	void renderFrame();
+    // Render basics
+    static void clearScreen();
+    void renderFrame();
 
-	double getWindowProportion();
+    static double getWindowProportion();
 
-	// Initer
-	static GPPGame &GuitarPP();
+    // Initer
+    static GPPGame &GuitarPP();
 
-	void setVSyncMode(int mode);
+    static void setVSyncMode(int mode);
 
-	std::vector <CMenu*> openMenus(CMenu *startMenu, std::function<int(void)> preFun = nullptr, std::function<int(void)> midFun = nullptr, std::function<int(void)> posFun = nullptr, bool dev = false, std::vector < CMenu* > stackTest = std::vector < CMenu* >());
+    std::vector<CMenu *> openMenus(
+        CMenu *startMenu, const std::function<int(void)> &preFun = nullptr,
+        const std::function<int(void)> &midFun = nullptr,
+        const std::function<int(void)> &posFun = nullptr, bool dev = false,
+        std::vector<CMenu *> stackTest = std::vector<CMenu *>());
 
-	inline CMenu *getActualMenu()
-	{
-		return currentMenu;
-	}
+    inline CMenu *getActualMenu() { return currentMenu; }
 
-	static void helpMenu(const std::string &name);
-	
-	GPPOBJ noteOBJ, triggerBASEOBJ, triggerOBJ, pylmbarOBJ, openNoteOBJ;
+    static void helpMenu(const std::string &name);
 
-	unsigned int strumsTexture3D[6];
-	unsigned int hopoTexture3D[6];
-	unsigned int tapTexture3D[6];
+    GPPOBJ noteOBJ, triggerBASEOBJ, triggerOBJ, pylmbarOBJ, openNoteOBJ;
 
-	unsigned int sbaseTexture3D[6];
-	unsigned int striggerTexture3D[6];
-	unsigned int openNoteTexture3D, openNoteHOPOTexture3D, openNotePTexture3D, openNoteHOPOPTexture3D;
+    unsigned int strumsTexture3D[6]{};
+    unsigned int hopoTexture3D[6]{};
+    unsigned int tapTexture3D[6]{};
 
-	unsigned int strumKeys[5], fretOneKey, fretTwoKey;
+    unsigned int sbaseTexture3D[6]{};
+    unsigned int striggerTexture3D[6]{};
+    unsigned int openNoteTexture3D{}, openNoteHOPOTexture3D{},
+        openNotePTexture3D{}, openNoteHOPOPTexture3D{};
 
-	unsigned int HUDText, fretboardText, lineText, HOPOSText, pylmBarText;
+    unsigned int strumKeys[5]{}, fretOneKey{}, fretTwoKey{};
 
-	std::string songToLoad;
+    unsigned int HUDText, fretboardText, lineText{}, HOPOSText{}, pylmBarText{};
 
-	int errorsSound[5], startSound, endSound;
+    std::string songToLoad;
 
-	double hyperSpeed;
+    int errorsSound[5]{}, startSound, endSound;
 
-	bool botEnabled, usarPalheta;
+    double hyperSpeed;
 
-	std::string defaultGuitar;
+    bool botEnabled, usarPalheta;
 
-	static std::string ip, port;
+    std::string defaultGuitar;
 
-	static std::mutex playersMutex;
+    static std::string ip, port;
 
-	static void charterModule(const std::string &name);
-	static void testClient(const std::string &name);
+    static std::mutex playersMutex;
 
-	double gameplayRunningTime;
-	bool gamePlayPlusEnabled;
+    static void charterModule(const std::string &name);
+    static void testClient(const std::string &name);
 
-	std::deque<std::string> marathonSongsList;
+    double gameplayRunningTime;
+    bool gamePlayPlusEnabled;
 
-	static std::deque<std::string> getDirectory(const char *dir, bool getFiles, bool getDirectories);
-	static std::string caseInsensitiveSearchDir(const char *dir, bool files, bool directories, const std::string &searchName);
+    std::deque<std::string> marathonSongsList;
 
-	static inline bool caseInSensStringCompare(const std::string &str1, const std::string &str2)
-	{
-		return ((str1.size() == str2.size()) &&
-			std::equal(str1.begin(), str1.end(), str2.begin(), [](const char &c1, const char &c2)
-		{
-			if (c1 == c2)
-				return true;
-			else if (std::toupper(c1) == std::toupper(c2))
-				return true;
-			return false;
-		}));
-	}
+    static std::deque<std::string> getDirectory(const char *dir, bool getFiles,
+                                                bool getDirectories);
+    static std::string caseInsensitiveSearchDir(const char *dir, bool files,
+                                                bool directories,
+                                                const std::string &searchName);
 
-	void initialLoad();
-	void initialLoad2();
+    static inline bool caseInSensStringCompare(const std::string &str1,
+                                               const std::string &str2) {
+        return ((str1.size() == str2.size()) &&
+                std::equal(str1.begin(), str1.end(), str2.begin(),
+                           [](const char &c1, const char &c2) {
+                               if (c1 == c2)
+                                   return true;
+                               else if (std::toupper(c1) == std::toupper(c2))
+                                   return true;
+                               return false;
+                           }));
+    }
 
+    void initialLoad();
+    void initialLoad2();
 
-	void selectPlayerMenu();
+    void selectPlayerMenu();
 
-	GPPOBJ testobj;
+    GPPOBJ testobj;
 
-protected:
-	static int registerFunctions(CLuaH::luaState_t &Lstate);
-	static int registerGlobals(CLuaH::luaState_t &L);
+  protected:
+    static int registerFunctions(CLuaH::luaState_t &Lstate);
+    static int registerGlobals(CLuaH::luaState_t &L);
 
-	static int loadSingleTexture(lua_State *L);
-	static int getGameplayRunningTime(lua_State *L);
-	static int getDeltaTime(lua_State *L);
-	static int getGamePlayPlusState(lua_State *L);
+    static int loadSingleTexture(lua_State *L);
+    static int getGameplayRunningTime(lua_State *L);
+    static int getDeltaTime(lua_State *L);
+    static int getGamePlayPlusState(lua_State *L);
 
-private:
-	std::shared_ptr<CPlayer> mainPlayer;
+  private:
+    std::shared_ptr<CPlayer> mainPlayer;
 
-	static void callbackRenderFrame();
-	static void callbackKeys(int key, int scancode, int action, int mods);
-	static void callbackJoystick(int jid, int eventId);
+    static void callbackRenderFrame();
+    static void callbackKeys(int key, int scancode, int action, int mods);
+    static void callbackJoystick(int jid, int eventId);
 
-	struct loadThreadData
-	{
-		std::atomic<bool> processing;
-		std::atomic<bool> continueThread;
-		std::atomic<bool> loadSong;
-		std::atomic<bool> sendToModulePlayers;
-		std::atomic<bool> listEnd;
-		std::atomic<size_t> songID;
+    struct loadThreadData {
+        std::atomic<bool> processing;
+        std::atomic<bool> continueThread;
+        std::atomic<bool> loadSong;
+        std::atomic<bool> sendToModulePlayers;
+        std::atomic<bool> listEnd;
+        std::atomic<size_t> songID;
 
-		std::deque<std::string> songsList;
+        std::deque<std::string> songsList;
 
-		inline ~loadThreadData()
-		{
-			continueThread = false;
-		}
-	};
+        inline ~loadThreadData() { continueThread = false; }
+    };
 
-	static void loadThread(CGamePlay &module, loadThreadData &l);
-	static void loadMarathonThread(CGamePlay &module, loadThreadData &l);
+    static void loadThread(CGamePlay &module, loadThreadData &l);
+    static void loadMarathonThread(CGamePlay &module, loadThreadData &l);
 
-	void eraseGameMenusAutoCreateds();
+    void eraseGameMenusAutoCreateds();
 
-	GPPGame(GPPGame&) = delete;
+    GPPGame(GPPGame &) = delete;
 
-	bool			windowChangedParams; // update in case of realtime changes - TODO
+    bool windowChangedParams{}; // update in case of realtime changes - TODO
 
-	gameWindow		windowCFGs; // Actual config
+    gameWindow windowCFGs; // Actual config
 
-	GPPGame();
-	~GPPGame() noexcept;
+    GPPGame();
+    ~GPPGame() noexcept;
 
-public:
-	const gameWindow &getWindowConfig() const{ return windowCFGs; };
-	int createWindow();
+  public:
+    const gameWindow &getWindowConfig() const { return windowCFGs; };
+    int createWindow();
 
-	static void logError(int code, const std::string &e);
+    static void logError(int code, const std::string &e);
 };
 
 #endif

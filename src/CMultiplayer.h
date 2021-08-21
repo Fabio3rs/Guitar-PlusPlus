@@ -2,82 +2,84 @@
 #ifndef __GUITARPP_CMULTIPLAYER_H__
 #define __GUITARPP_CMULTIPLAYER_H__
 
-#include <thread>
-#include <string>
-#include <vector>
 #include <atomic>
-#include <mutex>
-#include <thread>
-#include <memory>
 #include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
 
 #include "CSocket.h"
 
-enum clientPackets{GPPCLI_AUTH, GPPCLI_QUERY_PLAYERS, GPPCLI_SET_MY_DATA, GPPCLI_LOGOUT};
-enum serverPackets{GPPSV_OK, GPPSV_SENDSONGDATA, GPPSV_SENDPLAYERSDATA, GPPSV_SIGNALSONGEVENT};
-
-struct gppMPSimplePacket
-{
-	int32_t id;
-	int32_t size;
+enum clientPackets {
+    GPPCLI_AUTH,
+    GPPCLI_QUERY_PLAYERS,
+    GPPCLI_SET_MY_DATA,
+    GPPCLI_LOGOUT
+};
+enum serverPackets {
+    GPPSV_OK,
+    GPPSV_SENDSONGDATA,
+    GPPSV_SENDPLAYERSDATA,
+    GPPSV_SIGNALSONGEVENT
 };
 
-class CMultiplayer
-{
-	CServerSock sv;
-	struct playersFrameData
-	{
-		int32_t svthrid;
-		int32_t status;
-		int32_t keys;
-		int32_t lkeys;
-		int32_t strum;
-		int32_t lstrum;
-		int32_t state;
-		int32_t inst;
-		int32_t points;
-		int32_t combo;
-		int32_t ping;
-	};
+struct gppMPSimplePacket {
+    int32_t id;
+    int32_t size;
+};
 
-	class svPlayersData
-	{
-		std::string name;
-		uint64_t connectionId;
-		playersFrameData data;
+class CMultiplayer {
+    CServerSock sv;
+    struct playersFrameData {
+        int32_t svthrid;
+        int32_t status;
+        int32_t keys;
+        int32_t lkeys;
+        int32_t strum;
+        int32_t lstrum;
+        int32_t state;
+        int32_t inst;
+        int32_t points;
+        int32_t combo;
+        int32_t ping;
+    };
 
-		svPlayersData() : connectionId(0)
-		{
+    class svPlayersData {
+        std::string name;
+        uint64_t connectionId;
+        playersFrameData data;
 
-		}
-	};
+        svPlayersData() : connectionId(0) {}
+    };
 
-	std::deque<svPlayersData> svPlData;
+    std::deque<svPlayersData> svPlData;
 
-	std::atomic<bool> continueClThread;
-	std::atomic<bool> serverRunning;
+    std::atomic<bool> continueClThread{};
+    std::atomic<bool> serverRunning{};
 
-	std::atomic<bool> notifyTest;
+    std::atomic<bool> notifyTest{};
 
-	static void clientmgrthread(CMultiplayer *mp, socket_unique &&socketid);
-	static void mpclientconnectcb(CServerSock *sv, socket_unique &&socketid);
+    static void clientmgrthread(CMultiplayer *mp, socket_unique &&socketid);
+    static void mpclientconnectcb(CServerSock *sv, socket_unique &&socketid);
 
-	std::thread testclientthr;
+    std::thread testclientthr;
 
-	std::string svSong;
+    std::string svSong;
 
-	//CPlayersContainer_t svPlayers;
-	
-public:
-	void NotifyAll();
-	
-	bool startServer(const char *port);
-	void stopServer();
+    // CPlayersContainer_t svPlayers;
 
-	SOCKET clientConnect(const char *host, const char *port);
+  public:
+    void NotifyAll();
 
-	CMultiplayer();
-	~CMultiplayer();
+    bool startServer(const char *port);
+    void stopServer();
+
+    static SOCKET clientConnect(const char *host, const char *port);
+
+    CMultiplayer();
+    ~CMultiplayer();
 };
 
 #ifdef _WIN32
@@ -85,117 +87,97 @@ public:
 #include "CSocket.h"
 #define COMPILEMP
 
-class CMultiplayer
-{
-	friend class GPPGame;
-	friend class CPlayer;
+class CMultiplayer {
+    friend class GPPGame;
+    friend class CPlayer;
 
-	std::atomic<bool> continueClThread;
+    std::atomic<bool> continueClThread;
 
-	struct playersData
-	{
-		char name[64];
-		int32_t svthrid;
-		int32_t keys;
-		int32_t lkeys;
-		int32_t strum;
-		int32_t lstrum;
-		int32_t state;
-		int32_t inst;
-		int32_t ready;
-	};
+    struct playersData {
+        char name[64];
+        int32_t svthrid;
+        int32_t keys;
+        int32_t lkeys;
+        int32_t strum;
+        int32_t lstrum;
+        int32_t state;
+        int32_t inst;
+        int32_t ready;
+    };
 
-	struct pair
-	{
-		size_t f, s;
+    struct pair {
+        size_t f, s;
 
-		pair()
-		{
-			f = s = 0;
-		}
-	};
+        pair() { f = s = 0; }
+    };
 
-	pair clidentpair;
+    pair clidentpair;
 
-	static void callbackFun(CServerSock::ServerThreads *th, std::unique_ptr<char[]> &data, size_t size);
+    static void callbackFun(CServerSock::ServerThreads *th,
+                            std::unique_ptr<char[]> &data, size_t size);
 
-	std::vector < playersData > pData;
+    std::vector<playersData> pData;
 
-	std::map <uintptr_t, std::mutex> mutexplayers;
-	CPlayersContainer_t *players;
-	std::map < void*, std::pair<int, int> > xrefplayer;
+    std::map<uintptr_t, std::mutex> mutexplayers;
+    CPlayersContainer_t *players;
+    std::map<void *, std::pair<int, int>> xrefplayer;
 
-	struct serverInfo
-	{
-		double musicRunningTime;
-		bool startSong;
+    struct serverInfo {
+        double musicRunningTime;
+        bool startSong;
 
-		inline serverInfo()
-		{
-			musicRunningTime = 0.0;
-			startSong = false;
-		}
-	};
+        inline serverInfo() {
+            musicRunningTime = 0.0;
+            startSong = false;
+        }
+    };
 
-	serverInfo svi;
+    serverInfo svi;
 
-	void updatePlayers();
+    void updatePlayers();
 
-	static void mpThread();
-	std::thread instThread;
-	bool bIsServer, bInitSucess;
+    static void mpThread();
+    std::thread instThread;
+    bool bIsServer, bInitSucess;
 
-	CServerSock sv;
-	CClientSock cl;
+    CServerSock sv;
+    CClientSock cl;
 
-	int state;
+    int state;
 
-	template<class T>
-	struct callbackGPPInfo{
-		std::function<T> fun;
-		
-		inline callbackGPPInfo(T f)
-		{
-			fun = f;
-		}
+    template <class T> struct callbackGPPInfo {
+        std::function<T> fun;
 
-		inline callbackGPPInfo() = default;
-	};
+        inline callbackGPPInfo(T f) { fun = f; }
 
-	callbackGPPInfo<int(void *ptr, char *data, size_t size)> cb;
+        inline callbackGPPInfo() = default;
+    };
 
-public:
-	inline std::vector < playersData > &getPlData()
-	{
-		return pData;
-	}
+    callbackGPPInfo<int(void *ptr, char *data, size_t size)> cb;
 
-	static std::vector < playersData > &sgetPlData();
+  public:
+    inline std::vector<playersData> &getPlData() { return pData; }
 
-	inline void setPlayersData(CPlayersContainer_t &pl)
-	{
-		players = &pl;
-	}
+    static std::vector<playersData> &sgetPlData();
 
-	void connectToServer(CPlayer &p);
+    inline void setPlayersData(CPlayersContainer_t &pl) { players = &pl; }
 
-	static void sendUpdateToPlayer(uintptr_t target, const std::vector < playersData > &pData);
+    void connectToServer(CPlayer &p);
 
-	inline bool fail(){ return !bInitSucess; };
+    static void sendUpdateToPlayer(uintptr_t target,
+                                   const std::vector<playersData> &pData);
 
-	void startMPThread();
-	bool playerReady();
+    inline bool fail() { return !bInitSucess; };
 
-	template<class T>
-	inline void setGameCallback(T f)
-	{
-		cb.fun = f;
-	}
+    void startMPThread();
+    bool playerReady();
 
-	void initConnections(const std::string &IP, const std::string &port);
+    template <class T> inline void setGameCallback(T f) { cb.fun = f; }
 
-	CMultiplayer(bool bIsServer = false);
-	~CMultiplayer();
+    void initConnections(const std::string &IP, const std::string &port);
+
+    CMultiplayer(bool bIsServer = false);
+    ~CMultiplayer();
 };
 #endif
 

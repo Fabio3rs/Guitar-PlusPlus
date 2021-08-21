@@ -55,12 +55,13 @@ std::mutex CEngine::m_gl_mutex;
 //
 //========================================================================
 
-double CEngine::getChannelLength(unsigned int ch) {
+auto CEngine::getChannelLength(unsigned int ch) -> double {
     return BASS_ChannelBytes2Seconds(ch,
                                      BASS_ChannelGetLength(ch, BASS_POS_BYTE));
 }
 
-float CEngine::getSoundBPM(unsigned int sound, double at, double interval) {
+auto CEngine::getSoundBPM(unsigned int sound, double at, double interval)
+    -> float {
     float result = 0.0;
     // static float r = 0.0;
     //	static bool b = false;
@@ -90,7 +91,7 @@ void CEngine::retAccumulationBuffer(double d) {
     glAccum(GL_RETURN, static_cast<float>(d));
 }
 
-CEngine &CEngine::engine() {
+auto CEngine::engine() -> CEngine & {
     static CEngine eng;
     return eng;
 }
@@ -102,7 +103,7 @@ void CEngine::init() {
 
     glfwSetErrorCallback(GLFWerrorfun);
 
-    if (!glfwInit()) {
+    if (glfwInit() == 0) {
         throw std::logic_error("Fail to initialize GLFW");
     }
 
@@ -116,25 +117,26 @@ void CEngine::init() {
                0, 1, 0});
 }
 
-bool CEngine::pauseSoundStream(int handle) {
+auto CEngine::pauseSoundStream(int handle) -> bool {
     return BASS_ChannelPause(handle) != 0;
 }
 
-bool CEngine::setSoundVolume(int handle, float volume) {
-    return BASS_ChannelSetAttribute(handle, BASS_ATTRIB_VOL,
-                                    static_cast<float>(volume * volumeMaster));
+auto CEngine::setSoundVolume(int handle, float volume) const -> bool {
+    return BASS_ChannelSetAttribute(
+               handle, BASS_ATTRIB_VOL,
+               static_cast<float>(volume * volumeMaster)) != 0;
 }
 
-int CEngine::setSoundFlags(int handle, int flags, int mask) {
+auto CEngine::setSoundFlags(int handle, int flags, int mask) -> int {
     return BASS_ChannelFlags(handle, flags, mask);
 }
 
-int CEngine::setSoundAttribute(int handle, int attribute, float value) {
+auto CEngine::setSoundAttribute(int handle, int attribute, float value) -> int {
     return BASS_ChannelSetAttribute(handle, attribute, value);
 }
 
-CEngine::chdata CEngine::getChannelData(int handle) {
-    chdata result;
+auto CEngine::getChannelData(int handle) -> CEngine::chdata {
+    chdata result{};
     int BANDS = 120;
     int b0 = 0;
     float peak = -10;
@@ -152,8 +154,8 @@ CEngine::chdata CEngine::getChannelData(int handle) {
     return result;
 }
 
-CEngine::chdata CEngine::getChannelData(int handle, int b) {
-    chdata result;
+auto CEngine::getChannelData(int handle, int b) -> CEngine::chdata {
+    chdata result{};
     int BANDS = 120;
     int b0 = 0;
     float peak = -10;
@@ -170,9 +172,9 @@ CEngine::chdata CEngine::getChannelData(int handle, int b) {
     return result;
 }
 
-int CEngine::getBassError() { return BASS_ErrorGetCode(); }
+auto CEngine::getBassError() -> int { return BASS_ErrorGetCode(); }
 
-std::vector<CEngine::Resolution> CEngine::getPossibleVideoModes() {
+auto CEngine::getPossibleVideoModes() -> std::vector<CEngine::Resolution> {
     int count = 0;
     const GLFWvidmode *modes =
         glfwGetVideoModes(glfwGetPrimaryMonitor(), &count);
@@ -180,7 +182,7 @@ std::vector<CEngine::Resolution> CEngine::getPossibleVideoModes() {
     result.reserve(count);
 
     for (int i = 0; i < count; i++) {
-        Resolution newRes;
+        Resolution newRes{};
         newRes.width = modes[i].width;
         newRes.height = modes[i].height;
         newRes.redBits = modes[i].redBits;
@@ -213,7 +215,7 @@ void CEngine::matrixReset() {
     glLoadIdentity();
 }
 
-int CEngine::getKey(int key) const {
+auto CEngine::getKey(int key) const -> int {
     return glfwGetKey((GLFWwindow *)window, key);
 }
 
@@ -227,12 +229,12 @@ void CEngine::setColor(double r, double g, double b, double a) {
     }
 }
 
-double CEngine::getSoundTime(int handle) {
+auto CEngine::getSoundTime(int handle) -> double {
     return BASS_ChannelBytes2Seconds(
         handle, BASS_ChannelGetPosition(handle, BASS_POS_BYTE));
 }
 
-double CEngine::getSoundVolume(int handle) {
+auto CEngine::getSoundVolume(int handle) -> double {
     float vol = -1.0;
     BASS_ChannelGetAttribute(handle, BASS_ATTRIB_VOL, &vol);
 
@@ -244,20 +246,21 @@ void CEngine::setSoundTime(int handle, double time) {
                             BASS_POS_BYTE);
 }
 
-bool CEngine::loadMusicStream(const char *fileName, int &handle) {
-    handle = BASS_MusicLoad(false, fileName, (QWORD)MAKELONG(0, 0), 0,
+auto CEngine::loadMusicStream(const char *fileName, int &handle) -> bool {
+    handle = BASS_MusicLoad(0, fileName, (QWORD)MAKELONG(0, 0), 0,
                             BASS_STREAM_PRESCAN | BASS_ASYNCFILE, 0);
 
-    return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0),
-                                   BASS_POS_BYTE) &&
+    return (BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0),
+                                    BASS_POS_BYTE) != 0) &&
            handle != 0;
 }
 
-float CEngine::getMainVolume() { return BASS_GetVolume(); }
+auto CEngine::getMainVolume() -> float { return BASS_GetVolume(); }
 
-bool CEngine::setMainVolume(float v) { return BASS_SetVolume(v); }
+auto CEngine::setMainVolume(float v) -> bool { return BASS_SetVolume(v) != 0; }
 
-bool CEngine::loadSoundStream(const char *fileName, int &handle, bool decode) {
+auto CEngine::loadSoundStream(const char *fileName, int &handle, bool decode)
+    -> bool {
     int flags = BASS_STREAM_PRESCAN | BASS_ASYNCFILE;
 
     // std::cout << "flags  " << flags << std::endl;
@@ -266,26 +269,29 @@ bool CEngine::loadSoundStream(const char *fileName, int &handle, bool decode) {
         flags |= BASS_STREAM_DECODE;
     }
 
-    handle = BASS_StreamCreateFile(false, fileName, 0, 0, flags);
-    return BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0),
-                                   BASS_POS_BYTE) &&
+    handle = BASS_StreamCreateFile(0, fileName, 0, 0, flags);
+    return (BASS_ChannelSetPosition(handle, (QWORD)MAKELONG(0, 0),
+                                    BASS_POS_BYTE) != 0) &&
            (handle != 0);
 }
 
-bool CEngine::unloadSoundStream(int &handle) noexcept {
-    if (handle == 0)
-        return false;
+auto CEngine::unloadSoundStream(int &handle) noexcept -> bool {
+    if (handle == 0) {
+        {
+            return false;
+        }
+    }
 
     bool r = BASS_StreamFree(handle) != 0;
     handle = 0;
     return r;
 }
 
-bool CEngine::playSoundStream(int handle) {
-    return BASS_ChannelPlay(handle, false) != 0;
+auto CEngine::playSoundStream(int handle) -> bool {
+    return BASS_ChannelPlay(handle, 0) != 0;
 }
 
-double CEngine::getTime() { return glfwGetTime(); }
+auto CEngine::getTime() -> double { return glfwGetTime(); }
 
 void CEngine::setCamera(const cameraSET &cam) {
     if (cam != nowCamera) {
@@ -295,8 +301,11 @@ void CEngine::setCamera(const cameraSET &cam) {
             glm::lookAt(nowCamera.eye, nowCamera.center, nowCamera.up);
     }
 
-    if (window == nullptr)
-        return;
+    if (window == nullptr) {
+        {
+            return;
+        }
+    }
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -314,15 +323,24 @@ void CEngine::setCamera(const cameraSET &cam) {
 }
 
 static void windowCallBack(GLFWwindow *window, int w, int h) {
-    if (h == 0)
-        h = 1;
-    if (w == 0)
-        w = 1;
+    if (h == 0) {
+        {
+            h = 1;
+        }
+    }
+    if (w == 0) {
+        {
+            w = 1;
+        }
+    }
 
     auto &engine = CEngine::engine();
 
-    if (engine.getWindowCallbackFunction())
-        engine.getWindowCallbackFunction()(w, h, preUpdate);
+    if (engine.getWindowCallbackFunction() != nullptr) {
+        {
+            engine.getWindowCallbackFunction()(w, h, preUpdate);
+        }
+    }
 
     glViewport(0, 0, w, h);
 
@@ -342,21 +360,24 @@ static void windowCallBack(GLFWwindow *window, int w, int h) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    if (engine.getWindowCallbackFunction())
-        engine.getWindowCallbackFunction()(w, h, posUpdate);
+    if (engine.getWindowCallbackFunction() != nullptr) {
+        {
+            engine.getWindowCallbackFunction()(w, h, posUpdate);
+        }
+    }
 }
 
 void CEngine::glEnable(int num) { ::glEnable(num); }
 
 void CEngine::glDisable(int num) { ::glDisable(num); }
 
-int CEngine::openFileStream(GLFWstream *stream, const char *name,
-                            const char *mode) {
+auto CEngine::openFileStream(GLFWstream *stream, const char *name,
+                             const char *mode) -> int {
     memset(stream, 0, sizeof(GLFWstream));
 
     stream->file = fopen(name, mode);
 
-    return stream->file != NULL;
+    return static_cast<int>(stream->file != NULL);
 }
 
 void CEngine::closeStream(GLFWstream *stream) {
@@ -367,7 +388,7 @@ void CEngine::closeStream(GLFWstream *stream) {
     memset(stream, 0, sizeof(GLFWstream));
 }
 
-int CEngine::seekStream(GLFWstream *stream, long offset, int whence) {
+auto CEngine::seekStream(GLFWstream *stream, long offset, int whence) -> int {
     long position;
 
     if (stream->file != NULL) {
@@ -405,7 +426,7 @@ int CEngine::seekStream(GLFWstream *stream, long offset, int whence) {
     return GL_FALSE;
 }
 
-long CEngine::readStream(GLFWstream *stream, void *data, long size) {
+auto CEngine::readStream(GLFWstream *stream, void *data, long size) -> long {
     if (stream->file != NULL) {
         return (long)fread(data, 1, size, stream->file);
     }
@@ -430,7 +451,7 @@ long CEngine::readStream(GLFWstream *stream, void *data, long size) {
     return 0;
 }
 
-long CEngine::tellStream(GLFWstream *stream) {
+auto CEngine::tellStream(GLFWstream *stream) -> long {
     if (stream->file != NULL) {
         return ftell(stream->file);
     }
@@ -442,7 +463,7 @@ long CEngine::tellStream(GLFWstream *stream) {
     return 0;
 }
 
-int CEngine::readImage(const char *name, GLFWimage *img, int flags) {
+auto CEngine::readImage(const char *name, GLFWimage *img, int flags) -> int {
     GLFWstream stream;
 
     // Start with an empty image descriptor
@@ -452,12 +473,12 @@ int CEngine::readImage(const char *name, GLFWimage *img, int flags) {
     img->Data = NULL;
 
     // Open file
-    if (!openFileStream(&stream, name, "rb")) {
+    if (openFileStream(&stream, name, "rb") == 0) {
         return GL_FALSE;
     }
 
     // We only support TGA files at the moment
-    if (!_glfwReadTGA(&stream, img, flags)) {
+    if (_glfwReadTGA(&stream, img, flags) == 0) {
         closeStream(&stream);
         return GL_FALSE;
     }
@@ -478,7 +499,7 @@ int CEngine::readImage(const char *name, GLFWimage *img, int flags) {
     switch (img->BytesPerPixel) {
     default:
     case 1:
-        if (flags & GLFW_ALPHA_MAP_BIT) {
+        if ((flags & GLFW_ALPHA_MAP_BIT) != 0) {
             img->Format = GL_ALPHA;
         } else {
             img->Format = GL_LUMINANCE;
@@ -495,8 +516,15 @@ int CEngine::readImage(const char *name, GLFWimage *img, int flags) {
     return GL_TRUE;
 }
 
-static int HalveImage(GLubyte *src, int *width, int *height, int components) {
-    int halfwidth, halfheight, m, n, k, idx1, idx2;
+static auto HalveImage(GLubyte *src, int *width, int *height, int components)
+    -> int {
+    int halfwidth;
+    int halfheight;
+    int m;
+    int n;
+    int k;
+    int idx1;
+    int idx2;
     GLubyte *dst;
 
     // Last level?
@@ -544,8 +572,11 @@ static int HalveImage(GLubyte *src, int *width, int *height, int components) {
     return GL_TRUE;
 }
 
-int CEngine::loadTextureImage2D(GLFWimage *img, int flags, bool glUpload) {
-    int format, newsize, n;
+auto CEngine::loadTextureImage2D(GLFWimage *img, int flags, bool glUpload)
+    -> int {
+    int format;
+    int newsize;
+    int n;
     std::unique_ptr<unsigned char[]> data;
 
     // TODO: Use GL_MAX_TEXTURE_SIZE or GL_PROXY_TEXTURE_2D to determine
@@ -592,8 +623,11 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags, bool glUpload) {
         memcpy(img->tmpData.get(), img->Data.get(), newsize);
     }
 
-    if (glUpload)
-        loadTextureImage2DFinish(img, flags);
+    if (glUpload) {
+        {
+            loadTextureImage2DFinish(img, flags);
+        }
+    }
 
     // Enable automatic mipmap generation
     /*if (AutoGen)
@@ -609,7 +643,7 @@ int CEngine::loadTextureImage2D(GLFWimage *img, int flags, bool glUpload) {
     return GL_TRUE;
 }
 
-unsigned int CEngine::genNewGLTexture() {
+auto CEngine::genNewGLTexture() -> unsigned int {
     GLuint Text;
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -632,10 +666,11 @@ void CEngine::uploadBytesToGl(unsigned int text, const char *bytes, int width,
     // std::cout << "  text " << text << glGetError() << std::endl;
 }
 
-int CEngine::loadTextureImage2DFinish(GLFWimage *img, int flags) {
+auto CEngine::loadTextureImage2DFinish(GLFWimage *img, int flags) const -> int {
     GLint UnpackAlignment /*, GenMipMap*/;
 
-    int format = 0, AutoGen;
+    int format = 0;
+    int AutoGen;
 
     if (glMajor == 1 && glMinor == 0) {
         format = img->BytesPerPixel;
@@ -662,9 +697,9 @@ int CEngine::loadTextureImage2DFinish(GLFWimage *img, int flags) {
                      format, GL_UNSIGNED_BYTE, (void *)img->Data.get());
 
         // Build next mipmap level manually, if required
-        if ((flags & GLFW_BUILD_MIPMAPS_BIT) && !AutoGen) {
+        if (((flags & GLFW_BUILD_MIPMAPS_BIT) != 0) && (AutoGen == 0)) {
             level = HalveImage(img->Data.get(), &img->Width, &img->Height,
-                               img->BytesPerPixel)
+                               img->BytesPerPixel) != 0
                         ? level + 1
                         : 0;
         }
@@ -698,15 +733,21 @@ void CEngine::setScale(double x, double y, double z) { glScaled(x, y, z); }
 
 void CEngine::RenderMulti3DQuad(
     const std::deque<RenderDoubleStruct> &quad3DData, unsigned int &bufferID) {
-    if (bufferID < 0)
-        glGenBuffers(1, &bufferID);
+    if (bufferID < 0) {
+        {
+            glGenBuffers(1, &bufferID);
+        }
+    }
 
     // glBindBuffer(GL_ARRAY_BUFFER_ARB, bufferID);
 
     int i = quad3DData.size();
 
-    if (i <= 0)
-        return;
+    if (i <= 0) {
+        {
+            return;
+        }
+    }
 
     std::unique_ptr<GLdouble[]> vertexArray(
         std::make_unique<GLdouble[]>(18 * i));
@@ -778,8 +819,8 @@ void CEngine::RenderMulti3DQuad(
     glBindBuffer(GL_ARRAY_BUFFER_ARB, 0);*/
 }
 
-int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg,
-                           bool glUpload) {
+auto CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg,
+                            bool glUpload) -> int {
     GLFWimage tmpimg;
     GLFWimage &img = glUpload ? tmpimg : *eimg;
 
@@ -790,21 +831,27 @@ int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg,
     }*/
 
     // Read image from file
-    if (!readImage(name, &img, flags)) {
+    if (readImage(name, &img, flags) == 0) {
         return GL_FALSE;
     }
 
-    if (eimg)
-        img.keepData = eimg->keepData;
+    if (eimg != nullptr) {
+        {
+            img.keepData = eimg->keepData;
+        }
+    }
 
-    if (!loadTextureImage2D(&img, flags, glUpload)) {
+    if (loadTextureImage2D(&img, flags, glUpload) == 0) {
         return GL_FALSE;
     }
 
-    if (!glUpload)
-        return GL_TRUE;
+    if (!glUpload) {
+        {
+            return GL_TRUE;
+        }
+    }
 
-    if (eimg) {
+    if (eimg != nullptr) {
         bool keepData = eimg->keepData;
         eimg->keepData = keepData;
 
@@ -822,8 +869,8 @@ int CEngine::loadTexture2D(const char *name, int flags, GLFWimage *eimg,
     return GL_TRUE;
 }
 
-unsigned int CEngine::loadTexture(const char *textureFileName,
-                                  GLFWimage *eimg) {
+auto CEngine::loadTexture(const char *textureFileName, GLFWimage *eimg)
+    -> unsigned int {
     GLuint Text;
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -833,23 +880,25 @@ unsigned int CEngine::loadTexture(const char *textureFileName,
     glGenTextures(1, &Text);
     glBindTexture(GL_TEXTURE_2D, Text);
 
-    if (loadTexture2D(textureFileName, 0, eimg) && glIsTexture(Text)) {
+    if ((loadTexture2D(textureFileName, 0, eimg) != 0) &&
+        (glIsTexture(Text) != 0u)) {
         return Text;
     }
 
     return 0;
 }
 
-bool CEngine::loadTextureAsync(const char *textureFileName, GLFWimage *eimg) {
-    if (loadTexture2D(textureFileName, 0, eimg,
-                      false) /*&& glIsTexture(Text)*/) {
+auto CEngine::loadTextureAsync(const char *textureFileName, GLFWimage *eimg)
+    -> bool {
+    if (loadTexture2D(textureFileName, 0, eimg, false) !=
+        0 /*&& glIsTexture(Text)*/) {
         return true;
     }
 
     return false;
 }
 
-unsigned int CEngine::uploadTextureToOGL(GLFWimage *eimg) {
+auto CEngine::uploadTextureToOGL(GLFWimage *eimg) -> unsigned int {
     GLuint Text;
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -859,23 +908,27 @@ unsigned int CEngine::uploadTextureToOGL(GLFWimage *eimg) {
     glGenTextures(1, &Text);
     glBindTexture(GL_TEXTURE_2D, Text);
 
-    if (loadTextureImage2DFinish(eimg, 0) && glIsTexture(Text)) {
+    if ((loadTextureImage2DFinish(eimg, 0) != 0) && (glIsTexture(Text) != 0u)) {
         return Text;
     }
 
     return 0u;
 }
 
-double calcDist(double x1, double y1, double x2, double y2) {
-    double xr = x2 - x1, yr = y2 - y1;
+static auto calcDist(double x1, double y1, double x2, double y2) -> double {
+    double xr = x2 - x1;
+    double yr = y2 - y1;
     return sqrt(xr * xr + yr * yr);
 }
 
 void CEngine::renderFrame() {
-    if (renderFrameCallback)
-        renderFrameCallback();
+    if (renderFrameCallback) {
+        {
+            renderFrameCallback();
+        }
+    }
 
-    RenderDoubleStruct cursorPointer;
+    RenderDoubleStruct cursorPointer{};
 
     cursorPointer.x1 = mouseX;
     cursorPointer.x2 = mouseX + 0.1;
@@ -912,7 +965,8 @@ void CEngine::renderFrame() {
     }
 
     if (glfwGetTime() > 0.1) {
-        double mx, my;
+        double mx;
+        double my;
 
         glfwGetCursorPos((GLFWwindow *)window, &mx, &my);
 
@@ -947,9 +1001,11 @@ void CEngine::renderFrame() {
 }
 
 void CEngine::GLFWerrorfun(int error, const char *description) {
-    if (engine().errorCallbackFun)
-        engine().errorCallbackFun(error, description);
-    else {
+    if (engine().errorCallbackFun) {
+        {
+            engine().errorCallbackFun(error, description);
+        }
+    } else {
 #ifdef _WIN32
         MessageBoxA(0, description, std::to_string(error).c_str(), 0);
 #else
@@ -958,11 +1014,11 @@ void CEngine::GLFWerrorfun(int error, const char *description) {
     }
 }
 
-bool CEngine::windowOpened() {
-    return !glfwWindowShouldClose((GLFWwindow *)window);
+auto CEngine::windowOpened() -> bool {
+    return glfwWindowShouldClose((GLFWwindow *)window) == 0;
 }
 
-unsigned int CEngine::vboSET(size_t size, void *buffer) {
+auto CEngine::vboSET(size_t size, void *buffer) -> unsigned int {
     GLuint vertexbuffer;
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -996,10 +1052,13 @@ void CEngine::bindTextOnSlot(int text, int slot) {
 void CEngine::drawBufArrays(int size) { glDrawArrays(GL_TRIANGLES, 0, size); }
 
 void CEngine::activateNormals(bool a) {
-    if (a)
-        glEnableClientState(GL_NORMAL_ARRAY);
-    else
-        glDisableClientState(GL_NORMAL_ARRAY);
+    if (a) {
+        {
+            glEnableClientState(GL_NORMAL_ARRAY);
+        }
+    } else {
+        { glDisableClientState(GL_NORMAL_ARRAY); }
+    }
 }
 
 void CEngine::openWindow(const char *name, int w, int h, int fullScreen) {
@@ -1024,15 +1083,21 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-    if (fullScreen & 2)
-        glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+    if ((fullScreen & 2) != 0) {
+        {
+            glfwWindowHint(GLFW_DECORATED, GL_FALSE);
+        }
+    }
 
-    if (AASamples)
-        glfwWindowHint(GLFW_SAMPLES, AASamples);
+    if (AASamples != 0) {
+        {
+            glfwWindowHint(GLFW_SAMPLES, AASamples);
+        }
+    }
 
     window = glfwCreateWindow(w, h, name, monitor, NULL);
 
-    if (!window) {
+    if (window == nullptr) {
         GLFWerrorfun(-1, "Can't open GLFW window - verify your video's driver");
         throw std::logic_error(
             "Can't open GLFW window - verify your video's driver");
@@ -1076,7 +1141,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen) {
     /*for (int i = 0, size = glStates.size(); i < size; i++){
             glStates[i] = glIsEnabled(i);
     }*/
-    lightData l;
+    lightData l{};
 
     for (auto &t : l.ambientLight) {
         t = 0.3f;
@@ -1160,8 +1225,11 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen) {
 }
 
 void CEngine::setLight(const lightData &l, int id, bool setAmbient) {
-    if (setAmbient)
-        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, l.ambientLight);
+    if (setAmbient) {
+        {
+            glLightModelfv(GL_LIGHT_MODEL_AMBIENT, l.ambientLight);
+        }
+    }
 
     glLightfv(GL_LIGHT0 + id, GL_AMBIENT, l.ambientLight);
     glLightfv(GL_LIGHT0 + id, GL_DIFFUSE, l.diffuseLight);
@@ -1181,40 +1249,55 @@ void CEngine::setLight(const lightData &l, int id, bool setAmbient) {
 void CEngine::clear3DBuffer() { glClear(GL_DEPTH_BUFFER_BIT); }
 
 void CEngine::activateLight(int id, bool a) {
-    if (a)
-        glEnable(GL_LIGHT0 + id);
-    else
-        glDisable(GL_LIGHT0 + id);
+    if (a) {
+        {
+            glEnable(GL_LIGHT0 + id);
+        }
+    } else {
+        { glDisable(GL_LIGHT0 + id); }
+    }
 }
 
 void CEngine::activateLighting(bool a) {
     if (1) {
-        if (a)
-            glEnable(GL_LIGHTING);
-        else
-            glDisable(GL_LIGHTING);
+        if (a) {
+            {
+                glEnable(GL_LIGHTING);
+            }
+        } else {
+            { glDisable(GL_LIGHTING); }
+        }
     }
 }
 
 void CEngine::activate3DRender(bool a) {
-    if (a)
-        glEnable(GL_DEPTH_TEST);
-    else
-        glDisable(GL_DEPTH_TEST);
+    if (a) {
+        {
+            glEnable(GL_DEPTH_TEST);
+        }
+    } else {
+        { glDisable(GL_DEPTH_TEST); }
+    }
 }
 
 void CEngine::activateAlphaTest(bool a) {
-    if (a)
-        glEnable(GL_ALPHA_TEST);
-    else
-        glDisable(GL_ALPHA_TEST);
+    if (a) {
+        {
+            glEnable(GL_ALPHA_TEST);
+        }
+    } else {
+        { glDisable(GL_ALPHA_TEST); }
+    }
 }
 
 void CEngine::activateStencilTest(bool a) {
-    if (a)
-        glEnable(GL_STENCIL_TEST);
-    else
-        glDisable(GL_STENCIL_TEST);
+    if (a) {
+        {
+            glEnable(GL_STENCIL_TEST);
+        }
+    } else {
+        { glDisable(GL_STENCIL_TEST); }
+    }
 }
 
 void CEngine::startShadowCapture() {
@@ -1236,11 +1319,13 @@ void CEngine::endShadowCapture() {
     // glDisable(GL_CULL_FACE);
 }
 
-void CEngine::findPlane(float plane[4], float v0[3], float v1[3], float v2[3]) {
+void CEngine::findPlane(float plane[4], const float v0[3], const float v1[3],
+                        const float v2[3]) {
     enum { X, Y, Z, W };
     enum { A, B, C, D };
 
-    GLfloat vec0[3], vec1[3];
+    GLfloat vec0[3];
+    GLfloat vec1[3];
 
     /* Need 2 vectors to find cross product. */
     vec0[X] = v1[X] - v0[X];
@@ -1293,8 +1378,8 @@ void CEngine::setClearColor(const std::array<double, 4> &color) {
                  static_cast<float>(color[2]), static_cast<float>(color[3]));
 }
 
-void CEngine::shadowMatrix(float shadowMat[4][4], float groundplane[4],
-                           float lightpos[4]) {
+void CEngine::shadowMatrix(float shadowMat[4][4], const float groundplane[4],
+                           const float lightpos[4]) {
     enum { X, Y, Z, W };
     enum { A, B, C, D };
 
@@ -1326,21 +1411,23 @@ void CEngine::shadowMatrix(float shadowMat[4][4], float groundplane[4],
 
 void CEngine::useShader(unsigned int programID) { glUseProgram(programID); }
 
-unsigned int CEngine::getUniformLocation(unsigned int programID,
-                                         const char *str) {
+auto CEngine::getUniformLocation(unsigned int programID, const char *str)
+    -> unsigned int {
     return glGetUniformLocation(programID, str);
-    ;
 }
 
 void CEngine::setVSyncMode(int mode) { glfwSwapInterval(mode); }
 
-int CEngine::getMouseButton(int btn) {
+auto CEngine::getMouseButton(int btn) -> int {
     return glfwGetMouseButton((GLFWwindow *)window, btn);
 }
 
 void CEngine::bindTexture(unsigned int text) {
-    if (lastUsedTexture == text)
-        return;
+    if (lastUsedTexture == text) {
+        {
+            return;
+        }
+    }
 
     lastUsedTexture = text;
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -1415,8 +1502,11 @@ void CEngine::RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr,
                      GL_STATIC_DRAW);
     }
 
-    if (texture)
-        bindTexture(texture);
+    if (texture != 0u) {
+        {
+            bindTexture(texture);
+        }
+    }
 }
 
 void CEngine::Render2DCircleBufferMax(double x, double y, double perone,
@@ -1450,7 +1540,7 @@ void CEngine::Render2DCircleBufferMax(double x, double y, double perone,
     if (res) {
         const long double PiValue = 3.1415926535897932384626433832795;
 
-        RenderDoubleStruct quad2DData;
+        RenderDoubleStruct quad2DData{};
 
         double degrees = 360.0 * (perone);
         degrees = degrees / (360.0 / (PiValue * 2.0));
@@ -1550,7 +1640,7 @@ void CEngine::Render2DCircle(double x, double y, double percent, double radius,
     if (res) {
         const long double PiValue = 3.1415926535897932384626433832795;
 
-        RenderDoubleStruct quad2DData;
+        RenderDoubleStruct quad2DData{};
 
         double degrees = 360.0 * (percent / 100.0);
         degrees = degrees / (360.0 / (PiValue * 2.0));
@@ -1629,8 +1719,11 @@ void CEngine::Render2DCircle(double x, double y, double percent, double radius,
 }
 
 void CEngine::bindVBOBuffer(unsigned int buffer) {
-    if (lastUsedVBOBuffer == buffer)
-        return;
+    if (lastUsedVBOBuffer == buffer) {
+        {
+            return;
+        }
+    }
 
     lastUsedVBOBuffer = buffer;
     glBindBuffer(GL_ARRAY_BUFFER_ARB, buffer);
@@ -1648,8 +1741,11 @@ void CEngine::RenderCustomVerticesFloat(staticDrawBuffer &buffer,
     }
 
     bindVBOBuffer(buffer.bufferID);
-    if (buffer.texture)
-        bindTexture(buffer.texture);
+    if (buffer.texture != 0u) {
+        {
+            bindTexture(buffer.texture);
+        }
+    }
 
     glNormalPointer(GL_FLOAT, 0, (void *)buffer.normalsL);
 
@@ -1657,15 +1753,21 @@ void CEngine::RenderCustomVerticesFloat(staticDrawBuffer &buffer,
     glVertexPointer(3, GL_FLOAT, 0, (void *)buffer.vertexL);
 
     glDrawArrays(GL_TRIANGLES, 0, buffer.count);
-    if (autoBindZero)
-        bindVBOBuffer(0);
+    if (autoBindZero) {
+        {
+            bindVBOBuffer(0);
+        }
+    }
 }
 
 void CEngine::renderCustomConstVerticesFloat(const staticDrawBuffer &buffer,
                                              bool autoBindZero) {
     bindVBOBuffer(buffer.bufferID);
-    if (buffer.texture)
-        bindTexture(buffer.texture);
+    if (buffer.texture != 0u) {
+        {
+            bindTexture(buffer.texture);
+        }
+    }
 
     glNormalPointer(GL_FLOAT, 0, (void *)buffer.normalsL);
 
@@ -1673,20 +1775,29 @@ void CEngine::renderCustomConstVerticesFloat(const staticDrawBuffer &buffer,
     glVertexPointer(3, GL_FLOAT, 0, (void *)buffer.vertexL);
 
     glDrawArrays(GL_TRIANGLES, 0, buffer.count);
-    if (autoBindZero)
-        bindVBOBuffer(0);
+    if (autoBindZero) {
+        {
+            bindVBOBuffer(0);
+        }
+    }
 }
 
 void CEngine::RenderCustomVerticesFloat(void *vertexPtr, void *uvPtr,
                                         void *normals, int count,
                                         unsigned int texture) {
-    if (texture)
-        bindTexture(texture);
+    if (texture != 0u) {
+        {
+            bindTexture(texture);
+        }
+    }
 
     // glTranslated(0.0, 0.0, 0.0);
 
-    if (normals)
-        glNormalPointer(GL_FLOAT, 0, normals);
+    if (normals != nullptr) {
+        {
+            glNormalPointer(GL_FLOAT, 0, normals);
+        }
+    }
 
     glTexCoordPointer(2, GL_FLOAT, 0, uvPtr);
     glVertexPointer(3, GL_FLOAT, 0, vertexPtr);
@@ -1767,22 +1878,34 @@ void CEngine::enableColorsPointer(bool state) {
 }
 
 void CEngine::drawTrianglesWithAlpha(dTriangleWithAlpha &tris) {
-    if (tris.texture)
-        bindTexture(tris.texture);
+    if (tris.texture != 0u) {
+        {
+            bindTexture(tris.texture);
+        }
+    }
 
-    if (tris.useColors && tris.autoEnDisaColors)
-        glEnableClientState(GL_COLOR_ARRAY);
+    if (tris.useColors && tris.autoEnDisaColors) {
+        {
+            glEnableClientState(GL_COLOR_ARRAY);
+        }
+    }
 
     // std::cout << "   " << tris.vArray.size() << std::endl;
 
-    if (tris.useColors)
-        glColorPointer(4, GL_DOUBLE, 0, &(tris.aArray[0]));
+    if (tris.useColors) {
+        {
+            glColorPointer(4, GL_DOUBLE, 0, &(tris.aArray[0]));
+        }
+    }
     glTexCoordPointer(2, GL_DOUBLE, 0, &(tris.tArray[0]));
     glVertexPointer(3, GL_DOUBLE, 0, &(tris.vArray[0]));
 
     glDrawArrays(GL_TRIANGLES, 0, 6 * tris.vArray.size());
-    if (tris.useColors && tris.autoEnDisaColors)
-        glDisableClientState(GL_COLOR_ARRAY);
+    if (tris.useColors && tris.autoEnDisaColors) {
+        {
+            glDisableClientState(GL_COLOR_ARRAY);
+        }
+    }
 }
 
 void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData) {

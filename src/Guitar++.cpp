@@ -52,7 +52,7 @@ static auto load_data() -> int {
 
     while ((wOpened = CEngine::engine().windowOpened()) &&
            ((CEngine::engine().getTime() - ltime) < 0.2 || loadLoop < 10)) {
-        if (CEngine::engine().getKey(GLFW_KEY_ESCAPE)) {
+        if (CEngine::engine().getKey(GLFW_KEY_ESCAPE) != 0) {
             return 0;
         }
 
@@ -72,17 +72,20 @@ static auto load_data() -> int {
             break;
         }
 
-        if (loadLoop != 0x7FFFFFFF)
-            ++loadLoop;
+        if (loadLoop != 0x7FFFFFFF) {
+            {
+                ++loadLoop;
+            }
+        }
 
         game.renderFrame();
     }
 
-    auto &logotext = game.loadTexture("data/sprites", "logo.tga");
+    const auto &logotext = game.loadTexture("data/sprites", "logo.tga");
 
     CEngine::engine().activate3DRender(false);
 
-    CEngine::RenderDoubleStruct lgrdata;
+    CEngine::RenderDoubleStruct lgrdata{};
 
     lgrdata.x1 = -0.5;
     lgrdata.x2 = -0.5 + 1.0;
@@ -115,7 +118,12 @@ static auto load_data() -> int {
     auto &chartsmenu = game.newNamedMenu("chartsmenu");
     auto &chartCompileMenu = game.newNamedMenu("chartCompileMenu");
 
-    int startOP, configOP, extrasOp, ajudaOp, quitOp, singlePlayOp;
+    int startOP;
+    int configOP;
+    int extrasOp;
+    int ajudaOp;
+    int quitOp;
+    int singlePlayOp;
 
     double proportion = game.getWindowProportion();
 
@@ -124,7 +132,7 @@ static auto load_data() -> int {
     while ((wOpened = CEngine::engine().windowOpened()) &&
            (((CEngine::engine().getTime() - ltime) < 3.0 || loadLoop < 100) ||
             game.getNumTexturesToLoad() > 0)) {
-        if (CControls::controls().keyEscape()) {
+        if (CControls::controls().keyEscape() != 0) {
             break;
         }
 
@@ -445,11 +453,17 @@ static auto load_data() -> int {
                     opt.listID = static_cast<int>((opt.optList.size() - 1) *
                                                   CEngine::getMainVolume());
 
-                    if (opt.listID < 0)
-                        opt.listID = 0;
+                    if (opt.listID < 0) {
+                        {
+                            opt.listID = 0;
+                        }
+                    }
 
-                    if (opt.listID >= static_cast<int>(opt.optList.size()))
-                        opt.listID = opt.optList.size() - 1;
+                    if (opt.listID >= static_cast<int>(opt.optList.size())) {
+                        {
+                            opt.listID = opt.optList.size() - 1;
+                        }
+                    }
 
                     opt.updateCppCallback = [](CMenu &menu,
                                                CMenu::menuOpt &opt) {
@@ -459,12 +473,18 @@ static auto load_data() -> int {
                                     static_cast<int>((opt.optList.size() - 1) *
                                                      CEngine::getMainVolume());
 
-                                if (opt.listID < 0)
-                                    opt.listID = 0;
+                                if (opt.listID < 0) {
+                                    {
+                                        opt.listID = 0;
+                                    }
+                                }
 
                                 if (opt.listID >=
-                                    static_cast<int>(opt.optList.size()))
-                                    opt.listID = opt.optList.size() - 1;
+                                    static_cast<int>(opt.optList.size())) {
+                                    {
+                                        opt.listID = opt.optList.size() - 1;
+                                    }
+                                }
                             } catch (...) {
                             }
                         }
@@ -512,7 +532,7 @@ static auto load_data() -> int {
                 break;
 
             case 4: {
-                auto &menu = game.loadTexture("data/sprites", "menu.tga");
+                const auto &menu = game.loadTexture("data/sprites", "menu.tga");
                 game.uiRenameMenu.qbgd.Text =
                     game.loadTexture("data/sprites", "interfacebg.tga")
                         .getTextId();
@@ -633,8 +653,11 @@ static auto load_data() -> int {
         break;
     }
 
-    if (loadLoop != 0x7FFFFFFF)
-        ++loadLoop;
+    if (loadLoop != 0x7FFFFFFF) {
+        {
+            ++loadLoop;
+        }
+    }
 }
 
 double t = (CEngine::engine().getTime() - ltime) * 3.14 / 3.0;
@@ -655,7 +678,7 @@ if (game.futureTextureLoad.getAddedElementsNum() > 0 && t > 5) {
          i++) {
         GPPGame::loadTextureBatch *a = game.futureTextureLoad.get(i);
 
-        if (a) {
+        if (a != nullptr) {
             CLog::log().multiRegister("%0 %1 %2", a->path, a->path, i);
         }
     }
@@ -664,7 +687,7 @@ if (game.futureTextureLoad.getAddedElementsNum() > 0 && t > 5) {
 return 0;
 }
 
-int main(int argc, char *argv[]) {
+auto main(int argc, char *argv[]) -> int {
     /// startGambiarras();
     // try
     {
@@ -695,8 +718,8 @@ int main(int argc, char *argv[]) {
 
         GPPGame::GuitarPP().setVSyncMode(1);
 
-        const int mainMenuSettedSE = lua.idForCallbackEvent("mainMenuSetted"),
-                  atExitSE = lua.idForCallbackEvent("atExit");
+        const int mainMenuSettedSE = lua.idForCallbackEvent("mainMenuSetted");
+        const int atExitSE = lua.idForCallbackEvent("atExit");
 
         /*CMultiplayer mp;
 

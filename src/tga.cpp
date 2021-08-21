@@ -38,17 +38,16 @@
 //
 //========================================================================
 
-
 #include "CEngine.h"
+#include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cstdint>
-#include <cmath>
 
 #include "internal.h"
 
 typedef CEngine::GLFWstream _GLFWstream;
-typedef CEngine::GLFWimage GLFWimage;
+using GLFWimage = CEngine::GLFWimage;
 
 int flags = 0;
 
@@ -60,37 +59,37 @@ int flags = 0;
 // TGA file header information
 //========================================================================
 
-typedef struct {
-    int idlen;                 // 1 byte
-    int cmaptype;              // 1 byte
-    int imagetype;             // 1 byte
-    int cmapfirstidx;          // 2 bytes
-    int cmaplen;               // 2 bytes
-    int cmapentrysize;         // 1 byte
-    int xorigin;               // 2 bytes
-    int yorigin;               // 2 bytes
-    int width;                 // 2 bytes
-    int height;                // 2 bytes
-    int bitsperpixel;          // 1 byte
-    int imageinfo;             // 1 byte
-    int _alphabits;            // (derived from imageinfo)
-    int _origin;               // (derived from imageinfo)
-} _tga_header_t;
+using _tga_header_t = struct {
+    int idlen;         // 1 byte
+    int cmaptype;      // 1 byte
+    int imagetype;     // 1 byte
+    int cmapfirstidx;  // 2 bytes
+    int cmaplen;       // 2 bytes
+    int cmapentrysize; // 1 byte
+    int xorigin;       // 2 bytes
+    int yorigin;       // 2 bytes
+    int width;         // 2 bytes
+    int height;        // 2 bytes
+    int bitsperpixel;  // 1 byte
+    int imageinfo;     // 1 byte
+    int _alphabits;    // (derived from imageinfo)
+    int _origin;       // (derived from imageinfo)
+};
 
-#define _TGA_CMAPTYPE_NONE      0
-#define _TGA_CMAPTYPE_PRESENT   1
+#define _TGA_CMAPTYPE_NONE 0
+#define _TGA_CMAPTYPE_PRESENT 1
 
-#define _TGA_IMAGETYPE_NONE     0
-#define _TGA_IMAGETYPE_CMAP     1
-#define _TGA_IMAGETYPE_TC       2
-#define _TGA_IMAGETYPE_GRAY     3
+#define _TGA_IMAGETYPE_NONE 0
+#define _TGA_IMAGETYPE_CMAP 1
+#define _TGA_IMAGETYPE_TC 2
+#define _TGA_IMAGETYPE_GRAY 3
 #define _TGA_IMAGETYPE_CMAP_RLE 9
-#define _TGA_IMAGETYPE_TC_RLE   10
+#define _TGA_IMAGETYPE_TC_RLE 10
 #define _TGA_IMAGETYPE_GRAY_RLE 11
 
-#define _TGA_IMAGEINFO_ALPHA_MASK   0x0f
-#define _TGA_IMAGEINFO_ALPHA_SHIFT  0
-#define _TGA_IMAGEINFO_ORIGIN_MASK  0x30
+#define _TGA_IMAGEINFO_ALPHA_MASK 0x0f
+#define _TGA_IMAGEINFO_ALPHA_SHIFT 0
+#define _TGA_IMAGEINFO_ORIGIN_MASK 0x30
 #define _TGA_IMAGEINFO_ORIGIN_SHIFT 4
 
 #define _TGA_ORIGIN_BL 0
@@ -98,107 +97,95 @@ typedef struct {
 #define _TGA_ORIGIN_UL 2
 #define _TGA_ORIGIN_UR 3
 
-
 //========================================================================
 // Read TGA file header (and check that it is valid)
 //========================================================================
 
-static int ReadTGAHeader( _GLFWstream *s, _tga_header_t *h )
-{
-    unsigned char buf[ 18 ];
+static auto ReadTGAHeader(_GLFWstream *s, _tga_header_t *h) -> int {
+    unsigned char buf[18];
     int pos;
 
     // Read TGA file header from file
-	pos = CEngine::engine().tellStream(s);
-	CEngine::engine().readStream(s, buf, 18);
+    pos = CEngine::engine().tellStream(s);
+    CEngine::engine().readStream(s, buf, 18);
 
     // Interpret header (endian independent parsing)
-    h->idlen         = (int) buf[0];
-    h->cmaptype      = (int) buf[1];
-    h->imagetype     = (int) buf[2];
-    h->cmapfirstidx  = (int) buf[3] | (((int) buf[4]) << 8);
-    h->cmaplen       = (int) buf[5] | (((int) buf[6]) << 8);
-    h->cmapentrysize = (int) buf[7];
-    h->xorigin       = (int) buf[8] | (((int) buf[9]) << 8);
-    h->yorigin       = (int) buf[10] | (((int) buf[11]) << 8);
-    h->width         = (int) buf[12] | (((int) buf[13]) << 8);
-    h->height        = (int) buf[14] | (((int) buf[15]) << 8);
-    h->bitsperpixel  = (int) buf[16];
-    h->imageinfo     = (int) buf[17];
+    h->idlen = (int)buf[0];
+    h->cmaptype = (int)buf[1];
+    h->imagetype = (int)buf[2];
+    h->cmapfirstidx = (int)buf[3] | (((int)buf[4]) << 8);
+    h->cmaplen = (int)buf[5] | (((int)buf[6]) << 8);
+    h->cmapentrysize = (int)buf[7];
+    h->xorigin = (int)buf[8] | (((int)buf[9]) << 8);
+    h->yorigin = (int)buf[10] | (((int)buf[11]) << 8);
+    h->width = (int)buf[12] | (((int)buf[13]) << 8);
+    h->height = (int)buf[14] | (((int)buf[15]) << 8);
+    h->bitsperpixel = (int)buf[16];
+    h->imageinfo = (int)buf[17];
 
     // Extract alphabits and origin information
-    h->_alphabits = (int) (h->imageinfo & _TGA_IMAGEINFO_ALPHA_MASK) >>
-                     _TGA_IMAGEINFO_ALPHA_SHIFT;
-    h->_origin    = (int) (h->imageinfo & _TGA_IMAGEINFO_ORIGIN_MASK) >>
-                     _TGA_IMAGEINFO_ORIGIN_SHIFT;
+    h->_alphabits = (int)(h->imageinfo & _TGA_IMAGEINFO_ALPHA_MASK) >>
+                    _TGA_IMAGEINFO_ALPHA_SHIFT;
+    h->_origin = (int)(h->imageinfo & _TGA_IMAGEINFO_ORIGIN_MASK) >>
+                 _TGA_IMAGEINFO_ORIGIN_SHIFT;
 
     // Validate TGA header (is this a TGA file?)
-    if( (h->cmaptype == 0 || h->cmaptype == 1) &&
+    if ((h->cmaptype == 0 || h->cmaptype == 1) &&
         ((h->imagetype >= 1 && h->imagetype <= 3) ||
          (h->imagetype >= 9 && h->imagetype <= 11)) &&
-         (h->bitsperpixel == 8 || h->bitsperpixel == 24 ||
-          h->bitsperpixel == 32) )
-    {
+        (h->bitsperpixel == 8 || h->bitsperpixel == 24 ||
+         h->bitsperpixel == 32)) {
         // Skip the ID field
-		CEngine::engine().seekStream(s, h->idlen, SEEK_CUR);
+        CEngine::engine().seekStream(s, h->idlen, SEEK_CUR);
 
         // Indicate that the TGA header was valid
         return GL_TRUE;
     }
-    else
-    {
-        // Restore file position
-		CEngine::engine().seekStream(s, pos, SEEK_SET);
 
-        // Indicate that the TGA header was invalid
-        return GL_FALSE;
-    }
+    // Restore file position
+    CEngine::engine().seekStream(s, pos, SEEK_SET);
+
+    // Indicate that the TGA header was invalid
+    return GL_FALSE;
 }
 
 //========================================================================
 // Read Run-Length Encoded data
 //========================================================================
 
-static void ReadTGA_RLE( unsigned char *buf, int size, int bpp,
-                         _GLFWstream *s )
-{
-    int repcount, bytes, k, n;
-    unsigned char pixel[ 4 ];
+static void ReadTGA_RLE(unsigned char *buf, int size, int bpp, _GLFWstream *s) {
+    int repcount;
+    int bytes;
+    int k;
+    int n;
+    unsigned char pixel[4];
     char c;
 
     // Dummy check
-    if( bpp > 4 )
-    {
+    if (bpp > 4) {
         return;
     }
 
-    while( size > 0 )
-    {
+    while (size > 0) {
         // Get repetition count
-	CEngine::engine().readStream( s, &c, 1 );
-        repcount = (unsigned int) c;
+        CEngine::engine().readStream(s, &c, 1);
+        repcount = (unsigned int)c;
         bytes = ((repcount & 127) + 1) * bpp;
-        if( size < bytes )
-        {
+        if (size < bytes) {
             bytes = size;
         }
 
         // Run-Length packet?
-        if( repcount & 128 )
-        {
-			CEngine::engine().readStream(s, pixel, bpp);
-            for( n = 0; n < (repcount & 127) + 1; n ++ )
-            {
-                for( k = 0; k < bpp; k ++ )
-                {
-                    *buf ++ = pixel[ k ];
+        if ((repcount & 128) != 0) {
+            CEngine::engine().readStream(s, pixel, bpp);
+            for (n = 0; n < (repcount & 127) + 1; n++) {
+                for (k = 0; k < bpp; k++) {
+                    *buf++ = pixel[k];
                 }
             }
-        }
-        else
-        {
+        } else {
             // It's a Raw packet
-			CEngine::engine().readStream(s, buf, bytes);
+            CEngine::engine().readStream(s, buf, bytes);
             buf += bytes;
         }
 
@@ -206,55 +193,57 @@ static void ReadTGA_RLE( unsigned char *buf, int size, int bpp,
     }
 }
 
-
 //========================================================================
 // Read a TGA image from a file
 //========================================================================
 
-int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
-{
+auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
+    -> int {
     _tga_header_t h;
-    unsigned char tmp, *src, *dst;
-	std::unique_ptr<unsigned char[]> cmap;
-	std::unique_ptr<unsigned char[]> pix;
-    int cmapsize, pixsize, pixsize2;
-    int bpp, bpp2, k, m, n, swapx, swapy;
+    unsigned char tmp;
+    unsigned char *src;
+    unsigned char *dst;
+    std::unique_ptr<unsigned char[]> cmap;
+    std::unique_ptr<unsigned char[]> pix;
+    int cmapsize;
+    int pixsize;
+    int pixsize2;
+    int bpp;
+    int bpp2;
+    int k;
+    int m;
+    int n;
+    int swapx;
+    int swapy;
 
     // Read TGA header
-    if( !ReadTGAHeader( s, &h ) )
-    {
+    if (ReadTGAHeader(s, &h) == 0) {
         return 0;
     }
 
     // Is there a colormap?
     cmapsize = (h.cmaptype == _TGA_CMAPTYPE_PRESENT ? 1 : 0) * h.cmaplen *
-               ((h.cmapentrysize+7) / 8);
-    if( cmapsize > 0 )
-    {
+               ((h.cmapentrysize + 7) / 8);
+    if (cmapsize > 0) {
         // Is it a colormap that we can handle?
-        if( (h.cmapentrysize != 24 && h.cmapentrysize != 32) ||
-            h.cmaplen == 0 || h.cmaplen > 256 )
-        {
+        if ((h.cmapentrysize != 24 && h.cmapentrysize != 32) ||
+            h.cmaplen == 0 || h.cmaplen > 256) {
             return 0;
         }
 
         // Allocate memory for colormap
-		try
-		{
-			cmap = std::make_unique<unsigned char[]>(cmapsize);
-		}
-		catch (...)
-		{
-			return 0;
-		}
+        try {
+            cmap = std::make_unique<unsigned char[]>(cmapsize);
+        } catch (...) {
+            return 0;
+        }
 
-        if( cmap == nullptr )
-        {
+        if (cmap == nullptr) {
             return 0;
         }
 
         // Read colormap from file
-		CEngine::engine().readStream(s, cmap.get(), cmapsize);
+        CEngine::engine().readStream(s, cmap.get(), cmapsize);
     }
 
     // Size of pixel data
@@ -264,12 +253,9 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     bpp = (h.bitsperpixel + 7) / 8;
 
     // Bytes per pixel (expanded pixels - not colormap indeces)
-    if( cmap )
-    {
+    if (cmap) {
         bpp2 = (h.cmapentrysize + 7) / 8;
-    }
-    else
-    {
+    } else {
         bpp2 = bpp;
     }
 
@@ -278,31 +264,24 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     pixsize2 = h.width * h.height * bpp2;
 
     // Allocate memory for pixel data
-	try {
-		pix = std::make_unique<unsigned char[]>(pixsize2);
-	}
-	catch (...)
-	{
-		return 0;
-	}
-    if( pix == nullptr)
-    {
+    try {
+        pix = std::make_unique<unsigned char[]>(pixsize2);
+    } catch (...) {
+        return 0;
+    }
+    if (pix == nullptr) {
         return 0;
     }
 
     // Read pixel data from file
-    if( h.imagetype >= _TGA_IMAGETYPE_CMAP_RLE )
-    {
-        ReadTGA_RLE( pix.get(), pixsize, bpp, s );
-    }
-    else
-    {
-		CEngine::engine().readStream(s, pix.get(), pixsize);
+    if (h.imagetype >= _TGA_IMAGETYPE_CMAP_RLE) {
+        ReadTGA_RLE(pix.get(), pixsize, bpp, s);
+    } else {
+        CEngine::engine().readStream(s, pix.get(), pixsize);
     }
 
     // If the image origin is not what we want, re-arrange the pixels
-    switch( h._origin )
-    {
+    switch (h._origin) {
     default:
     case _TGA_ORIGIN_UL:
         swapx = 0;
@@ -324,84 +303,67 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         swapy = 0;
         break;
     }
-    if( (swapy && !(flags & GLFW_ORIGIN_UL_BIT)) ||
-        (!swapy && (flags & GLFW_ORIGIN_UL_BIT)) )
-    {
+    if (((swapy != 0) && ((flags & GLFW_ORIGIN_UL_BIT) == 0)) ||
+        ((swapy == 0) && ((flags & GLFW_ORIGIN_UL_BIT) != 0))) {
         src = pix.get();
-        dst = &pix.get()[ (h.height-1)*h.width*bpp ];
-        for( n = 0; n < h.height/2; n ++ )
-        {
-            for( m = 0; m < h.width ; m ++ )
-            {
-                for( k = 0; k < bpp; k ++ )
-                {
-                    tmp     = *src;
-                    *src ++ = *dst;
-                    *dst ++ = tmp;
+        dst = &pix.get()[(h.height - 1) * h.width * bpp];
+        for (n = 0; n < h.height / 2; n++) {
+            for (m = 0; m < h.width; m++) {
+                for (k = 0; k < bpp; k++) {
+                    tmp = *src;
+                    *src++ = *dst;
+                    *dst++ = tmp;
                 }
             }
-            dst -= 2*h.width*bpp;
+            dst -= 2 * h.width * bpp;
         }
     }
-    if( swapx )
-    {
+    if (swapx != 0) {
         src = pix.get();
-        dst = &pix.get()[ (h.width-1)*bpp ];
-        for( n = 0; n < h.height; n ++ )
-        {
-            for( m = 0; m < h.width/2 ; m ++ )
-            {
-                for( k = 0; k < bpp; k ++ )
-                {
-                    tmp     = *src;
-                    *src ++ = *dst;
-                    *dst ++ = tmp;
+        dst = &pix.get()[(h.width - 1) * bpp];
+        for (n = 0; n < h.height; n++) {
+            for (m = 0; m < h.width / 2; m++) {
+                for (k = 0; k < bpp; k++) {
+                    tmp = *src;
+                    *src++ = *dst;
+                    *dst++ = tmp;
                 }
-                dst -= 2*bpp;
+                dst -= 2 * bpp;
             }
-            src += ((h.width+1)/2)*bpp;
-            dst += ((3*h.width+1)/2)*bpp;
+            src += ((h.width + 1) / 2) * bpp;
+            dst += ((3 * h.width + 1) / 2) * bpp;
         }
     }
 
     // Convert BGR/BGRA to RGB/RGBA, and optionally colormap indeces to
     // RGB/RGBA values
-    if( cmap )
-    {
+    if (cmap) {
         // Convert colormap pixel format (BGR -> RGB or BGRA -> RGBA)
-        if( bpp2 == 3 || bpp2 == 4 )
-        {
-            for( n = 0; n < h.cmaplen; n ++ )
-            {
-                tmp                = cmap[ n*bpp2 ];
-                cmap[ n*bpp2 ]     = cmap[ n*bpp2 + 2 ];
-                cmap[ n*bpp2 + 2 ] = tmp;
+        if (bpp2 == 3 || bpp2 == 4) {
+            for (n = 0; n < h.cmaplen; n++) {
+                tmp = cmap[n * bpp2];
+                cmap[n * bpp2] = cmap[n * bpp2 + 2];
+                cmap[n * bpp2 + 2] = tmp;
             }
         }
 
         // Convert pixel data to RGB/RGBA data
-        for( m = h.width * h.height - 1; m >= 0; m -- )
-        {
-            n = pix.get()[ m ];
-            for( k = 0; k < bpp2; k ++ )
-            {
-                pix.get()[ m*bpp2 + k ] = cmap[ n*bpp2 + k ];
+        for (m = h.width * h.height - 1; m >= 0; m--) {
+            n = pix.get()[m];
+            for (k = 0; k < bpp2; k++) {
+                pix.get()[m * bpp2 + k] = cmap[n * bpp2 + k];
             }
         }
 
         // Free memory for colormap (it's not needed anymore)
-		cmap.reset();
-    }
-    else
-    {
+        cmap.reset();
+    } else {
         // Convert image pixel format (BGR -> RGB or BGRA -> RGBA)
-        if( bpp2 == 3 || bpp2 == 4 )
-        {
+        if (bpp2 == 3 || bpp2 == 4) {
             src = pix.get();
-            dst = &pix.get()[ 2 ];
-            for( n = 0; n < h.height * h.width; n ++ )
-            {
-                tmp  = *src;
+            dst = &pix.get()[2];
+            for (n = 0; n < h.height * h.width; n++) {
+                tmp = *src;
                 *src = *dst;
                 *dst = tmp;
                 src += bpp2;
@@ -412,11 +374,10 @@ int _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
 
     // Fill out GLFWimage struct (the Format field will be set by
     // glfwReadImage)
-    img->Width         = h.width;
-    img->Height        = h.height;
+    img->Width = h.width;
+    img->Height = h.height;
     img->BytesPerPixel = bpp2;
-    img->Data          = std::move(pix);
+    img->Data = std::move(pix);
 
     return 1;
 }
-

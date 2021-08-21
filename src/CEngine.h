@@ -222,7 +222,7 @@ class CEngine {
     customwcallback wcallfunc;
     bool openWindowCalled;
 
-    std::array<double, 16> projMatrix;
+    std::array<double, 16> projMatrix{};
 
   public:
     static cfile_ptr make_cfile(const char *name, const char *mode) {
@@ -264,23 +264,24 @@ class CEngine {
     } GLFWstream;
 
     int readImage(const char *name, GLFWimage *img, int flags);
-    int openFileStream(GLFWstream *stream, const char *name, const char *mode);
-    long readStream(GLFWstream *stream, void *data, long size);
-    void closeStream(GLFWstream *stream);
-    long tellStream(GLFWstream *stream);
-    int seekStream(GLFWstream *stream, long offset, int whence);
+    static int openFileStream(GLFWstream *stream, const char *name,
+                              const char *mode);
+    static long readStream(GLFWstream *stream, void *data, long size);
+    static void closeStream(GLFWstream *stream);
+    static long tellStream(GLFWstream *stream);
+    static int seekStream(GLFWstream *stream, long offset, int whence);
     int loadTexture2D(const char *name, int flags, GLFWimage *eimg = nullptr,
                       bool glUpload = true);
     int loadTextureImage2D(GLFWimage *img, int flags, bool glUpload = true);
-    int loadTextureImage2DFinish(GLFWimage *img, int flags);
-    void freeImage(GLFWimage *img);
+    auto loadTextureImage2DFinish(GLFWimage *img, int flags) const -> int;
+    static void freeImage(GLFWimage *img);
 
-    unsigned int genNewGLTexture();
+    static unsigned int genNewGLTexture();
     void uploadBytesToGl(unsigned int text, const char *bytes, int width,
                          int height);
 
     int getKey(int key) const;
-    void Rotate(double a, double x, double y, double z);
+    static void Rotate(double a, double x, double y, double z);
     void matrixReset();
     static void pushMatrix();
     static void popMatrix();
@@ -300,7 +301,7 @@ class CEngine {
         unsigned int Text;
     };
 
-    double windowHeight, windowWidth;
+    double windowHeight{}, windowWidth{};
     int glMajor, glMinor;
 
     double mouseX, mouseY;
@@ -310,11 +311,11 @@ class CEngine {
   private:
     static void GLFWerrorfun(int error, const char *description);
 
-    double lastFrameTime, lastFPSSwapTime, DeltaTime;
+    double lastFrameTime{}, lastFPSSwapTime{}, DeltaTime;
     int FPS, tmpFPS;
-    unsigned int lastUsedTexture, lastUsedVBOBuffer;
+    unsigned int lastUsedTexture, lastUsedVBOBuffer{};
 
-    unsigned int cursorText;
+    unsigned int cursorText{};
 
     std::string keyboardNoise;
     // const static uint32_t bitValues[32];
@@ -399,11 +400,11 @@ class CEngine {
     std::map<int, CCircleStream> circlesBuffer;
     //*****************************************
 
-    double lrC, lgC, lbC, laC;
+    double lrC{}, lgC{}, lbC{}, laC{};
 
-    std::array<double, 3> lastRenderAt;
+    std::array<double, 3> lastRenderAt{};
 
-    glm::mat<4, 4, double> lookAtMatrix;
+    glm::mat<4, 4, double> lookAtMatrix{};
 
   public:
     static std::mutex m_gl_mutex;
@@ -524,23 +525,24 @@ class CEngine {
         int refreshRate;
     };
 
-    std::vector<Resolution> getPossibleVideoModes();
+    static std::vector<Resolution> getPossibleVideoModes();
 
     void setCamera(const cameraSET &cam);
     void openWindow(const char *name, int w, int h, int fullScreen);
     bool windowOpened();
     void renderFrame();
-    void clearScreen();
+    static void clearScreen();
 
     /**/
-    unsigned int loadTexture(const char *texturePath,
+    unsigned int loadTexture(const char *textureFileName,
                              GLFWimage *eimg = nullptr);
-    bool loadTextureAsync(const char *texturePath, GLFWimage *eimg = nullptr);
+    bool loadTextureAsync(const char *textureFileName,
+                          GLFWimage *eimg = nullptr);
     unsigned int uploadTextureToOGL(GLFWimage *eimg);
     void bindTexture(unsigned int text);
 
-    void glEnable(int num);
-    void glDisable(int num);
+    static void glEnable(int num);
+    static void glDisable(int num);
 
     void renderAt(double x, double y, double z);
 
@@ -570,12 +572,12 @@ class CEngine {
     void draw2DLine(double *linedata, int points);
     void setColor(double r, double g, double b, double a);
 
-    void addToAccumulationBuffer(double d);
-    void retAccumulationBuffer(double d);
-    void clearAccmumaltionBuffer();
+    static void addToAccumulationBuffer(double d);
+    static void retAccumulationBuffer(double d);
+    static void clearAccmumaltionBuffer();
 
-    float getSoundBPM(unsigned int sound, double at, double interval);
-    double getChannelLength(unsigned int ch);
+    static float getSoundBPM(unsigned int sound, double at, double interval);
+    static double getChannelLength(unsigned int ch);
 
     struct chdata {
         std::array<float, 4> data;
@@ -584,55 +586,56 @@ class CEngine {
     /**/
     static float getMainVolume();
     static bool setMainVolume(float v);
-    bool loadSoundStream(const char *fileName, int &handle,
-                         bool decode = false);
-    bool loadMusicStream(const char *fileName, int &handle);
-    bool playSoundStream(int handle);
-    bool pauseSoundStream(int handle);
-    bool unloadSoundStream(int &handle) noexcept;
-    void setSoundTime(int handle, double time);
-    double getSoundTime(int handle);
-    double getSoundVolume(int handle);
-    bool setSoundVolume(int handle, float volume);
-    int setSoundFlags(int handle, int flags, int mask);
-    int setSoundAttribute(int handle, int attribute, float value);
-    chdata getChannelData(int handle);
-    chdata getChannelData(int handle, int b);
+    static bool loadSoundStream(const char *fileName, int &handle,
+                                bool decode = false);
+    static bool loadMusicStream(const char *fileName, int &handle);
+    static bool playSoundStream(int handle);
+    static bool pauseSoundStream(int handle);
+    static bool unloadSoundStream(int &handle) noexcept;
+    static void setSoundTime(int handle, double time);
+    static double getSoundTime(int handle);
+    static double getSoundVolume(int handle);
+    auto setSoundVolume(int handle, float volume) const -> bool;
+    static int setSoundFlags(int handle, int flags, int mask);
+    static int setSoundAttribute(int handle, int attribute, float value);
+    static chdata getChannelData(int handle);
+    static chdata getChannelData(int handle, int b);
 
     static int getBassError();
 
-    void setScale(double x, double y, double z);
+    static void setScale(double x, double y, double z);
 
-    double getTime();
+    static double getTime();
     inline double getDeltaTime() const { return DeltaTime; }
     int getMouseButton(int btn);
     inline int getFPS() const { return FPS; }
 
-    unsigned int vboSET(size_t size, void *buffer);
-    void attribVBOBuff(int id, int size, unsigned int buffer);
-    void disableBuf(int id);
-    void drawBufArrays(int size);
+    static unsigned int vboSET(size_t size, void *buffer);
+    static void attribVBOBuff(int id, int size, unsigned int buffer);
+    static void disableBuf(int id);
+    static void drawBufArrays(int size);
     void bindTextOnSlot(int text, int slot);
-    unsigned int getUniformLocation(unsigned int programID, const char *str);
-    void useShader(unsigned int programID);
+    static unsigned int getUniformLocation(unsigned int programID,
+                                           const char *str);
+    static void useShader(unsigned int programID);
     void bindVBOBuffer(unsigned int buffer);
 
-    void activateNormals(bool a);
+    static void activateNormals(bool a);
     void activate3DRender(bool a);
     void activateAlphaTest(bool a);
     void activateStencilTest(bool a);
     void activateLighting(bool a);
     void activateLight(int id, bool a);
-    void setLight(const lightData &l, int id, bool setAmbient = true);
+    static void setLight(const lightData &l, int id, bool setAmbient = true);
 
-    void clear3DBuffer();
+    static void clear3DBuffer();
 
-    void startShadowCapture();
-    void endShadowCapture();
-    static void shadowMatrix(float shadowMat[4][4], float groundplane[4],
-                             float lightpos[4]);
-    static void findPlane(float plane[4], float v0[3], float v1[3],
-                          float v2[3]);
+    static void startShadowCapture();
+    static void endShadowCapture();
+    static void shadowMatrix(float shadowMat[4][4], const float groundplane[4],
+                             const float lightpos[4]);
+    static void findPlane(float plane[4], const float v0[3], const float v1[3],
+                          const float v2[3]);
 
     static std::array<float, 4> planeEquation(const gppVec3f &p1,
                                               const gppVec3f &dir) {
@@ -649,7 +652,7 @@ class CEngine {
 
     static void setClearColor(const std::array<double, 4> &color);
 
-    void setVSyncMode(int mode);
+    static void setVSyncMode(int mode);
 
     ~CEngine();
 

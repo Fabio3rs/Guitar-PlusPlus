@@ -1,110 +1,95 @@
 #include "CSaveSystem.h"
 #include "CLog.h"
 
-CSaveSystem &CSaveSystem::saveSystem()
-{
-	static CSaveSystem savesystemmgr;
-	return savesystemmgr;
+auto CSaveSystem::saveSystem() -> CSaveSystem & {
+    static CSaveSystem savesystemmgr;
+    return savesystemmgr;
 }
 
-bool CSaveSystem::CSave::loads() noexcept
-{
-	try{
-		std::fstream svfstream(fpath, std::ios::in | std::ios::binary);
+auto CSaveSystem::CSave::loads() noexcept -> bool {
+    try {
+        std::fstream svfstream(fpath, std::ios::in | std::ios::binary);
 
-		if (!svfstream.is_open())
-		{
-			return false;
-		}
+        if (!svfstream.is_open()) {
+            return false;
+        }
 
-		cereal::BinaryInputArchive iarchive(svfstream);
+        cereal::BinaryInputArchive iarchive(svfstream);
 
-		iarchive(*this);
+        iarchive(*this);
 
-		loaded = true;
-	}
-	catch (const std::exception &e)
-	{
-		CLog::log() << e.what();
-		loaded = false;
-		return false;
-	}
-	catch (...)
-	{
-		CLog::log() << "Fail to load save " + fpath;
-		return false;
-	}
+        loaded = true;
+    } catch (const std::exception &e) {
+        CLog::log() << e.what();
+        loaded = false;
+        return false;
+    } catch (...) {
+        CLog::log() << "Fail to load save " + fpath;
+        return false;
+    }
 
-	return true;
+    return true;
 }
 
-bool CSaveSystem::CSave::saves() noexcept
-{
-	try{
-		std::fstream svfstream(fpath, std::ios::out | std::ios::trunc | std::ios::binary);
+auto CSaveSystem::CSave::saves() noexcept -> bool {
+    try {
+        std::fstream svfstream(fpath, std::ios::out | std::ios::trunc |
+                                          std::ios::binary);
 
-		if (!svfstream.is_open())
-		{
-			return false;
-		}
+        if (!svfstream.is_open()) {
+            return false;
+        }
 
-		for (auto &vardata : values)
-		{
-			auto &v = vardata.second;
+        for (auto &vardata : values) {
+            auto &v = vardata.second;
 
-			if (v.dynamic && v.ptr)
-			{
-				for (size_t i = 0; i < v.size; i++)
-				{
-					v.svcontent[i] = ((uint8_t*)(v.ptr))[i];
-				}
-			}
-		}
+            if (v.dynamic && (v.ptr != nullptr)) {
+                for (size_t i = 0; i < v.size; i++) {
+                    v.svcontent[i] = ((uint8_t *)(v.ptr))[i];
+                }
+            }
+        }
 
-		cereal::BinaryOutputArchive oarchive(svfstream); // Create an output archive
+        cereal::BinaryOutputArchive oarchive(
+            svfstream); // Create an output archive
 
-		oarchive(*this);
-	}
-	catch (const std::exception &e)
-	{
-		CLog::log() << e.what();
-		return false;
-	}
-	catch (...)
-	{
-		return false;
-	}
-	return true;
+        oarchive(*this);
+    } catch (const std::exception &e) {
+        CLog::log() << e.what();
+        return false;
+    } catch (...) {
+        return false;
+    }
+    return true;
 }
 
-bool CSaveSystem::CSave::createNew() noexcept
-{
-	if (fpath.size() == 0)
-		return false;
+auto CSaveSystem::CSave::createNew() noexcept -> bool {
+    if (fpath.empty()) {
+        {
+            return false;
+        }
+    }
 
-	if (std::fstream(fpath, std::ios::out | std::ios::trunc | std::ios::binary).is_open())
-		loaded = true;
-	else
-		loaded = false;
+    if (std::fstream(fpath, std::ios::out | std::ios::trunc | std::ios::binary)
+            .is_open()) {
+        {
+            loaded = true;
+        }
+    } else {
+        { loaded = false; }
+    }
 
-	return loaded;
+    return loaded;
 }
 
-bool CSaveSystem::CSave::loadn(const std::string &savepath)
-{
-	fpath = savepath;
-	return loads();
+auto CSaveSystem::CSave::loadn(const std::string &savepath) -> bool {
+    fpath = savepath;
+    return loads();
 }
 
-CSaveSystem::CSave::CSave(const std::string &savepath)
-{
-	fpath = savepath;
-	loaded = false;
+CSaveSystem::CSave::CSave(const std::string &savepath) {
+    fpath = savepath;
+    loaded = false;
 }
 
-CSaveSystem::CSaveSystem()
-{
-
-
-
-}
+CSaveSystem::CSaveSystem() {}

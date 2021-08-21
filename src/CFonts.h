@@ -1,182 +1,164 @@
 /*****************************************************************************************************
-*		GUITAR++
-*		PROGRAMADO POR FÁBIO
-*		BMS - Brazilian Modding Studio - http://brmodstudio.forumeiros.com
-*****************************************************************************************************/
+ *		GUITAR++
+ *		PROGRAMADO POR FÁBIO
+ *		BMS - Brazilian Modding Studio -
+ *http://brmodstudio.forumeiros.com
+ *****************************************************************************************************/
 #pragma once
 #ifndef __GUITARPP_CFONTS_H_
 #define __GUITARPP_CFONTS_H_
 
 #include "CEngine.h"
-#include <vector>
-#include <deque>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <map>
+#include <vector>
 
-class CFonts{
-	std::map < unsigned int, CEngine::dTriangleWithAlpha > textPerTextureBuffer;
+class CFonts {
+    std::map<unsigned int, CEngine::dTriangleWithAlpha> textPerTextureBuffer;
 
-public:
-	struct textAlert {
-		int status;
-		double startTime;
-		std::string msg;
-		std::function<bool(textAlert&)> callback;
+  public:
+    struct textAlert {
+        int status;
+        double startTime;
+        std::string msg;
+        std::function<bool(textAlert &)> callback;
 
-		textAlert() noexcept
-		{
-			status = 0;
-			startTime = 0.0;
-		}
+        textAlert() noexcept {
+            status = 0;
+            startTime = 0.0;
+        }
 
-		~textAlert() noexcept
-		{
+        ~textAlert() noexcept {}
+    };
 
-		}
-	};
+    class Font {
+        class fontTexture {
+            friend Font;
 
-	class Font{
-		class fontTexture{
-			friend Font;
+            std::string name;
+            int lines, columns;
 
-			std::string name;
-			int lines, columns;
+          public:
+            const std::string &getName() const noexcept { return name; }
 
-		public:
-			const std::string &getName() const noexcept
-			{
-				return name;
-			}
+            inline int getlines() const noexcept { return lines; }
 
-			inline int getlines() const noexcept
-			{
-				return lines;
-			}
+            inline int getcolumns() const noexcept { return columns; }
 
-			inline int getcolumns() const noexcept
-			{
-				return columns;
-			}
+            void load(const std::string &path, const std::string &name);
 
+            fontTexture(const std::string &path, const std::string &name);
+            fontTexture() noexcept;
+            ~fontTexture() noexcept {}
+        };
 
-			void load(const std::string &path, const std::string &name);
+        class chartbl {
+            int pos;
+            int line;
+            double align, size;
+            const fontTexture *textureLst;
+            unsigned int textID;
 
-			fontTexture(const std::string &path, const std::string &name);
-			fontTexture() noexcept;
-			~fontTexture() noexcept { }
-		};
+            void setTextID(const fontTexture &texture);
 
+          public:
+            void internalProcessTexture(int ch);
 
-		class chartbl{
-			int pos;
-			int line;
-			double align, size;
-			const fontTexture *textureLst;
-			unsigned int textID;
+            inline double getAlign() const noexcept { return align; }
 
-			void setTextID(const fontTexture &texture);
+            inline double getSize() const noexcept { return size; }
 
-		public:
-			void internalProcessTexture(int ch);
+            inline void setLine(int l) noexcept { line = l; }
 
-			inline double getAlign() const noexcept
-			{
-				return align;
-			}
+            inline int getline() const noexcept { return line; }
 
-			inline double getSize() const noexcept
-			{
-				return size;
-			}
+            inline void setPos(int p) noexcept { pos = p; }
 
-			inline void setLine(int l) noexcept
-			{
-				line = l;
-			}
+            inline int getPos() const noexcept { return pos; }
 
-			inline int getline() const noexcept
-			{
-				return line;
-			}
+            inline void setText(const fontTexture &texture) {
+                textureLst = &texture;
+                setTextID(texture);
+            }
 
-			inline void setPos(int p) noexcept
-			{
-				pos = p;
-			}
+            inline const fontTexture *getText() const noexcept {
+                return textureLst;
+            }
 
-			inline int getPos() const noexcept
-			{
-				return pos;
-			}
+            inline unsigned int getTextID() const noexcept { return textID; }
 
-			inline void setText(const fontTexture &texture)
-			{
-				textureLst = &texture;
-				setTextID(texture);
-			}
+            chartbl() noexcept {
+                pos = -1;
+                line = 0;
+                textureLst = nullptr;
+                align = 0;
+                size = 1.0;
+            }
+        };
 
-			inline const fontTexture *getText() const noexcept
-			{
-				return textureLst;
-			}
+        std::map<std::string, fontTexture> textures;
+        std::map<unsigned int, chartbl> chars;
+        friend CFonts;
 
-			inline unsigned int getTextID() const noexcept
-			{
-				return textID;
-			}
+      public:
+        void registerTexture(const std::string &path,
+                             const std::string &texture,
+                             const std::wstring &textChars);
+        void registerTexture(const std::string &path,
+                             const std::string &texture,
+                             const std::string &textChars);
+        Font();
+    };
 
-			chartbl() noexcept
-			{
-				pos = -1;
-				line = 0;
-				textureLst = nullptr;
-				align = 0;
-				size = 1.0;
-			}
-		};
+    static size_t utf8Size(const std::string &s);
+    static size_t utf8InsertAt(std::string &s, const std::string &str,
+                               size_t at);
+    static void utf8RemoveLast(std::string &s);
+    static void utf8RemoveAtRange(std::string &s, int at, int size);
 
-		std::map<std::string, fontTexture>					textures;
-		std::map<unsigned int, chartbl>						chars;
-		friend CFonts;
+    // Adds Texture to font and create a font inst if doesnt exists
+    std::string addTextureToFont(const std::string &fontName,
+                                 const std::string &path,
+                                 const std::string &texture,
+                                 const std::wstring &textChars);
+    std::string addTextureToFont(const std::string &fontName,
+                                 const std::string &path,
+                                 const std::string &texture,
+                                 const std::string &textChars);
+    double getCenterPos(const std::string &text, double size, double posX1,
+                        const std::string &fontName = "default");
+    double getXSizeInScreen(const std::string &text, double size,
+                            const std::string &fontName = "default");
 
-	public:
-		
-		void registerTexture(const std::string &path, const std::string &texture, const std::wstring &textChars);
-		void registerTexture(const std::string &path, const std::string &texture, const std::string &textChars);
-		Font();
-	};
+    void drawTextInScreenWithBuffer(const std::string &str, const double posX1,
+                                    const double posY1, const double size,
+                                    const std::string &fontName = "default");
+    void drawTextInScreen(const std::string &str, const double posX1,
+                          const double posY1, const double size,
+                          const std::string &fontName = "default");
+    void draw3DTextInScreen(const std::string &str, const double posX1,
+                            const double posY1, const double posZ1,
+                            const double sizeX, const double sizeY,
+                            const double sizeZ,
+                            const std::string &fontName = "default");
 
-	static size_t utf8Size(const std::string &s);
-	static size_t utf8InsertAt(std::string &s, const std::string &str, size_t at);
-	static void utf8RemoveLast(std::string &s);
-	static void utf8RemoveAtRange(std::string &s, int at, int size);
+    void drawAllBuffers();
 
-	// Adds Texture to font and create a font inst if doesnt exists
-	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::wstring &textChars);
-	std::string							addTextureToFont(const std::string &fontName, const std::string &path, const std::string &texture, const std::string &textChars);
-	double								getCenterPos(const std::string &text, double size, double posX1, const std::string &fontName = "default");
-	double								getXSizeInScreen(const std::string &text, double size, const std::string &fontName = "default");
-	
-	void								drawTextInScreenWithBuffer(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName = "default");
-	void								drawTextInScreen(const std::string &str, const double posX1, const double posY1, const double size, const std::string &fontName = "default");
-	void								draw3DTextInScreen(const std::string &str, const double posX1, const double posY1, const double posZ1, const double sizeX, const double sizeY, const double sizeZ, const std::string &fontName = "default");
+    void addTextAlert(const textAlert &t);
+    void addTextAlert(textAlert &&t);
 
-	void								drawAllBuffers();
+    static CFonts &fonts();
 
-	void								addTextAlert(const textAlert &t);
-	void								addTextAlert(textAlert &&t);
+  private:
+    std::map<std::string, Font> fontsReg;
+    std::deque<textAlert> textAlerts;
 
-	static CFonts &fonts();
-
-private:
-	std::map <std::string, Font>		fontsReg;
-	std::deque<textAlert>				textAlerts;
-
-	CFonts(const CFonts&) = delete;
-	CFonts();
+    CFonts(const CFonts &) = delete;
+    CFonts();
 };
 
 #endif

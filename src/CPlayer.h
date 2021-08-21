@@ -156,10 +156,10 @@ class CPlayer {
 
         double BPMMinPosition;
 
-        double fretsNotePickedTime[5];
-        bool inLongNote[5];
+        double fretsNotePickedTime[5]{};
+        bool inLongNote[5]{};
         int longNoteComb;
-        size_t longNoteID[5];
+        size_t longNoteID[5]{};
 
         double getChartEnd(double offset = 2.0);
 
@@ -276,7 +276,7 @@ class CPlayer {
         ~NotesData();
     };
 
-    int playerType;
+    int playerType{};
 
     struct MPInfo {
         void *i;
@@ -315,14 +315,14 @@ class CPlayer {
 
     // std::vector<const NotesData::Note*> buffer;
 
-    double spectrumLines[8];
+    double spectrumLines[8]{};
 
     double musicRunningTime;
 
-    bool lastFretsPressed[5];
-    bool fretsPressed[5];
-    double fretsPressedTime[5];
-    size_t notesSlide[5];
+    bool lastFretsPressed[5]{};
+    bool fretsPressed[5]{};
+    double fretsPressedTime[5]{};
+    size_t notesSlide[5]{};
 
     size_t strklinent;
     double strklinenttime;
@@ -335,11 +335,11 @@ class CPlayer {
     void addPointsByDoingLongNote();
     void processErrorNonPickedB(size_t pos);
     void doNote(size_t i);
-    double comboToMultiplier();
+    double comboToMultiplier() const;
     double comboToMultiplierWM();
 
     double experience;
-    int getLevel();
+    int getLevel() const;
 
     void resetData();
 
@@ -355,17 +355,17 @@ class CPlayer {
 
     void update();
 
-    void instrumentPlay();
-    void instrumentPause();
-    void muteInstrument();
-    void unmuteInstrument();
+    void instrumentPlay() const;
+    void instrumentPause() const;
+    void muteInstrument() const;
+    void unmuteInstrument() const;
 
-    int getFretsPressedFlags();
-    int getLastFretsPressedFlags();
+    auto getFretsPressedFlags() const -> int;
+    auto getLastFretsPressedFlags() const -> int;
 
     bool loadSong(const std::string &path);
     bool loadSongOnlyChart(const std::string &path);
-    bool canDoHOPO;
+    bool canDoHOPO{};
 
     double rangle;
 
@@ -381,8 +381,8 @@ class CPlayer {
     unsigned int plusCircleBuffer, plusLoadBuffer, publicApprovBuffer,
         correctNotesBuffer, multiplierBuffer;
 
-    int64_t getCombo();
-    int64_t getPoints();
+    int64_t getCombo() const;
+    int64_t getPoints() const;
 
     bool isSongChartFinished();
 
