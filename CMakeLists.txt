@@ -18,15 +18,15 @@ include(CPack)
 #    cmake_policy(SET CMP0072 NEW)
 #endif()
 
-find_package(CURL REQUIRED)
+#find_package(CURL REQUIRED)
 find_package(PkgConfig)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 
 include(CTest)
 enable_testing()
-find_package(GTest REQUIRED)
-include(GoogleTest)
+#find_package(GTest REQUIRED)
+#include(GoogleTest)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/glfw)
 
