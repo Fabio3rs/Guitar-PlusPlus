@@ -1,0 +1,6 @@
+[submodule "glfw"]
+	path = glfw
+	url = https://github.com/glfw/glfw
+[submodule "cereal"]
+	path = cereal
+	url = https://github.com/USCiLab/cereal

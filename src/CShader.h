@@ -53,6 +53,8 @@ namespace ShaderProject
 			obj.object = nullValue;
 
 			deleter = std::move(obj.deleter);
+
+			return *this;
 		}
 
 		unique_object() : object(nullValue) { }
@@ -94,9 +96,9 @@ namespace ShaderProject
 			int shaderSize;
 
 			template<class T>
-			inline size_t fileSize(T &file) {
+			inline auto fileSize(T &file) {
 				file.seekg(0, std::ios::end);
-				size_t result = file.tellg();
+				auto result = file.tellg();
 				file.seekg(0, std::ios::beg);
 				return result;
 			}
@@ -183,3 +185,4 @@ namespace ShaderProject
 }
 
 #endif
+
