@@ -154,7 +154,7 @@ class CPlayer {
 
         double chartResolutionProp;
 
-        double BPMMinPosition;
+        double BPMMinPosition, chartEnd;
 
         double fretsNotePickedTime[5]{};
         bool inLongNote[5]{};
@@ -303,15 +303,11 @@ class CPlayer {
 
     double npPsetted;
 
-    bool enableBot;
-
-    bool aError;
-
     int lastHOPO;
 
     std::string plname;
 
-    int BPMNowBuffer;
+    size_t BPMNowBuffer;
 
     // std::vector<const NotesData::Note*> buffer;
 
@@ -332,6 +328,12 @@ class CPlayer {
 
     bool usarPalheta;
 
+    bool enableBot;
+
+    bool aError;
+
+    bool plusEnabled;
+
     void addPointsByDoingLongNote();
     void processErrorNonPickedB(size_t pos);
     void doNote(size_t i);
@@ -348,8 +350,6 @@ class CPlayer {
     void releaseSong();
 
     std::vector<lineData> tailsData;
-
-    bool plusEnabled;
 
     NotesData Notes;
 

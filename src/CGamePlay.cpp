@@ -284,7 +284,7 @@ void CGamePlay::drawBPMLines(CPlayer &Player) {
 
     if (bpmBuffSize > 0) {
         const double mtime = (time - 1.0);
-        int BPMnowbuff =
+        size_t BPMnowbuff =
             Player
                 .BPMNowBuffer /*getBPMAtI(Player, (mtime > 0.0) ? mtime : 0.0)*/
             ;

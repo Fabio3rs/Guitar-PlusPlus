@@ -362,6 +362,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
     typedef std::map<std::string,
                      std::map<std::string, std::deque<std::string>>>
         parsedChart;
+    chartEnd = 0;
     chartFileName = chartFile;
     plusPos = 0;
     double chartOffset = 0.0;
@@ -381,11 +382,10 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
 
     using noteContainer = std::vector<Note>;
     using BPMContainer = std::vector<SyncTrackBPM>;
-    noteContainer Nts;
-    BPMContainer BPMs;
+    noteContainer Ntsdata;
+    BPMContainer BPMsdata;
 
-    Nts.reserve(2000);
-    BPMs.reserve(64);
+    BPMsdata.reserve(64);
 
     auto parseFeedBackChart = [](parsedChart &data,
                                  const std::string &chartFile) {
@@ -581,6 +581,28 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
         }
     };
 
+    auto notesCountToReserve = [](const parsedChart &chartMap,
+                         const std::string &difficulty) -> size_t {
+        size_t noten_length = 0;
+        auto chartmapscope = chartMap.find(difficulty);
+
+        if (chartmapscope == chartMap.end())
+        {
+            return noten_length;
+        }
+
+        for (auto &scopeData : chartmapscope->second) {
+            noten_length += scopeData.second.size();
+        }
+
+        if ((noten_length & 1) != 0)
+        {
+            noten_length++;
+        }
+
+        return noten_length;
+    };
+
     auto noteRead = [&getNoteTime, &getRefBPM, &chartOffset](
                         noteContainer &NTS, const BPMContainer &BPMs,
                         parsedChart &chartMap, const std::string &difficulty) {
@@ -745,7 +767,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
         } catch (const std::exception &e) {
             chartResolutionProp = 1.0;
             CLog::log().multiRegister(__FILE__ " exception: %0 LINE %1", e,
-                                      (int)__LINE__);
+                                      static_cast<int>(__LINE__));
         }
         songName = chk(Song["Name"], 0u);
         songArtist = chk(Song["Artist"], 0u);
@@ -761,8 +783,10 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
 
     fillChartInfo(feedBackChartMap);
 
-    BPMRead(BPMs, feedBackChartMap);
-    noteRead(Nts, BPMs, feedBackChartMap,
+    Ntsdata.reserve(notesCountToReserve(feedBackChartMap, instrument));
+
+    BPMRead(BPMsdata, feedBackChartMap);
+    noteRead(Ntsdata, BPMsdata, feedBackChartMap,
              instrument); // Default: "[ExpertSingle]"
 
     /*
@@ -775,9 +799,9 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
     }
     */
     int p = 0;
-    for (auto &BP : BPMs) {
+    for (auto &BP : BPMsdata) {
         Note newNote;
-        newNote.time = getNoteTime(BPMs, p, (int64_t)BP.offset);
+        newNote.time = getNoteTime(BPMsdata, p, (int64_t)BP.offset);
         newNote.lTime = BP.BPM / 1000.0;
 
         if (newNote.time != 0.0) {
@@ -789,15 +813,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
         ++p;
     }
 
-    auto roundTo = [](double num, double dec) {
-        double v = pow(10.0, dec);
-        num *= v;
-        num = floor(num);
-        num /= v;
-        return num;
-    };
-
-    for (auto &Nt : Nts) {
+    for (auto &Nt : Ntsdata) {
         if (std::isnan(Nt.time) || std::isnan(Nt.lTime)) {
             continue;
         }
@@ -841,7 +857,7 @@ void CPlayer::NotesData::deducePlusLastNotes() {
 
             if (note.time >= (plusNote.time - 0.0001) &&
                 note.time < (plusNote.time + plusNote.lTime)) {
-                if (plusNote.firstNote == -1) {
+                if (plusNote.firstNote == ~0uLL) {
                     plusNote.firstNote = i;
                 }
 
@@ -858,6 +874,10 @@ void CPlayer::NotesData::deducePlusLastNotes() {
 }
 
 auto CPlayer::NotesData::getChartEnd(double offset) -> double {
+    if (chartEnd > 0) {
+        return chartEnd;
+    }
+
     auto size = gNotes.size();
 
     if (size > 0) {
@@ -865,13 +885,17 @@ auto CPlayer::NotesData::getChartEnd(double offset) -> double {
 
         double finalTime = lastNote.time + lastNote.lTime;
         finalTime += offset;
+
+        chartEnd = finalTime;
         return finalTime;
     }
 
+    chartEnd = 2;
     return 2.0;
 }
 
 auto CPlayer::NotesData::loadChart(const char *chartFile) -> bool {
+    chartEnd = 0;
     chartFileName = chartFile;
 
     if (chartFileName.find(".gpp") != std::string::npos) {
@@ -1067,6 +1091,7 @@ CPlayer::NotesData::NotesData() {
     chartResolutionProp = 1.0;
     plusPos = 0;
     BPMMinPosition = 0.0;
+    chartEnd = 0;
     BPM.reserve(200);
     gPlus.reserve(200);
     gNotes.reserve(10000);
