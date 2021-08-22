@@ -57,9 +57,10 @@ class CGamePlay {
     void renderIndivdualNoteShadow(int id, double pos, unsigned int Texture,
                                    bool tail, CPlayer &player);
     double getRunningMusicTime(CPlayer &player) const;
+    double getRunningMusicTimeUpd(CPlayer &player) const;
     double time2Position(double Time, CPlayer &player);
     void renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player);
-    bool renderNote(const CPlayer::NotesData::Note &note, CPlayer &player);
+    bool renderNote(const CPlayer::NotesData::Note &note, CPlayer &player, double ltimet);
     void renderNotePlayer(CPlayer &player);
     void renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player);
     void renderNoteShadowHpStyle(CPlayer &player);
@@ -81,7 +82,7 @@ class CGamePlay {
     static void alertNotesStreak(CPlayer &player);
     static bool alertTest(CFonts::textAlert &t);
 
-    std::deque<gppVec3f> hopostp;
+    std::vector<gppVec3f> hopostp;
     CEngine::dTriangleWithAlpha BPMl, fretboardLData;
 
     lightData hoposLight{}, plusNoteLight{};

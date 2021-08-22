@@ -21,10 +21,12 @@
 #include <cstdlib>
 #include <fstream>
 
-const int CPlayer::notesEnum =
+//static constexpr size_t PLAYSZ = sizeof(CPlayer);
+
+/*const int CPlayer::notesEnum =
     nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
 const int CPlayer::notesEnumWithOpenNotes =
-    nf_green | nf_red | nf_yellow | nf_blue | nf_orange | nf_open;
+    nf_green | nf_red | nf_yellow | nf_blue | nf_orange | nf_open;*/
 
 auto CPlayer::smartChartSearch(const std::string &path) -> std::string {
     auto file_exists = [](const std::string &fileName) {
@@ -582,12 +584,11 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
     };
 
     auto notesCountToReserve = [](const parsedChart &chartMap,
-                         const std::string &difficulty) -> size_t {
+                                  const std::string &difficulty) -> size_t {
         size_t noten_length = 0;
         auto chartmapscope = chartMap.find(difficulty);
 
-        if (chartmapscope == chartMap.end())
-        {
+        if (chartmapscope == chartMap.end()) {
             return noten_length;
         }
 
@@ -595,8 +596,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
             noten_length += scopeData.second.size();
         }
 
-        if ((noten_length & 1) != 0)
-        {
+        if ((noten_length & 1) != 0) {
             noten_length++;
         }
 
@@ -1055,21 +1055,12 @@ auto CPlayer::NotesData::loadChart(const char *chartFile) -> bool {
 
 void CPlayer::NotesData::unloadChart() {
     notePos = 0;
-    lastNotePicked = -1;
-    longNoteComb = 0;
+    lastNotePicked = ~0uL;
     chartResolutionProp = 1.0;
     plusPos = 0;
 
     for (auto &fretNotePickedTime : fretsNotePickedTime) {
         fretNotePickedTime = 0.0;
-    }
-
-    for (auto &inLN : inLongNote) {
-        inLN = false;
-    }
-
-    for (auto &LNID : longNoteID) {
-        LNID = -1;
     }
 
     chartFileName.clear();
@@ -1086,8 +1077,7 @@ void CPlayer::resetData() {
 
 CPlayer::NotesData::NotesData() {
     notePos = 0;
-    lastNotePicked = -1;
-    longNoteComb = 0;
+    lastNotePicked = ~0uL;
     chartResolutionProp = 1.0;
     plusPos = 0;
     BPMMinPosition = 0.0;
@@ -1100,14 +1090,6 @@ CPlayer::NotesData::NotesData() {
 
     for (auto &fretNotePickedTime : fretsNotePickedTime) {
         fretNotePickedTime = 0.0;
-    }
-
-    for (auto &inLN : inLongNote) {
-        inLN = false;
-    }
-
-    for (auto &LNID : longNoteID) {
-        LNID = -1;
     }
 }
 
@@ -1151,10 +1133,10 @@ void CPlayer::processErrorNonPickedB(size_t pos) {
         if (count > 0) {
             breakCombo();
 
-            publicAprov -= count;
-
-            if (publicAprov < 0) {
-                publicAprov = 0.0;
+            if (count > publicAprov) {
+                publicAprov = 0;
+            } else {
+                publicAprov -= count;
             }
         }
     }
@@ -1287,6 +1269,7 @@ CPlayer::CPlayer(const char *name) {
     lastHOPO = 0;
     enableBot = false;
 
+    updatedMusicRunningTime = 0.0;
     memset(notesSlide, -1, sizeof(notesSlide));
     memset(lastFretsPressed, 0, sizeof(lastFretsPressed));
     memset(fretsPressed, 0, sizeof(fretsPressed));
@@ -1323,7 +1306,7 @@ CPlayer::CPlayer(const char *name) {
     targetCamera = playerCamera;
 
     experience = 100.0;
-    tailsData.reserve(30);
+    tailsData.reserve(32);
 }
 
 CPlayer::~CPlayer() noexcept {

@@ -119,25 +119,8 @@ extern std::atomic<int> palhetaNpKey;
 
 class CPlayer {
     friend CCharter;
-    std::string playerName;
 
   public:
-    template <class Archive> void load(Archive &archive) {
-        archive(playerName);
-    }
-
-    template <class Archive> void save(Archive &archive) const {
-        archive(playerName);
-    }
-
-    static const int notesEnum;
-    static const int notesEnumWithOpenNotes;
-
-    bool remoteControls;
-
-    static std::string smartChartSearch(const std::string &path);
-    static std::string smartSongSearch(const std::string &path);
-
     class NotesData {
         friend CCharter;
         std::string chartFileName;
@@ -147,19 +130,16 @@ class CPlayer {
       public:
         size_t notePos, plusPos;
         size_t lastNotePicked;
+        double fretsNotePickedTime[5]{};
+
+        double BPMMinPosition, chartEnd;
+
+        double chartResolutionProp;
+
         std::string instrument;
 
         std::string songName, songArtist, songCharter;
         std::string songFullPath;
-
-        double chartResolutionProp;
-
-        double BPMMinPosition, chartEnd;
-
-        double fretsNotePickedTime[5]{};
-        bool inLongNote[5]{};
-        int longNoteComb;
-        size_t longNoteID[5]{};
 
         double getChartEnd(double offset = 2.0);
 
@@ -276,47 +256,29 @@ class CPlayer {
         ~NotesData();
     };
 
-    int playerType{};
-
-    struct MPInfo {
-        void *i;
-        bool ready;
-
-        inline MPInfo() noexcept {
-            i = nullptr;
-            ready = false;
-        }
-
-    } multiPlayerInfo;
-
   private:
     /**/
 
     double points;
     int64_t combo;
+    double experience;
 
   public:
-    CFonts::textAlert lvlUpAlert, notesStreakAlert;
-
-    int songAudioID;
-    int instrumentSound;
-
+    std::vector<lineData> tailsData;
+    NotesData Notes;
+    double rangle;
     double npPsetted;
+    double updatedMusicRunningTime;
 
     int lastHOPO;
-
-    std::string plname;
-
     size_t BPMNowBuffer;
 
-    // std::vector<const NotesData::Note*> buffer;
-
-    double spectrumLines[8]{};
-
     double musicRunningTime;
-
     bool lastFretsPressed[5]{};
+    bool bRenderP, bUpdateP, bPlusStrike;
     bool fretsPressed[5]{};
+    bool plusEnabled;
+    bool canDoHOPO{};
     double fretsPressedTime[5]{};
     size_t notesSlide[5]{};
 
@@ -332,7 +294,63 @@ class CPlayer {
 
     bool aError;
 
-    bool plusEnabled;
+    bool remoteControls;
+
+    double startTime, plusThunterStrikeStart, plusPower,
+        plusParticleEffectPosition, maxPlusPower, plusLoadF, plusLoadB,
+        plusLoadInterval;
+
+    uint64_t publicAprov, correctNotes, correctNotesMarathon, maxPublicAprov;
+
+    unsigned int plusCircleBuffer, plusLoadBuffer, publicApprovBuffer,
+        correctNotesBuffer, multiplierBuffer;
+
+    double playerHudOffsetX, playerHudOffsetY;
+
+    CParticle playerParticles;
+
+    int songAudioID;
+    int instrumentSound;
+
+    CGuitars::CGuitar *guitar;
+
+    CFonts::textAlert lvlUpAlert, notesStreakAlert;
+
+    CEngine::cameraSET playerCamera, targetCamera;
+
+    static constexpr int notesEnum =
+        nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
+    static constexpr int notesEnumWithOpenNotes =
+        nf_green | nf_red | nf_yellow | nf_blue | nf_orange | nf_open;
+
+    std::string playerSave;
+    std::string playerName;
+    std::string plname;
+
+    int playerType{};
+
+    struct MPInfo {
+        void *i;
+        bool ready;
+
+        inline MPInfo() noexcept {
+            i = nullptr;
+            ready = false;
+        }
+
+    } multiPlayerInfo;
+
+    ///////////////////////////////// FUNCTIONS BELOW
+    template <class Archive> void load(Archive &archive) {
+        archive(playerName);
+    }
+
+    template <class Archive> void save(Archive &archive) const {
+        archive(playerName);
+    }
+
+    static std::string smartChartSearch(const std::string &path);
+    static std::string smartSongSearch(const std::string &path);
 
     void addPointsByDoingLongNote();
     void processErrorNonPickedB(size_t pos);
@@ -340,7 +358,6 @@ class CPlayer {
     double comboToMultiplier() const;
     double comboToMultiplierWM();
 
-    double experience;
     int getLevel() const;
 
     void resetData();
@@ -348,10 +365,6 @@ class CPlayer {
     void breakCombo();
     void processError();
     void releaseSong();
-
-    std::vector<lineData> tailsData;
-
-    NotesData Notes;
 
     void update();
 
@@ -365,34 +378,11 @@ class CPlayer {
 
     bool loadSong(const std::string &path);
     bool loadSongOnlyChart(const std::string &path);
-    bool canDoHOPO{};
-
-    double rangle;
-
-    double playerHudOffsetX, playerHudOffsetY;
-
-    std::string playerSave;
-
-    double startTime, plusThunterStrikeStart, plusPower,
-        plusParticleEffectPosition, maxPlusPower, plusLoadF, plusLoadB,
-        plusLoadInterval;
-    double publicAprov, maxPublicAprov, correctNotes, correctNotesMarathon;
-
-    unsigned int plusCircleBuffer, plusLoadBuffer, publicApprovBuffer,
-        correctNotesBuffer, multiplierBuffer;
 
     int64_t getCombo() const;
     int64_t getPoints() const;
 
     bool isSongChartFinished();
-
-    CEngine::cameraSET playerCamera, targetCamera;
-
-    bool bRenderP, bUpdateP, bPlusStrike;
-
-    CParticle playerParticles;
-
-    CGuitars::CGuitar *guitar;
 
     CPlayer(const char *name);
     ~CPlayer() noexcept;
