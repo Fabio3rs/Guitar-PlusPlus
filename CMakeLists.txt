@@ -6,13 +6,15 @@ project(${myprojectname} VERSION 0.1.0)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-extra-arg=-std=c++17;-export-fixes;-checks=read*,modern*,hicpp*,performance*")
+#set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-extra-arg=-std=c++17;-export-fixes;-checks=read*,modern*,hicpp*,performance*")
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include(CPack)
+
+add_subdirectory(glm)
 
 #if(POLICY CMP0072)
 #    cmake_policy(SET CMP0072 NEW)
@@ -50,6 +52,7 @@ message(${INCLUDE_DIRS})
 add_executable(${myprojectname} ${SOURCES})
 
 target_include_directories(${myprojectname} PRIVATE ${INCLUDE_DIRS})
+target_link_directories(${myprojectname} PRIVATE ${INCLUDE_DIRS})
 
 # Compiler-specific compile flags
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
