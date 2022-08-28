@@ -108,7 +108,7 @@ void CMultiplayer::callbackFun(CServerSock::ServerThreads *th,
             mpmgr->xrefplayer[th].second = mpmgr->players->size();
 
             mpmgr->players->push_back(
-                std::make_shared<CPlayer>(CPlayer(name.c_str())));
+                std::make_unique<CPlayer>(CPlayer(name.c_str())));
             // mpmgr->players->back().multiPlayerInfo.i =
             // (void*)th->ClientSocket;
         }

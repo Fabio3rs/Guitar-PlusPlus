@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #ifndef _CSAVESYSTEM_H_
 #define _CSAVESYSTEM_H_
 
@@ -110,7 +111,7 @@ class CSaveSystem {
 
                 memcpy(&var, &(v.svcontent[0]), v.size);
             } else {
-                for (int i = 0; i < sizeof(T); ++i) {
+                for (size_t i = 0; i < sizeof(T); ++i) {
                     v.svcontent.push_back(0);
                 }
 

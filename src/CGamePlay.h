@@ -1,4 +1,6 @@
 #pragma once
+#include <cstddef>
+#include <future>
 #ifndef _GUITAR_PP_CGAMEPLAY_h_
 #define _GUITAR_PP_CGAMEPLAY_h_
 // brmodstudio.forumeiros.com
@@ -24,15 +26,6 @@ class CCharter;
 class CGamePlay {
     friend CCharter;
 
-    int preRenderPlayerSEvent, posRenderPlayerSEvent;
-
-    bool bIsACharterGP;
-
-    bool showBPMVlaues;
-
-    double updateLastTimeCalled, lastiFPSUpdated{};
-    int iFPS, iFPSCount;
-
     void renderFretBoard(CPlayer &player, double x1, double x2, double x3,
                          double x4, unsigned int Text);
     void renderFretBoardShadow(CPlayer &player, double x1, double x2, double x3,
@@ -50,8 +43,9 @@ class CGamePlay {
     static double pos2Alpha(double pos);
     void updatePlayer(CPlayer &player, double deltatime);
     void renderPlayer(CPlayer &player);
-    bool renderIndivdualNote(int id, double pos, unsigned int Texture, int type,
-                             CPlayer &player);
+    bool renderIndivdualNote(unsigned int texture,
+                             CEngine::RenderDoubleStruct &TempStruct3D,
+                             CPlayer &player, bool rotated);
     bool renderOpenNote(double pos, unsigned int Texture, int type,
                         CPlayer &player);
     void renderIndivdualNoteShadow(int id, double pos, unsigned int Texture,
@@ -60,7 +54,8 @@ class CGamePlay {
     double getRunningMusicTimeUpd(CPlayer &player) const;
     double time2Position(double Time, CPlayer &player);
     void renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player);
-    bool renderNote(const CPlayer::NotesData::Note &note, CPlayer &player, double ltimet);
+    bool renderNote(const CPlayer::NotesData::Note &note, CPlayer &player,
+                    double ltimet);
     void renderNotePlayer(CPlayer &player);
     void renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player);
     void renderNoteShadowHpStyle(CPlayer &player);
@@ -82,24 +77,33 @@ class CGamePlay {
     static void alertNotesStreak(CPlayer &player);
     static bool alertTest(CFonts::textAlert &t);
 
+    static void renderPylmBar();
+    static void renderPlayerPylmBar(CPlayer &player);
+
+    CEngine::dTriangleWithAlpha *drawBPMLines(CPlayer &Player);
+    void drawBPMLine(double position, unsigned int Texture, CPlayer &Player);
+
+    CEngine &engine;
+    double speedMp, gSpeed;
+
+  public:
+    std::chrono::steady_clock::time_point startSongTime;
+    double fretboardLightFade;
+    unsigned int fireText, pfireText;
+    unsigned int BPMTextID;
+    unsigned int hopoLightText;
+
+    bool enableTails{}, bFretboardLightFading;
+    bool showBPMLines;
+    bool bRenderHUD;
+
     std::vector<gppVec3f> hopostp;
     CEngine::dTriangleWithAlpha BPMl, fretboardLData;
 
     lightData hoposLight{}, plusNoteLight{};
 
-    static void renderPylmBar();
-    static void renderPlayerPylmBar(CPlayer &player);
-
-    void drawBPMLines(CPlayer &Player);
-    void drawBPMLine(double position, unsigned int Texture, CPlayer &Player);
-
-    double speedMp, gSpeed;
-
-    CEngine &engine;
-
-  public:
-    bool enableTails{}, bFretboardLightFading;
-    double fretboardLightFade;
+    CPlayersContainer_t players;
+    std::vector<std::string> chartInstruments;
 
     double fretboardPositionCalcByT(double time, double prop,
                                     double *max = nullptr) const;
@@ -126,16 +130,8 @@ class CGamePlay {
 
     // fretsPosition fretsText;
     std::string fretsTextures, BPMLineText;
-    unsigned int fireText, pfireText;
-    int BPMTextID;
-    int hopoLightText;
 
-    bool showBPMLines;
-
-    CPlayersContainer_t players;
-    std::vector<std::string> chartInstruments;
-
-    inline CPlayer &getPlayer(int id = 0) { return *players[id]; }
+    inline CPlayer &getPlayer(size_t id = 0) { return *players[id]; }
 
     inline CPlayer &getBPlayer() { return *players.back(); }
 
@@ -150,15 +146,22 @@ class CGamePlay {
     void render();
 
     bool renderBackground();
-
-    bool bRenderHUD;
-
     void resetModule();
     void startUpdateDelta();
 
     CGamePlay(const CGamePlay &) = default;
     CGamePlay(CGamePlay &&) = default;
     CGamePlay();
+
+  private:
+    int preRenderPlayerSEvent, posRenderPlayerSEvent;
+
+    bool bIsACharterGP;
+
+    bool showBPMVlaues;
+
+    double updateLastTimeCalled, lastiFPSUpdated{};
+    int iFPS, iFPSCount;
 };
 
 #endif

@@ -1,6 +1,7 @@
 #include "CCharter.h"
 #include "CFonts.h"
 #include <cstdint>
+#include <memory>
 
 auto CCharter::songTimePassBPMBased(const BPM_t &BPMContainer, double pass,
                                     bool forward) -> double {
@@ -21,7 +22,7 @@ void CCharter::prepareDemoGamePlay(CGamePlay &gp) {
         CPlayer n = *np;
 
         n.enableBot = true;
-        gp.players.push_back(std::make_shared<CPlayer>(n));
+        gp.players.push_back(std::make_unique<CPlayer>(n));
     }
 }
 
@@ -522,7 +523,7 @@ CCharter::CCharter() {
     loading = false;
     atMusicTime = 0.0;
     gpModule.players.push_back(
-        std::make_shared<CPlayer>(CPlayer("guitar charter")));
+        std::make_unique<CPlayer>(CPlayer("guitar charter")));
     instrument = "[ExpertSingle]";
     gpModule.bIsACharterGP = true;
     divTime = 0.5;
@@ -536,7 +537,7 @@ CCharter::CCharter() {
     player.loadSong(song);
     std::cout << "audio id "
               << CEngine::engine().loadSoundStream(
-                     player.Notes.songFullPath.c_str(), songAudioID, true)
+                     player.songFullPath.c_str(), songAudioID, true)
               << std::endl;
     gpModule.bRenderHUD = false;
     gpModule.showBPMVlaues = true;

@@ -521,7 +521,7 @@ auto CChart::compileGppChart(const std::string &fileName) const -> bool {
 
 auto CChart::loadToPlayerData(CPlayer &player,
                               const std::string &instrument) const -> bool {
-    auto it = instruments.find(instrument.empty() ? player.Notes.instrument
+    auto it = instruments.find(instrument.empty() ? player.instrument
                                                   : instrument);
 
     if (it != instruments.end()) {
@@ -531,9 +531,9 @@ auto CChart::loadToPlayerData(CPlayer &player,
         player.Notes.gNotes = instrumentData.second.gNotes;
         player.Notes.gPlus = instrumentData.second.gPlus;
 
-        player.Notes.songArtist = chartData.songArtist;
-        player.Notes.songCharter = chartData.songCharter;
-        player.Notes.songName = chartData.songName;
+        player.songArtist = chartData.songArtist;
+        player.songCharter = chartData.songCharter;
+        player.songName = chartData.songName;
         player.Notes.chartResolutionProp = chartData.chartResolutionProp;
 
         return true;
@@ -542,22 +542,22 @@ auto CChart::loadToPlayerData(CPlayer &player,
     return false;
 }
 
-auto CChart::loadToNotesData(CPlayer::NotesData &Notes,
+auto CChart::loadToNotesData(CPlayer &player,
                              const std::string &instrument) const -> bool {
     auto it =
-        instruments.find(instrument.empty() ? Notes.instrument : instrument);
+        instruments.find(instrument.empty() ? player.instrument : instrument);
 
     if (it != instruments.end()) {
         const auto &instrumentData = *it;
-        Notes.unloadChart();
-        Notes.BPM = BPM;
-        Notes.gNotes = instrumentData.second.gNotes;
-        Notes.gPlus = instrumentData.second.gPlus;
+        player.Notes.unloadChart();
+        player.Notes.BPM = BPM;
+        player.Notes.gNotes = instrumentData.second.gNotes;
+        player.Notes.gPlus = instrumentData.second.gPlus;
 
-        Notes.songArtist = chartData.songArtist;
-        Notes.songCharter = chartData.songCharter;
-        Notes.songName = chartData.songName;
-        Notes.chartResolutionProp = chartData.chartResolutionProp;
+        player.songArtist = chartData.songArtist;
+        player.songCharter = chartData.songCharter;
+        player.songName = chartData.songName;
+        player.Notes.chartResolutionProp = chartData.chartResolutionProp;
 
         return true;
     }

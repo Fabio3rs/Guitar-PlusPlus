@@ -17,6 +17,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
 
 class CCharter;
 
@@ -123,23 +124,12 @@ class CPlayer {
   public:
     class NotesData {
         friend CCharter;
-        std::string chartFileName;
-
         void deducePlusLastNotes();
 
       public:
         size_t notePos, plusPos;
         size_t lastNotePicked;
         double fretsNotePickedTime[5]{};
-
-        double BPMMinPosition, chartEnd;
-
-        double chartResolutionProp;
-
-        std::string instrument;
-
-        std::string songName, songArtist, songCharter;
-        std::string songFullPath;
 
         double getChartEnd(double offset = 2.0);
 
@@ -248,12 +238,15 @@ class CPlayer {
         std::vector<Note> BPM;
         std::vector<plusNote> gPlus;
 
-        bool loadChart(const char *chartFile);
-        bool loadFeedbackChart(const char *chartFile);
+        bool loadChart(std::string_view chartFile, CPlayer &player);
+        bool loadFeedbackChart(std::string_view chartFile, CPlayer &player);
         void unloadChart();
 
         NotesData();
         ~NotesData();
+
+        double BPMMinPosition, chartEnd;
+        double chartResolutionProp;
     };
 
   private:
@@ -264,8 +257,8 @@ class CPlayer {
     double experience;
 
   public:
-    std::vector<lineData> tailsData;
     NotesData Notes;
+    std::vector<lineData> tailsData;
     double rangle;
     double npPsetted;
     double updatedMusicRunningTime;
@@ -280,10 +273,10 @@ class CPlayer {
     bool plusEnabled;
     bool canDoHOPO{};
     double fretsPressedTime[5]{};
-    size_t notesSlide[5]{};
-
-    size_t strklinent;
     double strklinenttime;
+
+    size_t notesSlide[5]{};
+    size_t strklinent;
 
     int palhetaKeyLast;
     int palhetaKey;
@@ -305,12 +298,12 @@ class CPlayer {
     unsigned int plusCircleBuffer, plusLoadBuffer, publicApprovBuffer,
         correctNotesBuffer, multiplierBuffer;
 
+    int songAudioID;
+    int instrumentSound;
+
     double playerHudOffsetX, playerHudOffsetY;
 
     CParticle playerParticles;
-
-    int songAudioID;
-    int instrumentSound;
 
     CGuitars::CGuitar *guitar;
 
@@ -339,6 +332,10 @@ class CPlayer {
         }
 
     } multiPlayerInfo;
+
+    std::string instrument;
+    std::string songName, songArtist, songCharter;
+    std::string songFullPath;
 
     ///////////////////////////////// FUNCTIONS BELOW
     template <class Archive> void load(Archive &archive) {
@@ -391,6 +388,6 @@ class CPlayer {
     inline CPlayer() : CPlayer("default") {}
 };
 
-typedef std::deque<std::shared_ptr<CPlayer>> CPlayersContainer_t;
+typedef std::vector<std::shared_ptr<CPlayer>> CPlayersContainer_t;
 
 #endif

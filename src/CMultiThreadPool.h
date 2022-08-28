@@ -5,7 +5,9 @@
 #include <atomic>
 #include <bitset>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -180,7 +182,7 @@ template <class poolData_t, const size_t numElements> class CMultiThreadPool {
     void clear() {
         std::lock_guard<std::mutex> lock(mut);
 
-        for (int i = 0; i < numElements; i++) {
+        for (size_t i = 0; i < numElements; i++) {
             removeElementByIndex(i, true);
         }
     }

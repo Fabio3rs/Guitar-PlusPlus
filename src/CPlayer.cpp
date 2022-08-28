@@ -20,8 +20,10 @@
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
+#include <string>
+#include <string_view>
 
-//static constexpr size_t PLAYSZ = sizeof(CPlayer);
+// static constexpr size_t PLAYSZ = sizeof(CPlayer);
 
 /*const int CPlayer::notesEnum =
     nf_green | nf_red | nf_yellow | nf_blue | nf_orange;
@@ -46,9 +48,7 @@ auto CPlayer::smartChartSearch(const std::string &path) -> std::string {
                                                 str);
 
         if (!tmp.empty()) {
-            {
-                return tmp;
-            }
+            { return tmp; }
         }
     }
 
@@ -68,15 +68,11 @@ static auto trim(const std::string &str) -> std::string {
     size_t last = str.find_last_not_of(' ');
 
     if (first == std::string::npos) {
-        {
-            return str;
-        }
+        { return str; }
     }
 
     if (last == std::string::npos) {
-        {
-            last = str.size();
-        }
+        { last = str.size(); }
     }
 
     return str.substr(first, last - first + 1);
@@ -195,9 +191,7 @@ void CPlayer::update() {
                 palhetaKey = 0;
 
                 if (f) {
-                    {
-                        fretsPressedTime[countI] = timeC;
-                    }
+                    { fretsPressedTime[countI] = timeC; }
                 }
             }
 
@@ -271,9 +265,7 @@ auto CPlayer::smartSongSearch(const std::string &path) -> std::string {
                                                 str);
 
         if (!tmp.empty()) {
-            {
-                return tmp;
-            }
+            { return tmp; }
         }
     }
 
@@ -285,8 +277,8 @@ auto CPlayer::loadSongOnlyChart(const std::string &path) -> bool {
                                 std::string("/") + smartChartSearch(path));
 
     bool isChartOpen = fullFilePath.find(".chart") != std::string::npos
-                           ? Notes.loadFeedbackChart(fullFilePath.c_str())
-                           : Notes.loadChart(fullFilePath.c_str());
+                           ? Notes.loadFeedbackChart(fullFilePath.c_str(), *this)
+                           : Notes.loadChart(fullFilePath.c_str(), *this);
 
     if (songAudioID != -1 && (songAudioID != 0)) {
         CEngine::engine().unloadSoundStream(songAudioID);
@@ -304,8 +296,8 @@ auto CPlayer::loadSong(const std::string &path) -> bool {
     CLog::log().multiRegister("Smart chart search result: %0", fullFilePath);
 
     bool isChartOpen = fullFilePath.find(".chart") != std::string::npos
-                           ? Notes.loadFeedbackChart(fullFilePath.c_str())
-                           : Notes.loadChart(fullFilePath.c_str());
+                           ? Notes.loadFeedbackChart(fullFilePath.c_str(), *this)
+                           : Notes.loadChart(fullFilePath.c_str(), *this);
 
     if (songAudioID != -1 && (songAudioID != 0)) {
         CEngine::engine().unloadSoundStream(songAudioID);
@@ -319,16 +311,16 @@ auto CPlayer::loadSong(const std::string &path) -> bool {
 
     if (isChartOpen) {
         CLog::log() << smartSongSearch(path);
-        Notes.songFullPath = (std::string("data/songs/") + path +
+        songFullPath = (std::string("data/songs/") + path +
                               std::string("/") + smartSongSearch(path));
 
         CLog::log() << "loadSoundStream result: " +
                            std::to_string(static_cast<int>(
                                CEngine::engine().loadSoundStream(
-                                   Notes.songFullPath.c_str(), songAudioID)));
+                                   songFullPath.c_str(), songAudioID)));
         std::string fullPath = std::string("data/songs/") + path;
 
-        if (Notes.instrument == "[ExpertSingle]") {
+        if (instrument == "[ExpertSingle]") {
             CLog::log() << "loadSoundStream instrumentSound result: " +
                                std::to_string(static_cast<int>(
                                    CEngine::engine().loadSoundStream(
@@ -338,7 +330,7 @@ auto CPlayer::loadSong(const std::string &path) -> bool {
                                             "guitar.ogg"))
                                            .c_str(),
                                        instrumentSound)));
-        } else if (Notes.instrument == "[ExpertDoubleBass]") {
+        } else if (instrument == "[ExpertDoubleBass]") {
             CLog::log() << "loadSoundStream instrumentSound result: " +
                                std::to_string(static_cast<int>(
                                    CEngine::engine().loadSoundStream(
@@ -360,12 +352,11 @@ auto CPlayer::getLevel() const -> int {
     return static_cast<int>(log(experience));
 }
 
-auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
+auto CPlayer::NotesData::loadFeedbackChart(std::string_view chartFile, CPlayer &player) -> bool {
     typedef std::map<std::string,
                      std::map<std::string, std::deque<std::string>>>
         parsedChart;
     chartEnd = 0;
-    chartFileName = chartFile;
     plusPos = 0;
     double chartOffset = 0.0;
 
@@ -389,32 +380,25 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
 
     BPMsdata.reserve(64);
 
-    auto parseFeedBackChart = [](parsedChart &data,
-                                 const std::string &chartFile) {
-        std::ifstream chart(chartFile);
+    auto parseFeedBackChart = [chartFile](parsedChart &data) {
+        std::ifstream chart((std::string(chartFile)));
         char temp[1024];
 
         std::string myScope = "nothing";
 
         while (chart.getline(temp, sizeof(temp))) {
             if (chart.fail()) {
-                {
-                    return;
-                }
+                { return; }
             }
 
             {
                 char *tln = strchr(temp, '\n');
                 if (tln != nullptr) {
-                    {
-                        *tln = '\0';
-                    }
+                    { *tln = '\0'; }
                 }
                 tln = strchr(temp, '\r');
                 if (tln != nullptr) {
-                    {
-                        *tln = '\0';
-                    }
+                    { *tln = '\0'; }
                 }
             }
 
@@ -434,9 +418,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
                 d = (d == std::string::npos) ? 0uL : d;
 
                 if (s == std::string::npos) {
-                    {
-                        continue;
-                    }
+                    { continue; }
                 }
 
                 sB = str.find_first_of(' ', d);
@@ -558,9 +540,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
 
             for (auto &b : BPM) {
                 if (b.time > note.time) {
-                    {
-                        break;
-                    }
+                    { break; }
                 }
 
                 BPMStepCalc = 60.0 / b.lTime;
@@ -615,7 +595,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
                 if (sscanf(inst.c_str(), "%31s %d %d", c, &i, &j) == 3) {
                     if (std::string(c) == "N") {
                         NoteInt nt;
-                        nt.time = std::stoll(scopeData.first);
+                        nt.time = std::stoull(scopeData.first);
                         nt.lTime = j;
                         nt.type = i;
 
@@ -623,9 +603,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
                             nt.type = (int)pow(2, nt.type);
 
                             if (nt.lTime > 0) {
-                                {
-                                    nt.type |= nf_slide;
-                                }
+                                { nt.type |= nf_slide; }
                             }
 
                             if (!ntsI.empty()) {
@@ -685,7 +663,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
 
                     if (std::string(c) == "S" && i == 2) {
                         NoteInt nt;
-                        nt.time = std::stoll(scopeData.first);
+                        nt.time = std::stoull(scopeData.first);
                         nt.lTime = j;
                         nt.type = -1;
 
@@ -722,9 +700,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
 
             if (BPM < (BPMs.size() - 1)) {
                 if (BPMs[BPM + 1].offset < nt.time) {
-                    {
-                        ++BPM;
-                    }
+                    { ++BPM; }
                 }
             }
 
@@ -752,9 +728,7 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
             std::string result;
 
             if (i < s.size()) {
-                {
-                    result = s[i];
-                }
+                { result = s[i]; }
             }
 
             return result;
@@ -769,9 +743,9 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
             CLog::log().multiRegister(__FILE__ " exception: %0 LINE %1", e,
                                       static_cast<int>(__LINE__));
         }
-        songName = chk(Song["Name"], 0u);
-        songArtist = chk(Song["Artist"], 0u);
-        songCharter = chk(Song["Charter"], 0u);
+        player.songName = chk(Song["Name"], 0u);
+        player.songArtist = chk(Song["Artist"], 0u);
+        player.songCharter = chk(Song["Charter"], 0u);
         try {
             chartOffset = std::stod(Song["Offset"][0]);
         } catch (...) {
@@ -779,15 +753,15 @@ auto CPlayer::NotesData::loadFeedbackChart(const char *chartFile) -> bool {
         }
     };
 
-    parseFeedBackChart(feedBackChartMap, chartFile);
+    parseFeedBackChart(feedBackChartMap);
 
     fillChartInfo(feedBackChartMap);
 
-    Ntsdata.reserve(notesCountToReserve(feedBackChartMap, instrument));
+    Ntsdata.reserve(notesCountToReserve(feedBackChartMap, player.instrument));
 
     BPMRead(BPMsdata, feedBackChartMap);
     noteRead(Ntsdata, BPMsdata, feedBackChartMap,
-             instrument); // Default: "[ExpertSingle]"
+             player.instrument); // Default: "[ExpertSingle]"
 
     /*
     int bpdqpos = 0;
@@ -894,21 +868,21 @@ auto CPlayer::NotesData::getChartEnd(double offset) -> double {
     return 2.0;
 }
 
-auto CPlayer::NotesData::loadChart(const char *chartFile) -> bool {
+auto CPlayer::NotesData::loadChart(std::string_view chartFile, CPlayer &player) -> bool {
     chartEnd = 0;
-    chartFileName = chartFile;
 
-    if (chartFileName.find(".gpp") != std::string::npos) {
+    if (chartFile.find(".gpp") != std::string::npos) {
         CChart chart;
 
-        std::fstream chartf(chartFile, std::ios::binary | std::ios::in);
+        std::fstream chartf(std::string(chartFile),
+                            std::ios::binary | std::ios::in);
 
         try {
             cereal::BinaryInputArchive oarchive(chartf);
 
             oarchive(chart);
 
-            chart.loadToNotesData(*this, instrument);
+            chart.loadToNotesData(player, player.instrument);
 
             return true;
         } catch (const std::exception &e) {
@@ -916,7 +890,7 @@ auto CPlayer::NotesData::loadChart(const char *chartFile) -> bool {
         }
     }
 
-    CText ACTEXTChart(chartFile, true);
+    CText ACTEXTChart(chartFile.data(), true);
 
     std::deque<CText::field_t> &textArray = ACTEXTChart[""].fields;
 
@@ -931,9 +905,7 @@ auto CPlayer::NotesData::loadChart(const char *chartFile) -> bool {
 
     auto plusFunc = [&PlusNow](Note &note) {
         if (PlusNow.type == -1) {
-            {
-                return;
-            }
+            { return; }
         }
 
         if (note.time >= PlusNow.time && note.time <= PlusNow.lTime) {
@@ -958,9 +930,7 @@ auto CPlayer::NotesData::loadChart(const char *chartFile) -> bool {
 
             for (auto &b : BPM) {
                 if (b.time > note.time) {
-                    {
-                        break;
-                    }
+                    { break; }
                 }
 
                 BPMStepCalc = 60.0 / b.lTime;
@@ -1001,9 +971,7 @@ auto CPlayer::NotesData::loadChart(const char *chartFile) -> bool {
                         newNote.lTime = ntInfoLTime;
                         newNote.type = (int)pow(2, ntIDInfo);
                         if (newNote.lTime > 0.0) {
-                            {
-                                newNote.type |= nf_slide;
-                            }
+                            { newNote.type |= nf_slide; }
                         }
 
                         plusFunc(newNote);
@@ -1022,9 +990,7 @@ auto CPlayer::NotesData::loadChart(const char *chartFile) -> bool {
                             newNote.lTime = ntInfoLTime;
                             newNote.type = (int)pow(2, ntIDInfo);
                             if (newNote.lTime > 0.0) {
-                                {
-                                    newNote.type |= nf_slide;
-                                }
+                                { newNote.type |= nf_slide; }
                             }
 
                             plusFunc(newNote);
@@ -1063,7 +1029,6 @@ void CPlayer::NotesData::unloadChart() {
         fretNotePickedTime = 0.0;
     }
 
-    chartFileName.clear();
     gNotes.clear();
     BPM.clear();
     gPlus.clear();
@@ -1086,8 +1051,6 @@ CPlayer::NotesData::NotesData() {
     gPlus.reserve(200);
     gNotes.reserve(10000);
 
-    instrument = "[ExpertSingle]";
-
     for (auto &fretNotePickedTime : fretsNotePickedTime) {
         fretNotePickedTime = 0.0;
     }
@@ -1104,9 +1067,7 @@ void CPlayer::processError() {
     muteInstrument();
 
     if (publicAprov > 0) {
-        {
-            publicAprov--;
-        }
+        { publicAprov--; }
     }
 }
 
@@ -1307,6 +1268,8 @@ CPlayer::CPlayer(const char *name) {
 
     experience = 100.0;
     tailsData.reserve(32);
+
+    instrument = "[ExpertSingle]";
 }
 
 CPlayer::~CPlayer() noexcept {

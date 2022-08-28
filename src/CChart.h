@@ -82,7 +82,7 @@ class CChart {
 
     bool loadToPlayerData(CPlayer &player,
                           const std::string &instrument = "") const;
-    bool loadToNotesData(CPlayer::NotesData &Notes,
+    bool loadToNotesData(CPlayer &player,
                          const std::string &instrument = "") const;
 
     static const int notesEnum, notesEnumWithOpenNotes;

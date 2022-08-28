@@ -3,6 +3,7 @@
 #include "CLog.h"
 #include "CShader.h"
 #include "GPPGame.h"
+#include <cstddef>
 #include <iostream>
 
 void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file) {
@@ -26,9 +27,7 @@ void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file) {
     std::fstream mtl(path + "/" + file, std::ios::in | std::ios::binary);
 
     if (!mtl.is_open()) {
-        {
-            return;
-        }
+        { return; }
     }
 
     mtlLoaded = true;
@@ -110,9 +109,7 @@ auto GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
     std::fstream obj(path + "/" + file, std::ios::in | std::ios::binary);
 
     if (!obj.is_open()) {
-        {
-            return false;
-        }
+        { return false; }
     }
 
     multiData.clear();
@@ -247,7 +244,7 @@ auto GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
         }
     };
 
-    auto cpy = [](std::vector<int8_t> &data, int8_t *ptr, int size) {
+    auto cpy = [](std::vector<int8_t> &data, int8_t *ptr, size_t size) {
         data.insert(data.end(), ptr, ptr + size);
     };
 
@@ -345,9 +342,7 @@ void GPPOBJ::draw(unsigned int texture, bool autoBindZeroVBO) {
 
     for (auto &modelPart : multiData) {
         if (texture != 0) {
-            {
-                modelPart.vbodata.texture = texture;
-            }
+            { modelPart.vbodata.texture = texture; }
         }
 
         CEngine::engine().RenderCustomVerticesFloat(modelPart.vbodata,
