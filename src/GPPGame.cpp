@@ -256,7 +256,7 @@ void GPPGame::loadMarathonThread(CGamePlay &module, loadThreadData &l) {
 
             module.loadSongLyrics(song);
 
-            for (int i = 0, size = module.players.size(); i < size; ++i) {
+            for (size_t i = 0, size = module.players.size(); i < size; ++i) {
                 module.getPlayer(i).releaseSong();
                 module.getPlayer(i).Notes.unloadChart();
 
@@ -772,7 +772,7 @@ void GPPGame::selectPlayerMenu() {
 }
 
 void GPPGame::parseParameters(int argc, char *argv[]) {
-    for (int i = 0; i < argc; ++i) {
+    for (size_t i = 0; i < argc; ++i) {
         if (argv[i] != nullptr) {
             if (argv[i][0] == '-' || argv[i][0] == '/') {
                 cmdparams[&((argv[i])[1])] = true;
@@ -3045,7 +3045,7 @@ auto GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData) -> bool {
     }
 
     if (futureTextureLoad.getAddedElementsNum() > 0) {
-        for (int i = 0, size = futureTextureLoad.getNumElements(); i < size;
+        for (size_t i = 0, size = futureTextureLoad.getNumElements(); i < size;
              i++) {
             loadTextureBatch *a = futureTextureLoad.get(i);
             if (a != nullptr) {
@@ -3145,7 +3145,7 @@ void GPPGame::textureStreammingProcess() {
         // std::unique_lock<std::mutex> lock(mstreamming_block);
         bool ftload = forceTextToLoad;
 
-        for (int i = 0, size = futureTextureLoad.getNumElements(); i < size;
+        for (size_t i = 0, size = futureTextureLoad.getNumElements(); i < size;
              i++) {
             loadTextureBatch *a = futureTextureLoad.get(i);
             if (a != nullptr) {
@@ -3194,7 +3194,7 @@ void GPPGame::textureStreammingProcess() {
     }
 
     if (futureModelLoad.getAddedElementsNum() > 0) {
-        for (int i = 0, size = futureModelLoad.getNumElements(); i < size;
+        for (size_t i = 0, size = futureModelLoad.getNumElements(); i < size;
              i++) {
             loadModelBatch *a = futureModelLoad.get(i);
             if ((a != nullptr) && a->asyncend) {
@@ -4647,7 +4647,7 @@ GPPGame::GPPGame()
     HUDText = 0;
     fretboardText = 0;
 
-    static int uiRenameMenuText = 0;
+    static size_t uiRenameMenuText = 0;
 
     uiRenameMenu.qbgd.alphaBottom = 1.0;
     uiRenameMenu.qbgd.alphaTop = 1.0;
@@ -4759,9 +4759,9 @@ GPPGame::GPPGame()
 
             if ((gpp.devMenus.devEditMenu != nullptr) &&
                 gpp.devMenus.getUIListSize() == 0) {
-                int op = gpp.devMenus.devEditMenu->getDevSelectedMenuOpt();
+                size_t op = gpp.devMenus.devEditMenu->getDevSelectedMenuOpt();
 
-                if (op != -1) {
+                if (op != ~static_cast<size_t>(0UL)) {
                     gpp.devMenus.devEditingOpt = op;
 
                     int r = gpp.devMenus.pushUserInterface(gpp.uiRenameMenu);

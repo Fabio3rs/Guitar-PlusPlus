@@ -145,7 +145,7 @@ auto CEngine::getChannelData(int handle) -> CEngine::chdata {
                                 BASS_DATA_FFT_INDIVIDUAL);
 
     std::cout << r << "   " << BASS_ChannelGetLevel(handle) << std::endl;
-    /*for (int i = 0; i < 4; i++)
+    /*for (size_t i = 0; i < 4; i++)
     {
             std::cout << r << "   " << result.data[i] << std::endl;
     }*/
@@ -165,7 +165,7 @@ auto CEngine::getChannelData(int handle, int b) -> CEngine::chdata {
 
     int r = BASS_ChannelGetData(handle, fft, BASS_DATA_FFT1024);
 
-    for (int i = b; i < b + 4; i++) {
+    for (size_t i = b; i < b + 4; i++) {
         result.data[i] = fft[b] * ci.chans;
     }
 
@@ -181,7 +181,7 @@ auto CEngine::getPossibleVideoModes() -> std::vector<CEngine::Resolution> {
     std::vector<CEngine::Resolution> result;
     result.reserve(count);
 
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         Resolution newRes{};
         newRes.width = modes[i].width;
         newRes.height = modes[i].height;
@@ -1138,7 +1138,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen) {
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
 
-    /*for (int i = 0, size = glStates.size(); i < size; i++){
+    /*for (size_t i = 0, size = glStates.size(); i < size; i++){
             glStates[i] = glIsEnabled(i);
     }*/
     lightData l{};
@@ -1355,7 +1355,7 @@ void CEngine::colorRGBToArray(int32_t rgb, double *arr) {
     uint8_t colorArray[4] = {0, 0, 0, 0};
     memcpy(colorArray, &rgb, sizeof(colorArray));
 
-    for (int i = 0; i < 3; i++) {
+    for (size_t i = 0; i < 3; i++) {
         arr[i] = ((double)colorArray[2 - i]) / (255.0);
     }
 
@@ -1366,7 +1366,7 @@ void CEngine::colorRGBToArrayf(int32_t rgb, float *arr) {
     uint8_t colorArray[4] = {0, 0, 0, 0};
     memcpy(colorArray, &rgb, sizeof(colorArray));
 
-    for (int i = 0; i < 3; i++) {
+    for (size_t i = 0; i < 3; i++) {
         arr[i] = ((float)colorArray[2 - i]) / (255.0f);
     }
 
@@ -1447,7 +1447,7 @@ void CEngine::draw2DLine(double *linedata, int points) {
 
     glBegin(GL_LINES);
 
-    for (int i = 0; i < points; i++) {
+    for (size_t i = 0; i < points; i++) {
         glVertex2d(linedata[i * 2 + 0], linedata[i * 2 + 1]);
         if (i > 0 && i < (points - 1)) {
             glVertex2d(linedata[i * 2 + 0], linedata[i * 2 + 1]);
@@ -1551,7 +1551,7 @@ void CEngine::Render2DCircleBufferMax(double x, double y, double perone,
         double planificatedSizeToRenderStep =
             planificatedSizeToRender / (double)polysNum;
 
-        for (int i = 0; i < polysNum; i++) {
+        for (size_t i = 0; i < polysNum; i++) {
             double degreesNow = degreesStep * (double)i;
             double planificatedSizeToRenderNow = planificatedSize;
             double sinValue = sin(degreesNow);
@@ -1651,7 +1651,7 @@ void CEngine::Render2DCircle(double x, double y, double percent, double radius,
         double planificatedSizeToRenderStep =
             planificatedSizeToRender / (double)polysNum;
 
-        for (int i = 0; i < polysNum; i++) {
+        for (size_t i = 0; i < polysNum; i++) {
             double degreesNow = degreesStep * (double)i;
             double planificatedSizeToRenderNow = planificatedSize;
             double sinValue = sin(degreesNow);

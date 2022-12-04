@@ -5,6 +5,7 @@ project(${myprojectname} VERSION 0.1.0)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
+set(OpenGL_GL_PREFERENCE "LEGACY")
 
 #set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=.;-extra-arg=-std=c++17;-export-fixes;-checks=read*,modern*,hicpp*,performance*")
 
@@ -25,17 +26,37 @@ find_package(PkgConfig)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 
-include(CTest)
-enable_testing()
-#find_package(GTest REQUIRED)
-#include(GoogleTest)
-
 add_subdirectory(${CMAKE_SOURCE_DIR}/glfw)
 
 # setando todos arquivos fontes que serão compilados
 file(
     GLOB SOURCES 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CCampaing.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CChart.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CCharter.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CControls.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CFonts.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CGPPFileMGR.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CGamePlay.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CGuitars.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CLanguageManager.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CLog.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CLuaFunctions.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CLuaH.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CMenu.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CMultiplayer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CParticle.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CPlayer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CSaveSystem.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CShader.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CText.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CVideo.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/GPPGame.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/GPPOBJ.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/exception.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/tga.cpp"
+
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Lua/*.c"
 )
 
@@ -49,23 +70,25 @@ set(INCLUDE_DIRS
 
 message(${INCLUDE_DIRS})
 
-add_executable(${myprojectname} ${SOURCES})
+add_library("${myprojectname}_lib" STATIC ${SOURCES})
+add_executable(${myprojectname} "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
-target_include_directories(${myprojectname} PRIVATE ${INCLUDE_DIRS})
-target_link_directories(${myprojectname} PRIVATE ${INCLUDE_DIRS})
+target_include_directories("${myprojectname}_lib" PUBLIC ${INCLUDE_DIRS})
+target_link_directories("${myprojectname}_lib" PUBLIC ${INCLUDE_DIRS})
 
 # Compiler-specific compile flags
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     message(STATUS "Setting G++ flags")
-    target_compile_options(${myprojectname} PRIVATE -march=native -mtune=native -Wall -Wextra $<$<COMPILE_LANGUAGE:CXX>:-std=c++17> -Wformat-security -Wconversion -Wsign-conversion)
+    target_compile_options("${myprojectname}_lib" PRIVATE -march=native -mtune=native -Wall -Wextra $<$<COMPILE_LANGUAGE:CXX>:-std=c++17> -Wformat-security -Wconversion -Wsign-conversion)
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
     message(STATUS "Setting MSVC flags")
-    target_compile_options(${myprojectname} PRIVATE /EHsc /W2 /c)
+    target_compile_options("${myprojectname}_lib" PRIVATE /EHsc /W2 /c)
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     message(STATUS "Setting Clang flags")
-    target_compile_options(${myprojectname} PRIVATE -march=native -mtune=native -Weverything -Wno-date-time -Wno-disabled-macro-expansion -Wno-global-constructors $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>  -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-exit-time-destructors)
+    target_compile_options("${myprojectname}_lib" PRIVATE -march=native -mtune=native -Weverything -Wno-date-time -Wno-disabled-macro-expansion -Wno-global-constructors $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>  -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-exit-time-destructors)
 endif()
 
-target_link_libraries(${myprojectname} glfw GLEW OpenGL::GL bass bass_fx)
+target_link_libraries("${myprojectname}_lib" glfw GLEW OpenGL::GL bass bass_fx)
+target_link_libraries(${myprojectname} "${myprojectname}_lib")
 
-
+add_subdirectory(tests)

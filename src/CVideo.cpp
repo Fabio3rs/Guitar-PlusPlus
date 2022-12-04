@@ -23,7 +23,7 @@ static void fillRGB(char *rgb, int pos, int r, int g, int b) {
 
 static void grgb2rgb24(const char *grgb, char *rgb, int pixels, int width,
                        int height) {
-    for (int i = 0, ir = 0; i < width; i += 2, ir += 2) {
+    for (size_t i = 0, ir = 0; i < width; i += 2, ir += 2) {
         for (int j = 0, jr = 0; j < height; j += 2, jr += 2) {
             int g = (unsigned char)grgb[wxlToPos(width, i, j)];
             int r = (unsigned char)grgb[wxlToPos(width, i + 1, j)];

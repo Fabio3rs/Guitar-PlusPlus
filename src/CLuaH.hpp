@@ -163,13 +163,13 @@ class CLuaH {
 
         const std::string &getString() const noexcept { return p.str; }
 
-        const double getNumber() const noexcept {
+        double getNumber() const noexcept {
             return ((p.type == (LUA_TNUMBER | 0xF0000000)) ? p.inumber : p.num);
         }
 
-        const bool getBoolean() const noexcept { return p.boolean != 0; }
+        bool getBoolean() const noexcept { return p.boolean != 0; }
 
-        const int getFunctionRef() const noexcept { return p.function; }
+        int getFunctionRef() const noexcept { return p.function; }
 
         void set(const std::string &s) {
             p.str = s;
@@ -257,7 +257,7 @@ class CLuaH {
 
             case LUA_TNUMBER:
                 if (lua_isinteger(L, idx)) {
-                    p.type = (LUA_TNUMBER | 0xF0000000);
+                    p.type = (LUA_TNUMBER | 0xF0000000U);
                     p.inumber = lua_tointeger(L, idx);
                 } else {
                     p.num = lua_tonumber(L, idx);

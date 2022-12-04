@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #ifndef GUITARPP_CENGINE_H_
 #define GUITARPP_CENGINE_H_
 // brmodstudio.forumeiros.com
@@ -212,7 +213,7 @@ typedef void (*customwcallback)(int w, int h, windowsNum state);
 class staticCallFunc {
 
   public:
-    template <class T, class... U> staticCallFunc(T fun, U &&... u) {
+    template <class T, class... U> staticCallFunc(T fun, U &&...u) {
         fun(std::forward<U>(u)...);
     }
 };
@@ -340,13 +341,13 @@ class CEngine {
         unsigned int GlBuffer;
         std::unique_ptr<double[]> verticesBuffer;
         double x, y, percent, radius, lineWeight;
-        int polysNum;
+        size_t polysNum;
 
       public:
         friend CEngine;
 
         bool isChanged(double x, double y, double percent, double radius,
-                       double lineWeight, int polysNum) {
+                       double lineWeight, size_t polysNum) {
             if (percent != this->percent || x != this->x || y != this->y ||
                 radius != this->radius || lineWeight != this->lineWeight ||
                 polysNum != this->polysNum) {
@@ -366,7 +367,7 @@ class CEngine {
         }
 
         bool isChangedMX(double x, double y, double radius, double lineWeight,
-                         int polysNum) {
+                         size_t polysNum) {
             if (x != this->x || y != this->y || radius != this->radius ||
                 lineWeight != this->lineWeight || polysNum != this->polysNum) {
                 this->x = x;
@@ -383,7 +384,7 @@ class CEngine {
             return false;
         }
 
-        void allocAll(int polnum) {
+        void allocAll(size_t polnum) {
             verticesBuffer = std::make_unique<double[]>(polnum * 12);
             this->polysNum = polnum;
         }

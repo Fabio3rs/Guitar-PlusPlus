@@ -34,7 +34,7 @@ class CGamePlay {
     // Texture, int state, CPlayer &player);
     void renderIndivdualStrikeButton3D(int id, double pos, unsigned int Texture,
                                        double state, CPlayer &player) const;
-    void renderIndivdualStrikeButton3DStrike(int id, double pos,
+    void renderIndivdualStrikeButton3DStrike(size_t id, double pos,
                                              unsigned int Texture, double state,
                                              CPlayer &player) const;
     static void renderIndivdualFlame(int id, double pos, unsigned int Texture,
@@ -57,8 +57,6 @@ class CGamePlay {
     bool renderNote(const CPlayer::NotesData::Note &note, CPlayer &player,
                     double ltimet);
     void renderNotePlayer(CPlayer &player);
-    void renderNoteShadow(CPlayer::NotesData::Note &note, CPlayer &player);
-    void renderNoteShadowHpStyle(CPlayer &player);
     void renderIndividualLine(int id, double pos1, double pos2,
                               unsigned int Texture, CPlayer &player);
     void renderTimeOnNote(double pos, double time, CPlayer &player);

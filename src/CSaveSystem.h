@@ -80,7 +80,7 @@ class CSaveSystem {
                 return result;
             }
 
-            for (int i = 0; i < v.size; i++) {
+            for (size_t i = 0; i < v.size; i++) {
                 ((uint8_t *)(&result))[i] = v.svcontent[i];
             }
 

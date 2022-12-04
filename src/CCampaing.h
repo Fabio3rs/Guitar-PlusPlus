@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #ifndef GUITARPP_CCAMPAING_H
 #define GUITARPP_CCAMPAING_H
 #include "CGuitars.h"
@@ -22,7 +23,7 @@ class CCampaing {
     std::string loadedCampaingFilepath;
     const std::string campaingScriptsDirectory;
 
-    int numCampaingSaves;
+    size_t numCampaingSaves;
     int menuNovaCampanhaID, menuContinuarCampanhaID;
 
     CLuaH::scriptStorage campaingScripts;

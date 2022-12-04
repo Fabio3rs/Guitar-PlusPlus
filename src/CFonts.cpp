@@ -9,6 +9,7 @@
 #include "CLog.h"
 #include "GPPGame.h"
 #include "utf8.h"
+#include <cstdint>
 #include <iostream>
 
 auto CFonts::fonts() -> CFonts & {
@@ -196,7 +197,7 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch) {
             {
                 std::vector<int> colCalcMinMax;
 
-                for (int i = pixelsPerCol - 1; i >= 0; i--) {
+                for (intptr_t i = pixelsPerCol - 1; i >= 0; i--) {
                     auto *lnPtr = getLineText(i);
 
                     for (int j = 0; j < pixelsPerLinesDiv; j++) {
@@ -246,7 +247,7 @@ void CFonts::Font::chartbl::internalProcessTexture(int ch) {
 
                 colCalcMinMax.clear();
 
-                for (int i = pixelsPerCol - 1; i >= 0; i--) {
+                for (intptr_t i = pixelsPerCol - 1; i >= 0; i--) {
                     auto *lnPtr = getLineText(i);
 
                     for (int j = pixelsPerLinesDiv - 1; j >= 0; j--) {

@@ -13,6 +13,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 template <class poolData_t, const size_t numElements> class CMultiThreadPool {
     typedef poolData_t pdata_t;
@@ -68,7 +69,7 @@ template <class poolData_t, const size_t numElements> class CMultiThreadPool {
     }
 
   public:
-    int getNumElements() { return numElements; }
+    size_t getNumElements() { return numElements; }
 
     size_t getFreeElement() { return firstFreeElement; }
 
@@ -123,7 +124,6 @@ template <class poolData_t, const size_t numElements> class CMultiThreadPool {
 
         if (result != nullptr) {
             new (result) poolData_t();
-            auto &data = (*result);
 
             // data = std::move(poolData_t());
 
@@ -194,7 +194,7 @@ template <class poolData_t, const size_t numElements> class CMultiThreadPool {
         memset(pool.get(), 0, sizeof(pdata_t) * numElements);
 
         /*std::cout << "Teste pool\n";
-        for (int i = 0; i < numElements; i++)
+        for (size_t i = 0; i < numElements; i++)
         {
             new (&(plget()[i])) poolData_t();
         }

@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #ifndef GUITARPP_CMENU_H
 #define GUITARPP_CMENU_H
 
@@ -77,7 +78,9 @@ class CMenu {
     int getUIListSize();
     bool isMouseOnThisMenu();
 
-    static inline uiWindowStruct &getUiAt(int index) { return uiList[index]; }
+    static inline uiWindowStruct &getUiAt(size_t index) {
+        return uiList[index];
+    }
     static void renderUiList();
     static uiWindowStruct &getUILast();
 
@@ -193,7 +196,7 @@ class CMenu {
 
     int pushUserInterface(const CMenu &m);
 
-    int getDevSelectedMenuOpt();
+    size_t getDevSelectedMenuOpt();
 
     void update();
     void updateDev();
@@ -202,9 +205,11 @@ class CMenu {
     void render();
     int addOpt(const menuOpt &opt);
 
-    int getNumOfOptions() { return options.size(); }
+    size_t getNumOfOptions() { return options.size(); }
 
-    std::string getNameFromOpt(int optID) { return options[optID].optionName; }
+    std::string getNameFromOpt(size_t optID) {
+        return options[optID].optionName;
+    }
 
     void resetData();
     void resetBtns();

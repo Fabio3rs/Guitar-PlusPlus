@@ -631,7 +631,7 @@ auto CLuaFunctions::newGamePlayModule(lua_State *L) -> int {
 auto CLuaFunctions::loadSound(lua_State *L) -> int {
     LuaParams p(L);
 
-    for (int i = 0; i < p.getNumParams(); i++) {
+    for (size_t i = 0; i < p.getNumParams(); i++) {
         if (lua_isstring(L, i + 1) != 0) {
             std::string str;
             p >> str;
@@ -654,7 +654,7 @@ auto CLuaFunctions::loadSound(lua_State *L) -> int {
 auto CLuaFunctions::loadSoundDecode(lua_State *L) -> int {
     LuaParams p(L);
 
-    for (int i = 0; i < p.getNumParams(); i++) {
+    for (size_t i = 0; i < p.getNumParams(); i++) {
         if (lua_isstring(L, i + 1) != 0) {
             std::string str = "<<nullstring>>";
             p >> str;
@@ -677,7 +677,7 @@ auto CLuaFunctions::loadSoundDecode(lua_State *L) -> int {
 auto CLuaFunctions::playSound(lua_State *L) -> int {
     LuaParams p(L);
 
-    for (int i = 0; i < p.getNumParams(); i++) {
+    for (size_t i = 0; i < p.getNumParams(); i++) {
         if (lua_isnumber(L, i + 1) != 0) {
             int handle = 0;
             p >> handle;
@@ -694,7 +694,7 @@ auto CLuaFunctions::playSound(lua_State *L) -> int {
 auto CLuaFunctions::pauseSound(lua_State *L) -> int {
     LuaParams p(L);
 
-    for (int i = 0; i < p.getNumParams(); i++) {
+    for (size_t i = 0; i < p.getNumParams(); i++) {
         if (lua_isnumber(L, i + 1) != 0) {
             int handle = 0;
             p >> handle;
@@ -711,7 +711,7 @@ auto CLuaFunctions::pauseSound(lua_State *L) -> int {
 auto CLuaFunctions::stopSound(lua_State *L) -> int {
     LuaParams p(L);
 
-    for (int i = 0; i < p.getNumParams(); i++) {
+    for (size_t i = 0; i < p.getNumParams(); i++) {
         if (lua_isnumber(L, i + 1) != 0) {
             int handle = 0;
             p >> handle;
@@ -768,7 +768,7 @@ auto CLuaFunctions::setSoundVolume(lua_State *L) -> int {
 auto CLuaFunctions::getSoundVolume(lua_State *L) -> int {
     LuaParams p(L);
 
-    for (int i = 0; i < p.getNumParams(); i++) {
+    for (size_t i = 0; i < p.getNumParams(); i++) {
         if (lua_isnumber(L, i + 1) != 0) {
             int handle = 0;
             p >> handle;
@@ -785,7 +785,7 @@ auto CLuaFunctions::getSoundVolume(lua_State *L) -> int {
 auto CLuaFunctions::getSoundTime(lua_State *L) -> int {
     LuaParams p(L);
 
-    for (int i = 0; i < p.getNumParams(); i++) {
+    for (size_t i = 0; i < p.getNumParams(); i++) {
         if (lua_isnumber(L, i + 1) != 0) {
             int handle = 0;
             p >> handle;
@@ -802,7 +802,7 @@ auto CLuaFunctions::getSoundTime(lua_State *L) -> int {
 auto CLuaFunctions::releaseSound(lua_State *L) -> int {
     LuaParams p(L);
 
-    for (int i = 0; i < p.getNumParams(); i++) {
+    for (size_t i = 0; i < p.getNumParams(); i++) {
         if (lua_isnumber(L, i + 1) != 0) {
             int handle = 0;
             p >> handle;
@@ -870,7 +870,7 @@ auto CLuaFunctions::getBassError(lua_State *L) -> int {
 auto CLuaFunctions::loadTexture(lua_State *L) -> int {
     LuaParams p(L);
 
-    for (int i = 0; i < p.getNumParams(); i++) {
+    for (size_t i = 0; i < p.getNumParams(); i++) {
         if (lua_isstring(L, i + 1) != 0) {
             std::string str;
             p >> str;
@@ -1014,7 +1014,7 @@ auto CLuaFunctions::printTolog(lua_State *L) -> int {
 
     std::string str = "Lua script log: ";
 
-    for (int i = 1, size = p.getNumParams(); i <= size; i++) {
+    for (size_t i = 1, size = p.getNumParams(); i <= size; i++) {
         switch (lua_type(L, i)) {
         case LUA_TNIL:
             str += " <null> ";

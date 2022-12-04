@@ -54,7 +54,7 @@ auto CMultiplayer::clientConnect(const char *host, const char *port) -> SOCKET {
         server->notifyTest = true;
     }
 
-    for (int i = 0; i < 1000; i++) {
+    for (size_t i = 0; i < 1000; i++) {
         int64_t readr = cli.receive(buffer, sizeof(buffer));
         if (readr > 0) {
             std::cout << readr << "   " << buffer << std::endl;

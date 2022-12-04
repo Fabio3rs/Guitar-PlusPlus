@@ -109,7 +109,7 @@ void CPlayer::update() {
             double rtime = (note.time - musicRunningTime);
 
             if (rtime < 0.1 && rtime > -0.1) {
-                for (int i = 0; i < 5; ++i) {
+                for (size_t i = 0; i < 5; ++i) {
                     if ((note.type & (int)pow(2, i)) != 0) {
                         fretsPressed[i] = true;
                         clearFretsP = false;
@@ -122,7 +122,7 @@ void CPlayer::update() {
             }
         }
 
-        for (int i = 0; i < 5; ++i) {
+        for (size_t i = 0; i < 5; ++i) {
             if (notesSlide[i] != -1) {
                 fretsPressed[i] = true;
                 clearFretsP = false;
@@ -139,7 +139,7 @@ void CPlayer::update() {
                 ((strklinenttime < 0.14 &&
                   ((note.type & notesFlags::nf_not_hopo) != 0)) ||
                  (strklinenttime < 0.04))) {
-                for (int i = 0; i < 5; ++i) {
+                for (size_t i = 0; i < 5; ++i) {
                     if ((note.type & (int)pow(2, i)) != 0) {
                         fretsPressed[i] = true;
                     } else {
@@ -203,7 +203,7 @@ void CPlayer::update() {
 
         CMultiplayer::playersData pdata;
 
-        for (int i = 0, size = pData.size(); i < size; i++) {
+        for (size_t i = 0, size = pData.size(); i < size; i++) {
             if (plname == pData[i].name) {
                 // std::cout << pData[i].keys << std::endl;
                 pdata = pData[i];
@@ -1155,7 +1155,7 @@ auto CPlayer::comboToMultiplier() const -> double {
 
 auto CPlayer::getLastFretsPressedFlags() const -> int {
     int result = 0;
-    for (int i = 0; i < 5; ++i) {
+    for (size_t i = 0; i < 5; ++i) {
         if (lastFretsPressed[i]) {
             result |= static_cast<int>(pow(2, i));
         }
@@ -1166,7 +1166,7 @@ auto CPlayer::getLastFretsPressedFlags() const -> int {
 
 auto CPlayer::getFretsPressedFlags() const -> int {
     int result = 0;
-    for (int i = 0; i < 5; ++i) {
+    for (size_t i = 0; i < 5; ++i) {
         if (fretsPressed[i]) {
             result |= static_cast<int>(pow(2, i));
         }

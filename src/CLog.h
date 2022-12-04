@@ -5,6 +5,7 @@
  *http://brmodstudio.forumeiros.com
  *****************************************************************************************************/
 #pragma once
+#include <cstddef>
 #ifndef LOGGING_SYSTEM_CLOG_H
 #define LOGGING_SYSTEM_CLOG_H
 #include <chrono>
@@ -70,9 +71,9 @@ class CLog {
 
         bool ignoreNext = false;
 
-        for (int i = 0, size = format.size(); i < size; i++) {
+        for (size_t i = 0, size = format.size(); i < size; i++) {
             auto ch = format[i];
-            int ti = i + 1;
+            size_t ti = i + 1;
 
             switch (ch) {
             case '\\':
@@ -102,7 +103,7 @@ class CLog {
                             if (numbuf.size() > 0) {
                                 size_t argId = std::stoul(numbuf);
 
-                                if (argId >= 0 && argId < a.size()) {
+                                if (argId < a.size()) {
                                     printbuf += a[argId].getStr();
                                 } else {
                                     printbuf += "%";
@@ -125,7 +126,7 @@ class CLog {
                         if (numbuf.size() > 0) {
                             size_t argId = std::stoul(numbuf);
 
-                            if (argId >= 0 && argId < a.size()) {
+                            if (argId < a.size()) {
                                 printbuf += a[argId].getStr();
                             } else {
                                 printbuf += "%";

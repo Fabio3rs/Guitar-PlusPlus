@@ -84,7 +84,7 @@ void CShader::addShaderToEvent(const char *shaderEvent, int shaderID) {
     }
 
     int ID = -1;
-    for (int i = 0, size = events.size(); i < size; i++) {
+    for (size_t i = 0, size = events.size(); i < size; i++) {
         if (events[i].eventName == shaderEvent) {
             ID = i;
             break;
@@ -142,7 +142,7 @@ auto CShader::newShader(const char *shaderFile, shaderTypes type,
     }
 
     int ID = -1;
-    for (int i = 0, size = events.size(); i < size; i++) {
+    for (size_t i = 0, size = events.size(); i < size; i++) {
         if (events[i].eventName == name) {
             ID = i;
             break;

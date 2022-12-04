@@ -1,0 +1,43 @@
+name: Build and test Guitar++
+
+on: 
+  push:
+    branches:
+      - master
+
+jobs:
+  Testing_Code_Quality: 
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      #instalando dependencias das libraries
+      - name: Installing Dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install build-essential
+          sudo apt install cmake -y
+          sudo apt install clang-12 clang-tidy-12 clang-format-12 ninja-build libglew-dev libgl-dev -y
+      
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v1.8
+        with:
+          cmake-version: '3.16.x'
+        
+      - name: Build project
+        run: |
+          export CC=$(which clang-12)
+          export CXX=$(which clang++-12)
+          mkdir build && cd build
+          cmake .. -G Ninja
+          cmake --build . --config Debug --target all -j $(nproc) --
+
+      - name: Test project
+        run: |
+          export CC=$(which clang-12)
+          export CXX=$(which clang++-12)
+          cd build
+          ctest -j 20 -C Debug -T test --output-on-failure

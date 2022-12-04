@@ -674,7 +674,7 @@ CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 game.renderFrame();
 
 if (game.futureTextureLoad.getAddedElementsNum() > 0 && t > 5) {
-    for (int i = 0, size = game.futureTextureLoad.getNumElements(); i < size;
+    for (size_t i = 0, size = game.futureTextureLoad.getNumElements(); i < size;
          i++) {
         GPPGame::loadTextureBatch *a = game.futureTextureLoad.get(i);
 

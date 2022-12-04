@@ -38,7 +38,7 @@ auto CCampaing::loadCampaingF(const std::string &filepath) -> bool {
 
         campaingScripts.clear();
 
-        for (int i = 0, size = campaingNow.scripts.size(); i < size; i++) {
+        for (size_t i = 0, size = campaingNow.scripts.size(); i < size; i++) {
             auto lscript = CLuaH::Lua().newScriptRBuffer(
                 campaingNow.scripts[i].byteCode, campaingNow.scripts[i].name);
 
@@ -88,7 +88,7 @@ auto CCampaing::saveCampaingF() -> bool {
             return false;
         }
 
-        for (int i = 0, size = campaingNow.scripts.size(); i < size; i++) {
+        for (size_t i = 0, size = campaingNow.scripts.size(); i < size; i++) {
             campaingNow.scripts[i].scriptVars.clear();
             CLuaH::loadGlobalTable(campaingScripts[i].luaState.get(),
                                    campaingNow.scripts[i].scriptVars);
@@ -608,20 +608,18 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
                 songs.resize(size);
             }
 
-            for (int i = 0; i < size; i++) {
-                {
-                    CMenu::menuOpt opt;
+            for (size_t i = 0; i < size; i++) {
+                CMenu::menuOpt opt;
 
-                    opt.text = songs[i];
-                    opt.y = -0.25 - i * 0.08;
-                    opt.size = 0.075;
-                    opt.x = infoPos + 0.075 * 2.0;
-                    // opt.group = 0;
-                    opt.status = 0;
-                    opt.type = CMenu::menusOPT::static_text;
+                opt.text = songs[i];
+                opt.y = -0.25 - static_cast<double>(i) * 0.08;
+                opt.size = 0.075;
+                opt.x = infoPos + 0.075 * 2.0;
+                // opt.group = 0;
+                opt.status = 0;
+                opt.type = CMenu::menusOPT::static_text;
 
-                    contOptions.addOpt(opt);
-                }
+                contOptions.addOpt(opt);
             }
 
             playSongsList = std::move(songs);
