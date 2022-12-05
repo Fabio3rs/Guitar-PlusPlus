@@ -70,11 +70,11 @@ set(INCLUDE_DIRS
 
 message(${INCLUDE_DIRS})
 
+include_directories(SYSTEM ${INCLUDE_DIRS})
+link_directories(${INCLUDE_DIRS})
+
 add_library("${myprojectname}_lib" STATIC ${SOURCES})
 add_executable(${myprojectname} "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
-
-target_include_directories("${myprojectname}_lib" PUBLIC ${INCLUDE_DIRS})
-target_link_directories("${myprojectname}_lib" PUBLIC ${INCLUDE_DIRS})
 
 # Compiler-specific compile flags
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
