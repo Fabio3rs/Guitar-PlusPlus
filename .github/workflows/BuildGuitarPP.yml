@@ -20,7 +20,7 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install build-essential
           sudo apt install cmake -y
-          sudo apt install clang-12 clang-tidy-12 clang-format-12 ninja-build xorg-dev libglew-dev libgl-dev libxrandr-dev libxinerama-dev -y
+          sudo apt install clang-12 clang-tidy-12 clang-format-12 ninja-build xorg-dev libglew-dev libgl-dev libxrandr-dev libxinerama-dev libgtest-dev -y
       
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v1.8
