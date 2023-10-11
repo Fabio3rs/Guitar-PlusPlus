@@ -1,4 +1,5 @@
 #pragma once
+#include <unordered_map>
 #ifndef _GUITAR_PP_GPPOBJ_h_
 #define _GUITAR_PP_GPPOBJ_h_
 #include "CEngine.h"
@@ -41,21 +42,21 @@ class GPPOBJ {
         inline mtl() { textureID = 0; }
     };
 
-    std::map<std::string, mtl> mtlLib;
+    std::unordered_map<std::string, mtl> mtlLib;
 
     void loadMtlLibData(const std::string &path, const std::string &file);
 
     struct modelPartIndex {
         std::string name;
-        std::deque<unsigned int> vertexIndices;
-        std::deque<unsigned int> uvIndices;
-        std::deque<unsigned int> normalIndices;
+        std::basic_string<unsigned int> vertexIndices;
+        std::basic_string<unsigned int> uvIndices;
+        std::basic_string<unsigned int> normalIndices;
     };
 
     struct modelData {
-        std::deque<gppVec3f> vertices;
-        std::deque<gppVec2f> uvs;
-        std::deque<gppVec3f> normals;
+        std::vector<gppVec3f> vertices;
+        std::vector<gppVec2f> uvs;
+        std::vector<gppVec3f> normals;
 
         inline void clear() {
             vertices.clear();
@@ -64,7 +65,7 @@ class GPPOBJ {
         }
     };
 
-    std::deque<modelPart> multiData;
+    std::vector<modelPart> multiData;
 
     std::string lastPath;
 

@@ -5,6 +5,7 @@
 #include "GPPGame.h"
 #include <cstddef>
 #include <iostream>
+#include <istream>
 
 void GPPOBJ::loadMtlLibData(const std::string &path, const std::string &file) {
     std::lock_guard<std::mutex> lck(mtx);
@@ -103,6 +104,56 @@ void GPPOBJ::loadTextureList(const std::string &path, const std::string &file) {
     loadMtlLibData(path, file);
 }
 
+namespace {
+
+struct CountModelParts {
+    size_t lines = 0;
+    size_t vertex = 0;
+    size_t vtextures = 0;
+    size_t vnormals = 0;
+    size_t usemtl = 0;
+    size_t faces = 0;
+};
+
+auto countModelParts(std::istream &is) {
+    is.seekg(0, std::ios::beg);
+
+    std::array<char, 1024> buffer{};
+
+    CountModelParts result;
+
+    while (is.getline(buffer.data(), buffer.size() - 1)) {
+        ++result.lines;
+
+        std::array<char, 32> bufferLn{};
+
+        int readResult = sscanf(buffer.data(), "%31s", bufferLn.data());
+
+        if (readResult <= 0) {
+            continue;
+        }
+
+        if (strcmp(bufferLn.data(), "usemtl") == 0) {
+            ++result.usemtl;
+        } else if (strcmp(bufferLn.data(), "v") == 0) {
+            ++result.vertex;
+        } else if (strcmp(bufferLn.data(), "vt") == 0) {
+            ++result.vtextures;
+        } else if (strcmp(bufferLn.data(), "vn") == 0) {
+            ++result.vnormals;
+        } else if (strcmp(bufferLn.data(), "f") == 0) {
+            ++result.faces;
+        }
+    }
+
+    is.clear();
+    is.seekg(0, std::ios::beg);
+
+    return result;
+}
+
+} // namespace
+
 auto GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
                              const std::string &objName, bool loadMtlLib)
     -> bool {
@@ -115,7 +166,14 @@ auto GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
     multiData.clear();
     modelData mData;
 
-    std::deque<modelPartIndex> modelPartIndexes;
+    std::vector<modelPartIndex> modelPartIndexes;
+
+    auto countData = countModelParts(obj);
+
+    mData.vertices.reserve(countData.vertex);
+    mData.uvs.reserve(countData.vtextures);
+    mData.normals.reserve(countData.vnormals);
+    modelPartIndexes.reserve(countData.usemtl);
 
     std::array<char, 1024> buffer{};
     std::array<char, 32> bufferLn{};
@@ -257,12 +315,17 @@ auto GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
         }*/
     }
 
-    for (auto &part : modelPartIndexes) {
-        std::vector<gppVec3f> vertices;
-        std::vector<gppVec2f> uvs;
-        std::vector<gppVec3f> normals;
+    std::vector<gppVec3f> vertices;
+    std::vector<gppVec2f> uvs;
+    std::vector<gppVec3f> normals;
+    multiData.resize(modelPartIndexes.size());
 
+    for (auto &part : modelPartIndexes) {
         multiData.push_back({});
+        vertices.clear();
+        uvs.clear();
+        normals.clear();
+
         auto &adata = multiData.back();
 
         out_part(part, vertices, uvs, normals);
@@ -309,22 +372,26 @@ auto GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
             adata.textureID = 0;
         }
 
-        auto &data = adata.data;
+        auto &datar = adata.data;
+        datar.reserve(vertices.size() * sizeof(gppVec3f) +
+                      uvs.size() * sizeof(gppVec2f) +
+                      normals.size() * sizeof(gppVec3f));
         adata.vbodata.texture = adata.textureID;
 
         {
-            adata.vbodata.vertexL = data.size();
-            cpy(data, (int8_t *)&vertices[0],
+            adata.vbodata.vertexL = datar.size();
+            cpy(datar, (int8_t *)&vertices[0],
                 vertices.size() * sizeof(gppVec3f));
 
-            adata.vbodata.uvL = data.size();
-            cpy(data, (int8_t *)&uvs[0], uvs.size() * sizeof(gppVec2f));
+            adata.vbodata.uvL = datar.size();
+            cpy(datar, (int8_t *)&uvs[0], uvs.size() * sizeof(gppVec2f));
 
-            adata.vbodata.normalsL = data.size();
-            cpy(data, (int8_t *)&normals[0], normals.size() * sizeof(gppVec3f));
+            adata.vbodata.normalsL = datar.size();
+            cpy(datar, (int8_t *)&normals[0],
+                normals.size() * sizeof(gppVec3f));
 
-            adata.vbodata.pointer = &data[0];
-            adata.vbodata.sizebytes = data.size();
+            adata.vbodata.pointer = &datar[0];
+            adata.vbodata.sizebytes = datar.size();
 
             adata.vbodata.count = vertices.size();
         }
@@ -345,6 +412,7 @@ void GPPOBJ::draw(unsigned int texture, bool autoBindZeroVBO) {
             { modelPart.vbodata.texture = texture; }
         }
 
+        // ShaderProject::CShader::bindProgram(1);
         CEngine::engine().RenderCustomVerticesFloat(modelPart.vbodata,
                                                     autoBindZeroVBO);
     }
