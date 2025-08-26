@@ -17,7 +17,7 @@ A Brazilian indie rhythm game inspired by Guitar Hero, built with modern C++17 a
 - **🎵 Rhythm Gameplay**: Full 5-fret guitar simulation with notes, chords, and slides
 - **🎮 Multiple Game Modes**: 
   - Campaign mode with progression
-  - Multiplayer support (LAN)
+  - Multiplayer support (LAN) - *Incomplete, development testing only*
   - Charter mode for creating custom songs
 - **🎨 Modern Graphics**: OpenGL-based 3D rendering with particle effects
 - **🔧 Lua Scripting**: Extensible gameplay through Lua scripts
