@@ -6,6 +6,8 @@
 
 A Brazilian indie rhythm game inspired by Guitar Hero, built with modern C++17 and OpenGL. Guitar++ features a complete guitar simulation experience with custom song charts, multiplayer support, and Lua scripting capabilities.
 
+> **Development Status**: This is an active open-source project. While functional, it's in ongoing development and may have some rough edges.
+
 ## 🎸 Demo
 
 🎬 **[Watch Gameplay Video](https://www.youtube.com/watch?v=p2zfNnjcJ2M)**
@@ -75,6 +77,9 @@ sudo apt install xorg-dev extra-cmake-modules cmake build-essential gcc g++ libg
 git clone --recurse-submodules https://github.com/Fabio3rs/Guitar-PlusPlus.git
 cd Guitar-PlusPlus/
 
+# If you forgot --recurse-submodules, initialize them:
+git submodule update --init --recursive
+
 # Create build directory
 mkdir build
 cd build
@@ -85,6 +90,8 @@ make -j$(nproc)
 
 # Binary will be in build/bin/
 ```
+
+> **Note**: The `--recurse-submodules` flag is crucial as it downloads required dependencies (GLFW, GLM, Cereal)
 
 ### Running the Game
 
@@ -158,6 +165,14 @@ This software is provided "AS IS", without warranty of any kind, express or impl
 **Build fails with OpenGL errors**
 - Ensure you have OpenGL development libraries installed
 - Update your graphics drivers
+
+**Build fails with missing submodules (GLM/GLFW/Cereal)**
+- Make sure to clone with `--recurse-submodules` flag
+- Or run `git submodule update --init --recursive` in an existing clone
+
+**CMake cannot find BASS libraries**
+- Verify BASS and BASS_FX files are in the `bass/` directory
+- Check that library files match your platform (.so for Linux, .dll for Windows)
 
 **Audio not working**
 - Check that BASS libraries are correctly placed in `bass/` directory
