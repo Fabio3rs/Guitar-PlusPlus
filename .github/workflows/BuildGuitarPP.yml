@@ -1,13 +1,13 @@
 name: Build and test Guitar++
 
-on: 
+on:
   push:
     branches:
       - master
 
 jobs:
-  Testing_Code_Quality: 
-    runs-on: ubuntu-latest
+  Testing_Code_Quality:
+    runs-on: ubuntu-24.04
     steps:
       # Checkout
       - name: Checkout
@@ -20,8 +20,8 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install build-essential
           sudo apt install cmake -y
-          sudo apt install clang-12 clang-tidy-12 clang-format-12 ninja-build xorg-dev libglew-dev libgl-dev libxrandr-dev libxinerama-dev libgtest-dev unzip wget -y
-      
+          sudo apt install clang-18 clang-tidy-18 clang-format-18 ninja-build xorg-dev libglew-dev libgl-dev libxrandr-dev libxinerama-dev libgtest-dev unzip wget -y
+
       # Download and setup Bass libraries
       - name: Setup Bass Libraries
         run: |
@@ -29,58 +29,58 @@ jobs:
           # Download Bass library
           echo "Downloading Bass library..."
           wget https://www.un4seen.com/files/bass24-linux.zip -O bass24-linux.zip
-          
-          # Download Bass FX library  
+
+          # Download Bass FX library
           echo "Downloading Bass FX library..."
           wget https://www.un4seen.com/files/z/0/bass_fx24-linux.zip -O bass_fx24-linux.zip
-          
+
           # Extract Bass library
           echo "Extracting Bass library..."
           unzip -o bass24-linux.zip
-          
+
           # Extract Bass FX library
-          echo "Extracting Bass FX library..."  
+          echo "Extracting Bass FX library..."
           unzip -o bass_fx24-linux.zip
-          
+
           # Find and copy header files
           echo "Locating and copying header files..."
           find . -name "bass.h" -exec cp {} ./ \;
           find . -name "bass_fx.h" -exec cp {} ./ \;
-          
+
           # Find and copy library files for 64-bit Linux
           echo "Locating and copying library files..."
           find . -name "libbass.so" -exec cp {} ./ \;
           find . -name "libbass_fx.so" -exec cp {} ./ \;
-          
+
           # If 64-bit libraries are in a subdirectory, try to find them
           find . -path "*/x64/*" -name "libbass.so" -exec cp {} ./ \; 2>/dev/null || true
           find . -path "*/x64/*" -name "libbass_fx.so" -exec cp {} ./ \; 2>/dev/null || true
-          
+
           # Verify files are present
           echo "Verifying required files..."
           ls -la *.h *.so 2>/dev/null || echo "Some files may be missing"
-          
+
           # Cleanup downloaded archives and extracted directories
           rm -rf bass24-linux.zip bass_fx24-linux.zip bass*/ 2>/dev/null || true
-          
+
           echo "Bass library setup completed"
-      
+
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v1.8
         with:
           cmake-version: '3.16.x'
-        
+
       - name: Build project
         run: |
-          export CC=$(which clang-12)
-          export CXX=$(which clang++-12)
+          export CC=$(which clang-18)
+          export CXX=$(which clang++-18)
           mkdir build && cd build
           cmake .. -G Ninja
           cmake --build . --config Debug --target all -j $(nproc) --
 
       - name: Test project
         run: |
-          export CC=$(which clang-12)
-          export CXX=$(which clang++-12)
+          export CC=$(which clang-18)
+          export CXX=$(which clang++-18)
           cd build
           ctest -j 20 -C Debug -T test --output-on-failure
