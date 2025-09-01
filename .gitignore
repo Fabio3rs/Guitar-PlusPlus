@@ -213,3 +213,11 @@ ModelManifest.xml
 /.vs/Guitar++/v15
 /.vs/Guitar++/v15
 /Guitar++/gccout
+
+# Bass audio library files (downloaded during build)
+bass/*.zip
+bass/*.so
+bass/bass.h
+bass/bass_fx.h
+bass/libbass.so
+bass/libbass_fx.so
