@@ -221,3 +221,4 @@ bass/bass.h
 bass/bass_fx.h
 bass/libbass.so
 bass/libbass_fx.so
+bass/*_stub.c
