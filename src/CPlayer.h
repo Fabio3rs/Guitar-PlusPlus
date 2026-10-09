@@ -7,6 +7,7 @@
 #include "CFonts.h"
 #include "CGuitars.h"
 #include "CParticle.h"
+#include "CPlusLightning.h"
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
@@ -275,6 +276,8 @@ class CPlayer {
     double fretsPressedTime[5]{};
     double strklinenttime;
 
+    int lastNotePlusType{};
+
     size_t notesSlide[5]{};
     size_t strklinent;
 
@@ -304,6 +307,7 @@ class CPlayer {
     double playerHudOffsetX, playerHudOffsetY;
 
     CParticle playerParticles;
+    CPlusLightning plusLightning;
 
     CGuitars::CGuitar *guitar;
 

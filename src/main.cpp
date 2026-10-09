@@ -142,6 +142,7 @@ static auto load_data() -> int {
             switch (loadLoop) {
             case 0:
                 game.loadBasicSprites();
+                ShaderProject::CShader::inst().prepareEffects();
                 break;
 
             case 1: {

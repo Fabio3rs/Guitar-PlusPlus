@@ -47,6 +47,7 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CMenu.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CMultiplayer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CParticle.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CPlusLightning.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CPlayer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CSaveSystem.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CShader.cpp"
@@ -91,4 +92,7 @@ endif()
 target_link_libraries("${myprojectname}_lib" glfw GLEW OpenGL::GL bass bass_fx)
 target_link_libraries(${myprojectname} "${myprojectname}_lib")
 
-add_subdirectory(tests)
+include(CTest)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

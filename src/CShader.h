@@ -15,6 +15,8 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
+#include <utility>
 
 namespace ShaderProject {
 enum shaderTypes { FRAGMENT, VERTEX };
@@ -34,12 +36,13 @@ template <class T, const T nullValue, class Deleter> class unique_object {
     const T &get() const { return object; }
     const T &operator()() const { return object; }
 
-    void deleteObject() {
-        deleter(this->object);
-        this->object = nullValue;
+    void deleteObject() noexcept {
+        const T old = std::exchange(object, nullValue);
+        if (old != nullValue && deleter)
+            deleter(old);
     }
 
-    unique_object &operator=(unique_object &&obj) {
+    unique_object &operator=(unique_object &&obj) noexcept {
         if (this == std::addressof(obj))
             return *this;
 
@@ -59,7 +62,7 @@ template <class T, const T nullValue, class Deleter> class unique_object {
         deleter = delFun;
     }
 
-    unique_object(unique_object &&obj) : unique_object() {
+    unique_object(unique_object &&obj) noexcept : unique_object() {
         object = obj.object;
         obj.object = nullValue;
         deleter = std::move(obj.deleter);
@@ -73,25 +76,16 @@ typedef unique_object<unsigned int, 0u, void(unsigned int)> ShaderObject;
 typedef unique_object<unsigned int, 0u, void(unsigned int)> VertexObject;
 ProgramObject make_program();
 ShaderObject make_shader(shaderTypes type);
-VertexObject make_vertexObject(VertexObject type);
+VertexObject make_vertexObject();
 
 class CShader {
     bool enableShaders;
-    bool usingProgram;
 
     struct shaderInst {
         shaderTypes type;
         ShaderObject glID;
         std::string fileName;
-        std::unique_ptr<char[]> shaderContent;
-        int shaderSize;
-
-        template <class T> inline auto fileSize(T &file) {
-            file.seekg(0, std::ios::end);
-            auto result = file.tellg();
-            file.seekg(0, std::ios::beg);
-            return result;
-        }
+        std::string shaderContent;
 
         void compile();
         shaderInst(const char *fName, shaderTypes shaderType);
@@ -100,26 +94,7 @@ class CShader {
     struct shaderEvent {
         ProgramObject shaderProg;
         std::string eventName;
-        std::deque<shaderInst *> shaders;
-
-        shaderEvent(const shaderEvent &) = delete;
-        shaderEvent(shaderEvent &&) = default;
-
-        shaderEvent &operator=(shaderEvent &&obj) {
-            if (this == std::addressof(obj))
-                return *this;
-
-            shaderProg.deleteObject();
-
-            shaderProg = std::move(obj.shaderProg);
-            eventName = std::move(obj.eventName);
-            shaders = std::move(obj.shaders);
-
-            obj.shaders.clear();
-
-            return *this;
-        }
-
+        bool linked = false;
         shaderEvent(const char *name);
     };
 
@@ -127,11 +102,31 @@ class CShader {
     std::deque<shaderInst> shadersList;
 
   public:
+    struct EffectProgram {
+        int event = -1;
+        int time = -1;
+        int opacity = -1;
+        int spark = -1;
+    };
+
+  private:
+    bool effectsPrepared = false;
+    EffectProgram fireEffect, lightningEffect;
+
+  public:
+    // Run during loading with the owning GL context current. Idempotent.
+    void prepareEffects();
+    const EffectProgram &fireProgram() const { return fireEffect; }
+    const EffectProgram &lightningProgram() const { return lightningEffect; }
     static CShader &inst();
 
     bool isShadersEnabled() const { return enableShaders; }
 
-    bool isUsingProgram() const { return usingProgram; }
+    bool isUsingProgram() const;
+
+    // Call while the owning OpenGL context is current, before destroying it.
+    static void shutdown();
+    ~CShader();
 
     size_t eventsSize() const { return events.size(); }
 
@@ -139,6 +134,10 @@ class CShader {
 
     void processEvent(int id);
     int addEvent(const char *name);
+    // Compile/link transactionally; no event is retained on failure.
+    int addProgram(const char *name, std::string_view vertexSource,
+                   std::string_view fragmentSource);
+    int getEventUniform(int event, const char *name) const;
     void addShaderToEvent(const char *shaderEvent, int shaderID);
     int newShader(const char *shaderFile, shaderTypes type, int eventToLink);
     int newShader(const char *shaderFile, shaderTypes type, const char *name);
@@ -149,6 +148,8 @@ class CShader {
     static void bindProgram(unsigned int programID);
     static ProgramObject createShaderProgram();
     static ShaderObject compileShader(const char *shaderSource, int length,
+                                      shaderTypes type);
+    static ShaderObject compileShader(std::string_view source,
                                       shaderTypes type);
     static void attachShaderToProgram(const ProgramObject &programID,
                                       const ShaderObject &shaderID);

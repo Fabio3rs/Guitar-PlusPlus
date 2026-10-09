@@ -14,6 +14,8 @@
 static auto gpppowi(int b, int e) -> int { return static_cast<int>(pow(b, e)); }
 
 constexpr static double NOTE_SIZE = 0.2;
+// Trigger.obj has a local top at y=0.043614; leave a small surface clearance.
+constexpr static double STRIKE_FIRE_SURFACE = 0.046;
 
 const int CGamePlay::notesFlagsConst[5] = {
     gpppowi(2, 0), gpppowi(2, 1), gpppowi(2, 2), gpppowi(2, 3), gpppowi(2, 4)};
@@ -1208,6 +1210,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
                     ++notes.plusPos;
                     player.plusThunterStrikeStart = engine.getTime();
                     player.bPlusStrike = true;
+                    player.lastNotePlusType = notes.gNotes[i].type;
                 }
             }
 
@@ -2241,48 +2244,45 @@ void CGamePlay::renderPlayer(CPlayer &player) {
         if (calcP < -0.035) {
             calcP = -0.035;
         } else if (calcP > -0.023) {
-            int calcTest = (int(time * 1000.0) % 50);
-
-            if (player.plusLoadF > 0.0) {
-                calcTest %= 5;
-            } else {
-                calcTest %= 2;
-            }
-
-            if (calcTest != 0) {
+            {
                 CParticle::particleData pd{};
 
-                pd.duration = 0.04;
+                pd.duration = 0.25;
 
                 double poscalc =
-                    -0.40 + (double(i) * 0.2 / 48.0) + (double(i) * 0.2);
+                    -0.41 + (double(i) * 0.2 / 48.0) + (double(i) * 0.2);
 
-                pd.x = poscalc + (rand() % 20 / 500.0) * -(rand() % 2);
-                pd.y = -0.51;
-                pd.z = 0.76 + (rand() % 20 / 500.0) * -(rand() % 2);
+                pd.x = poscalc + (rand() % 21 - 10) / 2000.0;
+                pd.y = -0.5 + calcP + STRIKE_FIRE_SURFACE;
+                pd.z = 0.75 + (rand() % 21 - 10) / 2000.0;
+                pd.crossedFlame = true;
+                pd.emitter = static_cast<int>(i);
+                pd.emitterHeight = pd.y;
 
-                pd.ax = 100.0 * -(rand() % 2);
-                pd.ay = 100.0;
-                pd.az = 200.0 * -(rand() % 2);
+                pd.ax = 0.0;
+                pd.ay = 0.3;
+                pd.az = 0.0;
 
-                pd.sx = 0.1;
-                pd.sy = 0.1;
-                pd.sz = 0.1;
+                pd.sx = (rand() % 21 - 10) / 200.0;
+                pd.sy = 0.2;
+                pd.sz = 0.0;
 
-                pd.sizex = 0.01;
-                pd.sizey = 0.01;
+                pd.sizex = 0.07;
+                pd.sizey = 0.16;
                 pd.sizez = 0.00;
 
-                pd.desac = 0.2;
+                pd.desac = 0.0;
 
                 pd.texture = pfireText;
 
                 pd.qtd = 1;
 
-                player.playerParticles.addParticle(pd);
+                player.playerParticles.emitFire(pd, time);
             }
         }
 
+        player.playerParticles.moveEmitter(
+            static_cast<int>(i), -0.5 + calcP + STRIKE_FIRE_SURFACE);
         renderIndivdualStrikeButton3DStrike(i, 0.0, 0, calcP, player);
     }
 
@@ -2293,14 +2293,22 @@ void CGamePlay::renderPlayer(CPlayer &player) {
 
     engine.activateLighting(false);
 
-    if (!player.playerParticles.part.empty() != 0u) {
+    if (!player.playerParticles.part.empty()) {
 
-        player.playerParticles.render();
+        player.playerParticles.renderFire();
     }
 
     engine.setColor(1.0, 1.0, 1.0, 1.0);
 
     renderTailsBuffer(player);
+    // bPlusStrike also drives the existing four-second blue light fade.
+    // Draw the short discharge here, after opaque geometry and with this
+    // player's camera active, so the fretboard can occlude it correctly.
+    if (player.bPlusStrike) {
+        player.plusLightning.render(
+            engine.getTime() - player.plusThunterStrikeStart,
+            static_cast<unsigned int>(player.lastNotePlusType));
+    }
     engine.activate3DRender(false);
 
     renderHoposLight();

@@ -2,6 +2,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 #include "CEngine.h"
+#include "CShader.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <exception>
@@ -1964,7 +1965,11 @@ CEngine::CEngine() {
     updateNoiseInterval = 0.2;
 }
 
-CEngine::~CEngine() { glfwTerminate(); }
+CEngine::~CEngine() {
+    if (window) glfwMakeContextCurrent(static_cast<GLFWwindow *>(window));
+    ShaderProject::CShader::shutdown();
+    glfwTerminate();
+}
 
 void CEngine::staticDrawBuffer::destroy(bool deletePtr) {
     if (bufferID != (~0) && glIsBuffer != nullptr &&
