@@ -9,6 +9,7 @@
 #include "CMultiThreadPool.h"
 #include "CPlayer.h"
 #include "CGameSettings.h"
+#include "CScene.h"
 #include "CShader.h"
 #include "GPPOBJ.h"
 #include <atomic>
@@ -96,19 +97,16 @@ class GPPGame {
         std::future<bool> ft;
 
         static bool loadAsync(gppTexture *ths) {
-            ths->text = 0u;
-
+            // The decoder owns only imgData. Publish completion; the GL owner
+            // assigns text after joining the future, including failure paths.
             if (ths->textName.size() == 0) {
                 std::cout << "ths->textName.size() == 0\n";
-                return 0;
+                ths->asyncFl = true;
+                return false;
             }
             bool r = CEngine::engine().loadTextureAsync(
                 (ths->textPath + std::string("/") + ths->textName).c_str(),
                 &ths->imgData);
-
-            if (!r) {
-                ths->text = ~0u;
-            }
 
             ths->asyncFl = true;
 
@@ -126,6 +124,9 @@ class GPPGame {
                 if (ft.get()) {
                     if (imgData.Data.get() != nullptr) {
                         text = CEngine::engine().uploadTextureToOGL(&imgData);
+                        // The future is consumed even if the GL upload fails.
+                        // Keep a terminal state so queued callbacks cannot get it twice.
+                        if (text == 0u) { text = ~0u; }
                     } else {
                         text = ~0u;
                     }
@@ -197,6 +198,9 @@ class GPPGame {
             if (this == std::addressof(m))
                 return *this;
 
+            // Workers capture this: neither object may move while decoding.
+            if (ft.valid()) { ft.wait(); }
+            if (m.ft.valid()) { m.ft.wait(); }
             text = std::move(m.text);
             textPath = std::move(m.textPath);
             textName = std::move(m.textName);
@@ -225,6 +229,7 @@ class GPPGame {
         }
 
         ~gppTexture() noexcept {
+            if (ft.valid()) { ft.wait(); }
             text = 0;
             // TODO CEngine::engine().unloadTexture(id);
         }
@@ -485,7 +490,12 @@ class GPPGame {
 
     void selectPlayerMenu();
 
-    GPPOBJ testobj;
+    GPPOBJ testobj; // Active scene model; retained for existing render callers.
+    CScene scene;
+    std::string backgroundScene = "garage";
+    bool prepareScene();
+    static int setScene(lua_State *L);
+    static int getScene(lua_State *L);
 
   protected:
     static int registerFunctions(CLuaH::luaState_t &Lstate);

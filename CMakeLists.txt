@@ -58,6 +58,7 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ObjModel.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/SceneAO.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CBackgroundRenderer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CScene.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/exception.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/tga.cpp"
 

@@ -166,6 +166,11 @@ GPPOBJ::~GPPOBJ() = default;
 GPPOBJ::GPPOBJ(GPPOBJ &&) noexcept = default;
 GPPOBJ &GPPOBJ::operator=(GPPOBJ &&) noexcept = default;
 
+void GPPOBJ::setMaterialLibrary(const std::string &file) {
+    std::lock_guard<std::mutex> lock(impl->mutex);
+    impl->explicitLibrary = file;
+}
+
 void GPPOBJ::loadTextureList(const std::string &path, const std::string &file) {
     std::lock_guard<std::mutex> lock(impl->mutex);
     impl->explicitLibrary = (fs::path(path) / file).string();
@@ -215,11 +220,18 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
             }
         }
         Materials materials;
-        for (const auto &library : model.libraries)
-            readLibrary(filename.parent_path() / library, materials);
+        std::string explicitLibrary;
+        {
+            std::lock_guard<std::mutex> lock(impl->mutex);
+            explicitLibrary = impl->explicitLibrary;
+        }
+        if (!explicitLibrary.empty()) {
+            readLibrary(explicitLibrary, materials);
+        } else {
+            for (const auto &library : model.libraries)
+                readLibrary(filename.parent_path() / library, materials);
+        }
         std::lock_guard<std::mutex> lock(impl->mutex);
-        if (!impl->explicitLibrary.empty())
-            readLibrary(impl->explicitLibrary, materials);
         for (const auto &warning : model.warnings)
             CLog::log() << warning;
         impl->model = std::move(model);

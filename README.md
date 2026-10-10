@@ -186,3 +186,116 @@ Tests are included in `ctest --test-dir build --output-on-failure`: CPU OBJ/AO
 fixtures plus OpenGL shader, upload/ownership, state-restoration and shadow-cache
 checks. Visual validation of gameplay and multiplayer is still required when
 changing scene settings or assets.
+
+
+## Scene definitions
+
+The default remains the garage. `data/scenes/garage.lua` describes the existing
+`test/garage_gpp.obj` and `.mtl`; if that definition file is absent, the same
+paths/settings are built in for existing asset installations. All paths start
+from the game's working directory. When running from `build/bin`, install custom
+definitions in `build/bin/data/scenes` (the build does not overwrite user assets).
+
+Select a scene from `Config.lua` or a campaign/menu Lua script:
+
+```lua
+setScene("garage") -- true for a valid identifier; files are checked at loading
+-- Alternatively: setGameVar("backgroundScene", "garage")
+-- getScene() returns the currently loaded identifier, or "" before loading.
+```
+
+Selection persists until changed and is applied at startup or the next Quick
+Play/marathon loading boundary, never midway through a song. The existing model
+continues to serve menus after a session. A failed replacement is logged, keeps
+the previous scene, and prevents starting the requested gameplay session.
+Invalid garage definitions are reported rather than silently ignored.
+
+A scene file returns a plain Lua table; fields and hooks are read directly,
+without invoking `__index` metamethods. Paths are relative to that file, so shared
+models and scene-specific materials can live separately:
+
+```lua
+-- data/scenes/show.lua
+return {
+    model = "../models/stage.obj",
+    materials = "show/stage.mtl", -- optional; overrides OBJ mtllib declarations
+    lightPosition = {3.5, 2.88, -6.05}, -- optional; shader lighting position
+    garageMaterials = false, -- default; true only for the garage's material fixes
+    onLoaded = function(context) end,
+    onSessionStarted = function(context) end,
+    onSessionEnded = function(context) end,
+    onUnloaded = function(context) end,
+}
+```
+
+Texture map paths remain relative to their MTL. OBJ-adjacent AO sidecars continue
+to work. Models currently use the existing world/camera coordinates; shader
+shadows retain the downward-facing 150-degree, 0.1–20-unit light frustum. Scene
+selection does not override the player's `backgroundQuality`, `backgroundAO`,
+`backgroundShadowBias` or shader preference. Quality 0 retains the legacy fixed
+lighting path. The garage's emission/specular/decal overrides do not affect
+other scenes unless explicitly enabled.
+
+Hooks receive `{sceneId, songId, songSeconds}` in a scene-owned Lua state with
+standard Lua libraries. They run on the main/render thread, once per transition:
+loaded after upload, session started at the countdown, session ended after the
+session's workers have joined and before player reset, and unloaded before
+replacement or normal shutdown. Pause/resume does not repeat start/end hooks.
+A marathon is one session; its start supplies the first song and its end supplies
+the last player's song clock, not accumulated show time. These are lifecycle
+hooks, not success/failure or campaign reward notifications. Hook errors are
+logged without aborting gameplay. Each loaded scene keeps its Lua locals until
+unloaded; no scene state or bytecode is saved in campaign progress.
+
+There are no animations, Lua per-frame callbacks or new update/render queues.
+Future animation inputs should extend the render-owned scene instance and use
+the established song time, including pauses, without reading mutable player
+state from Lua or driving judgment. CPU model decoding is asynchronous only
+during loading; buffers, textures and retired model resources are handled with
+the GL context current. Shadow caches are invalidated on scene replacement even
+when the model address/revision is reused. Shared textures still use the existing
+global cache; eviction across many different scenes remains future work.
+## Loading thread audit and remaining work
+
+Scene loading has a strict handoff: a decoder owns a temporary CPU model, a
+`future` joins before the render owner consumes it, and GL upload/replacement
+happens only on that owner. Cancellation also joins before destruction. Scene
+Lua runs on the same owner at loading/session boundaries. It currently uses
+standard Lua libraries and is **trusted local game code**, not a sandbox for
+untrusted downloads; isolated Lua states do not provide a security boundary.
+
+The legacy loaders are **not fully race-free**. This change removes a texture
+callback holding a pointer to an expired stack variable, protects texture queue
+inspection/publication with the consumer's mutex, retains each queued callback,
+and waits for texture decoders before moving/destroying their objects. Decoders
+no longer write the GL texture ID; failure is consumed through their future.
+Missing optional completion callbacks no longer print `targetfun zero`.
+Synchronous texture use consumes an existing decoder without replacing its
+cache entry, so queued completion callbacks still run through the streamer.
+
+Follow-up work should keep strict synchronization at loading boundaries without
+adding a render/update-wide lock:
+
+- Marathon still installs notes, audio handles and lyrics from its loader while
+  the main loop can render player data. The existing `playersMutex` is not taken
+  by that render path. Its atomic `processing`/`sendToModulePlayers` flags
+  publish readiness, but rendering continues while the handoff is pending;
+  checking readiness only before advancing does not protect those reads.
+  Replace this with a prepared-song result consumed by the
+  main thread between songs; preserve preload of the following song.
+- Texture cache access is not uniformly synchronized (`gTextures`, `lasync`,
+  image metadata and returned references). Some cached completion callbacks can
+  execute on the requesting thread and under loader locks. Establish one owner
+  for cache mutation/upload and dispatch callbacks outside queue locks on that
+  owner. The batch API and font/menu direct cache access need the same audit.
+- `forceTexturesToLoad` needs a predicate and notification protocol under its
+  condition-variable mutex to prevent lost wakeups, including cancellation.
+- The generic `CMultiThreadPool` is not independently safe: occupancy and object
+  lifetime require an external lock spanning lookup/use/removal. Texture queue
+  callers now use their common lock; model queue publication/teardown still
+  needs an owner-thread contract or the same protection.
+
+These are loading/lifetime debts, separate from the already known gameplay
+update/render sharing. Passing build/GL tests does not establish race freedom;
+concurrent loading/cancellation stress and sanitizer runs remain necessary for
+a broader loader redesign. No FPS improvement is claimed by these changes.

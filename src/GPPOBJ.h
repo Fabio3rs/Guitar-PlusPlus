@@ -16,6 +16,8 @@ class GPPOBJ {
     bool loadInternalObj(const std::string &path, const std::string &file,
                          const std::string &objName = "",
                          bool loadMtlLib = false);
+    // CPU-only explicit MTL selection for a model not yet loaded.
+    void setMaterialLibrary(const std::string &file);
     void loadTextureList(const std::string &path, const std::string &file);
     void load(const std::string &path, const std::string &file);
     void draw(unsigned int texture, bool autoBindZeroVBO = true);

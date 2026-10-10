@@ -43,3 +43,13 @@ if(UNIX AND NOT APPLE AND XVFB_RUN)
 endif()
 
 add_test(NAME song_loading COMMAND tests --gtest_filter=SongLoading.*)
+
+add_test(NAME scene_definitions COMMAND tests --gtest_filter=Scenes.*)
+if(UNIX AND NOT APPLE AND XVFB_RUN)
+    add_test(NAME scene_gl COMMAND ${XVFB_RUN} -a $<TARGET_FILE:tests>
+             --gtest_filter=SceneGL.*)
+    set_tests_properties(scene_gl PROPERTIES ENVIRONMENT
+        "LIBGL_ALWAYS_SOFTWARE=1;MESA_GL_VERSION_OVERRIDE=2.0;MESA_GLSL_VERSION_OVERRIDE=110")
+else()
+    add_test(NAME scene_gl COMMAND tests --gtest_filter=SceneGL.*)
+endif()

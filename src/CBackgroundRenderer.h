@@ -1,8 +1,9 @@
 #pragma once
 #include "GPPOBJ.h"
 #include <memory>
+#include <array>
 
-// Garage rendering shared by menus and gameplay. GL resources are
+// Scene rendering shared by menus and gameplay. GL resources are
 // context-owned.
 class CBackgroundRenderer {
     struct Impl;
@@ -15,6 +16,8 @@ class CBackgroundRenderer {
     bool ambientOcclusion = true;
     static CBackgroundRenderer &inst();
     static void shutdown();
+    // Applied at scene transitions, never by the gameplay worker.
+    void setScene(const std::array<float, 3> &light, bool garageMaterials);
     void prepare();
     void draw(GPPOBJ &model);
     size_t shadowUpdates() const;

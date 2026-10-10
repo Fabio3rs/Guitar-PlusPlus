@@ -29,7 +29,10 @@ FullScreen = false
 -- setGameVar("usarPalheta", true)
 -- setGameVar("defaultGuitar", "guitar test") -- Nome da guitarra instalada.
 
--- Cenario: usar setGameVar, nao variaveis Lua globais de mesmo nome.
+-- Cenario: definicao em data/scenes/<id>.lua (garagem por padrao).
+-- setScene("garage") -- Seleciona para o startup/proxima sessao, sem trocar no meio da musica.
+-- Alternativa: setGameVar("backgroundScene", "garage").
+-- Qualidade grafica: usar setGameVar, nao globais Lua de mesmo nome.
 -- 0 original, 1 iluminacao, 2 sombras 512px, 3 sombras 1024px.
 -- setGameVar("enableShaders", true)
 setGameVar("backgroundQuality", 2)

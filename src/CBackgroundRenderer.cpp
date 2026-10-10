@@ -128,6 +128,7 @@ struct CBackgroundRenderer::Impl {
     int resolution = 0;
     const GPPOBJ *cachedModel = nullptr;
     size_t cachedRevision = 0, updates = 0;
+    bool garageMaterials = true;
     glm::vec3 light{3.5f, 2.88f, -6.05f};
     glm::mat4 lightMatrix{1.f};
     void releaseShadow() {
@@ -203,6 +204,15 @@ void CBackgroundRenderer::shutdown() {
         live->impl = std::make_unique<Impl>();
 }
 size_t CBackgroundRenderer::shadowUpdates() const { return impl->updates; }
+void CBackgroundRenderer::setScene(const std::array<float, 3> &light, bool garageMaterials) {
+    auto &r = *impl;
+    r.light = {light[0], light[1], light[2]};
+    r.garageMaterials = garageMaterials;
+    r.lightMatrix = glm::perspective(glm::radians(150.f), 1.f, .1f, 20.f) *
+                    glm::lookAt(r.light, r.light + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1));
+    // The same GPPOBJ address/revision can be reused after moving a new scene.
+    r.cachedModel = nullptr;
+}
 void CBackgroundRenderer::prepare() {
     if (impl->attempted)
         return;
@@ -274,8 +284,8 @@ void CBackgroundRenderer::draw(GPPOBJ &model) {
                 model.drawMaterials([&](const ObjModel::Part &part,
                                         const ObjModel::Material &m,
                                         bool textured) {
-                    if (decal(part) || m.opacity < .5f ||
-                        part.material == "light")
+                    if (m.opacity < .5f || (r.garageMaterials &&
+                        (decal(part) || part.material == "light")))
                         return false;
                     r.dep.material(m, textured);
                     return true;
@@ -324,10 +334,11 @@ void CBackgroundRenderer::draw(GPPOBJ &model) {
         model.drawMaterials([&](const ObjModel::Part &part,
                                 const ObjModel::Material &source,
                                 bool textured) {
-            const bool translucent = decal(part) || source.opacity < .999f;
+            const bool translucent = (r.garageMaterials && decal(part)) || source.opacity < .999f;
             if (translucent != (pass == 1))
                 return false;
-            const auto m = garageMaterial(part, source);
+            const auto m = r.garageMaterials ? garageMaterial(part, source) :
+                Surface{source.specular, source.emission, source.shininess};
             r.lit.material(source, textured);
             glUniform3fv(r.lit.ambient, 1, source.ambient.data());
             glUniform3fv(r.lit.diffuse, 1, source.diffuse.data());

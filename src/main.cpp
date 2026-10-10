@@ -681,16 +681,9 @@ CFonts::fonts().drawTextInScreenWithBuffer(
 CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 game.renderFrame();
 
-if (game.futureTextureLoad.getAddedElementsNum() > 0 && t > 5) {
-    for (size_t i = 0, size = game.futureTextureLoad.getNumElements(); i < size;
-         i++) {
-        GPPGame::loadTextureBatch *a = game.futureTextureLoad.get(i);
+// Queue entries are owned by the streaming loader; avoid inspecting raw
+// batch pointers here while other threads may enqueue textures.
 
-        if (a != nullptr) {
-            CLog::log().multiRegister("%0 %1 %2", a->path, a->path, i);
-        }
-    }
-}
 }
 return CEngine::engine().windowOpened() && loadLoop >= 8;
 }
@@ -777,6 +770,7 @@ auto main(int argc, char *argv[]) -> int {
         lua.runEvent(atExitSE);
         game.saveSettings();
         guitars.unload();
+        game.scene.unload(game.testobj);
         lua.unloadAll();
     } catch (const std::exception &e) {
         const std::string message = std::string("Failure during ") + stage + ": " + e.what();
