@@ -1,7 +1,7 @@
 #include "CGuitars.h"
 #include "CLog.h"
 #include "CLuaFunctions.hpp"
-#include <dirent.h>
+#include "CGPPFileMGR.h"
 
 int CGuitars::addGuitarScriptEvent = 0, CGuitars::loadGuitarScriptEvent = 0,
     CGuitars::unloadingGuitarScriptEvent = 0;
@@ -87,34 +87,11 @@ CGuitars::CGuitar::CGuitar() noexcept {
 }
 
 void CGuitars::loadAllGuitars() {
-    auto extension_from_filename = [](const std::string &fname) {
-        size_t s;
-        return std::string(((s = fname.find_first_of('.')) != std::string::npos)
-                               ? (&fname.c_str()[++s])
-                               : (""));
-    };
-
-    auto file_exists = [](const std::string &fileName) {
-        return std::fstream(fileName).is_open();
-    };
-
-    DIR *direntd = opendir("./data/guitars");
-    dirent *rrd = nullptr;
-
-    if (direntd != nullptr) {
-        rrd = readdir(direntd);
-        while ((rrd = readdir(direntd)) != nullptr) {
-            std::string name = rrd->d_name;
-
-            if (name != ".." && name != ".") {
-                if ((rrd->d_type & DT_DIR) != 0 &&
-                    file_exists(std::string("./data/guitars/") + name +
-                                "/GuitarScript.lua")) {
-                    addGuitar("./data/guitars", rrd->d_name);
-                }
-            }
+    const std::string path = "./data/guitars";
+    for (const auto &name : CGPPFileMGR::getDirectory(path, false, true)) {
+        if (std::ifstream(path + "/" + name + "/GuitarScript.lua").is_open()) {
+            addGuitar(path, name);
         }
-        closedir(direntd);
     }
 }
 

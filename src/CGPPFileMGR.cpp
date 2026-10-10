@@ -1,6 +1,40 @@
 #include "CGPPFileMGR.h"
-#include "CEngine.h"
-#include "GPPGame.h"
+#include "CLog.h"
+#include <filesystem>
+
+std::deque<std::string> CGPPFileMGR::getDirectory(const std::string &directory,
+    bool getFiles, bool getDirectories, std::error_code *error) {
+    std::deque<std::string> result;
+    if (error) error->clear();
+    if (!getFiles && !getDirectories) return result;
+
+    auto report = [&](const std::filesystem::path &path, const std::error_code &ec) {
+        if (error && !*error) *error = ec;
+        CLog::log() << "Cannot list " + path.string() + ": " + ec.message();
+    };
+    std::error_code ec;
+    std::filesystem::directory_iterator entry(directory, ec), end;
+    if (ec) {
+        report(directory, ec);
+        return result;
+    }
+    while (entry != end) {
+        const auto status = entry->status(ec);
+        if (ec) {
+            // A dangling link or an entry removed during enumeration is harmless.
+            if (ec != std::errc::no_such_file_or_directory) report(entry->path(), ec);
+        } else if ((getDirectories && std::filesystem::is_directory(status)) ||
+                   (getFiles && std::filesystem::is_regular_file(status))) {
+            result.push_back(entry->path().filename().string());
+        }
+        entry.increment(ec);
+        if (ec) {
+            report(directory, ec);
+            break;
+        }
+    }
+    return result;
+}
 
 void GPPPackage::decrypt() {}
 
@@ -54,7 +88,7 @@ GPPPackage CGPPFileMGR::newPackageFromDirectory(const std::string &packName,
                                                 const std::string &dir) {
     GPPPackage newPack;
 
-    auto filesList = GPPGame::getDirectory(dir.c_str(), true, false);
+    auto filesList = getDirectory(dir, true, false);
 
     for (auto &f : filesList) {
         newPack.pushFile(dir + "/" + f, f, true);

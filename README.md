@@ -39,6 +39,13 @@ directory as `Config.lua` when preparing a new installation; do not overwrite
 an existing user's script during builds or updates. Paths still resolve from
 the working directory, so launch from the directory containing `data/`.
 
+Asset and script directory listings use C++17 `std::filesystem`. They are
+non-recursive and retain the filesystem's unspecified enumeration order. Links
+to regular files or directories are supported; dangling links and special files
+are ignored. Directory access errors are logged instead of treated as successful
+empty Lua loads. Scripts are selected by their final `.lua` extension, including
+names such as `menu.extra.lua`.
+
 Window preferences are loaded in this order: C++ defaults, then
 `data/saves/settings.json`, then the values explicitly supplied by `Config.lua`.
 The new settings file uses cereal JSON, version 1, with individual window fields
@@ -74,6 +81,9 @@ for distribution; this avoids requiring the build machine's CPU instruction
 set, but does not bundle runtime libraries or guarantee compatibility with every
 Linux distribution. Public asset packages exclude the contents of `data/songs/`;
 the other game assets belong to the game team.
+
+CI uses Clang 20 on Ubuntu 24.04, installed from the official `noble-updates`
+`universe` packages (`clang-20`, `clang-tidy-20`, `clang-format-20`).
 
 # Garage lighting and OBJ assets
 

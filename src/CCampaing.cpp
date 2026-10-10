@@ -8,7 +8,7 @@
 #include <cereal/types/map.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
-#include <dirent.h>
+#include "CGPPFileMGR.h"
 #include <random>
 
 CCampaing::CCampaingData::CCampaingData() {
@@ -238,43 +238,23 @@ void CCampaing::loadCampaingModes() {
     auto &lua = CLuaH::Lua();
     const std::string campaingModesPath = "data/campaings";
 
-    DIR *direntd = opendir(("./" + campaingModesPath).c_str());
-    dirent *rrd = nullptr;
-
-    if (direntd != nullptr) {
-        rrd = readdir(direntd);
-        while ((rrd = readdir(direntd)) != nullptr) {
-            std::string dname = rrd->d_name;
-            if ((rrd->d_type & DT_DIR) != 0 && dname != "." && dname != "..") {
-                std::string rpath = campaingModesPath + "/" + dname;
-                std::string fullpath = rpath + "/info.lua";
-                CLog::log() << ("Loading <<" + fullpath + ">>");
-
-                {
-                    if (!std::fstream(fullpath, std::ios::in | std::ios::binary)
-                             .is_open()) {
-                        CLog::log() << ("<<" + fullpath + ">> does not exist");
-
-                        continue;
-                    }
-                }
-
-                auto infoScript = lua.newScript(rpath, std::string("info.lua"));
-
-                if (infoScript.luaState != nullptr) {
-                    lua.runScript(infoScript);
-
-                    auto &mode = campaingModes[dname];
-
-                    mode.name = CLuaH::getGlobalVarAsString(infoScript, "name");
-                    mode.description =
-                        CLuaH::getGlobalVarAsString(infoScript, "description");
-                    mode.author =
-                        CLuaH::getGlobalVarAsString(infoScript, "author");
-                }
-            }
+    for (const auto &name : CGPPFileMGR::getDirectory(campaingModesPath, false, true)) {
+        const std::string path = campaingModesPath + "/" + name;
+        const std::string infoPath = path + "/info.lua";
+        CLog::log() << ("Loading <<" + infoPath + ">>");
+        if (!std::ifstream(infoPath).is_open()) {
+            CLog::log() << ("<<" + infoPath + ">> does not exist");
+            continue;
         }
-        closedir(direntd);
+
+        auto infoScript = lua.newScript(path, "info.lua");
+        if (infoScript.luaState) {
+            lua.runScript(infoScript);
+            auto &mode = campaingModes[name];
+            mode.name = CLuaH::getGlobalVarAsString(infoScript, "name");
+            mode.description = CLuaH::getGlobalVarAsString(infoScript, "description");
+            mode.author = CLuaH::getGlobalVarAsString(infoScript, "author");
+        }
     }
 }
 

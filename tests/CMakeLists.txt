@@ -33,6 +33,7 @@ endif()
 add_test(NAME obj_loader COMMAND tests --gtest_filter=ObjLoader.*)
 add_test(NAME settings COMMAND tests --gtest_filter=Settings.*)
 add_test(NAME logging COMMAND tests --gtest_filter=Logging.*)
+add_test(NAME filesystem COMMAND tests --gtest_filter=FileSystem.*)
 
 if(UNIX AND NOT APPLE AND XVFB_RUN)
     add_test(NAME startup_errors COMMAND ${XVFB_RUN} -a ${CMAKE_COMMAND}

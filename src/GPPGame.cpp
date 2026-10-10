@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <dirent.h>
+#include "CGPPFileMGR.h"
 #include <functional>
 #include <new>
 #include <utility>
@@ -299,60 +299,17 @@ void GPPGame::loadMarathonThread(CGamePlay &module, loadThreadData &l) {
 
 auto GPPGame::getDirectory(const char *dir, bool getFiles, bool getDirectories)
     -> std::deque<std::string> {
-    std::deque<std::string> result;
-
-    udirent_t direntd = CEngine::make_dirent(dir);
-    dirent *rrd = nullptr;
-
-    if (direntd) {
-        rrd = readdir(direntd.get());
-        while ((rrd = readdir(direntd.get())) != nullptr) {
-            std::string name = rrd->d_name;
-
-            if (name != "." && name != "..") {
-                if (getDirectories && (rrd->d_type & DT_DIR) != 0) {
-                    result.push_back(name);
-                }
-
-                if (getFiles && (rrd->d_type & DT_DIR) == 0) {
-                    result.push_back(name);
-                }
-            }
-        }
-    }
-
-    return result;
+    return CGPPFileMGR::getDirectory(dir, getFiles, getDirectories);
 }
 
 auto GPPGame::caseInsensitiveSearchDir(const char *dir, bool files,
                                        bool directories,
                                        const std::string &searchName)
     -> std::string {
-    udirent_t direntd = CEngine::make_dirent(dir);
-    dirent *rrd = nullptr;
-
-    if (direntd) {
-        rrd = readdir(direntd.get());
-        while ((rrd = readdir(direntd.get())) != nullptr) {
-            std::string name = rrd->d_name;
-
-            if (name != "." && name != "..") {
-                if (directories && (rrd->d_type & DT_DIR) != 0) {
-                    if (caseInSensStringCompare(name, searchName)) {
-                        return name;
-                    }
-                }
-
-                if (files && (rrd->d_type & DT_DIR) == 0) {
-                    if (caseInSensStringCompare(name, searchName)) {
-                        return name;
-                    }
-                }
-            }
-        }
+    for (const auto &name : getDirectory(dir, files, directories)) {
+        if (caseInSensStringCompare(name, searchName)) return name;
     }
-
-    return std::string();
+    return {};
 }
 
 static void defaultTextLoadFun(GPPGame::loadTextureBatch *t) {
@@ -3376,47 +3333,11 @@ auto GPPGame::loadThemes(const std::string &theme, CLuaH::luaScript *luaScript)
 
 void GPPGame::loadAllThemes() {
     const std::string path = "data/themes";
-
-    auto extension_from_filename = [](const std::string &fname) {
-        size_t s;
-        return std::string(((s = fname.find_first_of('.')) != std::string::npos)
-                               ? (&fname.c_str()[++s])
-                               : (""));
-    };
-
-    auto file_exists = [](const std::string &fileName) {
-        return std::fstream(fileName).is_open();
-    };
-
-    DIR *direntd = opendir((std::string("./") + path).c_str());
-    dirent *rrd = nullptr;
-
-    if (direntd != nullptr) {
-        rrd = readdir(direntd);
-        while ((rrd = readdir(direntd)) != nullptr) {
-            const std::string name = rrd->d_name;
-
-            if (((rrd->d_type & DT_DIR) != 0) && name != ".." && name != "." &&
-                file_exists((path + std::string("/") + name + "/Theme.lua"))) {
-                loadThemes(name);
-            }
+    for (const auto &name : getDirectory(path.c_str(), false, true)) {
+        if (std::ifstream(path + "/" + name + "/Theme.lua").is_open()) {
+            loadThemes(name);
         }
-        closedir(direntd);
     }
-    /*
-    if (hFind != INVALID_HANDLE_VALUE)
-    {
-            do
-            {
-
-                    if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-                    {
-
-                    }
-            } while (FindNextFile(hFind, &data));
-            FindClose(hFind);
-    }
-    */
 }
 
 auto GPPGame::addGameCallbacks(const std::string &n, func_t function)

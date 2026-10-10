@@ -5,7 +5,8 @@
 #include "CLog.h"
 #include "CLuaFunctions.hpp"
 #include "Lua/lstate.h"
-#include <dirent.h>
+#include "CGPPFileMGR.h"
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -27,60 +28,34 @@ auto CLuaH::Lua() -> CLuaH & {
 }
 
 auto CLuaH::loadFiles(const std::string &path) -> bool {
-    auto extension_from_filename = [](const std::string &fname) {
-        size_t s;
-        return std::string(((s = fname.find_first_of('.')) != std::string::npos)
-                               ? (&fname.c_str()[++s])
-                               : (""));
-    };
-
-    DIR *direntd = opendir(path.c_str());
-    dirent *rrd = nullptr;
-
-    if (direntd != nullptr) {
-        while ((rrd = readdir(direntd)) != nullptr) {
-            if ((rrd->d_type & DT_DIR) == 0 &&
-                extension_from_filename(rrd->d_name) == "lua") {
-                CLog::log() << ("Loading <<" + path + "/" + rrd->d_name + ">>");
-                auto script = newScript(path, rrd->d_name);
-                if (script.luaState) {
-                    files[path][rrd->d_name] = std::move(script);
-                }
+    std::error_code error;
+    const auto names = CGPPFileMGR::getDirectory(path, true, false, &error);
+    for (const auto &name : names) {
+        if (std::filesystem::path(name).extension() == ".lua") {
+            CLog::log() << ("Loading <<" + path + "/" + name + ">>");
+            auto script = newScript(path, name);
+            if (script.luaState) {
+                files[path][name] = std::move(script);
             }
         }
-        closedir(direntd);
     }
-
-    return true;
+    return !error;
 }
 
 auto CLuaH::loadFilesDequeStorage(const std::string &path,
                                   scriptStorage &storage) -> bool {
-    auto extension_from_filename = [](const std::string &fname) {
-        size_t s;
-        return std::string(((s = fname.find_first_of('.')) != std::string::npos)
-                               ? (&fname.c_str()[++s])
-                               : (""));
-    };
-
-    DIR *direntd = opendir(path.c_str());
-    dirent *rrd = nullptr;
-
-    if (direntd != nullptr) {
-        while ((rrd = readdir(direntd)) != nullptr) {
-            if ((rrd->d_type & DT_DIR) == 0 &&
-                extension_from_filename(rrd->d_name) == "lua") {
-                CLog::log() << ("Loading <<" + path + "/" + rrd->d_name + ">>");
-                auto script = newScript(path, rrd->d_name);
-                if (script.luaState) {
-                    storage.push_back(std::move(script));
-                }
+    std::error_code error;
+    const auto names = CGPPFileMGR::getDirectory(path, true, false, &error);
+    for (const auto &name : names) {
+        if (std::filesystem::path(name).extension() == ".lua") {
+            CLog::log() << ("Loading <<" + path + "/" + name + ">>");
+            auto script = newScript(path, name);
+            if (script.luaState) {
+                storage.push_back(std::move(script));
             }
         }
-        closedir(direntd);
     }
-
-    return true;
+    return !error;
 }
 
 auto CLuaH::newScriptInQuere(luaScript &&lua) -> CLuaH::luaScript * {

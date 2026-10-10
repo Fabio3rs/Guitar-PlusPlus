@@ -12,6 +12,7 @@
 #include <fstream>
 #include <limits>
 #include <string>
+#include <system_error>
 
 class GPPPackage {
     friend class CGPPFileMGR;
@@ -60,6 +61,12 @@ class CGPPFileMGR {
 
   public:
     static CGPPFileMGR &mgr();
+
+    // Non-recursive, unsorted basenames. Follows links to regular files/directories;
+    // ignores dangling links and special files. I/O errors are logged and optional
+    // error output distinguishes an unavailable directory from an empty one.
+    static std::deque<std::string> getDirectory(const std::string &directory,
+        bool getFiles, bool getDirectories, std::error_code *error = nullptr);
 
     GPPPackage loadPackage(const std::string &file);
 

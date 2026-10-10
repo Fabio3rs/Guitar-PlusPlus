@@ -1,7 +1,7 @@
 #include "CLanguageManager.h"
 #include "CLog.h"
 #include "CLuaFunctions.hpp"
-#include <dirent.h>
+#include "CGPPFileMGR.h"
 #include <iostream>
 
 static void PrintTable(lua_State *L) {
@@ -120,20 +120,9 @@ CLanguageManager::CLanguageManager() {
 
     lua.registerCustomFunctions = false;
 
-    DIR *direntd = opendir(langPath.c_str());
-    dirent *rrd = nullptr;
-
-    if (direntd != nullptr) {
-        rrd = readdir(direntd);
-        while ((rrd = readdir(direntd)) != nullptr) {
-            std::string dname = rrd->d_name;
-            if ((rrd->d_type & DT_DIR) != 0 && dname != "." && dname != "..") {
-                CLog::log() << ("Loading <<" + langPath + "/" + dname + ">>");
-
-                langs[rrd->d_name] = CLanguage(dname);
-            }
-        }
-        closedir(direntd);
+    for (const auto &name : CGPPFileMGR::getDirectory(langPath, false, true)) {
+        CLog::log() << ("Loading <<" + langPath + "/" + name + ">>");
+        langs[name] = CLanguage(name);
     }
 
     lua.registerCustomFunctions = true;
