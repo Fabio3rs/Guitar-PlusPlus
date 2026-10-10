@@ -1,0 +1,12 @@
+# Local client configuration only. Copy/merge into Guitar-PlusPlus/.codex/config.toml.
+# Paths refer to the trusted host installation; adjust for another machine.
+[mcp_servers.native_lab]
+command = "/mnt/projects/Projects/native-lab/.venv/bin/python"
+args = ["/mnt/projects/Projects/native-lab/native-lab-mcp"]
+cwd = "/mnt/projects/Projects/Guitar-PlusPlus"
+env_vars = ["XDG_RUNTIME_DIR"]
+startup_timeout_sec = 20.0
+tool_timeout_sec = 3600.0
+
+[mcp_servers.native_lab.env]
+NATIVE_LAB_BIN = "/home/fabio/.local/bin/native-lab"

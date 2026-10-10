@@ -1,0 +1,51 @@
+find_package(PNG REQUIRED)
+add_subdirectory(imgui SYSTEM)
+add_library(gpp_studio_core STATIC context.cpp studio.cpp)
+target_link_libraries(gpp_studio_core PUBLIC GuitarPP_lib PNG::PNG)
+target_include_directories(gpp_studio_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(gpp_studio_core PRIVATE
+    GPP_STUDIO_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+    GPP_STUDIO_WORKSPACE="${PROJECT_SOURCE_DIR}")
+if(UNIX AND NOT APPLE)
+    find_path(STUDIO_EGL_INCLUDE EGL/egl.h)
+    find_library(STUDIO_EGL_LIBRARY EGL)
+    if(STUDIO_EGL_INCLUDE AND STUDIO_EGL_LIBRARY)
+        target_compile_definitions(gpp_studio_core PUBLIC GPP_STUDIO_EGL=1)
+        target_include_directories(gpp_studio_core SYSTEM PRIVATE ${STUDIO_EGL_INCLUDE})
+        target_link_libraries(gpp_studio_core PRIVATE ${STUDIO_EGL_LIBRARY})
+    endif()
+endif()
+add_executable(gpp_scene_studio main.cpp ui.cpp)
+target_link_libraries(gpp_scene_studio PRIVATE gpp_studio_core gpp_studio_imgui)
+add_executable(gpp_studio_egl_probe egl_probe.cpp)
+target_link_libraries(gpp_studio_egl_probe PRIVATE gpp_studio_core)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(gpp_studio_core PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(gpp_scene_studio PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+if(BUILD_TESTING)
+    find_package(GTest REQUIRED)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    find_program(STUDIO_XVFB xvfb-run)
+    add_executable(gpp_studio_tests tests.cpp)
+    target_link_libraries(gpp_studio_tests PRIVATE gpp_studio_core GTest::GTest GTest::Main)
+    if(STUDIO_XVFB)
+        add_test(NAME studio_gl COMMAND ${STUDIO_XVFB} -a $<TARGET_FILE:gpp_studio_tests>)
+        add_test(NAME studio_cli COMMAND ${STUDIO_XVFB} -a ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_cli.py $<TARGET_FILE:gpp_scene_studio>
+            ${CMAKE_BINARY_DIR}/scene-studio/tests glfw)
+        set_tests_properties(studio_gl studio_cli PROPERTIES TIMEOUT 120 LABELS "studio;gpu"
+            RESOURCE_LOCK gpp_graphics)
+    endif()
+endif()
+if(BUILD_TESTING AND STUDIO_XVFB)
+    find_program(STUDIO_XDOTOOL xdotool)
+    if(STUDIO_XDOTOOL)
+        add_test(NAME studio_mouse COMMAND ${STUDIO_XVFB} -a ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_ui.py $<TARGET_FILE:gpp_scene_studio>
+            ${CMAKE_BINARY_DIR}/scene-studio/mouse-tests)
+        set_tests_properties(studio_mouse PROPERTIES TIMEOUT 45 LABELS "studio;gpu"
+            RESOURCE_LOCK gpp_graphics)
+    endif()
+endif()

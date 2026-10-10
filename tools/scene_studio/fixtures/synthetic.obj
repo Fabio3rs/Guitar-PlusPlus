@@ -1,0 +1,43 @@
+# Original synthetic geometry for Guitar++ Scene Studio
+mtllib synthetic.mtl
+o Floor
+usemtl floor
+v -3 0 -3
+v -3 0 3
+v 3 0 3
+v 3 0 -3
+f 1 2 3 4
+o Cube
+g Cube
+usemtl coral
+v -0.6 0 -0.6
+v 0.6 0 -0.6
+v 0.6 1.4 -0.6
+v -0.6 1.4 -0.6
+v -0.6 0 0.6
+v 0.6 0 0.6
+v 0.6 1.4 0.6
+v -0.6 1.4 0.6
+f 5 8 7 6
+f 9 10 11 12
+f 5 9 12 8
+f 6 7 11 10
+f 8 12 11 7
+f 5 6 10 9
+o Pillar
+g Pillar
+usemtl blue
+v 1.1 0 -1.4
+v 1.6 0 -1.4
+v 1.6 2 -1.4
+v 1.1 2 -1.4
+v 1.1 0 -0.9
+v 1.6 0 -0.9
+v 1.6 2 -0.9
+v 1.1 2 -0.9
+f 13 16 15 14
+f 17 18 19 20
+f 13 17 20 16
+f 14 15 19 18
+f 16 20 19 15
+f 13 14 18 17

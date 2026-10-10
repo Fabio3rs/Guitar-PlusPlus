@@ -56,8 +56,9 @@ struct Buffer {
     Buffer(const Buffer &) = delete;
     Buffer &operator=(const Buffer &) = delete;
     ~Buffer() {
-        if (id && glfwGetCurrentContext())
+        if (id && glGetString(GL_VERSION)) {
             glDeleteBuffers(1, &id);
+        }
     }
     void upload(const ObjModel::Part &part) {
         const size_t countSize = part.positions.size();
@@ -148,13 +149,15 @@ struct DrawState {
 } // namespace
 
 struct GPPOBJ::Impl {
+    TextureLoader textureLoader;
     mutable std::mutex mutex;
     ObjModel::Model model;
     SceneAO::Atlas ao;
     GLuint aoTexture = 0;
     ~Impl() {
-        if (aoTexture && glfwGetCurrentContext())
+        if (aoTexture && glGetString(GL_VERSION)) {
             glDeleteTextures(1, &aoTexture);
+        }
     }
     Materials materials;
     std::vector<std::unique_ptr<Buffer>> buffers;
@@ -162,6 +165,25 @@ struct GPPOBJ::Impl {
     size_t version = 0, uploadedVersion = 0;
 };
 GPPOBJ::GPPOBJ() : impl(std::make_unique<Impl>()) {}
+
+GPPOBJ::GPPOBJ(TextureLoader loader) : GPPOBJ() {
+    impl->textureLoader = std::move(loader);
+}
+
+GPPOBJ::Inspection GPPOBJ::inspect() const {
+    std::lock_guard<std::mutex> lock(impl->mutex);
+    Inspection result;
+    for (const auto &p : impl->model.parts) {
+        result.parts.push_back(
+            {p.object, p.group, p.material, p.positions.size()});
+    }
+    for (const auto &m : impl->materials) {
+        result.materials.emplace(m.first, m.second.values);
+    }
+    result.warnings = impl->model.warnings;
+    result.aoAtlas = !impl->ao.pixels.empty();
+    return result;
+}
 GPPOBJ::~GPPOBJ() = default;
 GPPOBJ::GPPOBJ(GPPOBJ &&) noexcept = default;
 GPPOBJ &GPPOBJ::operator=(GPPOBJ &&) noexcept = default;
@@ -304,9 +326,13 @@ void GPPOBJ::prepareBuffers() {
                 if (fs::is_regular_file(fs::path(m.directory) /
                                         m.values.diffuseMap))
                     m.texture =
-                        GPPGame::GuitarPP()
-                            .loadTexture(m.directory, m.values.diffuseMap)
-                            .getTextId();
+                        impl->textureLoader
+                            ? impl->textureLoader(
+                                  (fs::path(m.directory) / m.values.diffuseMap)
+                                      .string())
+                            : GPPGame::GuitarPP()
+                                  .loadTexture(m.directory, m.values.diffuseMap)
+                                  .getTextId();
                 if (m.texture) {
                     glBindTexture(GL_TEXTURE_2D, m.texture);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
@@ -372,7 +398,7 @@ void GPPOBJ::unload() {
     impl->materials.clear();
     impl->ao = {};
     ++impl->version;
-    if (glfwGetCurrentContext()) {
+    if (glGetString(GL_VERSION)) {
         impl->buffers.clear();
         if (impl->aoTexture)
             glDeleteTextures(1, &impl->aoTexture);

@@ -141,8 +141,9 @@ struct CBackgroundRenderer::Impl {
         cachedModel = nullptr;
     }
     ~Impl() {
-        if (glfwGetCurrentContext())
+        if (glGetString(GL_VERSION)) {
             releaseShadow();
+        }
     }
     bool allocate(int size) {
         if (shadowFailed || !fbo)
@@ -203,7 +204,13 @@ void CBackgroundRenderer::shutdown() {
     if (live)
         live->impl = std::make_unique<Impl>();
 }
-size_t CBackgroundRenderer::shadowUpdates() const { return impl->updates; }
+size_t CBackgroundRenderer::shadowUpdates() const { return impl->updates;
+}
+
+CBackgroundRenderer::Diagnostics CBackgroundRenderer::diagnostics() const {
+    return {impl->lighting.get() != 0, impl->fbo && impl->depth.get() != 0,
+            impl->shadowFailed, impl->resolution};
+}
 void CBackgroundRenderer::setScene(const std::array<float, 3> &light, bool garageMaterials) {
     auto &r = *impl;
     r.light = {light[0], light[1], light[2]};

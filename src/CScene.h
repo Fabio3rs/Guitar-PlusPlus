@@ -24,6 +24,12 @@ class CScene {
     static bool readDefinition(const std::string &file, const std::string &id,
                                Definition &output, CLuaH::luaState_t &script,
                                std::string &error);
+    // Development tools: bounded, text-only Lua, no libraries or lifecycle
+    // hooks.
+    static bool readInspectionDefinition(const std::string &file,
+                                         const std::string &id,
+                                         Definition &output,
+                                         std::string &error);
     // Call only during loading, on the GL owner. The optional callback draws
     // loading frames and returns false on cancellation. Existing scene survives
     // failed loads. CPU decoding uses a worker; GL upload/retirement stay here.

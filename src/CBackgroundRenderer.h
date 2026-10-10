@@ -11,6 +11,13 @@ class CBackgroundRenderer {
     CBackgroundRenderer();
 
   public:
+    struct Diagnostics {
+        bool lighting = false, shadowSupported = false, shadowFailed = false;
+        int shadowResolution = 0;
+    };
+
+    // Cheap inspection of already initialized state; does not query the driver.
+    Diagnostics diagnostics() const;
     int quality = 2; // 0 original, 1 lighting, 2 shadows 512, 3 shadows 1024
     double shadowBias = 0.001;
     bool ambientOcclusion = true;

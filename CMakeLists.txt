@@ -1,6 +1,6 @@
 set(myprojectname GuitarPP)
 
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 project(${myprojectname} VERSION 0.1.0)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -101,6 +101,7 @@ endif()
 target_link_libraries("${myprojectname}_lib" glfw GLEW OpenGL::GL bass bass_fx)
 target_link_libraries(${myprojectname} "${myprojectname}_lib")
 
+
 include(CTest)
 if(BUILD_TESTING)
     add_subdirectory(tests)
@@ -125,4 +126,9 @@ option(BUILD_CHART_TOOLS "Build the CPU-only runtime chart dump tool" OFF)
 if(BUILD_CHART_TOOLS)
     add_executable(gpp_dump_chart tools/dump_chart.cpp)
     target_link_libraries(gpp_dump_chart GuitarPP_lib)
+endif()
+
+option(BUILD_SCENE_STUDIO "Build the independent Scene Studio" OFF)
+if(BUILD_SCENE_STUDIO)
+    add_subdirectory(tools/scene_studio)
 endif()

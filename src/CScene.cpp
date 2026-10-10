@@ -1,13 +1,15 @@
 #include "CScene.h"
 #include "CBackgroundRenderer.h"
 #include "CLog.h"
+#include <GLFW/glfw3.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <filesystem>
 #include <future>
+#include <limits>
 #include <stdexcept>
-#include <GLFW/glfw3.h>
 
 namespace fs = std::filesystem;
 
@@ -36,21 +38,70 @@ bool CScene::validId(const std::string &id) {
     });
 }
 
-bool CScene::readDefinition(const std::string &file, const std::string &id,
-                           Definition &output, CLuaH::luaState_t &scriptOut,
-                           std::string &error) {
+namespace {
+struct LuaBudget {
+    size_t used = 0, limit = 8 * 1024 * 1024;
+};
+
+void *limitedLuaAlloc(void *user, void *ptr, size_t oldSize, size_t size) {
+    auto &budget = *static_cast<LuaBudget *>(user);
+    if (!ptr) {
+        oldSize = 0; // Lua passes a type tag for new allocations.
+    }
+    if (!size) {
+        budget.used -= oldSize;
+        std::free(ptr);
+        return nullptr;
+    }
+    if (size > oldSize && size - oldSize > budget.limit - budget.used) {
+        return nullptr;
+    }
+    void *next = std::realloc(ptr, size);
+    if (next) {
+        budget.used = budget.used - oldSize + size;
+    }
+    return next;
+}
+
+bool readDefinitionImpl(const std::string &file, const std::string &id,
+                        CScene::Definition &output,
+                        CLuaH::luaState_t &scriptOut, std::string &error,
+                        bool inspection) {
+    LuaBudget budget; // Must outlive the restricted state, including lua_close.
+
     try {
-        if (!validId(id)) { throw std::runtime_error("Invalid scene identifier"); }
-        auto state = CLuaH::make_luaState();
+        if (!CScene::validId(id)) {
+            throw std::runtime_error("Invalid scene identifier");
+        }
+        auto state =
+            inspection
+                ? CLuaH::luaState_t(lua_newstate(limitedLuaAlloc, &budget))
+                : CLuaH::make_luaState();
         if (!state) { throw std::runtime_error("Cannot allocate scene Lua state"); }
         auto *L = state.get();
-        luaL_openlibs(L);
-        if (luaL_loadfile(L, file.c_str()) || lua_pcall(L, 0, 1, 0)) {
+        if (!inspection) {
+            luaL_openlibs(L);
+        } else {
+            lua_sethook(
+                L,
+                [](lua_State *vm, lua_Debug *) {
+                    luaL_error(vm,
+                               "Scene inspection instruction limit exceeded");
+                },
+                LUA_MASKCOUNT, 100000);
+        }
+        const int status =
+            luaL_loadfilex(L, file.c_str(), inspection ? "t" : nullptr);
+        const int executed = status ? status : lua_pcall(L, 0, 1, 0);
+        // Parsing below performs only raw table lookups, with no script calls.
+        // Allow allocation of diagnostic keys outside Lua's protected call.
+        budget.limit = std::numeric_limits<size_t>::max();
+        if (executed) {
             const char *message = lua_tostring(L, -1);
             throw std::runtime_error(message ? message : "Scene script failed");
         }
         if (!lua_istable(L, -1)) { throw std::runtime_error("Scene must return a table"); }
-        Definition candidate;
+        CScene::Definition candidate;
         candidate.id = id;
         auto pathField = [&](const char *key, bool required) {
             rawField(L, -1, key);
@@ -102,13 +153,30 @@ bool CScene::readDefinition(const std::string &file, const std::string &id,
         }
         // Keep the returned table rooted at stack index 1 for lifecycle hooks.
         output = std::move(candidate);
-        scriptOut = std::move(state);
+        if (!inspection) {
+            scriptOut = std::move(state);
+        }
         error.clear();
         return true;
     } catch (const std::exception &e) {
         error = file + ": " + e.what();
         return false;
     }
+}
+
+} // namespace
+
+bool CScene::readDefinition(const std::string &file, const std::string &id,
+                            Definition &output, CLuaH::luaState_t &script,
+                            std::string &error) {
+    return readDefinitionImpl(file, id, output, script, error, false);
+}
+
+bool CScene::readInspectionDefinition(const std::string &file,
+                                      const std::string &id, Definition &output,
+                                      std::string &error) {
+    CLuaH::luaState_t unused;
+    return readDefinitionImpl(file, id, output, unused, error, true);
 }
 
 bool CScene::load(GPPOBJ &model, const std::string &id,

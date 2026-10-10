@@ -98,6 +98,8 @@ class CLog {
     static std::string GetDateAndTime();
 
     static CLog &log();
+    // Startup-only tool hook: call before the first log(), on the main thread.
+    static void configureStderr();
 
     CLog(const CLog &) = delete;
 

@@ -7,12 +7,20 @@
 #include "CLog.h"
 #include <cstring>
 
+namespace {
+bool stderrLog = false;
+}
+
+void CLog::configureStderr() {
+    stderrLog = true;
+}
+
 #ifdef _WIN32
 auto InstallExceptionCatcher(void (*cb)(const char *buffer)) -> int;
 #endif
 
 auto CLog::log() -> CLog & {
-    static CLog Log("Guitar++.log");
+    static CLog Log(stderrLog ? "" : "Guitar++.log");
 #ifdef _WIN32
     static const int installed = InstallExceptionCatcher([](const char *buffer) {
         // A crash can interrupt a thread holding writeMutex. Use a separate,
@@ -31,6 +39,10 @@ auto CLog::log() -> CLog & {
 
 CLog::CLog(const std::string &NameOfFile)
     : FileName(NameOfFile), Finished(false) {
+    if (NameOfFile.empty()) {
+        useStderr = true;
+        return;
+    }
     // Preserve the existing unbuffered file behavior for loading diagnostics.
     LogFile.rdbuf()->pubsetbuf(nullptr, 0);
     LogFile.open(NameOfFile, std::ios::out | std::ios::trunc);

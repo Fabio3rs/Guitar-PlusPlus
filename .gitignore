@@ -38,6 +38,7 @@ dlldata.c
 *.ilk
 *.meta
 *.obj
+!tools/scene_studio/fixtures/*.obj
 *.pch
 *.pdb
 *.pgc

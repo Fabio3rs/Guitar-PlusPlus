@@ -10,6 +10,23 @@ class GPPOBJ {
     void prepareBuffers();
 
   public:
+    // Called only during upload. The provider owns returned textures and must
+    // outlive this model. An empty provider retains the game's texture manager.
+    using TextureLoader = std::function<unsigned int(const std::string &)>;
+
+    struct PartInfo {
+        std::string object, group, material;
+        size_t vertices = 0;
+    };
+
+    struct Inspection {
+        std::vector<PartInfo> parts;
+        std::map<std::string, ObjModel::Material> materials;
+        std::vector<std::string> warnings;
+        bool aoAtlas = false;
+    };
+
+    Inspection inspect() const;
     using MaterialBinder = std::function<bool(
         const ObjModel::Part &, const ObjModel::Material &, bool)>;
     bool keepModelDataLoaded = false;
@@ -32,6 +49,7 @@ class GPPOBJ {
     gppVec3f boxTestForMtl(const std::string &mtl);
     void unload();
     GPPOBJ();
+    explicit GPPOBJ(TextureLoader loader);
     ~GPPOBJ();
     GPPOBJ(GPPOBJ &&) noexcept;
     GPPOBJ &operator=(GPPOBJ &&) noexcept;

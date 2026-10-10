@@ -117,8 +117,10 @@ Guitar++ is a **game**, not safety-critical infrastructure or a financial transa
 
 ## Working conventions
 
-- Prefer the existing C++17 style, local interfaces and ownership patterns. Improve code you touch, but avoid unrelated bulk formatting, wholesale renames or third-party-code churn.
+- Prefer the existing C++17 style, local interfaces and ownership patterns. Improve code you touch, but avoid unrelated bulk formatting, wholesale renames or third-party-code churn. Do not omit {}, keep a line break between functions and logical separations inside functions.
 - Inspect callers, data flow and lifecycle before editing shared systems, especially `GPPGame`, `CEngine`, `CPlayer`, `CGamePlay`, rendering resources and Lua registrations.
 - Make changes in small, reviewable units; preserve public and script-facing behavior unless the task explicitly requests a change. Add a regression test where a behavior is delicate or previously broken.
 - Distinguish **observed behavior**, **intended game design** and **unverified assumptions** in your explanation. Ask when a design decision truly cannot be inferred; otherwise favor a compatible, documented implementation.
 - Summarize what changed, which build/tests ran, what could not be validated, and any effects on older hardware or asset compatibility. Do not push, release or make unrelated repository changes unless requested.
+- native_lab MCP (when available) to test sanitizers (ptrace) or sockets/loopback localhost
+
