@@ -4,11 +4,11 @@
 
 #include "CEngine.h"
 #include "CGamePlay.h"
+#include "CGameSettings.h"
 #include "CLuaFunctions.hpp"
 #include "CMenu.h"
 #include "CMultiThreadPool.h"
 #include "CPlayer.h"
-#include "CGameSettings.h"
 #include "CScene.h"
 #include "CShader.h"
 #include "GPPOBJ.h"
@@ -105,6 +105,7 @@ class GPPGame {
                 ths->asyncFl = true;
                 return false;
             }
+
             bool r = CEngine::engine().loadTextureAsync(
                 (ths->textPath + std::string("/") + ths->textName).c_str(),
                 &ths->imgData);
@@ -126,8 +127,11 @@ class GPPGame {
                     if (imgData.Data.get() != nullptr) {
                         text = CEngine::engine().uploadTextureToOGL(&imgData);
                         // The future is consumed even if the GL upload fails.
-                        // Keep a terminal state so queued callbacks cannot get it twice.
-                        if (text == 0u) { text = ~0u; }
+                        // Keep a terminal state so queued callbacks cannot get
+                        // it twice.
+                        if (text == 0u) {
+                            text = ~0u;
+                        }
                     } else {
                         text = ~0u;
                     }
@@ -196,12 +200,19 @@ class GPPGame {
         }
 
         gppTexture &operator=(gppTexture &&m) noexcept {
-            if (this == std::addressof(m))
+            if (this == std::addressof(m)) {
                 return *this;
+            }
 
             // Workers capture this: neither object may move while decoding.
-            if (ft.valid()) { ft.wait(); }
-            if (m.ft.valid()) { m.ft.wait(); }
+            if (ft.valid()) {
+                ft.wait();
+            }
+
+            if (m.ft.valid()) {
+                m.ft.wait();
+            }
+
             text = std::move(m.text);
             textPath = std::move(m.textPath);
             textName = std::move(m.textName);
@@ -210,13 +221,15 @@ class GPPGame {
             asyncFl = (bool)m.asyncFl;
             lasync = m.lasync;
 
-            if (text != 0)
+            if (text != 0) {
                 lasync = false;
+            }
 
             associatedToScript = std::move(m.associatedToScript);
 
-            if (m.text)
+            if (m.text) {
                 m.text = 0;
+            }
 
             return *this;
         };
@@ -230,7 +243,10 @@ class GPPGame {
         }
 
         ~gppTexture() noexcept {
-            if (ft.valid()) { ft.wait(); }
+            if (ft.valid()) {
+                ft.wait();
+            }
+
             text = 0;
             // TODO CEngine::engine().unloadTexture(id);
         }
@@ -315,6 +331,7 @@ class GPPGame {
     CMenu *getMainMenu();
 
     CMenu &getMenuByName(const std::string &name);
+    CMenu *findMenu(const std::string &name);
 
     // loaded game sprites - TODO: improve it
     std::map<std::string, int> SPR;
@@ -478,10 +495,13 @@ class GPPGame {
         return ((str1.size() == str2.size()) &&
                 std::equal(str1.begin(), str1.end(), str2.begin(),
                            [](const char &c1, const char &c2) {
-                               if (c1 == c2)
+                               if (c1 == c2) {
                                    return true;
-                               else if (std::toupper(c1) == std::toupper(c2))
+                               } else if (std::toupper(c1) ==
+                                          std::toupper(c2)) {
                                    return true;
+                               }
+
                                return false;
                            }));
     }
@@ -551,8 +571,12 @@ class GPPGame {
 
   public:
     // Main-thread API: snapshots remain valid after the module/player reset.
-    const std::vector<SongResult> &getSongResults() const { return songResults; }
+    const std::vector<SongResult> &getSongResults() const {
+        return songResults;
+    }
+
     void clearSongResults() { songResults.clear(); }
+
     void recordSongResult(SongResult result) {
         songResults.push_back(std::move(result));
         scene.songEnded(songResults.back());

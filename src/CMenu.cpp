@@ -1,1369 +1,1244 @@
 #include "CMenu.h"
-#include "CControls.h"
-#include "CEngine.h"
-#include "CFonts.h"
 #include "CLanguageManager.h"
-#include "CLog.h"
 #include "GPPGame.h"
 #include "utf8.h"
-#include <iostream>
+#include <GL/glew.h>
+#include <algorithm>
+#include <cmath>
+#include <limits>
 
-// std::map <std::string, CMenu*> CMenu::Menus = std::map <std::string,
-// CMenu*>();
-std::deque<CMenu::uiWindowStruct> CMenu::uiList =
-    std::deque<CMenu::uiWindowStruct>();
-std::vector<CMenu::posUiOrder> CMenu::uiOrderList =
-    std::vector<CMenu::posUiOrder>();
+std::deque<CMenu::uiWindowStruct> CMenu::uiList;
+std::vector<CMenu::posUiOrder> CMenu::uiOrderList;
 int CMenu::menusCreated = 0;
+CMenu *CMenu::inputFocus = nullptr;
 
-auto CMenu::getUIListSize() -> int { return myUiList.size(); }
+namespace {
+void rectangle(const CMenu::Rect &r, unsigned texture = 0) {
+    CEngine::RenderDoubleStruct q{};
+    q.x1 = q.x4 = r.left;
+    q.x2 = q.x3 = r.right;
+    q.y1 = q.y2 = r.top;
+    q.y3 = q.y4 = r.bottom;
+    q.TextureX1 = 0;
+    q.TextureX2 = 1;
+    q.TextureY1 = 1;
+    q.TextureY2 = 0;
+    q.Text = texture;
+    CEngine::engine().Render2DQuad(q);
+}
+
+bool interactive(const CMenu::menuOpt &o) {
+    return !o.disabled && o.type != CMenu::static_text && o.type != CMenu::none;
+}
+
+bool keyboardFocusable(const CMenu::menuOpt &o) {
+    return interactive(o) && o.type != CMenu::drag_bar;
+}
+
+void clampList(CMenu::menuOpt &o) {
+    o.listID =
+        o.optList.empty()
+            ? 0
+            : std::clamp(o.listID, 0, static_cast<int>(o.optList.size() - 1));
+}
+} // namespace
 
 void CMenu::menuOpt::update() {
-    if (!langEntryKey.empty()) {
-        auto &lngmgr = CLanguageManager::langMGR();
-        auto &game = GPPGame::GuitarPP();
-        const std::string txt = lngmgr.getText(game.glanguage, langEntryKey);
+    if (langEntryKey.empty()) {
+        return;
+    }
 
-        if (!txt.empty()) {
-            { text = std::move(txt); }
-        } else {
-            CLog::log() << "On CMenu::menuOpt::update():\n		"
-                           "		<<" +
-                               text + ">>	 language entry key <<" +
-                               langEntryKey + ">> is null or not exists.";
-            CLog::log().multiRegister("game.glanguage <<%0>>, <<%1>> ",
-                                      game.glanguage, langEntryKey);
+    const auto translated = CLanguageManager::langMGR().getText(
+        GPPGame::GuitarPP().glanguage, langEntryKey);
 
-            if (text.empty()) {
-                text = langEntryKey + "n/f/";
-            }
+    if (!translated.empty()) {
+        text = translated;
+    }
+}
+
+CMenu::CMenu() : CMenu("menu_main_" + std::to_string(++menusCreated)) {}
+
+CMenu::CMenu(const std::string &name)
+    : menuName(name), uiMenu(false), thisUiID(-1), lastEnterOptBtn(false),
+      devMenuNOUpdateOthers(false), lScript(nullptr), devEditMenu(nullptr),
+      devEditingOpt(0), temp(false), gameMenu(false), mouseAX(0), mouseAY(0),
+      status(0) {
+    x = y = 0;
+}
+
+CMenu::CMenu(const CMenu &m) : CMenu(m.menuName) {
+    x = m.x;
+    y = m.y;
+    style = m.style;
+    flow = m.flow;
+    modal = m.modal;
+    viewportEnabled = m.viewportEnabled;
+    viewport = m.viewport;
+    flowX = m.flowX;
+    flowY = m.flowY;
+    flowGroup = m.flowGroup;
+    anchorLeft = m.anchorLeft;
+    leftMargin = m.leftMargin;
+    mTitle = m.mTitle;
+    qbgd = m.qbgd;
+    backgroundTexture = m.backgroundTexture;
+    gameMenu = m.gameMenu;
+    options = m.options;
+    groupInfo = m.groupInfo;
+    openCallback = m.openCallback;
+    luaCallBacks = m.luaCallBacks;
+
+    for (auto &o : options) {
+        o.externalPreTextRef = nullptr;
+        o.attachedLua = nullptr;
+        o.status = o.devStatus = 0;
+        o.btnClickStat = false;
+        o.pressingShortcutKey = 0;
+    }
+}
+
+CMenu::~CMenu() {
+    closeInterfaces();
+
+    if (inputFocus == this) {
+        inputFocus = nullptr;
+    }
+}
+
+void CMenu::closeInterfaces() {
+    // Detach ownership before recursively destroying children.
+    auto children = std::move(myUiList);
+    myUiList.clear();
+
+    for (int id : children) {
+        if (id >= 0 && static_cast<size_t>(id) < uiList.size()) {
+            auto child = std::move(uiList[static_cast<size_t>(id)].m);
+            uiList[static_cast<size_t>(id)].pos = 0;
         }
     }
+
+    if (inputFocus == this) {
+        inputFocus = nullptr;
+    }
 }
 
-auto CMenu::getUILast() -> CMenu::uiWindowStruct & {
-    if (!uiList.empty()) {
-        { return uiList.back(); }
+int CMenu::addOpt(const menuOpt &opt) {
+    const size_t index = options.size();
+
+    if (index >= static_cast<size_t>(std::numeric_limits<int>::max())) {
+        return -1;
     }
 
-    static uiWindowStruct result;
-    return result;
-}
-
-auto CMenu::addOpt(const menuOpt &opt) -> int {
     options.push_back(opt);
-    options.back().update();
-
-    auto genName = [this](int optID) {
-        return menuName + std::string("_") + std::to_string(optID) +
-               std::to_string((int)(options[optID].group));
-    };
-
-    options.back().optionName = genName(options.size() - 1);
-
-    auto &gp = groupInfo[opt.group];
-
-    return options.size() - 1;
+    auto &o = options.back();
+    o.update();
+    o.optionName =
+        menuName + "_" + std::to_string(index) + std::to_string(o.group);
+    o.eventID = CLuaH::Lua().idForCallbackEvent(o.optionName);
+    groupInfo.try_emplace(o.group);
+    return static_cast<int>(index);
 }
 
 void CMenu::resetData() {
-    for (auto &opt : options) {
-        opt.status = 0;
+    for (auto &o : options) {
+        o.status = 0;
+        o.devStatus = 0;
+        o.btnClickStat = false;
     }
+
+    focused = hovered = captured = -1;
+    dragging = false;
+    status = 0;
 }
 
 void CMenu::resetBtns() {
-    lastEnterOptBtn = false;
-    lastMouseClickStatus = false;
-
+    captured = -1;
+    dragging = false;
+    lastEnterOptBtn = lastMouseClickStatus = false;
     status = 0;
 
-    for (auto &opt : options) {
-        opt.btnClickStat = false;
+    for (auto &o : options) {
+        o.btnClickStat = false;
+        o.status &= ~2;
+        o.pressingShortcutKey = 0;
     }
 }
 
-void CMenu::render() {
-    auto textSizeInScreen = [](const std::string &s, double size) {
-        double charnums = CFonts::utf8Size(s);
-        return (charnums * size / 1.5) + (size / 2.0);
-    };
+void CMenu::ensureLayout(menuOpt &o) {
+    auto &fonts = CFonts::fonts();
+    const auto &text = o.type == text_input ? o.preText : o.text;
 
-    auto textSizeInScreenCharNum = [](double charnums, double size) {
-        return (charnums * size / 1.5) + (size / 2.0);
-    };
-
-    if (qbgd.Text != 0) {
-        if (x != 0.0 || y != 0.0) {
-            CEngine::RenderDoubleStruct RenderData = qbgd;
-            RenderData.x1 += x;
-            RenderData.x2 += x;
-            RenderData.x3 += x;
-            RenderData.x4 += x;
-
-            RenderData.y1 += y;
-            RenderData.y2 += y;
-            RenderData.y3 += y;
-            RenderData.y4 += y;
-            CEngine::engine().Render3DQuadWithAlpha(RenderData);
-        } else {
-            CEngine::engine().Render3DQuadWithAlpha(qbgd);
-        }
+    if (o.cachedRevision != fonts.revision() || o.cachedText != text) {
+        fonts.layoutText(text, o.layout);
+        o.cachedText = text;
+        o.cachedRevision = fonts.revision();
     }
 
-    for (auto &grp : groupInfo) {
-        switch (grp.second.type) {
-        case group::deslizant_h_menu:
-            CEngine::RenderDoubleStruct RenderData{};
+    clampList(o);
+    const std::string empty;
+    const auto &value =
+        o.optList.empty() ? empty : o.optList[static_cast<size_t>(o.listID)];
 
-            RenderData.Text = 0;
-
-            RenderData.x1 = grp.second.x + x;
-            RenderData.x2 = RenderData.x1 + grp.second.w + x;
-            RenderData.x3 = RenderData.x1 + grp.second.w + x;
-            RenderData.x4 = grp.second.x + x;
-
-            RenderData.y1 = grp.second.y + grp.second.h + y;
-            RenderData.y2 = RenderData.y1 + grp.second.h + y;
-            RenderData.y3 = RenderData.y1 + y;
-            RenderData.y4 = grp.second.y + y;
-
-            RenderData.TextureX1 = 0.0;
-            RenderData.TextureX2 = 1.0;
-            RenderData.TextureY1 = 1.0;
-            RenderData.TextureY2 = 0.0;
-
-            CEngine::engine().Render2DQuad(RenderData);
-            break;
-        }
+    if (o.type == deslizant_Select_list &&
+        (o.valueRevision != fonts.revision() || o.cachedValue != value)) {
+        fonts.layoutText(value, o.valueLayout);
+        o.cachedValue = value;
+        o.valueRevision = fonts.revision();
     }
 
-    for (auto &opt : options) {
-        switch (opt.type) {
-        case button_ok:
-            break;
-
-        case text_input:
-            CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2],
-                                       opt.color[3]);
-            {
-                double textSize = CFonts::fonts().getXSizeInScreen(
-                    opt.preText, opt.size) /*textSizeInScreen(opt.preText,
-                                              opt.size) + opt.size * 0.5*/
-                    ;
-
-                {
-                    CEngine::RenderDoubleStruct RenderData{};
-
-                    RenderData.x1 = opt.x + x;
-                    RenderData.x2 = opt.x + textSize + x;
-                    RenderData.x3 = opt.x + textSize + x;
-                    RenderData.x4 = opt.x + x;
-
-                    RenderData.y1 = opt.y + opt.size + y;
-                    RenderData.y2 = opt.y + opt.size + y;
-                    RenderData.y3 = opt.y + y;
-                    RenderData.y4 = opt.y + y;
-
-                    RenderData.z1 = 0.0;
-                    RenderData.z2 = 0.0;
-                    RenderData.z3 = 0.0;
-                    RenderData.z4 = 0.0;
-
-                    RenderData.TextureX1 = 0.0;
-                    RenderData.TextureX2 = 1.0;
-                    RenderData.TextureY1 = 1.0;
-                    RenderData.TextureY2 = 0.0;
-
-                    RenderData.Text = 0;
-
-                    CEngine::engine().Render2DQuad(RenderData);
-                }
-
-                CFonts::fonts().drawTextInScreen(opt.preText, opt.x + x,
-                                                 opt.y + y, opt.size);
-
-                if ((opt.status & 4) != 0) {
-                    CEngine::RenderDoubleStruct RenderData{};
-
-                    double ptrAt =
-                        textSizeInScreenCharNum(opt.strEditPoint, opt.size);
-
-                    RenderData.x1 = 0.0;
-                    RenderData.x1 += ptrAt - opt.size / 4.0;
-                    RenderData.x2 = RenderData.x1;
-                    RenderData.x3 = RenderData.x2 + opt.size;
-                    RenderData.x4 = RenderData.x1 + opt.size;
-
-                    RenderData.y1 = 0.0 - opt.size / 2.0;
-                    RenderData.y2 = RenderData.y1 + opt.size;
-                    RenderData.y3 = RenderData.y1 + opt.size;
-                    RenderData.y4 = RenderData.y1;
-
-                    RenderData.Text = GPPGame::GuitarPP().SPR["palheta"];
-
-                    RenderData.TextureX1 = 0.0;
-                    RenderData.TextureX2 = 1.0;
-                    RenderData.TextureY1 = 1.0;
-                    RenderData.TextureY2 = 0.0;
-
-                    CEngine::engine().renderAt(opt.x + x, opt.y + y, 0.0);
-
-                    // CEngine::engine().Rotate(90.0, 0.0, 0.0, 1.0);
-
-                    CEngine::engine().Render2DQuad(RenderData);
-                    CEngine::engine().matrixReset();
-                }
-            }
-            break;
-
-        case textbtn:
-            CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2],
-                                       opt.color[3]);
-            if ((opt.status & 1) != 0) {
-                CEngine::RenderDoubleStruct RenderData{};
-                RenderData.x1 = opt.x - opt.size + x;
-                RenderData.x2 = opt.x /*- opt.size + opt.size*/ + x;
-                RenderData.x3 = opt.x /*- opt.size + opt.size*/ + x;
-                RenderData.x4 = opt.x - opt.size + x;
-
-                RenderData.y1 = opt.y + opt.size + y;
-                RenderData.y2 = opt.y + opt.size + y;
-                RenderData.y3 = opt.y + y;
-                RenderData.y4 = opt.y + y;
-
-                RenderData.Text = GPPGame::GuitarPP().SPR["palheta"];
-
-                RenderData.TextureX1 = 0.0;
-                RenderData.TextureX2 = 1.0;
-                RenderData.TextureY1 = 1.0;
-                RenderData.TextureY2 = 0.0;
-
-                CEngine::engine().Render2DQuad(RenderData);
-            }
-            CFonts::fonts().drawTextInScreen(opt.text, opt.x + x, opt.y + y,
-                                             opt.size);
-            break;
-
-        case deslizant_Select_list:
-            CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2],
-                                       opt.color[3]);
-
-            {
-                double textSize = textSizeInScreen(opt.text, opt.size);
-                double barPosX1 = opt.x + textSize + opt.size;
-                double barPosX2;
-                barPosX1 += x;
-                barPosX2 = barPosX1 + opt.deslizantBarSize;
-                double barPosXStep = opt.deslizantBarSize / opt.optList.size();
-                barPosXStep *= opt.listID;
-
-                {
-                    CEngine::RenderDoubleStruct RenderData{};
-
-                    RenderData.x1 = barPosX1;
-                    RenderData.x2 = barPosX1 + opt.deslizantBarSize;
-                    RenderData.x3 = barPosX1 + opt.deslizantBarSize;
-                    RenderData.x4 = barPosX1;
-
-                    RenderData.y1 = opt.y + opt.size + y;
-                    RenderData.y2 = opt.y + opt.size + y;
-                    RenderData.y3 = opt.y + y;
-                    RenderData.y4 = opt.y + y;
-
-                    RenderData.z1 = 0.0;
-                    RenderData.z2 = 0.0;
-                    RenderData.z3 = 0.0;
-                    RenderData.z4 = 0.0;
-
-                    RenderData.TextureX1 = 0.0;
-                    RenderData.TextureX2 = 1.0;
-                    RenderData.TextureY1 = 1.0;
-                    RenderData.TextureY2 = 0.0;
-
-                    RenderData.Text = 0;
-
-                    CEngine::engine().Render2DQuad(RenderData);
-                }
-
-                double absolutePos = barPosX1 + barPosXStep;
-
-                CEngine::RenderDoubleStruct RenderData{};
-                RenderData.x1 = absolutePos;
-                RenderData.x2 = absolutePos + opt.size;
-                RenderData.x3 = absolutePos + opt.size;
-                RenderData.x4 = absolutePos;
-
-                RenderData.y1 = opt.y + opt.size + y;
-                RenderData.y2 = opt.y + opt.size + y;
-                RenderData.y3 = opt.y + y;
-                RenderData.y4 = opt.y + y;
-
-                RenderData.Text = GPPGame::GuitarPP().SPR["palheta"];
-
-                RenderData.TextureX1 = 0.0;
-                RenderData.TextureX2 = 1.0;
-                RenderData.TextureY1 = 1.0;
-                RenderData.TextureY2 = 0.0;
-
-                CEngine::engine().Render2DQuad(RenderData);
-
-                barPosX1 += opt.deslizantBarSize + opt.size;
-
-                CFonts::fonts().drawTextInScreen(opt.text, opt.x + x, opt.y + y,
-                                                 opt.size);
-                CFonts::fonts().drawTextInScreen(opt.optList[opt.listID],
-                                                 barPosX1, opt.y + y, opt.size);
-            }
-            break;
-
-        case drag_bar:
-            CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2],
-                                       opt.color[3]);
-
-            {
-                CEngine::RenderDoubleStruct RenderData{};
-
-                RenderData.x1 = opt.x + x;
-                RenderData.x2 = opt.x + opt.deslizantBarSize + x;
-                RenderData.x3 = opt.x + opt.deslizantBarSize + x;
-                RenderData.x4 = opt.x + x;
-
-                RenderData.y1 = opt.y + opt.size + y;
-                RenderData.y2 = opt.y + opt.size + y;
-                RenderData.y3 = opt.y + y;
-                RenderData.y4 = opt.y + y;
-
-                RenderData.z1 = 0.0;
-                RenderData.z2 = 0.0;
-                RenderData.z3 = 0.0;
-                RenderData.z4 = 0.0;
-
-                RenderData.TextureX1 = 0.0;
-                RenderData.TextureX2 = 1.0;
-                RenderData.TextureY1 = 1.0;
-                RenderData.TextureY2 = 0.0;
-
-                RenderData.Text = 0;
-
-                CEngine::engine().Render2DQuad(RenderData);
-            }
-            break;
-
-        case static_text:
-            CEngine::engine().setColor(opt.color[0], opt.color[1], opt.color[2],
-                                       opt.color[3]);
-
-            CFonts::fonts().drawTextInScreen(opt.text, opt.x + x, opt.y + y,
-                                             opt.size);
-            break;
-
-        default:
-            break;
-        }
+    if (!std::isfinite(o.size) || o.size <= 0) {
+        o.size = style.textSize;
     }
-    CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
 
-    /*for (auto &ui : uiList)
-    {
-            ui->render();
-    }*/
+    if (!std::isfinite(o.deslizantBarSize) || o.deslizantBarSize < 0) {
+        o.deslizantBarSize = 0;
+    }
+
+    if (!std::isfinite(o.fieldWidth) || o.fieldWidth <= 0) {
+        o.fieldWidth = .55;
+    }
 }
 
-auto CMenu::isMouseOnThisMenu() -> bool {
-    auto textSizeInScreen = [](const std::string &s, double size) {
-        double charnums = CFonts::utf8Size(s);
-        return (charnums * size / 1.5) + (size / 2.0);
-    };
+CMenu::Rect CMenu::controlRect(size_t i) {
+    if (i >= options.size()) {
+        return {};
+    }
 
-    auto isMouseOver2DQuad = [this](double x, double y, double w, double h) {
-        double mx = CEngine::engine().mouseX;
-        double my = CEngine::engine().mouseY;
-        x += this->x;
-        y += this->y;
+    auto &o = options[i];
+    ensureLayout(o);
+    const double yy =
+        o.y + y +
+        ((viewportEnabled && o.group == flowGroup) ? scrollOffset : 0);
+    double xx = o.x + x;
 
-        return mx >= x && mx <= (x + w) && my >= (y - h) && my <= y;
-    };
+    if (o.type == deslizant_Select_list) {
+        xx += o.layout.right * o.size + o.size;
+    }
 
-    double textSize = 0.0;
-    double barPosX1 = 0.0;
-    double barPosX2 = 0.0;
+    return {xx, yy, xx + o.deslizantBarSize, yy + o.size};
+}
 
-    if (qbgd.Text != 0) {
-        double w = qbgd.x1 - qbgd.x2;
+CMenu::Rect CMenu::optionRect(size_t i) {
+    if (i >= options.size()) {
+        return {};
+    }
 
-        if (w < 0.0) {
-            { w = -w; }
-        }
+    auto &o = options[i];
+    ensureLayout(o);
+    const double yy =
+        o.y + y +
+        ((viewportEnabled && o.group == flowGroup) ? scrollOffset : 0);
+    Rect r{o.x + x + o.layout.left * o.size, yy + o.layout.bottom * o.size,
+           o.x + x + o.layout.right * o.size, yy + o.layout.top * o.size};
 
-        double h = qbgd.y1 - qbgd.y3;
+    if (o.type == text_input) {
+        r = {o.x + x, yy, o.x + x + o.fieldWidth, yy + o.size};
+    }
 
-        if (h < 0.0) {
-            { h = -h; }
-        }
+    if (o.type == drag_bar) {
+        r = controlRect(i);
+    }
 
-        bool isinbg = isMouseOver2DQuad(qbgd.x1, qbgd.y1, w, h);
+    if (o.type == deslizant_Select_list) {
+        r.right =
+            controlRect(i).right + o.size + o.valueLayout.width() * o.size;
+    }
 
-        if (isinbg) {
-            { return true; }
+    const double pad = style.padding * o.size;
+    return {r.left - pad, r.bottom - pad, r.right + pad, r.top + pad};
+}
+
+void CMenu::setFlow(Flow direction, double originX, double originY, int group) {
+    flow = direction;
+    flowX = originX;
+    flowY = originY;
+    flowGroup = group;
+}
+
+void CMenu::reflow() {
+    for (auto &o : options) {
+        if (o.anchorRight) {
+            ensureLayout(o);
+            o.x = GPPGame::getWindowProportion() - .1 - o.layout.right * o.size;
         }
     }
 
-    for (auto &opt : options) {
-        switch (opt.type) {
-        case button_ok:
+    if (flow == Flow::Manual) {
+        return;
+    }
 
-            break;
+    if (anchorLeft) {
+        flowX = -GPPGame::getWindowProportion() + leftMargin;
+    }
 
-        case text_input:
-            textSize = textSizeInScreen(opt.preText, opt.size) + 0.1;
+    double px = flowX, py = flowY;
 
-            if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y - opt.size,
-                                  textSize, opt.size * 1.05)) {
-                return true;
+    for (auto &o : options) {
+        if (o.group == flowGroup && !o.manualPosition) {
+            ensureLayout(o);
+            o.x = px;
+            o.y = py;
+
+            if (flow == Flow::Vertical) {
+                py -= std::max(style.rowStep,
+                               (o.layout.top - o.layout.bottom + .3) * o.size);
+            } else {
+                px += o.layout.width() * o.size +
+                      (1 + style.pickGap + .5) * o.size;
             }
+        }
+    }
+}
 
-            break;
+void CMenu::select(int i) {
+    if (i < 0 || static_cast<size_t>(i) >= options.size() ||
+        !interactive(options[static_cast<size_t>(i)])) {
+        return;
+    }
 
-        case textbtn:
-            textSize = textSizeInScreen(opt.text, opt.size);
+    for (auto &o : options) {
+        // Keep the legacy activation value (3) until callbacks consume it.
+        o.status &= ~4;
 
-            if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize,
-                                  opt.size * 1.05)) {
-                return true;
-            }
-            break;
+        if (!(o.status & 2)) {
+            o.status &= ~1;
+        }
+    }
 
-        case deslizant_Select_list:
-            textSize = textSizeInScreen(opt.text, opt.size);
-            barPosX1 = opt.x + textSize + opt.size;
-            barPosX2 = barPosX1 + opt.deslizantBarSize;
+    focused = i;
+    auto &o = options[static_cast<size_t>(i)];
+    o.status |= 1;
 
-            if (isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize,
-                                  opt.size)) {
-                return true;
-            }
-            break;
+    if (o.group >= 0) {
+        groupInfo[o.group].selectedOpt = i;
+    }
 
-        case drag_bar:
-            if (isMouseOver2DQuad(opt.x, opt.y, opt.deslizantBarSize,
-                                  opt.size)) {
-                return true;
-            }
+    revealFocused();
+}
 
-            break;
+void CMenu::revealFocused() {
+    if (!viewportEnabled || focused < 0 ||
+        static_cast<size_t>(focused) >= options.size() ||
+        options[static_cast<size_t>(focused)].group != flowGroup) {
+        return;
+    }
 
-        case static_text:
-            textSize = textSizeInScreen(opt.text, opt.size);
+    const auto r = optionRect(static_cast<size_t>(focused));
 
-            if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize,
-                                  opt.size * 1.05)) {
-                return true;
-            }
-            break;
+    if (r.top > viewport.top + y) {
+        scrollOffset -= r.top - (viewport.top + y);
+    }
 
-        default:
-            break;
+    if (r.bottom < viewport.bottom + y) {
+        scrollOffset += viewport.bottom + y - r.bottom;
+    }
+
+    scrollOffset = std::max(0.0, scrollOffset);
+}
+
+bool CMenu::isMouseOnThisMenu() {
+    const double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
+
+    if (qbgd.Text &&
+        Rect{qbgd.x1 + x, qbgd.y3 + y, qbgd.x2 + x, qbgd.y1 + y}.contains(mx,
+                                                                          my)) {
+        return true;
+    }
+
+    for (size_t i = 0; i < options.size(); ++i) {
+        if (optionRect(i).contains(mx, my)) {
+            return true;
         }
     }
 
     return false;
 }
 
-auto CMenu::getUiMenuOnTop() -> CMenu * {
-    for (intptr_t i = uiOrderList.size() - 1; i >= 0; i--) {
-        CMenu *m = uiList[uiOrderList[i].id].m.get();
-        if (m != nullptr) {
-            return m;
+bool CMenu::isInterfaceOver() const {
+    for (auto it = uiOrderList.rbegin(); it != uiOrderList.rend(); ++it) {
+        auto *m = uiList[static_cast<size_t>(it->id)].m.get();
+
+        if (m == this) {
+            break;
+        }
+
+        if (m && (m->modal || m->isMouseOnThisMenu())) {
+            return true;
         }
     }
 
-    return nullptr;
+    return false;
 }
 
-auto CMenu::isInterfaceOver() const -> bool {
-    bool result = false;
-    if (thisUiID >= 0) {
-        for (intptr_t i = uiOrderList.size() - 1; i >= 0; i--) {
-            if (uiOrderList[i].id == thisUiID) {
-                break;
+void CMenu::processEvent(const CControls::MenuEvent &event) {
+    using Event = CControls::MenuEvent;
+
+    if (event.kind == Event::Focus && !event.action) {
+        resetBtns();
+        return;
+    }
+
+    if (event.kind == Event::Scroll && viewportEnabled) {
+        double lowest = viewport.top;
+
+        for (const auto &o : options) {
+            if (o.group == flowGroup) {
+                lowest = std::min(lowest, o.y);
+            }
+        }
+
+        scrollOffset = std::clamp(scrollOffset - event.y * style.rowStep * 3,
+                                  0.0, std::max(0.0, viewport.bottom - lowest));
+        return;
+    }
+
+    if (event.kind == Event::Mouse && event.key == GLFW_MOUSE_BUTTON_LEFT) {
+        int hit = -1;
+
+        for (size_t i = 0; i < options.size(); ++i) {
+            if (viewportEnabled && options[i].group == flowGroup &&
+                !Rect{viewport.left + x, viewport.bottom + y,
+                      viewport.right + x, viewport.top + y}
+                     .contains(event.x, event.y)) {
+                continue;
             }
 
-            CMenu *m = uiList[uiOrderList[i].id].m.get();
-            if ((m != nullptr) && m->isMouseOnThisMenu()) {
-                result = true;
+            if (interactive(options[i]) &&
+                optionRect(i).contains(event.x, event.y)) {
+                hit = static_cast<int>(i);
+            }
+        }
+
+        if (event.action == GLFW_PRESS) {
+            captured = hit;
+
+            if (hit < 0) {
+                return;
+            }
+
+            select(hit);
+            auto &o = options[static_cast<size_t>(hit)];
+            dragX = event.x;
+            dragY = event.y;
+            dragging =
+                o.type == drag_bar || (o.type == deslizant_Select_list &&
+                                       controlRect(static_cast<size_t>(hit))
+                                           .contains(event.x, event.y));
+
+            if (dragging && o.type == deslizant_Select_list &&
+                !o.optList.empty() && o.deslizantBarSize > 0) {
+                auto r = controlRect(static_cast<size_t>(hit));
+                o.listID = static_cast<int>(std::round(
+                    std::clamp((event.x - r.left) / o.deslizantBarSize, 0.0,
+                               1.0) *
+                    static_cast<double>(o.optList.size() - 1)));
+            }
+
+            if (o.type == text_input) {
+                o.status |= 4;
+                o.strEditPoint = static_cast<int>(o.layout.cursorAt(
+                    (event.x - x - o.x + o.textScroll) / o.size));
+            }
+        } else if (event.action == GLFW_RELEASE) {
+            if (captured >= 0 && captured == hit &&
+                static_cast<size_t>(hit) < options.size()) {
+                auto &o = options[static_cast<size_t>(hit)];
+
+                if (o.enableEnter && o.type != text_input &&
+                    o.type != drag_bar && o.type != deslizant_Select_list) {
+                    o.status |= 3;
+                }
+            }
+
+            captured = -1;
+            dragging = false;
+        }
+
+        return;
+    }
+
+    if (focused < 0 || static_cast<size_t>(focused) >= options.size() ||
+        !interactive(options[static_cast<size_t>(focused)])) {
+        focused = -1;
+
+        for (size_t i = 0; i < options.size(); ++i) {
+            if (keyboardFocusable(options[i])) {
+                select(static_cast<int>(i));
                 break;
             }
         }
-    } else {
-        for (intptr_t i = uiOrderList.size() - 1; i >= 0; i--) {
-            CMenu *m = uiList[uiOrderList[i].id].m.get();
-            if ((m != nullptr) && m->isMouseOnThisMenu()) {
-                result = true;
-                break;
+    }
+
+    if (event.kind == Event::Key && event.action == GLFW_PRESS) {
+        for (size_t i = 0; i < options.size(); ++i) {
+            if (interactive(options[i]) && options[i].shortcutKey &&
+                options[i].shortcutKey == event.key) {
+                select(static_cast<int>(i));
+                options[i].status |= 3;
+                return;
+            }
+        }
+
+        if (event.key == GLFW_KEY_ESCAPE) {
+            if (focused >= 0 &&
+                (options[static_cast<size_t>(focused)].status & 4)) {
+                options[static_cast<size_t>(focused)].status &= ~4;
+                return;
+            }
+
+            for (size_t i = 0; i < options.size(); ++i) {
+                if (options[i].goback && interactive(options[i])) {
+                    select(static_cast<int>(i));
+                    options[i].status |= 3;
+                    return;
+                }
             }
         }
     }
 
-    return result;
+    if (focused < 0) {
+        return;
+    }
+
+    auto &o = options[static_cast<size_t>(focused)];
+
+    if (event.kind == Event::Character && o.type == text_input &&
+        (o.status & 4)) {
+        std::string encoded;
+
+        try {
+            utf8::append(event.codepoint, std::back_inserter(encoded));
+        } catch (const std::exception &) {
+            return;
+        }
+
+        if (o.preText.size() <= o.preTextMaxSize &&
+            encoded.size() <= o.preTextMaxSize - o.preText.size()) {
+            const auto cursor = CFonts::utf8InsertAt(
+                o.preText, encoded,
+                static_cast<size_t>(std::max(0, o.strEditPoint)));
+
+            if (cursor != std::string::npos) {
+                o.strEditPoint = static_cast<int>(cursor);
+            }
+        }
+
+        if (o.externalPreTextRef) {
+            *o.externalPreTextRef = o.preText;
+        }
+
+        return;
+    }
+
+    if (event.kind != Event::Key || event.action == GLFW_RELEASE) {
+        return;
+    }
+
+    const int key = event.key;
+
+    if (o.type == text_input && (o.status & 4)) {
+        const size_t count = CFonts::utf8Size(o.preText);
+
+        if (count == std::string::npos ||
+            count > static_cast<size_t>(std::numeric_limits<int>::max())) {
+            return;
+        }
+
+        o.strEditPoint = std::clamp(o.strEditPoint, 0, static_cast<int>(count));
+
+        if (key == GLFW_KEY_LEFT) {
+            o.strEditPoint = std::max(0, o.strEditPoint - 1);
+        }
+
+        if (key == GLFW_KEY_RIGHT) {
+            o.strEditPoint =
+                std::min(static_cast<int>(count), o.strEditPoint + 1);
+        }
+
+        if (key == GLFW_KEY_HOME) {
+            o.strEditPoint = 0;
+        }
+
+        if (key == GLFW_KEY_END) {
+            o.strEditPoint = static_cast<int>(count);
+        }
+
+        if (key == GLFW_KEY_BACKSPACE && o.strEditPoint > 0) {
+            CFonts::utf8RemoveAtRange(o.preText, --o.strEditPoint, 1);
+        }
+
+        if (key == GLFW_KEY_DELETE) {
+            CFonts::utf8RemoveAtRange(o.preText, o.strEditPoint, 1);
+        }
+
+        if (key == GLFW_KEY_ENTER) {
+            o.status &= ~4;
+        }
+
+        if (o.externalPreTextRef) {
+            *o.externalPreTextRef = o.preText;
+        }
+
+        return;
+    }
+
+    if (o.type == deslizant_Select_list &&
+        (key == GLFW_KEY_LEFT || key == GLFW_KEY_RIGHT)) {
+        clampList(o);
+
+        if (key == GLFW_KEY_RIGHT &&
+            static_cast<size_t>(o.listID) + 1 < o.optList.size()) {
+            ++o.listID;
+        } else if (key == GLFW_KEY_LEFT && o.listID > 0) {
+            --o.listID;
+        }
+
+        return;
+    }
+
+    if (key == GLFW_KEY_ENTER && event.action == GLFW_PRESS && o.enableEnter) {
+        if (o.type == text_input) {
+            o.status |= 4;
+        } else {
+            o.status |= 3;
+        }
+
+        return;
+    }
+
+    const bool previous =
+        key == GLFW_KEY_UP ||
+        (flow == Flow::Horizontal && key == GLFW_KEY_LEFT) ||
+        (key == GLFW_KEY_TAB && (event.mods & GLFW_MOD_SHIFT));
+    const bool next = key == GLFW_KEY_DOWN ||
+                      (flow == Flow::Horizontal && key == GLFW_KEY_RIGHT) ||
+                      (key == GLFW_KEY_TAB && !(event.mods & GLFW_MOD_SHIFT));
+
+    if (previous || next) {
+        int i = focused;
+
+        for (size_t n = 0; n < options.size(); ++n) {
+            i = (i + (previous ? -1 : 1) + static_cast<int>(options.size())) %
+                static_cast<int>(options.size());
+
+            if (keyboardFocusable(options[static_cast<size_t>(i)])) {
+                select(i);
+                break;
+            }
+        }
+    }
 }
 
-auto CMenu::getThisOnUiOrder() const -> CMenu::posUiOrder & {
-    for (intptr_t i = uiOrderList.size() - 1; i >= 0; i--) {
-        if (uiOrderList[i].id == thisUiID) {
-            return uiOrderList[i];
+void CMenu::shortcutCallback(int key, int, int action, int mods) {
+    CControls::MenuEvent event;
+    event.key = key;
+    event.action = action;
+    event.mods = mods;
+    processEvent(event);
+}
+
+void CMenu::dispatchInput() {
+    interfaceCalcPos();
+    auto &controls = CControls::controls();
+    controls.pollMenuDevices();
+    bool valid = inputFocus == this;
+
+    for (auto &slot : uiList) {
+        if (slot.m && slot.m.get() == inputFocus) {
+            valid = true;
         }
     }
 
-    throw std::logic_error("CMenu::getThisOnUiOrder()");
-}
+    if (!valid) {
+        inputFocus = this;
+    }
 
-auto CMenu::getTopUI() -> CMenu::posUiOrder & {
-    for (intptr_t i = uiOrderList.size() - 1; i >= 0; i--) {
-        CMenu *m = uiList[uiOrderList[i].id].m.get();
+    CMenu *top = getUiMenuOnTop();
 
-        if (m != nullptr) {
-            return uiOrderList[i];
+    if (top && top->modal) {
+        inputFocus = top;
+    }
+
+    // Reuse capacity, and isolate this dispatch from callbacks appending
+    // events.
+    std::vector<CControls::MenuEvent> events;
+    events.swap(controls.menuEvents);
+
+    for (const auto &event : events) {
+        CMenu *target = inputFocus;
+
+        if (event.kind == CControls::MenuEvent::Mouse) {
+            target = this;
+
+            for (auto it = uiOrderList.rbegin(); it != uiOrderList.rend();
+                 ++it) {
+                auto *m = uiList[static_cast<size_t>(it->id)].m.get();
+
+                if (!m) {
+                    continue;
+                }
+
+                bool hit = m->modal;
+
+                for (size_t i = 0; !hit && i < m->options.size(); ++i) {
+                    hit = m->optionRect(i).contains(event.x, event.y);
+                }
+
+                if (hit) {
+                    target = m;
+                    break;
+                }
+            }
+
+            // Mouse release belongs to the menu that captured the press.
+            if (event.action == GLFW_RELEASE && inputFocus &&
+                inputFocus->captured >= 0) {
+                target = inputFocus;
+            }
+
+            if (event.action == GLFW_PRESS) {
+                inputFocus = target;
+
+                if (target->uiMenu) {
+                    target->putOnTop();
+                }
+            }
+        }
+
+        if (event.kind == CControls::MenuEvent::Focus && !event.action) {
+            resetBtns();
+
+            for (auto &slot : uiList) {
+                if (slot.m) {
+                    slot.m->resetBtns();
+                }
+            }
+        } else if (target) {
+            target->processEvent(event);
         }
     }
 
-    throw std::logic_error("CMenu::getTopUI()");
-}
+    events.clear();
 
-void CMenu::refreshMenusUiPosOrder() {
-    for (auto &i : uiOrderList) {
-        uiList[i.id].pos = i.pos;
-    }
-}
-
-void CMenu::putOnTop() {
-    if (uiMenu) {
-        posUiOrder &ui = getThisOnUiOrder();
-        const posUiOrder cpyui = ui;
-
-        posUiOrder &ui2 = getTopUI();
-        const posUiOrder cpyui2 = ui2;
-
-        ui.id = cpyui2.id;
-        ui2.id = cpyui.id;
-
-        ui.pos = cpyui2.pos;
-        ui2.pos++;
-
-        uiList[ui.id].pos = ui.pos;
-        uiList[ui2.id].pos = ui2.pos;
-
-        std::sort(uiOrderList.begin(), uiOrderList.end());
-
-        // std::cout << ui.id << "  " << ui2.id << std::endl;
-
-        // uiList[ui.id].pos = ui.pos;
-        // uiList[ui2.id].pos = ui2.pos;
-        // refreshMenusUiPosOrder();
-        interfaceCalcPos();
+    if (controls.menuEvents.empty()) {
+        controls.menuEvents.swap(events);
     }
 }
 
 void CMenu::update() {
-    CLuaH::multiCallBackParams_t menucallback;
-    menucallback.push_back(CLuaH::customParam(menuName));
+    prepareUpdate();
+    dispatchInput();
+    finishUpdate();
+}
 
-    /// CLuaH::Lua().runEventWithParams(std::string("pre") + menuName +
-    /// std::string("update"), menucallback);
-
-    auto textSizeInScreen = [](const std::string &s, double size) {
-        double charnums = CFonts::utf8Size(s);
-        return (charnums * size / 1.5) + (size / 2.0);
-    };
-
-    ////std::cout << CFonts::utf8Size("aaa") << std::endl;
-
-    const bool mouseOnThisMenu = !isInterfaceOver();
-
-    auto isMouseOver2DQuad = [this, &mouseOnThisMenu](double x, double y,
-                                                      double w, double h) {
-        if (!mouseOnThisMenu) {
-            { return false; }
-        }
-
-        double mx = CEngine::engine().mouseX;
-        double my = CEngine::engine().mouseY;
-        x += this->x;
-        y += this->y;
-
-        return mx >= x && mx <= x + w && my >= y - h && my <= y;
-    };
-
-    auto desselectAllFromGroup = [this](int group) {
-        if (group < 0) {
-            { return; }
-        }
-        for (auto &opt : options) {
-            if (opt.group == group) {
-                opt.status &= ~(1);
-            }
-        }
-    };
-
-    auto desselectAllTextClick = [this](CMenu::menuOpt &optd) {
-        for (auto &opt : options) {
-            if (&optd != &opt) {
-                opt.status &= ~(/*1 |*/ 4);
-            }
-        }
-    };
-
-    // int leftKey = CEngine::engine().getKey(GLFW_KEY_LEFT), rightKey =
-    // CEngine::engine().getKey(GLFW_KEY_RIGHT);
-
-    bool enterOpt = false;
-    bool mBTNClick = false;
-
-    double mxd = CEngine::engine().mouseX - mouseAX;
-    double myd = CEngine::engine().mouseY - mouseAY;
-
-    mouseAX = CEngine::engine().mouseX;
-    mouseAY = CEngine::engine().mouseY;
-
-    auto desselectAllClick = [this]() {
-        for (auto &opt : options) {
-            opt.devStatus &= ~2;
-        }
-    };
-
-    if (CEngine::engine().getMouseButton(0) != 0) {
-        mBTNClick = true;
+void CMenu::prepareUpdate() {
+    if (focused >= static_cast<int>(options.size())) {
+        focused = -1;
     }
 
-    bool lastMouseClick = lastMouseClickStatus;
-    lastMouseClickStatus = mBTNClick;
+    for (size_t i = 0; i < options.size(); ++i) {
+        auto &o = options[i];
+        o.status &= ~3;
 
-    {
-        bool ontop = isThisOnTop();
-
-        if (uiMenu && (mBTNClick && !lastMouseClick) && mouseOnThisMenu) {
-            if (!ontop && isMouseOnThisMenu()) {
-                putOnTop();
-            }
+        if (static_cast<int>(i) == focused) {
+            o.status |= 1;
         }
 
-        if (mouseOnThisMenu) {
+        clampList(o);
+    }
+
+    auto &lua = CLuaH::Lua();
+
+    if (!preEvent) {
+        preEvent = lua.idForCallbackEvent("pre" + menuName + "update");
+        postEvent = lua.idForCallbackEvent("pos" + menuName + "update");
+    }
+
+    if (lua.hasEvent(preEvent)) {
+        lua.runEventWithParams(preEvent, {CLuaH::customParam(menuName)});
+    }
+
+    const std::string language = GPPGame::GuitarPP().glanguage;
+    updateCount = options.size();
+
+    for (size_t i = 0; i < updateCount && i < options.size(); ++i) {
+        if (lastLanguage != language) {
+            options[i].update();
+        }
+
+        if (options[i].externalPreTextRef) {
+            options[i].preText = *options[i].externalPreTextRef;
+        }
+
+        auto callback = options[i].updateCppCallback;
+
+        if (callback) {
+            callback(*this, options[i]);
         }
     }
 
-    if (((CEngine::engine().getKey(GLFW_KEY_ENTER) != 0) || mBTNClick) &&
-        lastEnterOptBtn) {
-        enterOpt = (status = 1 != 0);
-    }
+    lastLanguage = language;
+    reflow();
 
-    for (auto &grp : groupInfo) {
-        switch (grp.second.type) {
-        case group::deslizant_h_menu:
-            if (isMouseOver2DQuad(grp.second.x, grp.second.y, grp.second.w,
-                                  grp.second.h)) {
-            }
-        }
-    }
-
-    double textSize = 0.0;
-    double barPosX1 = 0.0;
-    double barPosX2 = 0.0;
-
-    auto kprocess = [](CControls::keyState &k, int i) {
-        if (k.pressed && !k.lastFramePressed) {
-            k.t = CEngine::engine().getTime() + 0.1;
-            k.lastFramePressed = k.pressed;
-            return i;
-        }
-
-        if (k.pressed && k.lastFramePressed &&
-            (CEngine::engine().getTime() - k.t) > 0.1) {
-            k.t = CEngine::engine().getTime();
-            k.lastFramePressed = k.pressed;
-            return i;
-        }
-
-        return 0;
-    };
-
-    bool ontop = true;
-
-    if (uiMenu) {
-        ontop = isThisOnTop();
-    }
-
-    int i = 0;
-    for (auto &opt : options) {
-        // std::string optCallBackTXT = opt.optionName;
-        if (opt.updateCppCallback) {
-            { opt.updateCppCallback(*this, opt); }
-        }
-
-        CLuaH::multiCallBackParams_t params;
-
-        params.push_back(CLuaH::customParam(menuName));
-        params.push_back(CLuaH::customParam(opt.optionName));
-        params.push_back(CLuaH::customParam(opt.optValue));
-
-        if (opt.shortcutKey != 0) {
-            int pressing = CEngine::engine().getKey(opt.shortcutKey);
-            if ((opt.pressingShortcutKey != 0) && (pressing == 0)) {
-                desselectAllFromGroup(opt.group);
-                opt.status |= 1 | 2;
-                opt.pressingShortcutKey = 0;
-            }
-
-            if (pressing != 0) {
-                opt.pressingShortcutKey = 1;
-
-                params.push_back(CLuaH::customParam(2.0));
-            }
-        }
-
-        if (ontop) {
-            switch (opt.type) {
-            case button_ok:
-
-                break;
-
-            case text_input: {
-                auto &controls = CControls::controls();
-
-                textSize = textSizeInScreen(opt.preText, opt.size) + 0.1;
-
-                if (isMouseOver2DQuad(opt.x - (opt.size * 0.05),
-                                      opt.y - (opt.size), textSize,
-                                      opt.size * 1.10) &&
-                    enterOpt) {
-                    desselectAllTextClick(opt);
-
-                    int textChars = CFonts::utf8Size(opt.preText);
-
-                    // return (charnums * size / 1.5) + (size / 2.0);
-
-                    double xtest = (mouseAX - x) - opt.x;
-                    xtest -= (opt.size / 2.0);
-                    xtest /= opt.size / 1.5;
-
-                    if (xtest < 0) {
-                        { xtest = 0; }
-                    }
-
-                    if (xtest > textChars) {
-                        { xtest = textChars; }
-                    }
-
-                    desselectAllFromGroup(opt.group);
-                    opt.status = 4;
-                    opt.strEditPoint = static_cast<int>(xtest);
-
-                    if (params.size() <= 3) {
-                        {
-                            params.push_back(
-                                CLuaH::customParam((double)opt.status));
-                        }
-                    }
-
-                    if (opt.group >= 0) {
-                        groupInfo[opt.group].selectedOpt = i;
-                    }
-                }
-
-                if ((opt.status & 4) != 0) {
-                    controls.update();
-                    int ch = 0;
-
-                    std::string utf8CharOrStr;
-
-                    {
-                        char utftempbuf[8] = {0};
-
-                        if (controls.lastChar != 0) {
-                            utf8::append(controls.lastChar, utftempbuf);
-                            controls.lastChar = 0;
-                            utf8CharOrStr = utftempbuf;
-                            ch = 1;
-                        }
-                    }
-
-                    if (ch != 0) {
-                        if (opt.externalPreTextRef != nullptr) {
-                            opt.preText = *opt.externalPreTextRef;
-                        }
-
-                        {
-                            if (opt.preText.size() < opt.preTextMaxSize) {
-                                opt.strEditPoint = CFonts::utf8InsertAt(
-                                    opt.preText, utf8CharOrStr,
-                                    opt.strEditPoint);
-                            }
-                        }
-                    }
-
-                    if (opt.externalPreTextRef != nullptr) {
-                        *opt.externalPreTextRef = opt.preText;
-                    }
-                }
-            } break;
-
-            case textbtn:
-                textSize = textSizeInScreen(opt.text, opt.size);
-
-                if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y,
-                                      textSize, opt.size * 1.05)) {
-                    desselectAllFromGroup(opt.group);
-                    opt.status = (enterOpt && opt.enableEnter) ? 1 | 2 : 1;
-
-                    if (enterOpt) {
-                        { desselectAllTextClick(opt); }
-                    }
-
-                    if (params.size() <= 3) {
-                        {
-                            params.push_back(
-                                CLuaH::customParam((double)opt.status));
-                        }
-                    }
-
-                    if (opt.group >= 0) {
-                        groupInfo[opt.group].selectedOpt = i;
-                    }
-                } else {
-                    opt.status = opt.status & 1;
-                }
-                break;
-
-            case deslizant_Select_list:
-                textSize = textSizeInScreen(opt.text, opt.size);
-                barPosX1 = opt.x + textSize + opt.size;
-                barPosX2 = barPosX1 + opt.deslizantBarSize;
-
-                if (enterOpt &&
-                    isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize,
-                                      opt.size)) {
-                    opt.status |= 1;
-                }
-
-                if ((opt.status & 1) != 0) {
-                    if (mBTNClick) {
-                        double subX = (CEngine::engine().mouseX - barPosX1);
-
-                        desselectAllTextClick(opt);
-                        opt.status |= 1;
-
-                        if (subX >= 0.0) {
-                            double optListSized = opt.optList.size();
-
-                            opt.listID = static_cast<int>(floor(
-                                (optListSized / opt.deslizantBarSize) * subX));
-
-                            if (opt.listID >=
-                                static_cast<int>(opt.optList.size())) {
-                                opt.listID = opt.optList.size() - 1;
-                            } else if (opt.listID == (~(size_t)(0u))) {
-                                opt.listID = 0;
-                            }
-                        }
-
-                        if (params.size() <= 3) {
-                            { params.push_back(CLuaH::customParam(2.0)); }
-                        }
-                    }
-                }
-                break;
-
-            case drag_bar:
-                if (!mBTNClick) {
-                    opt.btnClickStat = false;
-                }
-
-                if (isMouseOver2DQuad(opt.x, opt.y, opt.deslizantBarSize,
-                                      opt.size)) {
-                    if (enterOpt && !opt.btnClickStat) {
-                        desselectAllClick();
-                        opt.devStatus |= 1;
-                        opt.devStatus |= 2;
-                        opt.btnClickStat = true;
-                    }
-                }
-
-                if (!opt.btnClickStat) {
-                    if ((opt.devStatus & 1) != 0) {
-                        opt.devStatus &= ~1;
-                    }
-                } else {
-                    if ((opt.devStatus & 1) != 0) {
-                        // std::cout << (opt.devStatus & 1) << std::endl;
-                        x += mxd;
-                        y += myd;
-                    }
-                }
-
-                break;
-
-            case static_text:
-                break;
-
-            default:
+    if (focused < 0) {
+        for (size_t i = 0; i < options.size(); ++i) {
+            if (keyboardFocusable(options[i])) {
+                select(static_cast<int>(i));
                 break;
             }
         }
-
-        if (opt.posUpdateCppCallback) {
-            { opt.posUpdateCppCallback(*this, opt); }
-        }
-
-        if (params.size() <= 3) {
-            { params.push_back(CLuaH::customParam(-1.0)); }
-        }
-        /// CLuaH::Lua().runEventWithParams(opt.optionName, params);
-        ++i;
     }
 
-    /// CLuaH::Lua().runEventWithParams(std::string("pos") + menuName +
-    /// std::string("update"), menucallback);
+    const size_t count = myUiList.size();
 
-    bool erase = false;
-    // auto er = uiList.begin();
+    for (size_t i = 0; i < count && i < myUiList.size(); ++i) {
+        const int id = myUiList[i];
 
-    for (auto it = myUiList.begin(); it != myUiList.end(); /*****/) {
-        auto &m = *it;
-        if (m == -1) {
-            it = myUiList.erase(it);
-        } else {
-            if (myUiList.empty()) {
-                { break; }
-            }
+        if (id >= 0 && static_cast<size_t>(id) < uiList.size() &&
+            uiList[static_cast<size_t>(id)].m) {
+            uiList[static_cast<size_t>(id)].m->prepareUpdate();
+        }
+    }
+}
 
-            bool erase = false;
+void CMenu::finishUpdate() {
+    auto &lua = CLuaH::Lua();
 
-            auto &uiw = uiList[m];
-            if (uiw.m != nullptr) {
-                auto &ui = *uiw.m;
-                ui.update();
+    if (dragging && captured >= 0 &&
+        static_cast<size_t>(captured) < options.size()) {
+        auto &o = options[static_cast<size_t>(captured)];
+        const double mx = CEngine::engine().mouseX,
+                     my = CEngine::engine().mouseY;
 
-                for (auto &opt : ui.options) {
-                    if ((opt.status & 3) == 3) {
-                        if (opt.goback) {
-                            erase = true;
-                            break;
-                        }
-                    }
+        if (o.type == drag_bar) {
+            x += mx - dragX;
+            y += my - dragY;
+        }
+
+        if (o.type == deslizant_Select_list && !o.optList.empty() &&
+            o.deslizantBarSize > 0) {
+            auto r = controlRect(static_cast<size_t>(captured));
+            const double fraction =
+                std::clamp((mx - r.left) / o.deslizantBarSize, 0.0, 1.0);
+            o.listID = static_cast<int>(std::round(
+                fraction * static_cast<double>(o.optList.size() - 1)));
+        }
+
+        dragX = mx;
+        dragY = my;
+    }
+
+    const double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
+
+    if (!isInterfaceOver() && (mx != mouseAX || my != mouseAY)) {
+        hovered = -1;
+
+        for (size_t i = 0; i < options.size(); ++i) {
+            if (interactive(options[i]) && optionRect(i).contains(mx, my)) {
+                if (viewportEnabled && options[i].group == flowGroup &&
+                    !Rect{viewport.left + x, viewport.bottom + y,
+                          viewport.right + x, viewport.top + y}
+                         .contains(mx, my)) {
+                    continue;
+                }
+
+                hovered = static_cast<int>(i);
+
+                if (inputFocus == this &&
+                    !(focused >= 0 &&
+                      (options[static_cast<size_t>(focused)].status & 4))) {
+                    select(hovered);
                 }
             }
-
-            if (erase) {
-                uiw.m->resetData();
-                uiw.m = nullptr;
-                uiw.pos = 0;
-
-                m = -1;
-
-                it = myUiList.erase(it);
-            } else {
-                ++it;
-            }
         }
     }
 
-    lastEnterOptBtn = mBTNClick;
+    mouseAX = mx;
+    mouseAY = my;
+
+    for (size_t i = 0; i < updateCount && i < options.size(); ++i) {
+        clampList(options[i]);
+        auto callback = options[i].posUpdateCppCallback;
+
+        if (callback) {
+            callback(*this, options[i]);
+        }
+
+        if (i >= options.size()) {
+            break;
+        }
+
+        const auto &o = options[i];
+
+        if (o.eventID && lua.hasEvent(o.eventID)) {
+            CLuaH::multiCallBackParams_t params{
+                CLuaH::customParam(menuName), CLuaH::customParam(o.optionName),
+                CLuaH::customParam(o.optValue),
+                CLuaH::customParam(
+                    static_cast<double>(o.status ? o.status : -1))};
+            lua.runEventWithParams(o.eventID, params);
+        }
+    }
+
+    if (lua.hasEvent(postEvent)) {
+        lua.runEventWithParams(postEvent, {CLuaH::customParam(menuName)});
+    }
+
+    const size_t children = myUiList.size();
+
+    for (size_t i = 0; i < children && i < myUiList.size(); ++i) {
+        const int id = myUiList[i];
+
+        if (id < 0 || static_cast<size_t>(id) >= uiList.size() ||
+            !uiList[static_cast<size_t>(id)].m) {
+            continue;
+        }
+
+        auto &child = *uiList[static_cast<size_t>(id)].m;
+        child.finishUpdate();
+        bool close = false;
+
+        for (const auto &o : child.options) {
+            if (o.goback && (o.status & 3) == 3) {
+                close = true;
+            }
+        }
+
+        if (close) {
+            if (inputFocus == &child) {
+                inputFocus = this;
+            }
+
+            uiList[static_cast<size_t>(id)].m.reset();
+            myUiList[i] = -1;
+        }
+    }
+
+    myUiList.erase(std::remove(myUiList.begin(), myUiList.end(), -1),
+                   myUiList.end());
 }
 
 void CMenu::updateDev() {
-    auto textSizeInScreen = [](const std::string &s, double size) {
-        double charnums = CFonts::utf8Size(s);
-        return (charnums * size / 1.5) + (size / 2.0);
-    };
+    const bool down = CEngine::engine().getMouseButton(0) != 0;
+    const double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
 
-    const bool mouseOnThisMenu = !isInterfaceOver();
+    if (down && !lastMouseClickStatus && !isInterfaceOver()) {
+        for (size_t i = 0; i < options.size(); ++i) {
+            if (optionRect(i).contains(mx, my)) {
+                for (auto &o : options) {
+                    o.devStatus = 0;
+                }
 
-    auto isMouseOver2DQuad = [this, &mouseOnThisMenu](double x, double y,
-                                                      double w, double h) {
-        if (!mouseOnThisMenu) {
-            { return false; }
-        }
-
-        double mx = CEngine::engine().mouseX;
-        double my = CEngine::engine().mouseY;
-        x += this->x;
-        y += this->y;
-
-        return mx >= x && mx <= x + w && my >= y - h && my <= y;
-    };
-
-    auto desselectAllFromGroup = [this](int group) {
-        if (group < 0) {
-            { return; }
-        }
-        for (auto &opt : options) {
-            if (opt.group == group) {
-                opt.status &= ~1;
+                captured = static_cast<int>(i);
+                options[i].devStatus = 3;
+                break;
             }
         }
-    };
-
-    auto desselectAllClick = [this]() {
-        for (auto &opt : options) {
-            opt.devStatus &= ~2;
-        }
-    };
-
-    int leftKey = CEngine::engine().getKey(GLFW_KEY_LEFT);
-    int rightKey = CEngine::engine().getKey(GLFW_KEY_RIGHT);
-
-    int plusK = CEngine::engine().getKey(GLFW_KEY_KP_ADD);
-    int minusK = CEngine::engine().getKey(GLFW_KEY_KP_SUBTRACT);
-
-    bool enterOpt = false;
-    bool mBTNClick = false;
-
-    static bool btnClickStat = false;
-
-    double mxd = CEngine::engine().mouseX - mouseAX;
-    double myd = CEngine::engine().mouseY - mouseAY;
-
-    mouseAX = CEngine::engine().mouseX;
-    mouseAY = CEngine::engine().mouseY;
-
-    if (CEngine::engine().getMouseButton(0) != 0) {
-        mBTNClick = true;
-    } else {
-        btnClickStat = false;
     }
 
-    double textSize = 0.0;
-    double barPosX1 = 0.0;
-    double barPosX2 = 0.0;
-
-    int i = 0;
-    for (auto &opt : options) {
-        switch (opt.type) {
-        case button_ok:
-
-            break;
-
-        case textbtn:
-            textSize = textSizeInScreen(opt.text, opt.size);
-
-            if (isMouseOver2DQuad(opt.x - (opt.size * 0.05), opt.y, textSize,
-                                  opt.size * 1.05)) {
-                if (mBTNClick && !btnClickStat) {
-                    desselectAllClick();
-                    opt.devStatus |= 1;
-                    opt.devStatus |= 2;
-                    btnClickStat = true;
-                }
-            }
-
-            if (!btnClickStat) {
-                if ((opt.devStatus & 1) != 0) {
-                    opt.devStatus &= ~1;
-                }
-            } else {
-                if ((opt.devStatus & 1) != 0) {
-                    opt.x += mxd;
-                    opt.y += myd;
-
-                    if (plusK != 0) {
-                        opt.size += CEngine::engine().getDeltaTime() * 0.1;
-                    } else {
-                        if (minusK != 0) {
-                            opt.size -= CEngine::engine().getDeltaTime() * 0.1;
-                        }
-                    }
-                }
-            }
-            break;
-
-        case deslizant_Select_list:
-            textSize = textSizeInScreen(opt.text, opt.size);
-            barPosX1 = opt.x + textSize + opt.size;
-            barPosX2 = barPosX1 + opt.deslizantBarSize;
-
-            if (isMouseOver2DQuad(barPosX1, opt.y, opt.deslizantBarSize,
-                                  opt.size)) {
-                if (mBTNClick) {
-                }
-            }
-            break;
-        }
-
-        ++i;
+    if (down && captured >= 0 &&
+        static_cast<size_t>(captured) < options.size()) {
+        auto &o = options[static_cast<size_t>(captured)];
+        o.x += mx - mouseAX;
+        o.y += my - mouseAY;
+        const auto &engine = CEngine::engine();
+        const int direction = engine.getKey(GLFW_KEY_KP_ADD)        ? 1
+                              : engine.getKey(GLFW_KEY_KP_SUBTRACT) ? -1
+                                                                    : 0;
+        o.size =
+            std::max(.005, o.size + direction * engine.getDeltaTime() * .1);
+        flow = Flow::Manual;
     }
+
+    if (!down) {
+        captured = -1;
+
+        for (auto &o : options) {
+            o.devStatus &= ~1;
+        }
+    }
+
+    lastMouseClickStatus = down;
+    mouseAX = mx;
+    mouseAY = my;
 }
 
-void CMenu::shortcutCallback(int key, int scancode, int action, int mods) {
-    auto keyTest = [key, action](int k) {
-        if (key != k) {
-            { return 0; }
-        }
-        return (action == 1 || action == 2) ? key : 0;
+void CMenu::render() {
+    auto &engine = CEngine::engine();
+    auto &fonts = CFonts::fonts();
+    auto color = [&](const std::array<double, 4> &c) {
+        engine.setColor(c[0], c[1], c[2], c[3]);
     };
 
-    int i = 0;
-    for (auto &opt : options) {
-        switch (opt.type) {
-        case button_ok:
+    glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_CURRENT_BIT |
+                 GL_SCISSOR_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    GLint matrixMode, viewportPixels[4];
+    glGetIntegerv(GL_MATRIX_MODE, &matrixMode);
+    glGetIntegerv(GL_VIEWPORT, viewportPixels);
+    const double menuAspect =
+        viewportPixels[3] > 0
+            ? static_cast<double>(viewportPixels[2]) / viewportPixels[3]
+            : 1;
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(-menuAspect, menuAspect, -1, 1, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
 
-            break;
+    if (qbgd.Text) {
+        color(style.panel);
+        rectangle({qbgd.x1 + x, qbgd.y3 + y, qbgd.x2 + x, qbgd.y1 + y},
+                  qbgd.Text);
+    }
 
-        case text_input: {
-            auto &controls = CControls::controls();
+    GLint vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+    const double aspect = vp[3] > 0 ? static_cast<double>(vp[2]) / vp[3] : 1;
+    const bool hadScissor = glIsEnabled(GL_SCISSOR_TEST) != 0;
+    GLint previousScissor[4];
+    glGetIntegerv(GL_SCISSOR_BOX, previousScissor);
+    Rect activeClip{-aspect, -1, aspect, 1};
+    auto clip = [&](Rect r) {
+        r.left = std::max(r.left, activeClip.left);
+        r.right = std::min(r.right, activeClip.right);
+        r.bottom = std::max(r.bottom, activeClip.bottom);
+        r.top = std::min(r.top, activeClip.top);
+        const int left =
+            vp[0] + static_cast<int>((r.left / aspect + 1) * vp[2] / 2);
+        const int bottom = vp[1] + static_cast<int>((r.bottom + 1) * vp[3] / 2);
+        const int right =
+            vp[0] + static_cast<int>((r.right / aspect + 1) * vp[2] / 2);
+        const int top = vp[1] + static_cast<int>((r.top + 1) * vp[3] / 2);
+        const int l = hadScissor ? std::max(left, previousScissor[0]) : left;
+        const int b =
+            hadScissor ? std::max(bottom, previousScissor[1]) : bottom;
+        const int rr =
+            hadScissor
+                ? std::min(right, previousScissor[0] + previousScissor[2])
+                : right;
+        const int tt =
+            hadScissor ? std::min(top, previousScissor[1] + previousScissor[3])
+                       : top;
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(l, b, std::max(0, rr - l), std::max(0, tt - b));
+    };
 
-            if ((opt.status & 4) != 0) {
-                controls.update();
-                int ch = 0;
+    auto pick = GPPGame::GuitarPP().SPR.find("palheta");
+    const unsigned pickTexture =
+        pick == GPPGame::GuitarPP().SPR.end() ? 0 : pick->second;
 
-                {
-                    int chtmp = keyTest(GLFW_KEY_BACKSPACE);
+    for (size_t i = 0; i < options.size(); ++i) {
+        auto &o = options[i];
+        ensureLayout(o);
+        const Rect r = optionRect(i);
+        const bool clipped = viewportEnabled && o.group == flowGroup;
+        const Rect view{viewport.left + x, viewport.bottom + y,
+                        viewport.right + x, viewport.top + y};
 
-                    if (chtmp != 0) {
-                        { ch = chtmp; }
-                    }
-                }
+        if (clipped && !r.intersects(view)) {
+            continue;
+        }
 
-                {
-                    int chtmp = keyTest(GLFW_KEY_LEFT);
+        activeClip = clipped ? view : Rect{-aspect, -1, aspect, 1};
 
-                    if (chtmp != 0) {
-                        --opt.strEditPoint;
+        if (clipped || hadScissor) {
+            clip(activeClip);
+        } else {
+            glDisable(GL_SCISSOR_TEST);
+        }
 
-                        if (opt.strEditPoint < 0) {
-                            { opt.strEditPoint = 0; }
-                        }
-                    }
-                }
+        const double px = o.x + x, py = o.y + y + (clipped ? scrollOffset : 0);
 
-                {
-                    int chtmp = keyTest(GLFW_KEY_RIGHT);
+        if (static_cast<int>(i) == focused) {
+            auto selectedColor = style.selection;
 
-                    if (chtmp != 0) {
-                        ++opt.strEditPoint;
+            if (style.animateSelection) {
+                selectedColor[3] *= .9 + .1 * std::sin(engine.getTime() * 4);
+            }
 
-                        int textChars = CFonts::utf8Size(opt.preText);
+            color(selectedColor);
+            rectangle(r);
+            color(style.accent);
+            rectangle({r.left - o.size * (1 + style.pickGap), py,
+                       r.left - o.size * style.pickGap, py + o.size},
+                      pickTexture);
+        }
 
-                        if (opt.strEditPoint > textChars) {
-                            { opt.strEditPoint = textChars; }
-                        }
-                    }
-                }
+        engine.setColor(o.color[0], o.color[1], o.color[2],
+                        o.disabled ? .35 : o.color[3]);
 
-                if (ch != 0) {
-                    if (opt.externalPreTextRef != nullptr) {
-                        opt.preText = *opt.externalPreTextRef;
-                    }
+        if (o.type == text_input) {
+            color(style.field);
+            rectangle(r);
+            clip({px, py, px + o.fieldWidth, py + o.size});
+            const size_t cursor =
+                std::min(static_cast<size_t>(std::max(0, o.strEditPoint)),
+                         o.layout.carets.empty() ? size_t(0)
+                                                 : o.layout.carets.size() - 1);
+            const double caret =
+                o.layout.carets.empty() ? 0 : o.layout.carets[cursor] * o.size;
+            o.textScroll =
+                std::clamp(o.textScroll,
+                           std::max(0.0, caret - o.fieldWidth +
+                                             std::min(.02, o.fieldWidth * .25)),
+                           std::max(0.0, caret));
+            engine.setColor(o.color[0], o.color[1], o.color[2], o.color[3]);
+            fonts.drawLayout(o.layout, px - o.textScroll, py, o.size);
 
-                    if (ch != GLFW_KEY_BACKSPACE) {
-                        char utftempbuf[8] = {0};
-                        utf8::append(ch, utftempbuf);
-                        controls.lastChar = 0;
+            if (o.status & 4) {
+                color(style.accent);
+                rectangle({px + caret - o.textScroll, py,
+                           px + caret - o.textScroll + .003, py + o.size});
+            }
+        } else if (o.type == drag_bar) {
+            color(style.control);
+            rectangle(controlRect(i));
+        } else {
+            fonts.drawLayout(o.layout, px, py, o.size);
 
-                        opt.strEditPoint = CFonts::utf8InsertAt(
-                            opt.preText, utftempbuf, opt.strEditPoint);
-                    } else {
-                        if (!opt.preText.empty()) {
-                            // CFonts::utf8RemoveLast(opt.preText);
-                            CFonts::utf8RemoveAtRange(opt.preText,
-                                                      opt.strEditPoint - 1, 1);
-                            --opt.strEditPoint;
+            if (o.type == deslizant_Select_list) {
+                const auto bar = controlRect(i);
+                color(style.control);
+                rectangle(bar);
 
-                            if (opt.strEditPoint < 0) {
-                                { opt.strEditPoint = 0; }
-                            }
-                        }
-                    }
-                }
-
-                if (opt.externalPreTextRef != nullptr) {
-                    *opt.externalPreTextRef = opt.preText;
+                if (!o.optList.empty() && o.deslizantBarSize > 0) {
+                    const double fraction =
+                        o.optList.size() > 1
+                            ? static_cast<double>(o.listID) /
+                                  static_cast<double>(o.optList.size() - 1)
+                            : 0;
+                    const double cursor =
+                        bar.left +
+                        fraction * std::max(0.0, o.deslizantBarSize - o.size);
+                    color(style.accent);
+                    rectangle({cursor, bar.bottom, cursor + o.size, bar.top},
+                              pickTexture);
+                    engine.setColor(o.color[0], o.color[1], o.color[2],
+                                    o.color[3]);
+                    fonts.drawLayout(o.valueLayout, bar.right + o.size, py,
+                                     o.size);
                 }
             }
-        } break;
-
-        case textbtn:
-            break;
-
-        case deslizant_Select_list:
-            if ((opt.status & 1) != 0 && !opt.optList.empty()) {
-                if (keyTest(GLFW_KEY_LEFT) != 0) {
-                    if (opt.listID > 0) {
-                        { opt.listID--; }
-                    }
-                }
-
-                if (keyTest(GLFW_KEY_RIGHT) != 0) {
-                    if (opt.listID < (opt.optList.size() - 1)) {
-                        opt.listID++;
-                    }
-                }
-            }
-            break;
-
-        case drag_bar:
-            break;
-
-        case static_text:
-            break;
-
-        default:
-            break;
         }
     }
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(matrixMode);
+    glPopAttrib();
+    engine.invalidateRenderBindings();
 }
 
-auto CMenu::isThisOnTop() const -> bool {
-    for (intptr_t i = uiOrderList.size() - 1; i >= 0; i--) {
-        CMenu *m = uiList[uiOrderList[i].id].m.get();
-        if (m != nullptr) {
-            return uiOrderList[i].id == thisUiID;
-        }
-    }
-    return false;
-}
+int CMenu::getUIListSize() { return static_cast<int>(myUiList.size()); }
 
-auto CMenu::allocOrGetUiFreeSpace() -> int {
-    int result = -1;
-
-    for (size_t i = 0, size = uiList.size(); i < size; ++i) {
-        if (uiList[i].m == nullptr) {
-            result = i;
-            break;
-        }
-    }
-
-    if (result == -1) {
-        uiWindowStruct w;
-        uiList.push_back(std::move(w));
-
-        result = uiList.size() - 1;
-    }
-
-    return result;
+CMenu::uiWindowStruct &CMenu::getUILast() {
+    static uiWindowStruct empty;
+    return uiList.empty() ? empty : uiList.back();
 }
 
 void CMenu::interfaceCalcPos() {
-    if (uiList.size() != uiOrderList.size()) {
-        uiOrderList.clear();
-        for (size_t i = 0, size = uiList.size(); i < size; ++i) {
-            posUiOrder b{};
-            b.id = i;
-            b.pos = uiList[i].pos;
-            uiOrderList.push_back(b);
+    uiOrderList.clear();
+
+    for (size_t i = 0; i < uiList.size(); ++i) {
+        if (uiList[i].m) {
+            uiOrderList.push_back({static_cast<int>(i), uiList[i].pos});
         }
     }
 
-    std::sort(uiOrderList.begin(), uiOrderList.end());
+    std::stable_sort(uiOrderList.begin(), uiOrderList.end());
+}
+
+void CMenu::refreshMenusUiPosOrder() { interfaceCalcPos(); }
+
+CMenu *CMenu::getUiMenuOnTop() {
+    interfaceCalcPos();
+    return uiOrderList.empty()
+               ? nullptr
+               : uiList[static_cast<size_t>(uiOrderList.back().id)].m.get();
+}
+
+CMenu::posUiOrder &CMenu::getThisOnUiOrder() const {
+    for (auto &p : uiOrderList) {
+        if (p.id == thisUiID) {
+            return p;
+        }
+    }
+
+    throw std::logic_error("Interface is not registered");
+}
+
+CMenu::posUiOrder &CMenu::getTopUI() {
+    if (uiOrderList.empty()) {
+        throw std::logic_error("No interface");
+    }
+
+    return uiOrderList.back();
+}
+
+void CMenu::putOnTop() {
+    interfaceCalcPos();
+    int pos = 0;
+
+    for (const auto &p : uiOrderList) {
+        if (p.id != thisUiID) {
+            uiList[static_cast<size_t>(p.id)].pos = ++pos;
+        }
+    }
+
+    if (thisUiID >= 0) {
+        uiList[static_cast<size_t>(thisUiID)].pos = ++pos;
+    }
+
+    interfaceCalcPos();
+}
+
+bool CMenu::isThisOnTop() const { return getUiMenuOnTop() == this; }
+
+int CMenu::allocOrGetUiFreeSpace() {
+    for (size_t i = 0; i < uiList.size(); ++i) {
+        if (!uiList[i].m) {
+            return static_cast<int>(i);
+        }
+    }
+
+    uiList.emplace_back();
+    return static_cast<int>(uiList.size() - 1);
+}
+
+int CMenu::pushUserInterface(const CMenu &m) {
+    const int id = allocOrGetUiFreeSpace();
+    auto instance = std::make_unique<CMenu>(m);
+    instance->uiMenu = true;
+    instance->thisUiID = id;
+    uiList[static_cast<size_t>(id)].m = std::move(instance);
+    myUiList.push_back(id);
+    uiList[static_cast<size_t>(id)].m->putOnTop();
+    inputFocus = uiList[static_cast<size_t>(id)].m.get();
+    return id;
 }
 
 void CMenu::renderUiList() {
     interfaceCalcPos();
 
-    int i = 1;
-
-    for (auto &uiTest : uiOrderList) {
-        auto &uiw = uiList[uiTest.id];
-
-        uiw.pos = (++i);
-        uiTest.pos = uiw.pos;
-
-        if (uiw.m) {
-            uiw.m->render();
-        }
+    for (const auto &p : uiOrderList) {
+        uiList[static_cast<size_t>(p.id)].m->render();
     }
 }
 
-auto CMenu::pushUserInterface(const CMenu &m) -> int {
-    int index = allocOrGetUiFreeSpace();
-
-    uiList[index].m = nullptr;
-    uiList[index].m = std::make_unique<CMenu>(m);
-    uiList[index].m->uiMenu = true;
-    uiList[index].m->thisUiID = index;
-    uiList[index].pos = 100;
-
-    myUiList.push_back(index);
-
-    return index;
-}
-
-auto CMenu::getDevSelectedMenuOpt() -> size_t {
-    for (size_t i = 0, size = options.size(); i < size; ++i) {
-        if ((options[i].devStatus & 2) != 0) {
-            { return i; }
+size_t CMenu::getDevSelectedMenuOpt() {
+    for (size_t i = 0; i < options.size(); ++i) {
+        if (options[i].devStatus & 2) {
+            return i;
         }
     }
 
-    return ~static_cast<size_t>(0UL);
-}
-
-CMenu::CMenu() {
-    lastMouseClickStatus = false;
-    lastEnterOptBtn = false;
-    status = 0;
-    thisUiID = -1;
-
-    devEditingOpt = 0;
-
-    devMenuNOUpdateOthers = false;
-
-    ++menusCreated;
-    lScript = nullptr;
-
-    menuName = "menu_main_";
-    menuName += std::to_string(menusCreated);
-
-    // Menus[menuName] = this;
-
-    temp = false;
-
-    gameMenu = false;
-    devEditMenu = nullptr;
-    uiMenu = false;
-
-    x = y = 0.0;
-
-    mouseAX = CEngine::engine().mouseX;
-    mouseAY = CEngine::engine().mouseY;
-}
-
-CMenu::CMenu(const std::string &name) {
-    /*{
-            auto m = Menus.find(name);
-
-            if (m != Menus.end())
-            {
-                    throw std::runtime_error(CLog::log().multiRegister("Error
-    menu %0 already exists", name));
-            }
-    }*/
-
-    lastEnterOptBtn = false;
-    status = 0;
-    thisUiID = -1;
-
-    devEditingOpt = 0;
-
-    ++menusCreated;
-    lScript = nullptr;
-    devEditMenu = nullptr;
-
-    devMenuNOUpdateOthers = false;
-
-    menuName = name;
-
-    // Menus[menuName] = this;
-
-    temp = false;
-
-    gameMenu = false;
-    uiMenu = false;
-
-    x = y = 0.0;
-
-    mouseAX = CEngine::engine().mouseX;
-    mouseAY = CEngine::engine().mouseY;
-}
-
-CMenu::~CMenu() {
-    // Menus.erase(menuName);
+    return ~size_t(0);
 }

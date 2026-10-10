@@ -3,7 +3,9 @@
 #ifndef GUITARPP_CMENU_H
 #define GUITARPP_CMENU_H
 
+#include "CControls.h"
 #include "CEngine.h"
+#include "CFonts.h"
 #include "CLuaH.hpp"
 #include <cstdint>
 #include <deque>
@@ -46,6 +48,16 @@ class CMenu {
     bool uiMenu;
     int thisUiID;
 
+    int focused = -1, hovered = -1, captured = -1;
+    bool dragging = false;
+    double dragX = 0, dragY = 0;
+    static CMenu *inputFocus;
+    std::string lastLanguage;
+    int preEvent = 0, postEvent = 0;
+    void dispatchInput();
+    void prepareUpdate();
+    void finishUpdate();
+    size_t updateCount = 0;
     bool lastEnterOptBtn;
     bool lastMouseClickStatus{};
 
@@ -60,6 +72,40 @@ class CMenu {
     bool isThisOnTop() const;
 
   public:
+    struct Rect {
+        double left = 0, bottom = 0, right = 0, top = 0;
+        bool contains(double px, double py) const {
+            return px >= left && px <= right && py >= bottom && py <= top;
+        }
+
+        bool intersects(const Rect &r) const {
+            return right >= r.left && left <= r.right && top >= r.bottom &&
+                   bottom <= r.top;
+        }
+    };
+
+    struct Style {
+        double textSize = .075, rowStep = .1, pickGap = .2, padding = .08;
+        std::array<double, 4> accent{{1, .88, .5, 1}},
+            selection{{.04, .04, .055, .72}}, field{{.025, .025, .035, .82}},
+            control{{.15, .17, .21, .9}}, panel{{.07, .08, .10, .95}};
+        bool animateSelection = false;
+    } style;
+    enum class Flow { Manual, Vertical, Horizontal };
+    Flow flow = Flow::Manual;
+    bool modal = false;
+    bool viewportEnabled = false;
+    Rect viewport{-1, -.75, 1, .75};
+    double scrollOffset = 0, flowX = 0, flowY = .4;
+    int flowGroup = 1;
+    bool anchorLeft = false;
+    double leftMargin = .2;
+    void setFlow(Flow direction, double originX, double originY, int group = 1);
+    void reflow();
+    void processEvent(const CControls::MenuEvent &);
+    int focusedOption() const { return focused; }
+
+    void closeInterfaces();
     enum menusOPT {
         none = -1,
         button_ok,
@@ -79,8 +125,9 @@ class CMenu {
     bool isMouseOnThisMenu();
 
     static inline uiWindowStruct &getUiAt(size_t index) {
-        return uiList[index];
+        return uiList.at(index);
     }
+
     static void renderUiList();
     static uiWindowStruct &getUILast();
 
@@ -103,6 +150,14 @@ class CMenu {
     double mouseAY;
 
     struct menuOpt {
+        bool disabled = false;
+        bool manualPosition = false;
+        bool anchorRight = false;
+        double fieldWidth = .55, textScroll = 0;
+        int eventID = 0;
+        CFonts::TextLayout layout, valueLayout;
+        std::string cachedText, cachedValue;
+        size_t cachedRevision = ~size_t(0), valueRevision = ~size_t(0);
         menusOPT type;
         int group;
         unsigned int texture;
@@ -171,6 +226,12 @@ class CMenu {
         }
     };
 
+    Rect optionRect(size_t index);
+    Rect controlRect(size_t index);
+    void ensureLayout(menuOpt &);
+    void revealFocused();
+    void select(int index);
+
     struct group {
         enum types { none, deslizant_h_menu };
         double x, y, h, w;
@@ -208,7 +269,8 @@ class CMenu {
     size_t getNumOfOptions() { return options.size(); }
 
     std::string getNameFromOpt(size_t optID) {
-        return options[optID].optionName;
+        return optID < options.size() ? options[optID].optionName
+                                      : std::string();
     }
 
     void resetData();
@@ -218,7 +280,8 @@ class CMenu {
 
     CMenu();
     CMenu(const std::string &name);
-    CMenu(const CMenu &) = default;
+    CMenu(const CMenu &);
+    CMenu &operator=(const CMenu &) = delete;
     ~CMenu();
 };
 

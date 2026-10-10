@@ -18,11 +18,11 @@
 #include "CShader.h"
 #include "GPPGame.h"
 #include <exception>
-#include <fstream>
 #include <filesystem>
-#include <stdexcept>
+#include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 #include "CMultiplayer.h"
@@ -535,6 +535,14 @@ static auto load_data() -> bool {
                 }
             }
 
+                mainMenu.setFlow(CMenu::Flow::Vertical, -proportion + .2, .4);
+                mainMenu.anchorLeft = true;
+                for (auto *menu :
+                     {&gmenu, &cmpopts, &optionsmenu, &audiomenu, &extrasmenu,
+                      &chartsmenu, &chartCompileMenu}) {
+                    menu->setFlow(CMenu::Flow::Vertical, -.5, .4);
+                }
+
                 game.setMainMenu(mainMenu);
                 lua.runEvent(mainMenuSettedSE);
                 break;
@@ -581,111 +589,116 @@ static auto load_data() -> bool {
                 }
             }
 
-                {{CMenu::menuOpt opt;
+                {
+                    {
+                        CMenu::menuOpt opt;
 
-                opt.text = "Compilador de .chart para .gpp";
-                opt.y = 0.4;
-                opt.x = -proportion + 0.2;
-                opt.size = 0.075;
-                opt.group = 1;
-                opt.status = 0;
-                opt.type = CMenu::menusOPT::textbtn;
+                        opt.text = "Compilador de .chart para .gpp";
+                        opt.y = 0.4;
+                        opt.x = -proportion + 0.2;
+                        opt.size = 0.075;
+                        opt.group = 1;
+                        opt.status = 0;
+                        opt.type = CMenu::menusOPT::textbtn;
 
-                opt.menusXRef.push_back(chartCompileMenu.getName());
+                        opt.menusXRef.push_back(chartCompileMenu.getName());
 
-                chartsmenu.addOpt(opt);
+                        chartsmenu.addOpt(opt);
+                    }
+
+                    {
+                        CMenu::menuOpt opt;
+
+                        opt.text = "Criador de charts";
+                        opt.y = 0.3;
+                        opt.x = -proportion + 0.2;
+                        opt.size = 0.075;
+                        opt.group = 1;
+                        opt.status = 0;
+                        opt.type = CMenu::menusOPT::textbtn;
+
+                        std::string testecallback = game.addGameCallbacks(
+                            "gameCharter", GPPGame::charterModule);
+                        opt.menusXRef.push_back(testecallback);
+
+                        chartsmenu.addOpt(opt);
+                    }
+
+                    {
+                        CMenu::menuOpt opt;
+
+                        opt.text = "Voltar";
+                        opt.y = 0.0;
+                        opt.size = 0.075;
+                        opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size,
+                                                             0.0);
+                        opt.group = 1;
+                        opt.status = 0;
+                        opt.type = CMenu::menusOPT::textbtn;
+                        opt.goback = true;
+
+                        chartsmenu.addOpt(opt);
+                    }
+                }
+
+                {
+                    {
+                        CMenu::menuOpt opt;
+
+                        opt.text = "Voltar";
+                        opt.y = 0.85;
+                        opt.size = 0.075;
+                        opt.x = -1.0;
+                        opt.group = 1;
+                        opt.status = 0;
+                        opt.type = CMenu::menusOPT::textbtn;
+                        opt.goback = true;
+
+                        chartCompileMenu.addOpt(opt);
+                    }
+                }
+
+                campaingMgr.loadCampaingModes();
+                break;
+
+            case 6:
+                game.initialLoad();
+                break;
+
+            case 7:
+                game.initialLoad2();
+                break;
+
+            default:
+                break;
             }
 
-            {
-                CMenu::menuOpt opt;
-
-                opt.text = "Criador de charts";
-                opt.y = 0.3;
-                opt.x = -proportion + 0.2;
-                opt.size = 0.075;
-                opt.group = 1;
-                opt.status = 0;
-                opt.type = CMenu::menusOPT::textbtn;
-
-                std::string testecallback = game.addGameCallbacks(
-                    "gameCharter", GPPGame::charterModule);
-                opt.menusXRef.push_back(testecallback);
-
-                chartsmenu.addOpt(opt);
-            }
-
-            {
-                CMenu::menuOpt opt;
-
-                opt.text = "Voltar";
-                opt.y = 0.0;
-                opt.size = 0.075;
-                opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
-                opt.group = 1;
-                opt.status = 0;
-                opt.type = CMenu::menusOPT::textbtn;
-                opt.goback = true;
-
-                chartsmenu.addOpt(opt);
+            if (loadLoop != 0x7FFFFFFF) {
+                {
+                    ++loadLoop;
+                }
             }
         }
 
-        {
-            {
-                CMenu::menuOpt opt;
+        double t = (CEngine::engine().getTime() - ltime) * 3.14 / 3.0;
 
-                opt.text = "Voltar";
-                opt.y = 0.85;
-                opt.size = 0.075;
-                opt.x = -1.0;
-                opt.group = 1;
-                opt.status = 0;
-                opt.type = CMenu::menusOPT::textbtn;
-                opt.goback = true;
+        CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t));
+        CEngine::engine().Render2DQuad(lgrdata);
 
-                chartCompileMenu.addOpt(opt);
-            }
-        }
-        campaingMgr.loadCampaingModes();
-        break;
+        CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t + 0.1));
+        CFonts::fonts().drawTextInScreenWithBuffer(
+            str2nibblePresents + std::to_string(game.getNumTexturesToLoad()),
+            CFonts::fonts().getCenterPos(str2nibblePresents, 0.1, 0.0), -0.6,
+            0.1);
 
-    case 6:
-        game.initialLoad();
-        break;
+        CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+        game.renderFrame();
 
-    case 7:
-        game.initialLoad2();
-        break;
-
-    default:
-        break;
+        // Queue entries are owned by the streaming loader; avoid inspecting raw
+        // batch pointers here while other threads may enqueue textures.
     }
 
-    if (loadLoop != 0x7FFFFFFF) {
-        {
-            ++loadLoop;
-        }
-    }
-}
-
-double t = (CEngine::engine().getTime() - ltime) * 3.14 / 3.0;
-
-CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t));
-CEngine::engine().Render2DQuad(lgrdata);
-
-CEngine::engine().setColor(1.0, 1.0, 1.0, sin(t + 0.1));
-CFonts::fonts().drawTextInScreenWithBuffer(
-    str2nibblePresents + std::to_string(game.getNumTexturesToLoad()),
-    CFonts::fonts().getCenterPos(str2nibblePresents, 0.1, 0.0), -0.6, 0.1);
-
-CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
-game.renderFrame();
-
-// Queue entries are owned by the streaming loader; avoid inspecting raw
-// batch pointers here while other threads may enqueue textures.
-
-}
-return CEngine::engine().windowOpened() && loadLoop >= 8;
+    return CEngine::engine().windowOpened() && loadLoop >= 8;
 }
 
 auto main(int argc, char *argv[]) -> int {
@@ -703,7 +716,8 @@ auto main(int argc, char *argv[]) -> int {
 
         auto &lua = CLuaH::Lua();
 
-        // Register enableShaders before Config.lua can set it. No GL upload here.
+        // Register enableShaders before Config.lua can set it. No GL upload
+        // here.
         ShaderProject::CShader::inst();
 
         // Configuration file
@@ -713,12 +727,15 @@ auto main(int argc, char *argv[]) -> int {
         if (script.luaState) {
             if (lua.runScript(script) != 0) {
                 const char *error = lua_tostring(script.luaState.get(), -1);
-                throw std::runtime_error(error ? error : "Config.lua execution failed");
+                throw std::runtime_error(error ? error
+                                               : "Config.lua execution failed");
             }
         } else if (std::filesystem::exists("Config.lua")) {
-            throw std::runtime_error("Cannot load Config.lua; see Guitar++.log");
+            throw std::runtime_error(
+                "Cannot load Config.lua; see Guitar++.log");
         } else {
-            CLog::log() << "Config.lua not found; using saved settings/defaults";
+            CLog::log()
+                << "Config.lua not found; using saved settings/defaults";
         }
 
         // Run all scripts in quere
@@ -730,6 +747,7 @@ auto main(int argc, char *argv[]) -> int {
             CLog::log() << "Startup loading cancelled";
             return 0;
         }
+
         auto &guitars = CGuitars::inst();
 
         GPPGame::GuitarPP().setVSyncMode(1);
@@ -754,7 +772,8 @@ auto main(int argc, char *argv[]) -> int {
 
                 if (!CCampaing::campaingMGR().loadCampaingF(
                         "./data/saves/campaings/campaingZoeira/save")) {
-                    throw std::runtime_error("Cannot load campaign save; file preserved");
+                    throw std::runtime_error(
+                        "Cannot load campaign save; file preserved");
                 }
             } else {
                 svfstream.reset();
@@ -773,7 +792,8 @@ auto main(int argc, char *argv[]) -> int {
         game.scene.unload(game.testobj);
         lua.unloadAll();
     } catch (const std::exception &e) {
-        const std::string message = std::string("Failure during ") + stage + ": " + e.what();
+        const std::string message =
+            std::string("Failure during ") + stage + ": " + e.what();
         std::cerr << message << '\n';
         // Keep the terminal diagnostic even if logging itself fails.
         try {
@@ -781,7 +801,9 @@ auto main(int argc, char *argv[]) -> int {
             CLog::log().SaveBuffer();
         } catch (const std::exception &) {
         }
+
         return 1;
     }
+
     return 0;
 }

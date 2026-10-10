@@ -395,3 +395,156 @@ note, preservation of that boundary through marathon transfer, all-player
 completion, and repeated pause compensation of timeline/countdown clocks. These
 clock tests do not simulate a real blocked swap or verify audible pause/resume;
 interactive validation of those transitions is still required.
+
+### Bitmap fonts and menus
+
+The UI remains C++17 and OpenGL 2.0. The default `FONT.tga` is a 32-column,
+8-row fixed-cell atlas (2048×512, or 1024×256 for the low-resolution variant).
+The built-in registration contains the full character map, including accents,
+and does not require the example metrics script. The versioned default theme
+is in `data/themes/gppdefaulttheme/Theme.lua`; installed themes can still override
+it. Cells already contain descenders: default glyph height/offset remain `1, 0`.
+The declared default baseline is 14/64 above the cell bottom, with ascent 50/64
+and descent 14/64. This is a font convention, not an alpha-derived baseline.
+
+Lua registration supports both signatures:
+
+```lua
+addTextureToFont(name, path, texture, characters) -- legacy row description
+addTextureToFont(name, path, texture, characters, columns, rows)
+setFontCharMetrics(name, characters, height, verticalOffset)
+setFontCharSpacing(name, characters, advance, horizontalBearing)
+setFontMetrics(name, baseline, ascent, descent)
+```
+
+All metric values are in nominal text-size units. Positive vertical offset raises
+an entire cell; it does not crop or invent a descender. `setFontCharSpacing`
+sets pen advance and the cell's horizontal position relative to that pen.
+The old four-argument registration retains empty rows, including a final empty
+row, for existing themes. It also counts the final nonempty row's columns.
+Use an explicit grid for partial/unused regions and rectangular cells; a final
+newline then has no effect on physical geometry. Invalid registrations return
+false to Lua (an empty path in C++) without publishing a partial font. Repeating
+an unchanged registration reuses alpha analysis, restores glyph overrides and
+avoids invalidating layouts when nothing changed. Duplicate characters use the
+last registered cell. Replacing an atlas removes its old mappings, but preserves
+characters subsequently supplied by another atlas. RGB atlases are opaque;
+RGBA atlases use their alpha channel. Unsupported/malformed image data fails.
+
+`layoutText` exposes glyph positions, logical advance, visual bounds and caret
+positions without OpenGL. Measurements, centering, direct/buffered/3D text and
+menu hit testing share that calculation. Unknown fonts fall back to `default`;
+missing glyphs use `?`, or a blank advance if unavailable. Invalid display bytes
+use the same fallback. Queries never insert registry entries. Text layout is
+single-line: CR/LF have zero advance, tabs default to four spaces. No shaping,
+normalization, bidirectional layout or grapheme-aware cursor movement is supplied.
+
+UTF-8 editing indices count Unicode scalar values, while `preTextMaxSize` remains
+a **byte budget** for compatibility. A multibyte insertion must fit entirely.
+Invalid size/insertion returns `std::string::npos`; invalid removals leave the
+string unchanged. Empty strings and out-of-range removals are harmless. Edit
+fields retain their layout until the text/font changes and scroll horizontally
+to keep the caret visible. Composed and decomposed accents remain different
+sequences; combining characters can still be edited independently.
+
+Menus have separate keyboard focus, hover and mouse capture. A click activates
+on release over its original target; Enter activates on press, without key-repeat
+activation. Arrows/Tab navigate, Home/End/Delete/Backspace edit text, and Escape
+leaves editing or activates a back option. Static/disabled options are skipped.
+The legacy status bits (`1` selected, `2` activation pulse, `4` editing) remain an
+adapter for callbacks. Option Lua callbacks receive `(menuName, optionName,
+optValue, action)` once per update, including idle/selection notifications;
+activation is a one-update pulse. Pre/post menu update hooks are restored.
+
+`newMenu(name)` now honors a nonempty name; empty names are generated. Repeated
+creation of an existing name preserves the object and options. `findMenu` returns
+null for a missing menu; `getMenuByName` throws instead of creating a phantom
+menu. Lua queries/assignments reject missing menus and invalid indices. Navigation
+resolves actual menus separately from game callbacks. Structural navigation and
+interface closure happen outside callback traversal; callbacks can append options
+without invalidating the active iteration. Newly appended options update on the
+next pass. External C++ callbacks must not destroy the menu currently executing.
+
+`CMenu::Style` shares spacing and selection/control colors; optional selection
+animation defaults off. `setFlow` supports vertical/horizontal rows alongside
+manual placement. Lua-created options keep manual positions. List viewports clip
+rendering and interaction; selection reveals offscreen rows. Cached menu text is
+batched in consecutive texture runs. Deferred text preserves submission order
+and captures each call's color rather than sorting all glyphs by texture ID.
+UI rendering restores matrices, scissor, blend, depth and color state.
+
+Profile/rename dialogs are modal. Other interfaces can set `modal=false` and
+receive focus by clicking their exposed region. Only one menu receives an event.
+Interface copies reset live children, focus/capture and external edit bindings;
+known bindings are installed explicitly after opening. Their referenced objects
+must outlive the interface. Closing a parent closes its owned interfaces.
+Named menus stay in the existing map and overlays retain unique ownership.
+Lua callback references remain script-owned; replacement releases the previous
+registry reference. This is not a general lifetime manager for arbitrary C++
+lambda captures.
+
+GLFW UI callbacks queue key/text/mouse/focus/scroll events on the main thread.
+The bounded queue cancels capture on overflow. Device polling and all GL/UI
+resource changes also remain on that thread. Focus loss/disconnection releases
+menu state; a held gamepad confirmation must be released across menu sessions.
+Standard gamepads use D-pad/left stick, A to confirm and B to go back. Axis
+thresholds use hysteresis (0.55 on, 0.35 off); navigation repeats after 350 ms,
+then every 75 ms without catch-up bursts. Raw guitar/joystick bindings are
+optional Lua configuration, independent of gameplay mappings:
+
+```lua
+-- GLFW device GUID; indices are zero-based. Hat direction uses GLFW hat bits.
+setMenuBinding("DEVICE_GUID", "button", 0, 1, "confirm")
+setMenuBinding("DEVICE_GUID", "button", 1, 1, "back")
+setMenuBinding("DEVICE_GUID", "hat", 0, 1, "up")
+setMenuBinding("DEVICE_GUID", "hat", 0, 4, "down")
+setMenuBinding("DEVICE_GUID", "axis", 1, -1, "up")
+```
+
+Bindings replace the same device/action entry. Actions are `up`, `down`, `left`,
+`right`, `confirm`, `back`; sources are `button`, `hat`, `axis`. Axis direction
+is -1/+1. A controls-configuration screen and persistent bindings in settings
+are deliberately not part of this change. Gameplay clocks, judgment, input
+worker and the known update/render sharing risks are unchanged. Faster UI event
+handling cannot eliminate delivery delays caused by a blocked swap.
+
+Configure `-DBUILD_UI_TOOLS=ON` for `gpp_benchmark_ui`; run it from `build/bin`,
+optionally passing width and height. It reports median/p95/p99 measurement and
+menu submission times. It warms caches, and synchronizes only at benchmark
+boundaries (not in production UI rendering). These are submission measurements,
+not whole-game frame times or monitor/VSync latency.
+
+A local before/after comparison on Ryzen 9 5900X with Mesa software rendering,
+RelWithDebInfo and portable CPU flags produced these microsecond results:
+
+| Resolution / workload | Before median / p95 / p99 | After median / p95 / p99 |
+|---|---:|---:|
+| 800×600, 5-option menu | 58 / 98 / 154 | 49 / 88 / 127 |
+| 800×600, 1,000-option list | 4,591 / 5,471 / 5,942 | 143 / 179 / 192 |
+| 1920×1080, 5-option menu | 69 / 95 / 105 | 59 / 88 / 100 |
+| 1920×1080, 1,000-option list | 4,903 / 5,831 / 6,224 | 169 / 206 / 219 |
+| 800×600, 1,000 text measurements | 347 / 360 / 462 | 216 / 275 / 364 |
+
+The long-list comparison includes the new viewport: the old renderer submitted
+all rows even outside the screen. Initial font setup was roughly 8–9 ms in this
+single-run sample, including loading/upload; this is not a startup percentile
+claim. Hardware gamepad/guitar reconnects, actual modest GPUs, full-scene frame
+distributions, monitor VSync and audible gameplay timing still require interactive
+hardware validation. Software rendering on a fast CPU does not establish those
+results. Test rendering remains compatible with GL 2.0 / GLSL 1.10.
+
+CPU tests can run under ASan/UBSan without a display, including through NativeLab.
+For graphical sanitizer runs, this machine's Mesa GLX retains allocations after
+context teardown. Use `LSAN_OPTIONS=suppressions=/absolute/path/to/tests/lsan.supp`
+with `ctest -R 'font_metrics|shader_gl|scene_gl' --output-on-failure` in the
+sanitized build. The suppression matches only `libGLX_mesa.so`; leak detection
+remains enabled. CPU sanitizer tests should run without this suppression.
+
+Validation for this change: all 12 CTest groups passed; UI CPU tests passed with
+ASan/UBSan/LeakSanitizer in NativeLab, and font/shader/scene GL tests passed with
+the Mesa-only suppression. The real `build/bin` assets were used to inspect the
+main menu, play submenu, profile modal and resized window. Pause styling uses
+the same flow rules, but an audible in-song pause/resume playtest is still pending.
+Continuous typing, dynamic HUD updates, theme/language transitions and repeated
+modal lifetimes have regression coverage or implementation safeguards; their
+allocation peaks and p95/p99 CPU/frame costs have not yet been benchmarked.

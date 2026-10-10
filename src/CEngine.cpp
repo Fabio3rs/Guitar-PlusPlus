@@ -19,7 +19,7 @@
 #include <iostream>
 #include <mutex>
 
-//#include <GL/glu.h>
+// #include <GL/glu.h>
 #include "internal.h"
 #include <bass.h>
 #include <bass_fx.h>
@@ -335,6 +335,7 @@ static void windowCallBack(GLFWwindow *window, int w, int h) {
             h = 1;
         }
     }
+
     if (w == 0) {
         {
             w = 1;
@@ -477,6 +478,7 @@ auto CEngine::readImage(const char *name, GLFWimage *img, int flags) -> int {
     img->Width = 0;
     img->Height = 0;
     img->BytesPerPixel = 0;
+    img->DataBytes = 0;
     img->Data = NULL;
 
     // Open file
@@ -511,6 +513,7 @@ auto CEngine::readImage(const char *name, GLFWimage *img, int flags) -> int {
         } else {
             img->Format = GL_LUMINANCE;
         }
+
         break;
     case 3:
         img->Format = GL_RGB;
@@ -552,6 +555,7 @@ static auto HalveImage(GLubyte *src, int *width, int *height, int components)
                 *dst++ = (GLubyte)(((int)*src + (int)src[components] + 1) >> 1);
                 src++;
             }
+
             src += components;
         }
     } else {
@@ -566,8 +570,10 @@ static auto HalveImage(GLubyte *src, int *width, int *height, int components)
                                        2);
                     src++;
                 }
+
                 src += components;
             }
+
             src += components * (*width);
         }
     }
@@ -621,6 +627,7 @@ auto CEngine::loadTextureImage2D(GLFWimage *img, int flags, bool glUpload)
 
         // Set pointer to new image data
         img->Data = std::move(data);
+        img->DataBytes = static_cast<size_t>(newsize);
     }
 
     if (img->keepData) {
@@ -657,6 +664,7 @@ auto CEngine::genNewGLTexture() -> unsigned int {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    engine().invalidateRenderBindings();
     glGenTextures(1, &Text);
     glBindTexture(GL_TEXTURE_2D, Text);
 
@@ -734,6 +742,7 @@ void CEngine::freeImage(GLFWimage *img) {
     img->Height = 0;
     img->Format = 0;
     img->BytesPerPixel = 0;
+    img->DataBytes = 0;
 }
 
 void CEngine::setScale(double x, double y, double z) { glScaled(x, y, z); }
@@ -884,6 +893,7 @@ auto CEngine::loadTexture(const char *textureFileName, GLFWimage *eimg)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    invalidateRenderBindings();
     glGenTextures(1, &Text);
     glBindTexture(GL_TEXTURE_2D, Text);
 
@@ -892,6 +902,8 @@ auto CEngine::loadTexture(const char *textureFileName, GLFWimage *eimg)
         return Text;
     }
 
+    glDeleteTextures(1, &Text);
+    invalidateRenderBindings();
     return 0;
 }
 
@@ -912,6 +924,7 @@ auto CEngine::uploadTextureToOGL(GLFWimage *eimg) -> unsigned int {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    invalidateRenderBindings();
     glGenTextures(1, &Text);
     glBindTexture(GL_TEXTURE_2D, Text);
 
@@ -942,10 +955,10 @@ void CEngine::renderFrame() {
     cursorPointer.x3 = mouseX + 0.1;
     cursorPointer.x4 = mouseX;
 
-    cursorPointer.y1 = mouseY + 0.1;
-    cursorPointer.y2 = mouseY + 0.1;
-    cursorPointer.y3 = mouseY;
-    cursorPointer.y4 = mouseY;
+    cursorPointer.y1 = mouseY;
+    cursorPointer.y2 = mouseY;
+    cursorPointer.y3 = mouseY - 0.1;
+    cursorPointer.y4 = mouseY - 0.1;
 
     cursorPointer.TextureX1 = 0.0;
     cursorPointer.TextureX2 = 1.0;
@@ -955,7 +968,30 @@ void CEngine::renderFrame() {
 
     cursorPointer.Text = cursorText;
 
+    GLint previousMatrixMode;
+    glGetIntegerv(GL_MATRIX_MODE, &previousMatrixMode);
+    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4d(1, 1, 1, 1);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    const double cursorAspect =
+        windowHeight > 0 ? windowWidth / windowHeight : 1;
+    glOrtho(-cursorAspect, cursorAspect, -1, 1, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
     Render2DQuad(cursorPointer);
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(previousMatrixMode);
+    glPopAttrib();
+    invalidateRenderBindings();
 
     glfwSwapBuffers((GLFWwindow *)window);
     glfwPollEvents();
@@ -1064,7 +1100,9 @@ void CEngine::activateNormals(bool a) {
             glEnableClientState(GL_NORMAL_ARRAY);
         }
     } else {
-        { glDisableClientState(GL_NORMAL_ARRAY); }
+        {
+            glDisableClientState(GL_NORMAL_ARRAY);
+        }
     }
 }
 
@@ -1266,7 +1304,9 @@ void CEngine::activateLight(int id, bool a) {
             glEnable(GL_LIGHT0 + id);
         }
     } else {
-        { glDisable(GL_LIGHT0 + id); }
+        {
+            glDisable(GL_LIGHT0 + id);
+        }
     }
 }
 
@@ -1277,7 +1317,9 @@ void CEngine::activateLighting(bool a) {
                 glEnable(GL_LIGHTING);
             }
         } else {
-            { glDisable(GL_LIGHTING); }
+            {
+                glDisable(GL_LIGHTING);
+            }
         }
     }
 }
@@ -1288,7 +1330,9 @@ void CEngine::activate3DRender(bool a) {
             glEnable(GL_DEPTH_TEST);
         }
     } else {
-        { glDisable(GL_DEPTH_TEST); }
+        {
+            glDisable(GL_DEPTH_TEST);
+        }
     }
 }
 
@@ -1298,7 +1342,9 @@ void CEngine::activateAlphaTest(bool a) {
             glEnable(GL_ALPHA_TEST);
         }
     } else {
-        { glDisable(GL_ALPHA_TEST); }
+        {
+            glDisable(GL_ALPHA_TEST);
+        }
     }
 }
 
@@ -1308,7 +1354,9 @@ void CEngine::activateStencilTest(bool a) {
             glEnable(GL_STENCIL_TEST);
         }
     } else {
-        { glDisable(GL_STENCIL_TEST); }
+        {
+            glDisable(GL_STENCIL_TEST);
+        }
     }
 }
 
@@ -1909,6 +1957,7 @@ void CEngine::drawTrianglesWithAlpha(dTriangleWithAlpha &tris) {
             glColorPointer(4, GL_DOUBLE, 0, &(tris.aArray[0]));
         }
     }
+
     glTexCoordPointer(2, GL_DOUBLE, 0, &(tris.tArray[0]));
     glVertexPointer(3, GL_DOUBLE, 0, &(tris.vArray[0]));
 
@@ -1977,7 +2026,10 @@ CEngine::CEngine() {
 }
 
 CEngine::~CEngine() {
-    if (window) glfwMakeContextCurrent(static_cast<GLFWwindow *>(window));
+    if (window) {
+        glfwMakeContextCurrent(static_cast<GLFWwindow *>(window));
+    }
+
     CBackgroundRenderer::shutdown();
     ShaderProject::CShader::shutdown();
     glfwTerminate();

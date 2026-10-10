@@ -1,187 +1,162 @@
-/*****************************************************************************************************
- *		GUITAR++
- *		PROGRAMADO POR FÁBIO
- *		BMS - Brazilian Modding Studio -
- *http://brmodstudio.forumeiros.com
- *****************************************************************************************************/
 #pragma once
-#ifndef __GUITARPP_CFONTS_H_
-#define __GUITARPP_CFONTS_H_
-
 #include "CEngine.h"
+#include <array>
 #include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <deque>
+#include <functional>
 #include <map>
+#include <string_view>
 #include <vector>
 
 class CFonts {
-    std::map<unsigned int, CEngine::dTriangleWithAlpha> textPerTextureBuffer;
-
   public:
-    struct textAlert {
-        int status;
-        double startTime;
-        std::string msg;
-        std::function<bool(textAlert &)> callback;
+    struct AtlasGrid {
+        int columns = 0, rows = 0;
+    };
 
-        textAlert() noexcept {
-            status = 0;
-            startTime = 0.0;
-        }
+    // Owned by the caller for the duration of analysis; rows are bottom-up.
+    struct ImageView {
+        const unsigned char *data = nullptr;
+        size_t bytes = 0;
+        int width = 0, height = 0, components = 4;
+        int alpha = 3; // -1 means opaque
+    };
 
-        ~textAlert() noexcept {}
+    struct InkBounds {
+        int left = 0, right = 0, bottom = 0, top = 0;
+        bool visible = false;
+    };
+
+    static bool analyzeCell(const ImageView &, AtlasGrid, int column, int row,
+                            InkBounds &);
+
+    struct FaceMetrics {
+        double baseline = 0, ascent = 1, descent = 0;
+    };
+
+    struct Glyph {
+        unsigned texture = 0;
+        size_t atlas = 0;
+        double u0 = 0, v0 = 0, u1 = 0, v1 = 0;
+        double width = 1, bearing = 0, advance = 2.0 / 3.0;
+        double left = 0, right = 0, bottom = 0, top = 1;
+        double height = 1, offset = 0;
+        bool visible = false;
+    };
+
+    struct Placement {
+        Glyph glyph;
+        double x = 0;
+    };
+
+    struct TextLayout {
+        std::vector<Placement> glyphs;
+        std::vector<double> carets;
+        double baseline = 0;
+        double advance = 0, left = 0, right = 0, bottom = 0, top = 1;
+        double width() const { return right - left; }
+
+        size_t cursorAt(double x) const;
     };
 
     class Font {
-        class fontTexture {
-            friend Font;
-
-            std::string name;
-            int lines, columns;
-
-          public:
-            const std::string &getName() const noexcept { return name; }
-
-            inline int getlines() const noexcept { return lines; }
-
-            inline int getcolumns() const noexcept { return columns; }
-
-            void load(const std::string &path, const std::string &name);
-
-            fontTexture(const std::string &path, const std::string &name);
-            fontTexture() noexcept;
-            ~fontTexture() noexcept {}
+        struct Texture {
+            size_t id = 0;
+            unsigned texture = 0;
+            AtlasGrid grid;
+            std::string registration;
         };
 
-        class chartbl {
-            int pos;
-            int line;
-            double align, size;
-            double height = 1.0, baselineOffset = 0.0;
-            const fontTexture *textureLst;
-            unsigned int textID;
-
-            void setTextID(const fontTexture &texture);
-
-          public:
-            void setVerticalMetrics(double newHeight, double newOffset) noexcept {
-                height = newHeight;
-                baselineOffset = newOffset;
-            }
-
-            // Transform along the glyph's vertical axis (Y and Z for 3D text).
-            void applyVerticalMetrics(CEngine::RenderDoubleStruct &quad,
-                                      double y, double z,
-                                      double sizeY, double sizeZ) const noexcept {
-                quad.y1 = quad.y2 = y + (baselineOffset + height) * sizeY;
-                quad.y3 = quad.y4 = y + baselineOffset * sizeY;
-                quad.z1 = quad.z2 = z + (baselineOffset + height) * sizeZ;
-                quad.z3 = quad.z4 = z + baselineOffset * sizeZ;
-            }
-
-            void internalProcessTexture(int ch);
-
-            inline double getAlign() const noexcept { return align; }
-
-            inline double getSize() const noexcept { return size; }
-
-            inline void setLine(int l) noexcept { line = l; }
-
-            inline int getline() const noexcept { return line; }
-
-            inline void setPos(int p) noexcept { pos = p; }
-
-            inline int getPos() const noexcept { return pos; }
-
-            inline void setText(const fontTexture &texture) {
-                textureLst = &texture;
-                setTextID(texture);
-            }
-
-            inline const fontTexture *getText() const noexcept {
-                return textureLst;
-            }
-
-            inline unsigned int getTextID() const noexcept { return textID; }
-
-            chartbl() noexcept {
-                pos = -1;
-                line = 0;
-                textureLst = nullptr;
-                align = 0;
-                size = 1.0;
-            }
-        };
-
-        std::map<std::string, fontTexture> textures;
-        std::map<unsigned int, chartbl> chars;
+        std::map<std::string, Texture> textures;
+        std::map<unsigned, Glyph> chars;
+        std::array<const Glyph *, 128> ascii{};
+        size_t nextAtlas = 0, changes = 0;
+        FaceMetrics metrics;
         friend CFonts;
 
       public:
-        void registerTexture(const std::string &path,
-                             const std::string &texture,
-                             const std::wstring &textChars);
-        void registerTexture(const std::string &path,
-                             const std::string &texture,
-                             const std::string &textChars);
-        Font();
+        Font() = default;
+        Font(const Font &) = delete;
+        Font &operator=(const Font &) = delete;
+        Font(Font &&) = default;
+        Font &operator=(Font &&) = default;
+        // Returns false without publishing a partial registration.
+        bool registerTexture(const std::string &, const std::string &,
+                             const std::string &, AtlasGrid);
+        void registerTexture(const std::string &, const std::string &,
+                             const std::string &);
+        void registerTexture(const std::string &, const std::string &,
+                             const std::wstring &);
     };
 
-    static size_t utf8Size(const std::string &s);
-    static size_t utf8InsertAt(std::string &s, const std::string &str,
-                               size_t at);
-    static void utf8RemoveLast(std::string &s);
-    static void utf8RemoveAtRange(std::string &s, int at, int size);
+    struct textAlert {
+        int status = 0;
+        double startTime = 0;
+        std::string msg;
+        std::function<bool(textAlert &)> callback;
+    };
 
-    // UTF-8 characters must already be registered. Height > 0; positive offset
-    // raises the glyph relative to posY1. Both values are multiples of text size.
-    // Returns false without changing any glyph on invalid input.
-    bool setFontCharMetrics(const std::string &fontName,
-                            const std::string &characters,
-                            double height, double baselineOffset);
+    // Invalid UTF-8: size/insert return npos; removal leaves the input intact.
+    // All positions/counts are Unicode scalar values, not bytes or graphemes.
+    static size_t utf8Size(const std::string &);
+    static size_t utf8InsertAt(std::string &, const std::string &, size_t);
+    static void utf8RemoveLast(std::string &);
+    static void utf8RemoveAtRange(std::string &, int, int);
 
-    // Adds Texture to font and create a font inst if doesnt exists
-    std::string addTextureToFont(const std::string &fontName,
-                                 const std::string &path,
-                                 const std::string &texture,
-                                 const std::wstring &textChars);
-    std::string addTextureToFont(const std::string &fontName,
-                                 const std::string &path,
-                                 const std::string &texture,
-                                 const std::string &textChars);
-    double getCenterPos(const std::string &text, double size, double posX1,
-                        const std::string &fontName = "default");
-    double getXSizeInScreen(const std::string &text, double size,
-                            const std::string &fontName = "default");
+    bool setFontCharMetrics(const std::string &, const std::string &,
+                            double height, double offset);
+    bool setFontMetrics(const std::string &, double baseline, double ascent,
+                        double descent);
+    bool setFontCharSpacing(const std::string &, const std::string &,
+                            double advance, double bearing);
+    std::string addTextureToFont(const std::string &, const std::string &,
+                                 const std::string &, const std::wstring &);
+    std::string addTextureToFont(const std::string &, const std::string &,
+                                 const std::string &, const std::string &);
+    std::string addTextureToFont(const std::string &, const std::string &,
+                                 const std::string &, const std::string &,
+                                 AtlasGrid);
+    size_t revision() const { return metricsRevision; }
 
-    void drawTextInScreenWithBuffer(const std::string &str, const double posX1,
-                                    const double posY1, const double size,
-                                    const std::string &fontName = "default");
-    void drawTextInScreen(const std::string &str, const double posX1,
-                          const double posY1, const double size,
-                          const std::string &fontName = "default");
-    void draw3DTextInScreen(const std::string &str, const double posX1,
-                            const double posY1, const double posZ1,
-                            const double sizeX, const double sizeY,
-                            const double sizeZ,
-                            const std::string &fontName = "default");
-
+    // Unit-size layout. Reuse the destination's vector capacity.
+    void layoutText(std::string_view, TextLayout &,
+                    const std::string &font = "default") const;
+    double getCenterPos(const std::string &, double, double,
+                        const std::string & = "default");
+    double getXSizeInScreen(const std::string &, double,
+                            const std::string & = "default");
+    void drawTextInScreenWithBuffer(const std::string &, double, double, double,
+                                    const std::string & = "default");
+    void drawTextInScreen(const std::string &, double, double, double,
+                          const std::string & = "default");
+    void draw3DTextInScreen(const std::string &, double, double, double, double,
+                            double, double, const std::string & = "default");
+    void drawLayout(const TextLayout &, double x, double y, double size);
     void drawAllBuffers();
-
-    void addTextAlert(const textAlert &t);
-    void addTextAlert(textAlert &&t);
-
+    void addTextAlert(const textAlert &);
+    void addTextAlert(textAlert &&);
     static CFonts &fonts();
 
   private:
+    struct Batch {
+        CEngine::dTriangleWithAlpha data;
+        double color[4]{};
+    };
+
+    std::vector<Batch> batches;
+    CEngine::dTriangleWithAlpha layoutBuffer;
+    size_t usedBatches = 0;
+    double bufferedColor[4]{};
     std::map<std::string, Font> fontsReg;
     std::deque<textAlert> textAlerts;
-
+    size_t metricsRevision = 0;
+    TextLayout walk(std::string_view, const std::string &, TextLayout *,
+                    void (*emit)(void *, const Glyph &, double),
+                    void *context = nullptr) const;
+    void drawText(std::string_view, const std::string &, double, double, double,
+                  double, double, double, bool, bool);
+    void drawGlyph(const Glyph &, double, double, double, double, double,
+                   double, bool, bool);
     CFonts(const CFonts &) = delete;
     CFonts();
 };
-
-#endif

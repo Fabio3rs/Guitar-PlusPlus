@@ -2,10 +2,10 @@
 //
 
 #include "CLuaH.hpp"
+#include "CGPPFileMGR.h"
 #include "CLog.h"
 #include "CLuaFunctions.hpp"
 #include "Lua/lstate.h"
-#include "CGPPFileMGR.h"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -39,6 +39,7 @@ auto CLuaH::loadFiles(const std::string &path) -> bool {
             }
         }
     }
+
     return !error;
 }
 
@@ -55,6 +56,7 @@ auto CLuaH::loadFilesDequeStorage(const std::string &path,
             }
         }
     }
+
     return !error;
 }
 
@@ -105,6 +107,7 @@ auto CLuaH::newScriptR(const std::string &memf, const std::string &name)
 
         catchErrorString(lData);
     }
+
     return lData;
 }
 
@@ -147,6 +150,7 @@ auto CLuaH::newScriptRBuffer(const char *memf, size_t sz,
 
         catchErrorString(lData);
     }
+
     return lData;
 }
 
@@ -189,6 +193,7 @@ auto CLuaH::newScriptRBuffer(const std::vector<char> &vec,
 
         catchErrorString(lData);
     }
+
     return lData;
 }
 
@@ -237,6 +242,7 @@ auto CLuaH::newScript(const std::string &path, const std::string &f)
         catchErrorString(lData);
         lData.luaState.reset();
     }
+
     return lData;
 }
 
@@ -571,6 +577,7 @@ bool CLuaH::runInternalEventWithParams(
             }
         }
     }
+
     return true;
 }
 
@@ -777,4 +784,18 @@ void CLuaH::customParam::loadTable(lua_State *L, int idx) {
     lua_pushvalue(L, idx);
     lua_pushnil(L);
     loadTableWOPush(L);
+}
+
+bool CLuaH::hasEvent(int id) const {
+    for (const auto &path : files) {
+        for (const auto &script : path.second) {
+            if (script.second.callbacksAdded &&
+                script.second.callbacks.find(id) !=
+                    script.second.callbacks.end()) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }

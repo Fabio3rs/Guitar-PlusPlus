@@ -178,8 +178,9 @@ template <class T> class callOnDctor {
     callOnDctor() = delete;
 
     inline ~callOnDctor() {
-        if (f)
+        if (f) {
             f();
+        }
     }
 };
 
@@ -187,6 +188,7 @@ struct lightData {
     float ambientLight[4], diffuseLight[4], specularLight[4], position[4],
         direction[4], angle;
 };
+
 /*
 struct gppVec3f
 {
@@ -230,9 +232,10 @@ class CEngine {
     customwcallback getWindowCallbackFunction() const { return wcallfunc; }
 
     struct GLFWimageC {
-        int Width, Height;
-        int Format;
-        int BytesPerPixel;
+        int Width = 0, Height = 0;
+        int Format = 0;
+        int BytesPerPixel = 0;
+        size_t DataBytes = 0;
         std::unique_ptr<unsigned char[]> Data;
         std::unique_ptr<unsigned char[]> tmpData;
         bool bRevPixels;
@@ -350,8 +353,10 @@ class CEngine {
                     verticesBuffer = std::make_unique<double[]>(polysNum * 12);
                     this->polysNum = polysNum;
                 }
+
                 return true;
             }
+
             return false;
         }
 
@@ -368,8 +373,10 @@ class CEngine {
                     verticesBuffer = std::make_unique<double[]>(polysNum * 12);
                     this->polysNum = polysNum;
                 }
+
                 return true;
             }
+
             return false;
         }
 
@@ -494,7 +501,8 @@ class CEngine {
             aArray.clear();
         }
 
-        inline dTriangleWithAlpha() { autoEnDisaColors = true; }
+        inline dTriangleWithAlpha()
+            : useColors(false), autoEnDisaColors(true), texture(0) {}
     };
 
     std::function<void(void)> renderFrameCallback;
@@ -531,7 +539,9 @@ class CEngine {
     unsigned int uploadTextureToOGL(GLFWimage *eimg);
     void bindTexture(unsigned int text);
     // Call after restoring GL bindings changed outside the engine cache.
-    void invalidateRenderBindings() { lastUsedTexture = lastUsedVBOBuffer = ~0u; }
+    void invalidateRenderBindings() {
+        lastUsedTexture = lastUsedVBOBuffer = ~0u;
+    }
 
     static void glEnable(int num);
     static void glDisable(int num);
@@ -599,6 +609,7 @@ class CEngine {
 
     static double getTime();
     inline double getDeltaTime() const { return DeltaTime; }
+
     int getMouseButton(int btn);
     inline int getFPS() const { return FPS; }
 

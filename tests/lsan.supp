@@ -1,0 +1,4 @@
+# Mesa GLX retains process-lifetime allocations after GLFW context teardown.
+# Observed with /opt/amdgpu/lib/x86_64-linux-gnu/libGLX_mesa.so.0.
+# Use only for graphical tests; do not suppress game frames or all malloc calls.
+leak:libGLX_mesa.so

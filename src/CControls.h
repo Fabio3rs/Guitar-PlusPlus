@@ -2,7 +2,11 @@
 #ifndef _GUITAR_PP_CCONTROLS_h_
 #define _GUITAR_PP_CCONTROLS_h_
 
+#ifndef GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_NONE
+#endif
 #include <GLFW/glfw3.h>
+#include <array>
 #include <deque>
 #include <functional>
 #include <map>
@@ -27,6 +31,38 @@ class CControls {
         JOYSTICK_DISCONNECTED = GLFW_DISCONNECTED
     };
 
+    enum class MenuAction { Up, Down, Left, Right, Confirm, Back, Count };
+    struct MenuEvent {
+        enum Kind { Key, Character, Mouse, Scroll, Focus } kind = Key;
+        int key = 0, action = 0, mods = 0;
+        unsigned codepoint = 0;
+        double x = 0, y = 0;
+    };
+
+    struct MenuBinding {
+        std::string guid;
+        enum Source { Button, Hat, Axis } source = Button;
+        int index = 0, direction = 1;
+        MenuAction action = MenuAction::Confirm;
+    };
+
+    bool menuInputActive = false;
+    std::vector<MenuEvent> menuEvents;
+    std::vector<MenuBinding> menuBindings;
+    void queueMenuEvent(const MenuEvent &event);
+    void pollMenuDevices();
+    void resetMenuInput();
+    // Pure repeat filter, also used by tests. One action per poll, no catch-up.
+    static bool menuRepeat(bool down, bool &previous, double &next, double now,
+                           bool repeat);
+
+  private:
+    std::array<bool, 6> menuDown{};
+    std::array<double, 6> menuNext{};
+    std::vector<bool> bindingDown, nextBindingDown;
+    std::array<bool, 2> blockConfirm{{true, true}};
+
+  public:
     unsigned int lastChar;
     std::function<void(unsigned int)> textCallback;
     std::function<void(int key, int scancode, int action, int mods)>
@@ -102,9 +138,11 @@ class CControls {
         std::vector<key> keys;
 
         bool isPressed() const {
-            for (auto &k : keys)
-                if (k.isPressed())
+            for (auto &k : keys) {
+                if (k.isPressed()) {
                     return true;
+                }
+            }
 
             return false;
         }

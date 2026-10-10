@@ -1,5 +1,5 @@
-#include "CBackgroundRenderer.h"
 #include "CGamePlay.h"
+#include "CBackgroundRenderer.h"
 #include "CEngine.h"
 #include "CFonts.h"
 #include "GPPGame.h"
@@ -70,7 +70,9 @@ auto CGamePlay::fretboardPositionCalcByT(double time, double prop,
     const double size = 2.1 * 1.33333333;
 
     if (max != nullptr) {
-        { *max = size * prop; }
+        {
+            *max = size * prop;
+        }
     }
 
     double cCalc = -time * 5.0;
@@ -564,7 +566,9 @@ auto CGamePlay::pos2Alpha(double pos) -> double {
     result = (1.0 / dif) * (minPosMinAlpha - pos);
 
     if (result > 1.0) {
-        { return 1.0; }
+        {
+            return 1.0;
+        }
     }
 
     return result;
@@ -678,7 +682,9 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos,
     }
 
     if (rotated) {
-        { CEngine::engine().matrixReset(); }
+        {
+            CEngine::engine().matrixReset();
+        }
     }
 }
 
@@ -968,6 +974,7 @@ auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
             ((note.type & notesFlags::nf_doing_slide) == 0)) {
             result = renderOpenNote(time, 0, note.type, player);
         }
+
         return result;
     }
 
@@ -997,6 +1004,7 @@ auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
         if (bAddTailToBuffer) {
             addTailToBuffer(note, lt, tlng, ltimet, player);
         }
+
         return result;
     }
 
@@ -1007,6 +1015,7 @@ auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
         if (bAddTailToBuffer) {
             addTailToBuffer(note, lt, tlng, ltimet, player);
         }
+
         return false;
     }
 
@@ -1080,6 +1089,7 @@ auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
     if (bAddTailToBuffer) {
         addTailToBuffer(note, lt, tlng, ltimet, player);
     }
+
     return result;
 }
 
@@ -1310,6 +1320,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
             if (ntsInac > 1 && fretsPressedFlags == ntsT) {
                 return true;
             }
+
             if (ntsInac == 1 && highestFlagInPressedKey == noteHF) {
                 return true;
             } else if (ntsInac == 0 && fretsPressedFlags == 0) {
@@ -1610,8 +1621,10 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
                     double endNoteTime = noteTime + note.lTime;
                     // Score only the active overlap, retaining the existing
                     // 130 ms sustain release tolerance. Chords score once.
-                    sustainSeconds = std::max(sustainSeconds,
-                        sustainActiveSeconds(note.time, note.lTime, musicTime, deltatime));
+                    sustainSeconds =
+                        std::max(sustainSeconds,
+                                 sustainActiveSeconds(note.time, note.lTime,
+                                                      musicTime, deltatime));
 
                     int ntsInac = 0;
                     int ntsT = note.type & CPlayer::notesEnum;
@@ -1946,6 +1959,7 @@ void CGamePlay::loadSongLyrics(const std::string &song) {
                 if (result != 1) {
                     lyrics.close();
                 }
+
                 break;
 
             case 1:
@@ -1957,6 +1971,7 @@ void CGamePlay::loadSongLyrics(const std::string &song) {
                     l.tstart = deduceTime(sinc) + offset;
                     l.tend = deduceTime(&sinc[4]) + offset;
                 }
+
                 break;
 
             case 2:
@@ -2010,6 +2025,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
             if (!showBPMLines) {
                 return nullptr;
             }
+
             return drawBPMLines(player);
         },
         std::ref(player));
@@ -2167,7 +2183,9 @@ void CGamePlay::renderPlayer(CPlayer &player) {
         engine.setLight(l, 1);
     }
 
-    { engine.setCamera(player.playerCamera); }
+    {
+        engine.setCamera(player.playerCamera);
+    }
 
     engine.activate3DRender(true);
 
@@ -2182,10 +2200,11 @@ void CGamePlay::renderPlayer(CPlayer &player) {
     }
 
     unsigned int fretboardText =
-        (player.guitar == nullptr || !player.guitar->isLoaded()) ? GPPGame::GuitarPP().fretboardText
-                                   : ((player.guitar->fretboardText != 0)
-                                          ? player.guitar->fretboardText
-                                          : GPPGame::GuitarPP().fretboardText);
+        (player.guitar == nullptr || !player.guitar->isLoaded())
+            ? GPPGame::GuitarPP().fretboardText
+            : ((player.guitar->fretboardText != 0)
+                   ? player.guitar->fretboardText
+                   : GPPGame::GuitarPP().fretboardText);
 
     double fretboardData[] = {-0.51, 0.51, 0.51, -0.51, -1.0, -1.0, 0.4, 0.4};
     renderFretBoard(player, fretboardData[0], fretboardData[1],
@@ -2230,7 +2249,9 @@ void CGamePlay::renderPlayer(CPlayer &player) {
     engine.setColor(1.0, 1.0, 1.0, 1.0);
 
     for (size_t i = 0; i < 5; i++) {
-        { renderIndivdualStrikeButton3D(i, 0.0, 0, 0.0, player); }
+        {
+            renderIndivdualStrikeButton3D(i, 0.0, 0, 0.0, player);
+        }
     }
 
     for (size_t i = 0; i < 5; i++) {
@@ -2287,8 +2308,8 @@ void CGamePlay::renderPlayer(CPlayer &player) {
             }
         }
 
-        player.playerParticles.moveEmitter(
-            static_cast<int>(i), -0.5 + calcP + STRIKE_FIRE_SURFACE);
+        player.playerParticles.moveEmitter(static_cast<int>(i),
+                                           -0.5 + calcP + STRIKE_FIRE_SURFACE);
         renderIndivdualStrikeButton3DStrike(i, 0.0, 0, calcP, player);
     }
 
@@ -2301,10 +2322,11 @@ void CGamePlay::renderPlayer(CPlayer &player) {
 
     if (!player.playerParticles.part.empty()) {
 
-        const double publicApproval = player.maxPublicAprov > 0
-            ? static_cast<double>(player.publicAprov) /
-                  static_cast<double>(player.maxPublicAprov)
-            : 0.0;
+        const double publicApproval =
+            player.maxPublicAprov > 0
+                ? static_cast<double>(player.publicAprov) /
+                      static_cast<double>(player.maxPublicAprov)
+                : 0.0;
         player.playerParticles.renderFire(
             player.plusEnabled, player.comboToMultiplier(), publicApproval);
     }
@@ -2320,6 +2342,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
             engine.getTime() - player.plusThunterStrikeStart,
             static_cast<unsigned int>(player.lastNotePlusType));
     }
+
     engine.activate3DRender(false);
 
     renderHoposLight();
@@ -2481,20 +2504,27 @@ bool CGamePlay::update() {
         auto &p = *pp;
         if (p.bUpdateP) {
             if (!bIsACharterGP) {
-                { p.musicRunningTime += delta * gSpeed; }
+                {
+                    p.musicRunningTime += delta * gSpeed;
+                }
             }
+
             updatePlayer(p, delta);
         }
     }
-    return std::all_of(players.begin(), players.end(),
-        [](const auto &player) { return player->isSongChartFinished(); });
+
+    return std::all_of(players.begin(), players.end(), [](const auto &player) {
+        return player->isSongChartFinished();
+    });
 }
 
 // Caller has quiesced the update worker. Use the same duration for all clocks.
 void CGamePlay::compensatePause(std::chrono::steady_clock::duration duration) {
     startSongTime += duration;
     const double seconds = std::chrono::duration<double>(duration).count();
-    for (auto &player : players) { player->startTime += seconds; }
+    for (auto &player : players) {
+        player->startTime += seconds;
+    }
 }
 
 void CGamePlay::marathonUpdate() {
@@ -2512,10 +2542,15 @@ void CGamePlay::marathonUpdate() {
     for (auto &pp : players) {
         auto &p = *pp;
         if (!bIsACharterGP) {
-            { p.musicRunningTime += delta * gSpeed; }
+            {
+                p.musicRunningTime += delta * gSpeed;
+            }
         }
+
         if (p.bUpdateP && !p.isSongChartFinished()) {
-            { updatePlayer(p, delta); }
+            {
+                updatePlayer(p, delta);
+            }
         }
     }
 }
@@ -2542,7 +2577,9 @@ void CGamePlay::render() {
 
     for (auto &p : players) {
         if (p->bRenderP) {
-            { renderPlayer(*p); }
+            {
+                renderPlayer(*p);
+            }
         }
     }
 
@@ -2651,6 +2688,7 @@ auto CGamePlay::renderBackground() -> bool {
 
         engine.clear3DBuffer();
     }
+
     return true;
 }
 
@@ -2752,4 +2790,6 @@ CGamePlay::CGamePlay() : engine(CEngine::engine()) {
 
         exitModuleOpt = moduleMenu.addOpt(opt);
     }
+
+    moduleMenu.setFlow(CMenu::Flow::Vertical, -.5, .4);
 }

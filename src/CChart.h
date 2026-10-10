@@ -72,6 +72,9 @@ class CChart {
     }
 
   public:
+    // Strip only the surrounding .chart string delimiters, preserving contents.
+    static std::string unquoteSongMetadata(std::string value);
+
     instrumentNotes &getInstrument(const std::string &instrument) {
         return instruments[instrument];
     }

@@ -43,6 +43,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
 
 #include "internal.h"
 
@@ -107,7 +108,9 @@ static auto ReadTGAHeader(_GLFWstream *s, _tga_header_t *h) -> int {
 
     // Read TGA file header from file
     pos = CEngine::engine().tellStream(s);
-    CEngine::engine().readStream(s, buf, 18);
+    if (CEngine::engine().readStream(s, buf, 18) != 18) {
+        return GL_FALSE;
+    }
 
     // Interpret header (endian independent parsing)
     h->idlen = (int)buf[0];
@@ -153,44 +156,46 @@ static auto ReadTGAHeader(_GLFWstream *s, _tga_header_t *h) -> int {
 // Read Run-Length Encoded data
 //========================================================================
 
-static void ReadTGA_RLE(unsigned char *buf, int size, int bpp, _GLFWstream *s) {
-    int repcount;
-    int bytes;
-    int k;
-    int n;
-    unsigned char pixel[4];
-    char c;
-
-    // Dummy check
-    if (bpp > 4) {
-        return;
+// Bounded decoder: reject truncated or overlong packets rather than publish
+// pixels.
+static bool ReadTGA_RLE(unsigned char *buf, int size, int bpp, _GLFWstream *s) {
+    if (bpp < 1 || bpp > 4) {
+        return false;
     }
 
     while (size > 0) {
-        // Get repetition count
-        CEngine::engine().readStream(s, &c, 1);
-        repcount = (unsigned int)c;
-        bytes = ((repcount & 127) + 1) * bpp;
-        if (size < bytes) {
-            bytes = size;
+        unsigned char c, pixel[4];
+        if (CEngine::engine().readStream(s, &c, 1) != 1) {
+            return false;
         }
 
-        // Run-Length packet?
-        if ((repcount & 128) != 0) {
-            CEngine::engine().readStream(s, pixel, bpp);
-            for (n = 0; n < (repcount & 127) + 1; n++) {
-                for (k = 0; k < bpp; k++) {
+        const int count = (c & 127) + 1, bytes = count * bpp;
+        if (bytes > size) {
+            return false;
+        }
+
+        if (c & 128) {
+            if (CEngine::engine().readStream(s, pixel, bpp) != bpp) {
+                return false;
+            }
+
+            for (int i = 0; i < count; ++i) {
+                for (int k = 0; k < bpp; ++k) {
                     *buf++ = pixel[k];
                 }
             }
         } else {
-            // It's a Raw packet
-            CEngine::engine().readStream(s, buf, bytes);
+            if (CEngine::engine().readStream(s, buf, bytes) != bytes) {
+                return false;
+            }
+
             buf += bytes;
         }
 
         size -= bytes;
     }
+
+    return true;
 }
 
 //========================================================================
@@ -221,13 +226,20 @@ auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         return 0;
     }
 
+    if (h.width <= 0 || h.height <= 0 ||
+        static_cast<size_t>(h.width) * static_cast<size_t>(h.height) >
+            static_cast<size_t>(std::numeric_limits<int>::max()) / 4) {
+        return 0;
+    }
+
     // Is there a colormap?
     cmapsize = (h.cmaptype == _TGA_CMAPTYPE_PRESENT ? 1 : 0) * h.cmaplen *
                ((h.cmapentrysize + 7) / 8);
     if (cmapsize > 0) {
         // Is it a colormap that we can handle?
         if ((h.cmapentrysize != 24 && h.cmapentrysize != 32) ||
-            h.cmaplen == 0 || h.cmaplen > 256) {
+            h.cmaplen == 0 || h.cmaplen > 256 || h.cmapfirstidx != 0 ||
+            h.bitsperpixel != 8) {
             return 0;
         }
 
@@ -243,7 +255,9 @@ auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         }
 
         // Read colormap from file
-        CEngine::engine().readStream(s, cmap.get(), cmapsize);
+        if (CEngine::engine().readStream(s, cmap.get(), cmapsize) != cmapsize) {
+            return 0;
+        }
     }
 
     // Size of pixel data
@@ -269,15 +283,20 @@ auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     } catch (...) {
         return 0;
     }
+
     if (pix == nullptr) {
         return 0;
     }
 
     // Read pixel data from file
     if (h.imagetype >= _TGA_IMAGETYPE_CMAP_RLE) {
-        ReadTGA_RLE(pix.get(), pixsize, bpp, s);
+        if (!ReadTGA_RLE(pix.get(), pixsize, bpp, s)) {
+            return 0;
+        }
     } else {
-        CEngine::engine().readStream(s, pix.get(), pixsize);
+        if (CEngine::engine().readStream(s, pix.get(), pixsize) != pixsize) {
+            return 0;
+        }
     }
 
     // If the image origin is not what we want, re-arrange the pixels
@@ -303,6 +322,7 @@ auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         swapy = 0;
         break;
     }
+
     if (((swapy != 0) && ((flags & GLFW_ORIGIN_UL_BIT) == 0)) ||
         ((swapy == 0) && ((flags & GLFW_ORIGIN_UL_BIT) != 0))) {
         src = pix.get();
@@ -315,9 +335,11 @@ auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
                     *dst++ = tmp;
                 }
             }
+
             dst -= 2 * h.width * bpp;
         }
     }
+
     if (swapx != 0) {
         src = pix.get();
         dst = &pix.get()[(h.width - 1) * bpp];
@@ -328,8 +350,10 @@ auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
                     *src++ = *dst;
                     *dst++ = tmp;
                 }
+
                 dst -= 2 * bpp;
             }
+
             src += ((h.width + 1) / 2) * bpp;
             dst += ((3 * h.width + 1) / 2) * bpp;
         }
@@ -350,6 +374,10 @@ auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         // Convert pixel data to RGB/RGBA data
         for (m = h.width * h.height - 1; m >= 0; m--) {
             n = pix.get()[m];
+            if (n >= h.cmaplen) {
+                return 0;
+            }
+
             for (k = 0; k < bpp2; k++) {
                 pix.get()[m * bpp2 + k] = cmap[n * bpp2 + k];
             }
@@ -378,6 +406,7 @@ auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     img->Height = h.height;
     img->BytesPerPixel = bpp2;
     img->Data = std::move(pix);
+    img->DataBytes = static_cast<size_t>(pixsize2);
 
     return 1;
 }

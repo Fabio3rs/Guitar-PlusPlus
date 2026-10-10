@@ -756,9 +756,11 @@ auto CPlayer::NotesData::loadFeedbackChart(std::string_view chartFile, CPlayer &
             CLog::log().multiRegister(__FILE__ " exception: %0 LINE %1", e,
                                       static_cast<int>(__LINE__));
         }
-        player.songName = chk(Song["Name"], 0u);
-        player.songArtist = chk(Song["Artist"], 0u);
-        player.songCharter = chk(Song["Charter"], 0u);
+        player.songName = CChart::unquoteSongMetadata(chk(Song["Name"], 0u));
+        player.songArtist =
+            CChart::unquoteSongMetadata(chk(Song["Artist"], 0u));
+        player.songCharter =
+            CChart::unquoteSongMetadata(chk(Song["Charter"], 0u));
         try {
             chartOffset = std::stod(chk(Song["Offset"], 0));
         } catch (...) {

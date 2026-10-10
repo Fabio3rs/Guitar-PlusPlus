@@ -24,10 +24,10 @@ endif()
 
 if(UNIX AND NOT APPLE AND XVFB_RUN)
     add_test(NAME font_metrics COMMAND ${XVFB_RUN} -a $<TARGET_FILE:tests>
-             --gtest_filter=FontMetricsGL.*)
+             --gtest_filter=FontMetricsGL.*:FontAtlasGL.*)
     set_tests_properties(font_metrics PROPERTIES ENVIRONMENT "LIBGL_ALWAYS_SOFTWARE=1")
 else()
-    add_test(NAME font_metrics COMMAND tests --gtest_filter=FontMetricsGL.*)
+    add_test(NAME font_metrics COMMAND tests --gtest_filter=FontMetricsGL.*:FontAtlasGL.*)
 endif()
 
 add_test(NAME obj_loader COMMAND tests --gtest_filter=ObjLoader.*)
@@ -53,3 +53,5 @@ if(UNIX AND NOT APPLE AND XVFB_RUN)
 else()
     add_test(NAME scene_gl COMMAND tests --gtest_filter=SceneGL.*)
 endif()
+
+add_test(NAME ui_cpu COMMAND tests --gtest_filter=FontCPU.*:MenuCPU.*)

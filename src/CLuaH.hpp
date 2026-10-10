@@ -26,15 +26,16 @@ class CLuaH {
             i = l;
             return *this;
         }
+
         nullinit<T> &operator=(nullinit<T> &l) {
             i = l;
             return *this;
         }
 
-        nullinit(const T &l) noexcept : i(l){};
-        nullinit() noexcept : i((T)0){};
-        nullinit(T l) noexcept : i(l){};
-        nullinit(const nullinit<T> &l) noexcept : i(l){};
+        nullinit(const T &l) noexcept : i(l) {};
+        nullinit() noexcept : i((T)0) {};
+        nullinit(T l) noexcept : i(l) {};
+        nullinit(const nullinit<T> &l) noexcept : i(l) {};
     };
 
     /*
@@ -98,8 +99,9 @@ class CLuaH {
 
         luaVarData &operator=(const luaVarData &m) = default;
         luaVarData &operator=(luaVarData &&m) noexcept {
-            if (this == std::addressof(m))
+            if (this == std::addressof(m)) {
                 return *this;
+            }
 
             type = std::move(m.type);
             str = std::move(m.str);
@@ -115,10 +117,12 @@ class CLuaH {
         }
 
         luaVarData() : type(LUA_TNUMBER), num(0.0) {}
+
         luaVarData(const luaVarData &) = default;
         luaVarData(luaVarData &&m) noexcept {
-            if (this == std::addressof(m))
+            if (this == std::addressof(m)) {
                 return;
+            }
 
             type = std::move(m.type);
             str = std::move(m.str);
@@ -362,8 +366,9 @@ class CLuaH {
         customParam &operator=(const customParam &) = default;
 
         customParam &operator=(customParam &&m) noexcept {
-            if (this == std::addressof(m))
+            if (this == std::addressof(m)) {
                 return *this;
+            }
 
             p = std::move(m.p);
             tableData = std::move(m.tableData);
@@ -373,8 +378,9 @@ class CLuaH {
 
         customParam(const customParam &) = default;
         customParam(customParam &&m) noexcept {
-            if (this == std::addressof(m))
+            if (this == std::addressof(m)) {
                 return;
+            }
 
             p = std::move(m.p);
             tableData = std::move(m.tableData);
@@ -451,7 +457,8 @@ class CLuaH {
     /*
      * Run a internal with parameteres (calls him specifics callbacks)
      */
-    // Missing optional callbacks succeed; Lua errors are logged and return false.
+    // Missing optional callbacks succeed; Lua errors are logged and return
+    // false.
     bool
     runInternalEventWithParams(luaScript &L, int id,
                                const multiCallBackParams_t &params) noexcept;
@@ -473,6 +480,7 @@ class CLuaH {
     void unloadAll() noexcept;
 
     int idForCallbackEvent(const std::string &s);
+    bool hasEvent(int id) const;
 
   private:
     static int destroyScriptInstance;

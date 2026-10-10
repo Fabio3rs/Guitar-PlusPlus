@@ -1,10 +1,11 @@
-#include "CBackgroundRenderer.h"
 #include "GPPGame.h"
-#include "CCharter.h"
+#include "CBackgroundRenderer.h"
 #include "CChart.h"
+#include "CCharter.h"
 #include "CControls.h"
 #include "CEngine.h"
 #include "CFonts.h"
+#include "CGPPFileMGR.h"
 #include "CLog.h"
 #include "CLuaH.hpp"
 #include "CMultiplayer.h"
@@ -13,7 +14,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include "CGPPFileMGR.h"
 #include <functional>
 #include <new>
 #include <utility>
@@ -94,7 +94,9 @@ void GPPGame::charterModule(const std::string &name) {
 
         if (CEngine::engine().getKey(GLFW_KEY_ESCAPE) != 0) {
             if (escape) {
-                { break; }
+                {
+                    break;
+                }
             }
         } else {
             escape = true;
@@ -105,7 +107,9 @@ void GPPGame::charterModule(const std::string &name) {
         }
 
         if (!bGDemo) {
-            { cht.renderAll(); }
+            {
+                cht.renderAll();
+            }
         }
 
         if (bGDemo) {
@@ -179,6 +183,7 @@ void GPPGame::benchmark(const std::string &name) {
         module.resetModule();
         return;
     }
+
     module.getBPlayer().startTime = CEngine::engine().getTime();
 
     double sTime = CEngine::engine().getTime();
@@ -204,7 +209,12 @@ void GPPGame::benchmark(const std::string &name) {
 }
 
 auto GPPGame::getMenuByName(const std::string &name) -> CMenu & {
-    return gameMenus[name];
+    return gameMenus.at(name);
+}
+
+CMenu *GPPGame::findMenu(const std::string &name) {
+    auto found = gameMenus.find(name);
+    return found == gameMenus.end() ? nullptr : &found->second;
 }
 
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l) {
@@ -220,6 +230,7 @@ void GPPGame::loadThread(CGamePlay &module, loadThreadData &l) {
                 break;
             }
         }
+
         if (!l.loadFailed) {
             module.loadSongLyrics(song);
         }
@@ -227,17 +238,20 @@ void GPPGame::loadThread(CGamePlay &module, loadThreadData &l) {
         CLog::log() << std::string("Song loading failed: ") + e.what();
         l.loadFailed = true;
     }
+
     l.processing = false;
 }
 
 void GPPGame::loadMarathonThread(loadThreadData &l) try {
     // No module/player access here. The main thread owns the live players and
-    // holds playersMutex for this mode, preserving the legacy multiplayer exclusion.
+    // holds playersMutex for this mode, preserving the legacy multiplayer
+    // exclusion.
     while (l.continueThread) {
         if (!l.loadSong) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
+
         const size_t index = l.songID;
         if (index >= l.songsList.size()) {
             l.listEnd = true;
@@ -250,13 +264,20 @@ void GPPGame::loadMarathonThread(loadThreadData &l) try {
                     l.loadFailed = true;
                     break;
                 }
+
                 prepared.push_back(std::move(player));
             }
-            if (!l.loadFailed) { l.prepared = std::move(prepared); }
+
+            if (!l.loadFailed) {
+                l.prepared = std::move(prepared);
+            }
         }
+
         l.loadSong = false;
         l.processing = false; // Publish data and failure status last.
-        if (l.loadFailed) { return; }
+        if (l.loadFailed) {
+            return;
+        }
     }
 } catch (const std::exception &e) {
     CLog::log() << std::string("Marathon loading failed: ") + e.what();
@@ -266,11 +287,15 @@ void GPPGame::loadMarathonThread(loadThreadData &l) try {
 
 bool GPPGame::installMarathonSong(CGamePlay &module, loadThreadData &l) {
     if (l.processing || l.loadFailed || l.listEnd ||
-        l.prepared.size() != module.players.size() || l.prepared.empty()) { return false; }
+        l.prepared.size() != module.players.size() || l.prepared.empty()) {
+        return false;
+    }
+
     module.loadSongLyrics(l.songsList[l.songID]);
     for (size_t i = 0; i < module.players.size(); ++i) {
         module.getPlayer(i).takeLoadedSong(*l.prepared[i]);
     }
+
     l.prepared.clear();
     module.startUpdateDelta();
     return true;
@@ -286,8 +311,11 @@ auto GPPGame::caseInsensitiveSearchDir(const char *dir, bool files,
                                        const std::string &searchName)
     -> std::string {
     for (const auto &name : getDirectory(dir, files, directories)) {
-        if (caseInSensStringCompare(name, searchName)) return name;
+        if (caseInSensStringCompare(name, searchName)) {
+            return name;
+        }
     }
+
     return {};
 }
 
@@ -299,13 +327,20 @@ static void defaultTextLoadFun(GPPGame::loadTextureBatch *t) {
 bool GPPGame::prepareScene() {
     const std::string requested = backgroundScene;
     const bool ok = scene.load(testobj, requested, [this]() {
-        if (!CEngine::engine().windowOpened()) { return false; }
+        if (!CEngine::engine().windowOpened()) {
+            return false;
+        }
+
         clearScreen();
-        CFonts::fonts().drawTextInScreenWithBuffer("Loading scene", -0.4, 0.0, 0.1);
+        CFonts::fonts().drawTextInScreenWithBuffer("Loading scene", -0.4, 0.0,
+                                                   0.1);
         renderFrame();
         return CEngine::engine().windowOpened();
     });
-    if (!ok) { CLog::log() << scene.error(); }
+    if (!ok) {
+        CLog::log() << scene.error();
+    }
+
     return ok;
 }
 
@@ -315,6 +350,7 @@ int GPPGame::setScene(lua_State *L) {
         lua_pushboolean(L, false);
         return 1;
     }
+
     GuitarPP().backgroundScene = id; // Selection for the next loading boundary.
     lua_pushboolean(L, true);
     return 1;
@@ -579,6 +615,7 @@ void GPPGame::selectPlayerMenu() {
             } else {
                 offset = 0;
             }
+
             return 0;
         };
 
@@ -589,6 +626,7 @@ void GPPGame::selectPlayerMenu() {
         CMenu::menuOpt opt;
 
         opt.text = "Criar novo perfil";
+        opt.anchorRight = true;
         opt.y = 0.85;
         opt.x = 0.6;
         opt.size = 0.1;
@@ -676,12 +714,16 @@ void GPPGame::selectPlayerMenu() {
                     std::lock_guard<std::mutex> m(getDirLoadMutex);
 
                     if (getDirLoad.joinable()) {
-                        { getDirLoad.join(); }
+                        {
+                            getDirLoad.join();
+                        }
                     }
                 } else {
                     try {
                         if (getDirLoad.joinable()) {
-                            { getDirLoad.join(); }
+                            {
+                                getDirLoad.join();
+                            }
                         }
                     } catch (...) {
                     }
@@ -700,7 +742,9 @@ void GPPGame::selectPlayerMenu() {
             getDirLoadMutex.unlock();
 
             if (getDirLoad.joinable()) {
-                { getDirLoad.join(); }
+                {
+                    getDirLoad.join();
+                }
             }
         }
     }
@@ -726,6 +770,7 @@ void GPPGame::selectPlayerMenu() {
     if ((selectPlayerMenu.options[voltarOpt].status & 3) == 3) {
         return;
     }
+
     if (selectPlayerMenu.groupInfo[1].selectedOpt != 0) {
         for (auto &playerOpt : menuPlayers) {
             if ((selectPlayerMenu.options[playerOpt.first].status & 3) == 3) {
@@ -763,6 +808,7 @@ void GPPGame::testClient(const std::string &name) {
 
             GPPGame::GuitarPP().renderFrame();
     }
+
     */
 
     auto &game = GPPGame::GuitarPP();
@@ -807,6 +853,7 @@ void GPPGame::testClient(const std::string &name) {
     playerCamera.up.y= 1;
     playerCamera.up.z = 0;
     }
+
     */
 
     module.players.push_back(std::make_unique<CPlayer>(p));
@@ -832,7 +879,10 @@ void GPPGame::testClient(const std::string &name) {
         GPPGame::GuitarPP().renderFrame();
     }
 
-    if (load.joinable()) { load.join(); }
+    if (load.joinable()) {
+        load.join();
+    }
+
     if (l.loadFailed || !CEngine::engine().windowOpened()) {
         module.resetModule();
         return;
@@ -996,8 +1046,9 @@ void GPPGame::testClient(const std::string &name) {
 
             double time = CEngine::engine().getTime();
 
-            if (musicstartedg == 0)
+            if (musicstartedg == 0) {
                 musicstartedg = 1;
+            }
 
             if ((startTime - time) > 0.0) {
 
@@ -1011,17 +1062,19 @@ void GPPGame::testClient(const std::string &name) {
                 1.0 - ((CEngine::engine().getTime() - fadeoutdsc) / 3.0);
 
             if (fadeoutdscAlphaCalc >= 0.0) {
-                if (fadeoutdscAlphaCalc < 1.0)
+                if (fadeoutdscAlphaCalc < 1.0) {
                     CEngine::engine().setColor(1.0, 1.0, 1.0,
                                                fadeoutdscAlphaCalc);
+                }
 
                 CFonts::fonts().drawTextInScreen(songName, -0.9, 0.7, 0.1);
                 CFonts::fonts().drawTextInScreen(songArtist, -0.88, 0.62, 0.08);
                 CFonts::fonts().drawTextInScreen(songCharter, -0.88, 0.54,
                                                  0.08);
 
-                if (fadeoutdscAlphaCalc < 1.0)
+                if (fadeoutdscAlphaCalc < 1.0) {
                     CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
+                }
             }
 
             if (musicstartedg == 1 &&
@@ -1043,12 +1096,14 @@ void GPPGame::testClient(const std::string &name) {
         GPPGame::GuitarPP().renderFrame();
     }
 
-    if (load.joinable())
+    if (load.joinable()) {
         load.join();
+    }
 #else
 
 #endif
 }
+
 /*
 
         module.getBPlayer().playerCamera.center.x = -0.6;
@@ -1102,8 +1157,11 @@ void GPPGame::serverModule(const std::string &name) {
 
     callOnDctor<void(void)> exitguard([&load, &module]() {
         if (load.joinable()) {
-            { load.join(); }
+            {
+                load.join();
+            }
         }
+
         module.resetModule();
     });
 
@@ -1144,7 +1202,10 @@ void GPPGame::serverModule(const std::string &name) {
         case 0:
 
             if (!l.processing) {
-                if (l.loadFailed) { return; }
+                if (l.loadFailed) {
+                    return;
+                }
+
                 ++state;
             }
 
@@ -1176,7 +1237,9 @@ void GPPGame::serverModule(const std::string &name) {
                 std::chrono::steady_clock::now() + std::chrono::seconds(3);
 
             if (playerb.guitar != nullptr) {
-                { playerb.guitar->load(); }
+                {
+                    playerb.guitar->load();
+                }
             }
 
             playerb.enableBot = game.botEnabled;
@@ -1246,7 +1309,9 @@ void GPPGame::serverModule(const std::string &name) {
             double time = engine.getTime();
 
             if (musicstartedg == 0) {
-                { musicstartedg = 1; }
+                {
+                    musicstartedg = 1;
+                }
             }
 
             // Info text show and effect
@@ -1264,7 +1329,9 @@ void GPPGame::serverModule(const std::string &name) {
 
             if (fadeoutdscAlphaCalc >= 0.0) {
                 if (fadeoutdscAlphaCalc < 1.0) {
-                    { engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc); }
+                    {
+                        engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc);
+                    }
                 }
 
                 fonts.drawTextInScreen(songName, -0.9, 0.7, 0.1);
@@ -1272,7 +1339,9 @@ void GPPGame::serverModule(const std::string &name) {
                 fonts.drawTextInScreen(songCharter, -0.88, 0.54, 0.08);
 
                 if (fadeoutdscAlphaCalc < 1.0) {
-                    { engine.setColor(1.0, 1.0, 1.0, 1.0); }
+                    {
+                        engine.setColor(1.0, 1.0, 1.0, 1.0);
+                    }
                 }
             }
 
@@ -1350,34 +1419,50 @@ class SongRun {
     GPPGame &game;
     CGamePlay &module;
     std::string active;
+
   public:
     SongRun(GPPGame &game, CGamePlay &module) : game(game), module(module) {
         game.clearSongResults();
     }
+
     void start(const std::string &id, double seconds) {
         active = id;
-        for (auto &p : module.players) { p->beginSongResult(); }
+        for (auto &p : module.players) {
+            p->beginSongResult();
+        }
+
         game.scene.songStarted(id, seconds);
     }
+
     bool finish(SongEndReason reason) {
-        if (active.empty()) { return false; }
+        if (active.empty()) {
+            return false;
+        }
+
         SongResult result;
         result.songId = std::move(active);
         active.clear();
         result.reason = reason;
         if (!module.players.empty()) {
-            result.elapsedSeconds = std::max(0.0, module.getBPlayer().musicRunningTime);
+            result.elapsedSeconds =
+                std::max(0.0, module.getBPlayer().musicRunningTime);
         }
-        for (const auto &p : module.players) { result.players.push_back(p->songResult()); }
+
+        for (const auto &p : module.players) {
+            result.players.push_back(p->songResult());
+        }
+
         game.recordSongResult(std::move(result));
         return true;
     }
+
     void cancelled(const std::string &id) {
         SongResult result;
         result.songId = id;
         result.reason = SongEndReason::Aborted;
         game.recordSongResult(std::move(result));
     }
+
     void failed(const std::string &id) {
         SongResult result;
         result.songId = id;
@@ -1390,23 +1475,32 @@ std::atomic<bool> pausegplay;
 std::atomic<bool> continuegplay;
 
 static void updateGamePLay(GPPGame &game, CGamePlay &module,
-                          std::atomic<uint64_t> &pauseRequest, std::atomic<uint64_t> &pauseAck,
-                          std::atomic<bool> &finished) {
+                           std::atomic<uint64_t> &pauseRequest,
+                           std::atomic<uint64_t> &pauseAck,
+                           std::atomic<bool> &finished) {
     bool wasPaused = true;
     while (continuegplay) {
         if (pausegplay) {
             wasPaused = true;
-            pauseAck = pauseRequest.load(); // Publish quiescence for this pause generation.
+            pauseAck =
+                pauseRequest
+                    .load(); // Publish quiescence for this pause generation.
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         } else {
-            if (wasPaused) { module.startUpdateDelta(); wasPaused = false; }
+            if (wasPaused) {
+                module.startUpdateDelta();
+                wasPaused = false;
+            }
+
             if (module.update()) {
                 finished = true;
                 break;
             }
+
             std::this_thread::sleep_for(std::chrono::microseconds(200));
         }
     }
+
     pauseAck = pauseRequest.load();
 }
 
@@ -1429,7 +1523,9 @@ void GPPGame::startModule(const std::string &name) {
     }
 
     game.clearSongResults();
-    if (!game.prepareScene()) { return; }
+    if (!game.prepareScene()) {
+        return;
+    }
 
     module.setHyperSpeed(2.5 * game.hyperSpeed);
 
@@ -1443,23 +1539,36 @@ void GPPGame::startModule(const std::string &name) {
     l.processing = true;
 
     std::thread load(loadThread, std::ref(module), std::ref(l));
-    std::thread updateThread(updateGamePLay, std::ref(game), std::ref(module), std::ref(pauseRequest), std::ref(pauseAck), std::ref(songFinished));
+    std::thread updateThread(updateGamePLay, std::ref(game), std::ref(module),
+                             std::ref(pauseRequest), std::ref(pauseAck),
+                             std::ref(songFinished));
 
     callOnDctor<void(void)> exitguard([&]() {
         pausegplay = true;
         continuegplay = false;
         if (load.joinable()) {
-            { load.join(); }
+            {
+                load.join();
+            }
         }
+
         if (updateThread.joinable()) {
-            { updateThread.join(); }
+            {
+                updateThread.join();
+            }
         }
+
         // Neither loader nor gameplay worker may still access player data.
-        if (l.loadFailed) { songRun.failed(game.songToLoad); }
-        else if (!songRun.finish(songFinished ? SongEndReason::Completed : endReason)) {
+        if (l.loadFailed) {
+            songRun.failed(game.songToLoad);
+        } else if (!songRun.finish(songFinished ? SongEndReason::Completed
+                                                : endReason)) {
             songRun.cancelled(game.songToLoad); // Closed while still loading.
         }
-        game.scene.sessionEnded(module.players.empty() ? 0.0 : module.getBPlayer().musicRunningTime);
+
+        game.scene.sessionEnded(module.players.empty()
+                                    ? 0.0
+                                    : module.getBPlayer().musicRunningTime);
         module.resetModule();
     });
 
@@ -1468,7 +1577,9 @@ void GPPGame::startModule(const std::string &name) {
             unsigned int *i = reinterpret_cast<unsigned int *>(t->userptr);
 
             if ((i != nullptr) && (t->text != nullptr)) {
-                { *i = t->text->getTextId(); }
+                {
+                    *i = t->text->getTextId();
+                }
             }
         }
     };
@@ -1542,16 +1653,27 @@ void GPPGame::startModule(const std::string &name) {
     bool showTexts = true;
 
     while (engine.windowOpened()) {
-        if (songFinished) { endReason = SongEndReason::Completed; return; }
-        if (state != 3) { game.clearScreen(); }
+        if (songFinished) {
+            endReason = SongEndReason::Completed;
+            return;
+        }
+
+        if (state != 3) {
+            game.clearScreen();
+        }
 
         switch (state) {
             // Load thread state
         case 0:
 
             if (!l.processing) {
-                if (l.loadFailed) { return; }
-                if (game.getNumTexturesToLoad() == 0) { ++state; }
+                if (l.loadFailed) {
+                    return;
+                }
+
+                if (game.getNumTexturesToLoad() == 0) {
+                    ++state;
+                }
             }
 
             CFonts::fonts().drawTextInScreenWithBuffer("loading", -0.4, 0.0,
@@ -1582,7 +1704,9 @@ void GPPGame::startModule(const std::string &name) {
                 std::chrono::steady_clock::now() + std::chrono::seconds(3);
 
             if (playerb.guitar != nullptr) {
-                { playerb.guitar->load(); }
+                {
+                    playerb.guitar->load();
+                }
             }
 
             playerb.enableBot = game.botEnabled;
@@ -1593,8 +1717,12 @@ void GPPGame::startModule(const std::string &name) {
             songRun.start(game.songToLoad, -3.0);
             // Hooks/loading do not consume the countdown.
             startTime = engine.getTime() + 3.0;
-            for (auto &p : module.players) { p->startTime = startTime; }
-            module.startSongTime = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+            for (auto &p : module.players) {
+                p->startTime = startTime;
+            }
+
+            module.startSongTime =
+                std::chrono::steady_clock::now() + std::chrono::seconds(3);
             pausegplay = false;
             state++;
         } break;
@@ -1637,6 +1765,7 @@ void GPPGame::startModule(const std::string &name) {
                     auto &p = *pp;
                     engine.setSoundTime(p.instrumentSound, p.musicRunningTime);
                 }
+
                 // std::cout << "First note position: " <<
                 // module.getBPlayer().Notes.gNotes[0].time << std::endl;
 
@@ -1672,7 +1801,9 @@ void GPPGame::startModule(const std::string &name) {
             double time = engine.getTime();
 
             if (musicstartedg == 0) {
-                { musicstartedg = 1; }
+                {
+                    musicstartedg = 1;
+                }
             }
 
             if (showTexts) {
@@ -1691,7 +1822,9 @@ void GPPGame::startModule(const std::string &name) {
 
                 if (fadeoutdscAlphaCalc >= 0.0) {
                     if (fadeoutdscAlphaCalc < 1.0) {
-                        { engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc); }
+                        {
+                            engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc);
+                        }
                     }
 
                     fonts.drawTextInScreen(songName, -0.9, 0.7, 0.1);
@@ -1699,7 +1832,9 @@ void GPPGame::startModule(const std::string &name) {
                     fonts.drawTextInScreen(songCharter, -0.88, 0.54, 0.08);
 
                     if (fadeoutdscAlphaCalc < 1.0) {
-                        { engine.setColor(1.0, 1.0, 1.0, 1.0); }
+                        {
+                            engine.setColor(1.0, 1.0, 1.0, 1.0);
+                        }
                     }
                 } else {
                     showTexts = false;
@@ -1725,7 +1860,8 @@ void GPPGame::startModule(const std::string &name) {
             if (controls.keyEscape() != 0) {
                 pausegplay = true;
                 state++;
-                // Complete the pause handshake before any potentially blocked swap.
+                // Complete the pause handshake before any potentially blocked
+                // swap.
                 continue;
             }
         } break;
@@ -1736,7 +1872,12 @@ void GPPGame::startModule(const std::string &name) {
             while (pauseAck != request && !songFinished) {
                 std::this_thread::sleep_for(std::chrono::microseconds(200));
             }
-            if (songFinished) { endReason = SongEndReason::Completed; return; }
+
+            if (songFinished) {
+                endReason = SongEndReason::Completed;
+                return;
+            }
+
             const auto pauseStart = std::chrono::steady_clock::now();
             // Pauses audio
             const bool resumeAudio = musicstartedg == 2;
@@ -1764,12 +1905,17 @@ void GPPGame::startModule(const std::string &name) {
                 return;
             }
 
-            // Resume audio before releasing the worker and before rendering again.
+            // Resume audio before releasing the worker and before rendering
+            // again.
             if (resumeAudio) {
                 engine.playSoundStream(module.getBPlayer().songAudioID);
-                for (auto &p : module.players) { p->instrumentPlay(); }
+                for (auto &p : module.players) {
+                    p->instrumentPlay();
+                }
+
                 musicstartedg = 2;
             }
+
             const auto paused = std::chrono::steady_clock::now() - pauseStart;
             module.compensatePause(paused);
             startTime += std::chrono::duration<double>(paused).count();
@@ -1797,7 +1943,9 @@ void GPPGame::startMarathonModule(const std::string &name) {
     auto &module = game.gameModules[realname];
 
     game.clearSongResults();
-    if (!game.prepareScene()) { return; }
+    if (!game.prepareScene()) {
+        return;
+    }
 
     game.HUDText = game.loadTexture("data/sprites", "HUD.tga").getTextId();
     game.fretboardText =
@@ -1836,20 +1984,30 @@ void GPPGame::startMarathonModule(const std::string &name) {
         p->resetSongThings();
         l.instruments.push_back(p->instrument);
     }
+
     SongRun songRun(game, module);
     bool reportedLoadFailure = false;
     std::thread load(loadMarathonThread, std::ref(l));
     callOnDctor<void(void)> exitguard([&]() {
         l.continueThread = false;
-        if (load.joinable()) { load.join(); }
-        if (!songRun.finish(SongEndReason::Aborted) && game.getSongResults().empty() &&
-            !l.loadFailed && !l.songsList.empty()) {
+        if (load.joinable()) {
+            load.join();
+        }
+
+        if (!songRun.finish(SongEndReason::Aborted) &&
+            game.getSongResults().empty() && !l.loadFailed &&
+            !l.songsList.empty()) {
             songRun.cancelled(l.songsList.front());
         }
-        if (l.loadFailed && !reportedLoadFailure && l.songID < l.songsList.size()) {
+
+        if (l.loadFailed && !reportedLoadFailure &&
+            l.songID < l.songsList.size()) {
             songRun.failed(l.songsList[l.songID]);
         }
-        game.scene.sessionEnded(module.players.empty() ? 0.0 : module.getBPlayer().musicRunningTime);
+
+        game.scene.sessionEnded(module.players.empty()
+                                    ? 0.0
+                                    : module.getBPlayer().musicRunningTime);
         module.resetModule();
     });
 
@@ -1862,9 +2020,13 @@ void GPPGame::startMarathonModule(const std::string &name) {
         game.renderFrame();
     }
 
-    if (!engine.windowOpened() || l.loadFailed) { return; }
+    if (!engine.windowOpened() || l.loadFailed) {
+        return;
+    }
 
-    if (!installMarathonSong(module, l)) { return; }
+    if (!installMarathonSong(module, l)) {
+        return;
+    }
 
     l.songID++;
     l.processing = true;
@@ -1877,6 +2039,7 @@ void GPPGame::startMarathonModule(const std::string &name) {
         p.startTime = engine.getTime() + startWaitTime;
         p.musicRunningTime = -startWaitTime;
     }
+
     module.startSongTime =
         std::chrono::steady_clock::now() +
         std::chrono::milliseconds(static_cast<int64_t>(1000 * startWaitTime));
@@ -1889,7 +2052,9 @@ void GPPGame::startMarathonModule(const std::string &name) {
         CGuitars::inst().getGuitarIfExists(game.defaultGuitar);
 
     if (module.getBPlayer().guitar != nullptr) {
-        { module.getBPlayer().guitar->load(); }
+        {
+            module.getBPlayer().guitar->load();
+        }
     }
 
     bool enterInMenu = false;
@@ -1920,8 +2085,12 @@ void GPPGame::startMarathonModule(const std::string &name) {
     game.scene.sessionStarted(l.songsList.front(), -startWaitTime);
     songRun.start(l.songsList.front(), -startWaitTime);
     startTime = engine.getTime() + startWaitTime;
-    for (auto &p : module.players) { p->startTime = startTime; }
-    module.startSongTime = std::chrono::steady_clock::now() +
+    for (auto &p : module.players) {
+        p->startTime = startTime;
+    }
+
+    module.startSongTime =
+        std::chrono::steady_clock::now() +
         std::chrono::milliseconds(static_cast<int64_t>(1000 * startWaitTime));
     module.startUpdateDelta();
 
@@ -1966,14 +2135,17 @@ void GPPGame::startMarathonModule(const std::string &name) {
                 p.startTime += time - openMenuTime;
             }
 
-            module.startSongTime += std::chrono::steady_clock::now() - pauseStart;
+            module.startSongTime +=
+                std::chrono::steady_clock::now() - pauseStart;
             startTime += time - openMenuTime;
             module.startUpdateDelta();
             enterInMenu = false;
             esc = false;
         } else {
             if (!interval) {
-                { module.marathonUpdate(); }
+                {
+                    module.marathonUpdate();
+                }
             } else {
                 for (auto &pp : module.players) {
                     auto &p = *pp;
@@ -1988,7 +2160,9 @@ void GPPGame::startMarathonModule(const std::string &name) {
                 auto &p = *pp;
                 if (!interval) {
                     if (songChartEnd) {
-                        { songChartEnd = p.isSongChartFinished(); }
+                        {
+                            songChartEnd = p.isSongChartFinished();
+                        }
                     }
                 }
 
@@ -2014,7 +2188,10 @@ void GPPGame::startMarathonModule(const std::string &name) {
             if (interval) {
                 if (!waitingIntervalLoad) {
                     songRun.finish(SongEndReason::Completed);
-                    if (l.songID >= l.songsList.size()) { return; }
+                    if (l.songID >= l.songsList.size()) {
+                        return;
+                    }
+
                     waitingIntervalLoad = true;
                     module.showBPMLines = false;
                 } else {
@@ -2027,12 +2204,15 @@ void GPPGame::startMarathonModule(const std::string &name) {
                             reportedLoadFailure = true;
                             return;
                         }
+
                         double waitTime = 10.0;
 
                         double deltaTol = engine.getDeltaTime();
 
                         if (deltaTol < 0.005) {
-                            { deltaTol = 0.005; }
+                            {
+                                deltaTol = 0.005;
+                            }
                         }
 
                         deltaTol /= 2.0;
@@ -2068,7 +2248,10 @@ void GPPGame::startMarathonModule(const std::string &name) {
 
                         if (fretBoardPos > rningTimeFretCalcMn &&
                             fretBoardPos < rningTimeFretCalcMs) {
-                            if (!installMarathonSong(module, l)) { return; }
+                            if (!installMarathonSong(module, l)) {
+                                return;
+                            }
+
                             songRun.start(l.songsList[l.songID], -waitTime);
                             for (auto &pp : module.players) {
                                 auto &p = *pp;
@@ -2318,7 +2501,9 @@ void GPPGame::startMarathonModule(const std::string &name) {
             module.render();
 
             if (!interval) {
-                { module.renderLyrics(); }
+                {
+                    module.renderLyrics();
+                }
             }
 
             if (firstStartFrame) {
@@ -2329,7 +2514,9 @@ void GPPGame::startMarathonModule(const std::string &name) {
             double time = engine.getTime();
 
             if (musicstartedg == 0) {
-                { musicstartedg = 1; }
+                {
+                    musicstartedg = 1;
+                }
             }
 
             if ((startTime - time) > 0.0) {
@@ -2348,7 +2535,9 @@ void GPPGame::startMarathonModule(const std::string &name) {
 
             if (fadeoutdscAlphaCalc >= 0.0) {
                 if (fadeoutdscAlphaCalc < 1.0) {
-                    { engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc); }
+                    {
+                        engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc);
+                    }
                 }
 
                 fonts.drawTextInScreen(songName, -0.9, 0.7, 0.1);
@@ -2356,7 +2545,9 @@ void GPPGame::startMarathonModule(const std::string &name) {
                 fonts.drawTextInScreen(songCharter, -0.88, 0.54, 0.08);
 
                 if (fadeoutdscAlphaCalc < 1.0) {
-                    { engine.setColor(1.0, 1.0, 1.0, 1.0); }
+                    {
+                        engine.setColor(1.0, 1.0, 1.0, 1.0);
+                    }
                 }
             }
 
@@ -2401,23 +2592,12 @@ void GPPGame::startMarathonModule(const std::string &name) {
         game.renderFrame();
         marathonTime += engine.getDeltaTime();
     }
-
 }
 
 void GPPGame::callbackRenderFrame() { CFonts::fonts().drawAllBuffers(); }
 
-void GPPGame::callbackKeys(int key, int scancode, int action, int mods) {
-    auto &game = GPPGame::GuitarPP();
-    CMenu *menu = game.getActualMenu();
-    if (menu != nullptr) {
-        menu->shortcutCallback(key, scancode, action, mods);
-    }
-
-    CMenu *m = CMenu::getUiMenuOnTop();
-
-    if ((m != nullptr) && m != menu) {
-        m->shortcutCallback(key, scancode, action, mods);
-    }
+void GPPGame::callbackKeys(int, int, int, int) {
+    // CControls queues ordered UI events; CMenu routes each event once.
 }
 
 void GPPGame::callbackJoystick(int jid, int eventId) {
@@ -2461,6 +2641,7 @@ void GPPGame::continueCampaing(const std::string &name) {
 
         return &cntCampaing;
     };
+
     static auto &continueMenu = *createMMenu();
 
     auto preFun = []() { return 0; };
@@ -2492,7 +2673,9 @@ void GPPGame::campaingPlayModule(const std::string &name) {
     auto &module = game.gameModules[realname];
 
     game.clearSongResults();
-    if (!game.prepareScene()) { return; }
+    if (!game.prepareScene()) {
+        return;
+    }
 
     game.HUDText = game.loadTexture("data/sprites", "HUD.tga").getTextId();
     game.fretboardText =
@@ -2528,20 +2711,30 @@ void GPPGame::campaingPlayModule(const std::string &name) {
         p->resetSongThings();
         l.instruments.push_back(p->instrument);
     }
+
     SongRun songRun(game, module);
     bool reportedLoadFailure = false;
     std::thread load(loadMarathonThread, std::ref(l));
     callOnDctor<void(void)> exitguard([&]() {
         l.continueThread = false;
-        if (load.joinable()) { load.join(); }
-        if (!songRun.finish(SongEndReason::Aborted) && game.getSongResults().empty() &&
-            !l.loadFailed && !l.songsList.empty()) {
+        if (load.joinable()) {
+            load.join();
+        }
+
+        if (!songRun.finish(SongEndReason::Aborted) &&
+            game.getSongResults().empty() && !l.loadFailed &&
+            !l.songsList.empty()) {
             songRun.cancelled(l.songsList.front());
         }
-        if (l.loadFailed && !reportedLoadFailure && l.songID < l.songsList.size()) {
+
+        if (l.loadFailed && !reportedLoadFailure &&
+            l.songID < l.songsList.size()) {
             songRun.failed(l.songsList[l.songID]);
         }
-        game.scene.sessionEnded(module.players.empty() ? 0.0 : module.getBPlayer().musicRunningTime);
+
+        game.scene.sessionEnded(module.players.empty()
+                                    ? 0.0
+                                    : module.getBPlayer().musicRunningTime);
         module.resetModule();
     });
 
@@ -2554,9 +2747,13 @@ void GPPGame::campaingPlayModule(const std::string &name) {
         game.renderFrame();
     }
 
-    if (!engine.windowOpened() || l.loadFailed) { return; }
+    if (!engine.windowOpened() || l.loadFailed) {
+        return;
+    }
 
-    if (!installMarathonSong(module, l)) { return; }
+    if (!installMarathonSong(module, l)) {
+        return;
+    }
 
     l.songID++;
     l.processing = true;
@@ -2578,7 +2775,9 @@ void GPPGame::campaingPlayModule(const std::string &name) {
         std::chrono::steady_clock::now() + std::chrono::seconds(3);
 
     if (module.getBPlayer().guitar != nullptr) {
-        { module.getBPlayer().guitar->load(); }
+        {
+            module.getBPlayer().guitar->load();
+        }
     }
 
     bool enterInMenu = false;
@@ -2606,8 +2805,12 @@ void GPPGame::campaingPlayModule(const std::string &name) {
     game.scene.sessionStarted(l.songsList.front(), -3.0);
     songRun.start(l.songsList.front(), -3.0);
     startTime = engine.getTime() + 3.0;
-    for (auto &p : module.players) { p->startTime = startTime; }
-    module.startSongTime = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+    for (auto &p : module.players) {
+        p->startTime = startTime;
+    }
+
+    module.startSongTime =
+        std::chrono::steady_clock::now() + std::chrono::seconds(3);
     module.startUpdateDelta();
 
     while (engine.windowOpened()) {
@@ -2651,14 +2854,17 @@ void GPPGame::campaingPlayModule(const std::string &name) {
                 p.startTime += time - openMenuTime;
             }
 
-            module.startSongTime += std::chrono::steady_clock::now() - pauseStart;
+            module.startSongTime +=
+                std::chrono::steady_clock::now() - pauseStart;
             startTime += time - openMenuTime;
             module.startUpdateDelta();
             enterInMenu = false;
             esc = false;
         } else {
             if (!interval) {
-                { module.marathonUpdate(); }
+                {
+                    module.marathonUpdate();
+                }
             } else {
                 for (auto &pp : module.players) {
                     auto &p = *pp;
@@ -2673,7 +2879,9 @@ void GPPGame::campaingPlayModule(const std::string &name) {
                 auto &p = *pp;
                 if (!interval) {
                     if (songChartEnd) {
-                        { songChartEnd = p.isSongChartFinished(); }
+                        {
+                            songChartEnd = p.isSongChartFinished();
+                        }
                     }
                 }
 
@@ -2699,7 +2907,10 @@ void GPPGame::campaingPlayModule(const std::string &name) {
             if (interval) {
                 if (!waitingIntervalLoad) {
                     songRun.finish(SongEndReason::Completed);
-                    if (l.songID >= l.songsList.size()) { return; }
+                    if (l.songID >= l.songsList.size()) {
+                        return;
+                    }
+
                     waitingIntervalLoad = true;
                 } else {
                     if (l.processing) {
@@ -2711,12 +2922,15 @@ void GPPGame::campaingPlayModule(const std::string &name) {
                             reportedLoadFailure = true;
                             return;
                         }
+
                         double waitTime = 5.0;
 
                         double deltaTol = engine.getDeltaTime();
 
                         if (deltaTol < 0.005) {
-                            { deltaTol = 0.005; }
+                            {
+                                deltaTol = 0.005;
+                            }
                         }
 
                         deltaTol /= 2.0;
@@ -2752,7 +2966,10 @@ void GPPGame::campaingPlayModule(const std::string &name) {
 
                         if (fretBoardPos > rningTimeFretCalcMn &&
                             fretBoardPos < rningTimeFretCalcMs) {
-                            if (!installMarathonSong(module, l)) { return; }
+                            if (!installMarathonSong(module, l)) {
+                                return;
+                            }
+
                             songRun.start(l.songsList[l.songID], -waitTime);
                             for (auto &pp : module.players) {
                                 auto &p = *pp;
@@ -2904,7 +3121,9 @@ void GPPGame::campaingPlayModule(const std::string &name) {
             module.render();
 
             if (!interval) {
-                { module.renderLyrics(); }
+                {
+                    module.renderLyrics();
+                }
             }
 
             if (firstStartFrame) {
@@ -2915,7 +3134,9 @@ void GPPGame::campaingPlayModule(const std::string &name) {
             double time = engine.getTime();
 
             if (musicstartedg == 0) {
-                { musicstartedg = 1; }
+                {
+                    musicstartedg = 1;
+                }
             }
 
             if ((startTime - time) > 0.0) {
@@ -2934,7 +3155,9 @@ void GPPGame::campaingPlayModule(const std::string &name) {
 
             if (fadeoutdscAlphaCalc >= 0.0) {
                 if (fadeoutdscAlphaCalc < 1.0) {
-                    { engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc); }
+                    {
+                        engine.setColor(1.0, 1.0, 1.0, fadeoutdscAlphaCalc);
+                    }
                 }
 
                 fonts.drawTextInScreen(songName, -0.9, 0.7, 0.1);
@@ -2942,7 +3165,9 @@ void GPPGame::campaingPlayModule(const std::string &name) {
                 fonts.drawTextInScreen(songCharter, -0.88, 0.54, 0.08);
 
                 if (fadeoutdscAlphaCalc < 1.0) {
-                    { engine.setColor(1.0, 1.0, 1.0, 1.0); }
+                    {
+                        engine.setColor(1.0, 1.0, 1.0, 1.0);
+                    }
                 }
             }
 
@@ -2962,7 +3187,6 @@ void GPPGame::campaingPlayModule(const std::string &name) {
 
         game.renderFrame();
     }
-
 }
 
 void GPPGame::eraseGameMenusAutoCreateds() {
@@ -2976,17 +3200,14 @@ void GPPGame::eraseGameMenusAutoCreateds() {
 }
 
 auto GPPGame::newMenu() -> CMenu & {
-    CMenu m;
-    gameMenus[m.getName()] = std::move(m);
-    gameMenus[m.getName()].gameMenu = true;
-    return gameMenus[m.getName()];
+    CMenu nameSource;
+    return newNamedMenu(nameSource.getName());
 }
 
 auto GPPGame::newNamedMenu(const std::string &name) -> CMenu & {
-    CMenu m(name);
-    gameMenus[m.getName()] = std::move(m);
-    gameMenus[m.getName()].gameMenu = true;
-    return gameMenus[m.getName()];
+    auto result = gameMenus.try_emplace(name, name);
+    result.first->second.gameMenu = true;
+    return result.first->second;
 }
 
 void GPPGame::settWindowConfigs(const gameWindow &w) { windowCFGs = w; }
@@ -3077,11 +3298,15 @@ auto GPPGame::loadTexture(const std::string &path, const std::string &texture,
         // A scene may need a texture already queued by another loader. Consume
         // its decoder on the GL owner instead of replacing the cache entry:
         // queued batches still need its completion state and stable address.
-        if (textInst.getTextId() != 0u) { return textInst; }
+        if (textInst.getTextId() != 0u) {
+            return textInst;
+        }
+
         if (textInst.ft.valid()) {
             textInst.getTextIdUpdateAsync();
             return textInst;
         }
+
         gppTexture gpptxt(path, texture);
         gpptxt.load();
         textInst = std::move(gpptxt);
@@ -3094,7 +3319,9 @@ auto GPPGame::loadTexture(const std::string &path, const std::string &texture,
 
 void GPPGame::forceTexturesToLoad() {
     if (futureTextureLoad.getAddedElementsNum() == 0) {
-        { return; }
+        {
+            return;
+        }
     }
 
     forceTextToLoad = true;
@@ -3107,7 +3334,9 @@ void GPPGame::forceTexturesToLoad() {
             cstreamming_block.wait(lock);
 
             if (futureTextureLoad.getAddedElementsNum() == 0) {
-                { return; }
+                {
+                    return;
+                }
             }
         } while (forceTextToLoad);
     }
@@ -3136,6 +3365,7 @@ auto GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData) -> bool {
                         a->username == tData.username) {
                         return true;
                     }
+
                     // Mutex to protect the operations on loadTextureBatch -
                     // futureTextureLoad
                     loadTextureBatch *t = futureTextureLoad.newElement();
@@ -3208,6 +3438,7 @@ auto GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData) -> bool {
             b.text = &textInst;
         }
     }
+
     return true;
 }
 
@@ -3377,7 +3608,9 @@ auto GPPGame::loadModelBatchAsync(std::deque<loadModelBatch> &batch) -> bool {
     for (auto &b : batch) {
         // if (b.obj->)
 
-        { b.ft = std::async(std::launch::async, singleModelLoadAsync, &b); }
+        {
+            b.ft = std::async(std::launch::async, singleModelLoadAsync, &b);
+        }
     }
 
     return true;
@@ -3389,7 +3622,9 @@ auto GPPGame::getTextureId(const std::string &name) const noexcept
     auto it = gTextures.find(name);
 
     if (it != gTextures.end()) {
-        { return (*it).second.getTextId(); }
+        {
+            return (*it).second.getTextId();
+        }
     }
 
     return 0;
@@ -3476,6 +3711,7 @@ auto GPPGame::getCallBackRealName(const std::string &str) -> std::string {
             return s.first;
         }
     }
+
     return "";
 }
 
@@ -3486,6 +3722,10 @@ auto GPPGame::selectSong() -> std::string {
     std::map<int, std::string> menuMusics;
 
     menuMusics.clear();
+    selectSongMenu.setFlow(CMenu::Flow::Vertical, -.75, .7);
+    selectSongMenu.viewportEnabled = true;
+    selectSongMenu.viewport = {-1.0, -.8, 1.0, .8};
+    selectSongMenu.scrollOffset = 0;
     selectSongMenu.options.clear();
 
     auto wait = [this](double t) {
@@ -3588,127 +3828,42 @@ auto GPPGame::selectSong() -> std::string {
 
         opt.color[0] = opt.color[1] = opt.color[2] = 0.5;
 
-        opt.updateCppCallback = [&menuMusics](CMenu &menu,
-                                              CMenu::menuOpt &opt) {
-            static double offset = 0.0;
-
-            if (selectingSong) {
-                int upkey = CEngine::engine().getKey(GLFW_KEY_UP);
-                int downkey = CEngine::engine().getKey(GLFW_KEY_DOWN);
-
-                if (((upkey != 0) || (downkey != 0)) && upkey != downkey) {
-                    static double movetime = CEngine::engine().getTime();
-
-                    if ((CEngine::engine().getTime() - movetime) > 0.1) {
-                        double loffset = 0.0;
-
-                        if ((upkey != 0) && offset > -1.0) {
-                            loffset -= 0.1;
-                            movetime = CEngine::engine().getTime();
-                        }
-
-                        if ((downkey != 0) && offset < 1.0) {
-                            loffset += 0.1;
-                            movetime = CEngine::engine().getTime();
-                        }
-
-                        offset += loffset;
-
-                        for (auto &musicOpt : menuMusics) {
-                            if (static_cast<size_t>(musicOpt.first) <
-                                menu.options.size()) {
-                                menu.options[musicOpt.first].y += loffset;
-                            }
-                        }
-                    }
-                }
-            } else {
-                offset = 0;
-            }
-            return 0;
-        };
-
         voltarOpt = selectSongMenu.addOpt(opt);
     }
 
     {
-        std::atomic<bool> processingLoadDir{};
-        processingLoadDir = true;
-
-        std::mutex getDirLoadMutex;
-        std::thread getDirLoad([&]() {
-            std::lock_guard<std::mutex> m(getDirLoadMutex);
-            auto songs = game.getDirectory("./data/songs", false, true);
-
-            for (auto &song : songs) {
-                const auto chartName = CPlayer::smartChartSearch(song);
-                if (!chartName.empty() &&
-                    CChart::validateChartHeader("data/songs/" + song + "/" + chartName)) {
-                    CMenu::menuOpt opt;
-
-                    opt.text = song;
-                    opt.y = 0.8 - menuMusics.size() * 0.1;
-                    opt.x = CFonts::fonts().getCenterPos(song, 0.09, 0.0);
-                    opt.size = 0.09;
-                    opt.group = 1;
-                    opt.status = 0;
-                    opt.type = CMenu::menusOPT::textbtn;
-                    opt.goback = true;
-
-                    opt.color[1] = opt.color[2] =
-                        (CPlayer::smartSongSearch(song).empty()) ? 0.0 : 1.0;
-
-                    menuMusics[selectSongMenu.addOpt(opt)] = song;
-                } else if (!chartName.empty()) {
-                    CLog::log() << "Skipping song with invalid chart header: " + song;
+        auto pending = std::async(std::launch::async, [&game]() {
+            std::vector<std::pair<std::string, bool>> songs;
+            for (const auto &song :
+                 game.getDirectory("./data/songs", false, true)) {
+                const auto chart = CPlayer::smartChartSearch(song);
+                if (!chart.empty() && CChart::validateChartHeader(
+                                          "data/songs/" + song + "/" + chart)) {
+                    songs.emplace_back(song,
+                                       !CPlayer::smartSongSearch(song).empty());
                 }
             }
 
-            processingLoadDir = false;
+            return songs;
         });
-
-        bool mutexLocked = false;
-
-        auto mutexTryLockTestGuard = [&]() {
-            if (!mutexLocked) {
-                return (mutexLocked = getDirLoadMutex.try_lock());
-            }
-
-            return mutexLocked;
-        };
-
-        while (processingLoadDir || !mutexTryLockTestGuard()) {
+        while (pending.wait_for(std::chrono::milliseconds(0)) !=
+               std::future_status::ready) {
             if (!CEngine::engine().windowOpened()) {
-                if (!mutexLocked) {
-                    std::lock_guard<std::mutex> m(getDirLoadMutex);
-
-                    if (getDirLoad.joinable()) {
-                        { getDirLoad.join(); }
-                    }
-                } else {
-                    try {
-                        if (getDirLoad.joinable()) {
-                            { getDirLoad.join(); }
-                        }
-                    } catch (...) {
-                    }
-
-                    getDirLoadMutex.unlock();
-                }
-
-                mutexLocked = false;
-                return std::string();
+                return {};
             }
 
-            wait(0.1);
+            wait(.01);
         }
 
-        if (mutexLocked) {
-            getDirLoadMutex.unlock();
-
-            if (getDirLoad.joinable()) {
-                { getDirLoad.join(); }
-            }
+        for (const auto &song : pending.get()) {
+            CMenu::menuOpt opt;
+            opt.text = song.first;
+            opt.size = .09;
+            opt.group = 1;
+            opt.type = CMenu::textbtn;
+            opt.goback = true;
+            opt.color[1] = opt.color[2] = song.second ? 1.0 : 0.0;
+            menuMusics[selectSongMenu.addOpt(opt)] = song.first;
         }
     }
 
@@ -3728,11 +3883,14 @@ auto GPPGame::selectSong() -> std::string {
     selectingSong = false;
 
     auto &voltarOptInst = selectSongMenu.options[voltarOpt];
-    voltarOptInst.updateCppCallback(selectSongMenu, voltarOptInst);
+    if (voltarOptInst.updateCppCallback) {
+        voltarOptInst.updateCppCallback(selectSongMenu, voltarOptInst);
+    }
 
     if ((selectSongMenu.options[voltarOpt].status & 3) == 3) {
         return std::string();
     }
+
     if (selectSongMenu.groupInfo[1].selectedOpt != 0) {
         for (auto &musicOpt : menuMusics) {
             if ((selectSongMenu.options[musicOpt.first].status & 3) == 3) {
@@ -3750,6 +3908,10 @@ void GPPGame::addSongListToMenu(CMenu &selectSongMenu,
     static bool selectingSong = false;
 
     menuMusics.clear();
+    selectSongMenu.setFlow(CMenu::Flow::Vertical, -.75, .7);
+    selectSongMenu.viewportEnabled = true;
+    selectSongMenu.viewport = {-1.0, -.8, 1.0, .8};
+    selectSongMenu.scrollOffset = 0;
     selectSongMenu.options.clear();
 
     auto wait = [this](double t) {
@@ -3852,126 +4014,42 @@ void GPPGame::addSongListToMenu(CMenu &selectSongMenu,
 
         opt.color[0] = opt.color[1] = opt.color[2] = 0.5;
 
-        opt.updateCppCallback = [&menuMusics](CMenu &menu,
-                                              CMenu::menuOpt &opt) {
-            static double offset = 0.0;
-
-            if (selectingSong) {
-                int upkey = CEngine::engine().getKey(GLFW_KEY_UP);
-                int downkey = CEngine::engine().getKey(GLFW_KEY_DOWN);
-
-                if (((upkey != 0) || (downkey != 0)) && upkey != downkey) {
-                    static double movetime = CEngine::engine().getTime();
-
-                    if ((CEngine::engine().getTime() - movetime) > 0.1) {
-                        double loffset = 0.0;
-
-                        if ((upkey != 0) && offset > -1.0) {
-                            loffset -= 0.1;
-                            movetime = CEngine::engine().getTime();
-                        }
-
-                        if ((downkey != 0) && offset < 1.0) {
-                            loffset += 0.1;
-                            movetime = CEngine::engine().getTime();
-                        }
-
-                        offset += loffset;
-
-                        for (auto &musicOpt : menuMusics) {
-                            if (static_cast<size_t>(musicOpt.first) <
-                                menu.options.size()) {
-                                menu.options[musicOpt.first].y += loffset;
-                            }
-                        }
-                    }
-                }
-            } else {
-                offset = 0;
-            }
-            return 0;
-        };
-
         voltarOpt = selectSongMenu.addOpt(opt);
     }
 
     {
-        std::atomic<bool> processingLoadDir{};
-        processingLoadDir = true;
-
-        std::mutex getDirLoadMutex;
-        std::thread getDirLoad([&]() {
-            std::lock_guard<std::mutex> m(getDirLoadMutex);
-            auto songs = game.getDirectory("./data/songs", false, true);
-
-            for (auto &song : songs) {
-                const auto chartName = CPlayer::smartChartSearch(song);
-                if (!chartName.empty() &&
-                    CChart::validateChartHeader("data/songs/" + song + "/" + chartName)) {
-                    CMenu::menuOpt opt;
-
-                    opt.text = song;
-                    opt.y = 0.8 - menuMusics.size() * 0.1;
-                    opt.x = CFonts::fonts().getCenterPos(song, 0.09, 0.0);
-                    opt.size = 0.09;
-                    opt.group = 1;
-                    opt.status = 0;
-                    opt.type = CMenu::menusOPT::textbtn;
-
-                    opt.color[1] = opt.color[2] =
-                        (CPlayer::smartSongSearch(song).empty()) ? 0.0 : 1.0;
-
-                    menuMusics[selectSongMenu.addOpt(opt)] = song;
-                } else if (!chartName.empty()) {
-                    CLog::log() << "Skipping song with invalid chart header: " + song;
+        auto pending = std::async(std::launch::async, [&game]() {
+            std::vector<std::pair<std::string, bool>> songs;
+            for (const auto &song :
+                 game.getDirectory("./data/songs", false, true)) {
+                const auto chart = CPlayer::smartChartSearch(song);
+                if (!chart.empty() && CChart::validateChartHeader(
+                                          "data/songs/" + song + "/" + chart)) {
+                    songs.emplace_back(song,
+                                       !CPlayer::smartSongSearch(song).empty());
                 }
             }
 
-            processingLoadDir = false;
+            return songs;
         });
-
-        bool mutexLocked = false;
-
-        auto mutexTryLockTestGuard = [&]() {
-            if (!mutexLocked) {
-                return (mutexLocked = getDirLoadMutex.try_lock());
-            }
-
-            return mutexLocked;
-        };
-
-        while (processingLoadDir || !mutexTryLockTestGuard()) {
+        while (pending.wait_for(std::chrono::milliseconds(0)) !=
+               std::future_status::ready) {
             if (!CEngine::engine().windowOpened()) {
-                if (!mutexLocked) {
-                    std::lock_guard<std::mutex> m(getDirLoadMutex);
-
-                    if (getDirLoad.joinable()) {
-                        { getDirLoad.join(); }
-                    }
-                } else {
-                    try {
-                        if (getDirLoad.joinable()) {
-                            { getDirLoad.join(); }
-                        }
-                    } catch (...) {
-                    }
-
-                    getDirLoadMutex.unlock();
-                }
-
-                mutexLocked = false;
                 return;
             }
 
-            wait(0.1);
+            wait(.01);
         }
 
-        if (mutexLocked) {
-            getDirLoadMutex.unlock();
-
-            if (getDirLoad.joinable()) {
-                { getDirLoad.join(); }
-            }
+        for (const auto &song : pending.get()) {
+            CMenu::menuOpt opt;
+            opt.text = song.first;
+            opt.size = .09;
+            opt.group = 1;
+            opt.type = CMenu::textbtn;
+            opt.goback = false;
+            opt.color[1] = opt.color[2] = song.second ? 1.0 : 0.0;
+            menuMusics[selectSongMenu.addOpt(opt)] = song.first;
         }
     }
 }
@@ -3986,8 +4064,20 @@ auto GPPGame::openMenus(CMenu *startMenu,
                         const std::function<int(void)> &posFun, bool dev,
                         std::vector<CMenu *> stackTest)
     -> std::vector<CMenu *> {
+    CMenu *previousMenu = currentMenu;
+    auto &menuControls = CControls::controls();
+    const bool previousInput = menuControls.menuInputActive;
+    menuControls.menuInputActive = true;
+    menuControls.resetMenuInput();
     callOnDctor<void(void)> exitguard(
-        []() { GPPGame::GuitarPP().currentMenu = nullptr; });
+        [this, previousMenu, previousInput, &menuControls]() {
+            currentMenu = previousMenu;
+            menuControls.menuInputActive = previousInput;
+            menuControls.resetMenuInput();
+        });
+    if (!startMenu && stackTest.empty()) {
+        return {};
+    }
 
     auto &engine = CEngine::engine();
     auto &lua = CLuaH::Lua();
@@ -4003,6 +4093,7 @@ auto GPPGame::openMenus(CMenu *startMenu,
     } else {
         currentMenu = menusStack.back();
     }
+
     // auto vertexbuffer = engine.vboSET(vertices.size() * sizeof(glm::vec3),
     // &vertices[0]); auto uvbuffer = engine.vboSET(uvs.size() *
     // sizeof(glm::vec2), &uvs[0]);
@@ -4128,6 +4219,7 @@ auto GPPGame::openMenus(CMenu *startMenu,
                                 function(opt.menusXRef[0]);
                             }
                         }
+
                         /*catch (const std::exception &e){
                                 CLog::log() << e.what();
                         }*/
@@ -4266,7 +4358,9 @@ auto GPPGame::openMenus(CMenu *startMenu,
             if (dev) {
                 menu.updateDev();
             } else {
-                { menu.update(); }
+                {
+                    menu.update();
+                }
             }
         }
 
@@ -4314,23 +4408,32 @@ auto GPPGame::openMenus(CMenu *startMenu,
         for (auto &opt : menu.options) {
             if ((opt.status & 3) == 3) {
                 if (opt.goback) {
+                    menu.closeInterfaces();
                     // Clean a temporary menu
 
                     if (menu.temp) {
                         // std::cout << "size bef erase" << menusStack.size() <<
                         // std::endl;
-                        gameMenus.erase(menu.getName());
+                        currentMenu = nullptr;
+                        devMenus.devEditMenu = nullptr;
+                        devMenus.closeInterfaces();
+                        const std::string erasedName = menu.getName();
+                        gameMenus.erase(erasedName);
                         // std::cout << "size aft erase" << menusStack.size() <<
                         // std::endl;
                     }
 
                     menusStack.pop_back();
+                    currentMenu =
+                        menusStack.empty() ? nullptr : menusStack.back();
 
                     if (!menusStack.empty() != 0u) {
                         CMenu *mback = menusStack.back();
 
                         if (mback != nullptr) {
-                            { mback->resetData(); }
+                            {
+                                mback->resetData();
+                            }
                         }
                     }
 
@@ -4341,6 +4444,7 @@ auto GPPGame::openMenus(CMenu *startMenu,
                 }
 
                 if (opt.menusXRef.size() > 1) {
+                    menu.closeInterfaces();
                     menusStack.push_back(create_menu(opt.menusXRef));
                     lua.runEvent(menusCMMenuSE);
                     lua.runEvent(menusNextSE);
@@ -4348,59 +4452,43 @@ auto GPPGame::openMenus(CMenu *startMenu,
                     waitReleaseKeys = true;
                     break;
                 }
+
                 if (opt.menusXRef.size() == 1) {
-                    menusStack.push_back(&getMenuByName(opt.menusXRef[0]));
-                    auto &m = menusStack.back();
-
-                    if (m != nullptr && !m->gameMenu) {
-                        // try
-                        {
-                            auto function = getCallback(opt.menusXRef[0]);
-                            if (function) {
-                                lua.runEvent(menusGameCbNextSE);
-                                function(opt.menusXRef[0]);
-                            } else {
-                                CLog::log() << (opt.menusXRef[0] + " is null");
-                            }
-                        }
-                        /*catch (const std::exception &e){
-                                CLog::log() << e.what();
-                                CLuaH::multiCallBackParams_t param;
-
-                                param.push_back(e.what());
-
-                                lua.runEventWithParams(catchedExceptionSE,
-                        param);
-                        }*/
-
-                        menusStack.pop_back();
-
-                        if (menusStack.size() > 0) {
-                            auto &menum = menusStack.back();
-                            menum->resetBtns();
-                            menum->resetData();
-                        }
-                    } else {
-                        if (m != nullptr && m->openCallback) {
-                            m->openCallback(*m);
+                    menu.closeInterfaces();
+                    const std::string target = opt.menusXRef.front();
+                    if (auto *next = findMenu(target)) {
+                        menusStack.push_back(next);
+                        currentMenu = next;
+                        if (next->openCallback) {
+                            next->openCallback(*next);
                         }
 
-                        if (m) {
-                            m->resetBtns();
-                            m->resetData();
-                            waitReleaseKeys = true;
-                        }
-
+                        next->resetBtns();
+                        next->resetData();
+                        waitReleaseKeys = true;
                         lua.runEvent(menusNextSE);
+                    } else if (auto function = getCallback(target)) {
+                        lua.runEvent(menusGameCbNextSE);
+                        function(target);
+                        currentMenu =
+                            menusStack.empty() ? nullptr : menusStack.back();
+                        if (currentMenu) {
+                            currentMenu->resetBtns();
+                            currentMenu->resetData();
+                        }
+
+                        menuControls.resetMenuInput();
+                    } else {
+                        CLog::log() << "Unknown menu/callback: " + target;
+                        opt.status &= ~2;
                     }
 
-                    waitForTime = engine.getTime() + 0.01;
                     break;
                 }
             }
         }
 
-        eraseGameMenusAutoCreateds();
+        currentMenu = menusStack.empty() ? nullptr : menusStack.back();
 
         if (posFun) {
             int posFunResult = posFun();
@@ -4574,6 +4662,7 @@ auto GPPGame::loadSingleTexture(lua_State *L) -> int {
     } else {
         p << 0;
     }
+
     return p.rtn();
 }
 
@@ -4614,7 +4703,8 @@ GPPGame::GPPGame()
       uiCreateProfile("uiCreateProfileMenu"), glanguage("PT-BR"),
       gppTextureKeepBuffer(false) {
     CBackgroundRenderer::inst();
-    CLuaFunctions::GameVariables::gv().pushVar("backgroundScene", backgroundScene);
+    CLuaFunctions::GameVariables::gv().pushVar("backgroundScene",
+                                               backgroundScene);
     songVolume = 0.8f;
     drawGamePlayBackground = true;
     showTextsTest = true;
@@ -4674,8 +4764,10 @@ GPPGame::GPPGame()
     CEngine::engine().renderFrameCallback = callbackRenderFrame;
 
     windowCFGs = getWindowDefaults();
-    if (settings.load(windowCFGs, glanguage) == CGameSettings::LoadResult::Error) {
-        CLog::log() << "Settings load failed; using defaults. " + settings.error();
+    if (settings.load(windowCFGs, glanguage) ==
+        CGameSettings::LoadResult::Error) {
+        CLog::log() << "Settings load failed; using defaults. " +
+                           settings.error();
     }
 
     srand((unsigned int)time(0));
@@ -4713,6 +4805,7 @@ GPPGame::GPPGame()
     }
 
     uiCreateProfile.qbgd = uiRenameMenu.qbgd;
+    uiRenameMenu.modal = uiCreateProfile.modal = true;
 
     {
         CMenu::menuOpt opt;
@@ -4835,6 +4928,7 @@ bool GPPGame::saveSettings() {
         CLog::log() << "Settings save failed. " + settings.error();
         return false;
     }
+
     return true;
 }
 

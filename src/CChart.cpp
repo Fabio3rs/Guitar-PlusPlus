@@ -34,6 +34,23 @@ static auto trim(const std::string &str) -> std::string {
     return str.substr(first, last - first + 1);
 }
 
+std::string CChart::unquoteSongMetadata(std::string value) {
+    const auto first = value.find_first_not_of(" \t\r\n");
+
+    if (first == std::string::npos) {
+        return {};
+    }
+
+    const auto last = value.find_last_not_of(" \t\r\n");
+    value = value.substr(first, last - first + 1);
+
+    if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
+        return value.substr(1, value.size() - 2);
+    }
+
+    return value;
+}
+
 bool CChart::hasLegacyTextHeader(const std::string &chartFile) {
     std::ifstream input(chartFile, std::ios::binary);
     std::string line;
@@ -449,9 +466,9 @@ auto CChart::parseFeebackChart(std::istream &chartStream) -> bool {
 
         chartData.chartResolutionProp =
             std::stod(Song["Resolution"][0]) / 192.0;
-        chartData.songName = chk(Song["Name"], 0u);
-        chartData.songArtist = chk(Song["Artist"], 0u);
-        chartData.songCharter = chk(Song["Charter"], 0u);
+        chartData.songName = unquoteSongMetadata(chk(Song["Name"], 0u));
+        chartData.songArtist = unquoteSongMetadata(chk(Song["Artist"], 0u));
+        chartData.songCharter = unquoteSongMetadata(chk(Song["Charter"], 0u));
         try {
             chartOffset = std::stod(Song["Offset"][0]);
         } catch (...) {

@@ -1,10 +1,109 @@
 #include "CLuaFunctions.hpp"
+#include "CControls.h"
 #include "CFonts.h"
 #include "CLog.h"
 #include "GPPGame.h"
-#include <iostream>
 #include <cmath>
+#include <iostream>
 #include <limits>
+
+namespace {
+bool validInteger(lua_State *L, int index, double low, double high) {
+    if (lua_type(L, index) != LUA_TNUMBER) {
+        return false;
+    }
+
+    const double v = lua_tonumber(L, index);
+    return std::isfinite(v) && std::floor(v) == v && v >= low && v <= high;
+}
+
+bool validMenuIndex(lua_State *L, int index, const CMenu &menu) {
+    return !menu.options.empty() &&
+           validInteger(L, index, 0,
+                        static_cast<double>(menu.options.size() - 1));
+}
+
+int fontMetrics(lua_State *L) {
+    bool ok = lua_gettop(L) == 4 && lua_type(L, 1) == LUA_TSTRING &&
+              lua_type(L, 2) == LUA_TNUMBER && lua_type(L, 3) == LUA_TNUMBER &&
+              lua_type(L, 4) == LUA_TNUMBER;
+    if (ok) {
+        ok = CFonts::fonts().setFontMetrics(
+            lua_tostring(L, 1), lua_tonumber(L, 2), lua_tonumber(L, 3),
+            lua_tonumber(L, 4));
+    }
+
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
+int fontSpacing(lua_State *L) {
+    bool ok = lua_gettop(L) == 4 && lua_type(L, 1) == LUA_TSTRING &&
+              lua_type(L, 2) == LUA_TSTRING && lua_type(L, 3) == LUA_TNUMBER &&
+              lua_type(L, 4) == LUA_TNUMBER;
+    if (ok) {
+        ok = CFonts::fonts().setFontCharSpacing(
+            lua_tostring(L, 1), lua_tostring(L, 2), lua_tonumber(L, 3),
+            lua_tonumber(L, 4));
+    }
+
+    lua_pushboolean(L, ok);
+    return 1;
+}
+
+int menuBinding(lua_State *L) {
+    bool ok = lua_gettop(L) == 5 && lua_type(L, 1) == LUA_TSTRING &&
+              lua_type(L, 2) == LUA_TSTRING && validInteger(L, 3, 0, 1023) &&
+              validInteger(L, 4, -1, 15) && lua_type(L, 5) == LUA_TSTRING;
+    CControls::MenuBinding binding;
+    if (ok) {
+        binding.guid = lua_tostring(L, 1);
+        binding.index = static_cast<int>(lua_tointeger(L, 3));
+        binding.direction = static_cast<int>(lua_tointeger(L, 4));
+        const std::string source = lua_tostring(L, 2),
+                          action = lua_tostring(L, 5);
+        if (source == "button") {
+            binding.source = CControls::MenuBinding::Button;
+        } else if (source == "hat") {
+            binding.source = CControls::MenuBinding::Hat;
+            ok = binding.direction > 0;
+        } else if (source == "axis") {
+            binding.source = CControls::MenuBinding::Axis;
+            ok = binding.direction == 1 || binding.direction == -1;
+        } else {
+            ok = false;
+        }
+
+        const char *names[] = {"up",    "down",    "left",
+                               "right", "confirm", "back"};
+        bool found = false;
+        for (int i = 0; i < 6; ++i) {
+            if (action == names[i]) {
+                binding.action = static_cast<CControls::MenuAction>(i);
+                found = true;
+            }
+        }
+
+        ok = ok && found && !binding.guid.empty();
+    }
+
+    if (ok) {
+        auto &bindings = CControls::controls().menuBindings;
+        auto it =
+            std::find_if(bindings.begin(), bindings.end(), [&](const auto &b) {
+                return b.guid == binding.guid && b.action == binding.action;
+            });
+        if (it == bindings.end()) {
+            bindings.push_back(binding);
+        } else {
+            *it = binding;
+        }
+    }
+
+    lua_pushboolean(L, ok);
+    return 1;
+}
+} // namespace
 
 void CLuaFunctions::registerLuaFuncsAPI(
     const std::function<int(CLuaH::luaState_t &)> &fun) {
@@ -446,13 +545,15 @@ auto CLuaFunctions::setConfigs(lua_State *L) -> int {
         lua_getglobal(L, name);
         if (!lua_isnil(L, -1)) {
             const double number = lua_tonumber(L, -1);
-            if (lua_isnumber(L, -1) && std::isfinite(number) &&
-                number >= 0 && number <= maximum && std::floor(number) == number) {
+            if (lua_isnumber(L, -1) && std::isfinite(number) && number >= 0 &&
+                number <= maximum && std::floor(number) == number) {
                 value = static_cast<int>(number);
             } else {
-                CLog::log() << std::string("Invalid configuration value: ") + name;
+                CLog::log()
+                    << std::string("Invalid configuration value: ") + name;
             }
         }
+
         lua_pop(L, 1);
     };
 
@@ -470,7 +571,8 @@ auto CLuaFunctions::setConfigs(lua_State *L) -> int {
 
     if (lua_isboolean(L, -1)) {
         {
-            cfg.fullscreen = (cfg.fullscreen & ~2) | (lua_toboolean(L, -1) ? 2 : 0);
+            cfg.fullscreen =
+                (cfg.fullscreen & ~2) | (lua_toboolean(L, -1) ? 2 : 0);
         }
     }
 
@@ -913,8 +1015,14 @@ auto CLuaFunctions::setCallBackToEvent(lua_State *L) -> int {
         lua_pushvalue(L, 2);
         int fnRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
-        CLuaH::Lua().getLuaStateScript(L).callbacks[id] = fnRef;
-        CLuaH::Lua().getLuaStateScript(L).callbacksAdded = true;
+        auto &script = CLuaH::Lua().getLuaStateScript(L);
+        auto previous = script.callbacks.find(id);
+        if (previous != script.callbacks.end()) {
+            luaL_unref(L, LUA_REGISTRYINDEX, previous->second);
+        }
+
+        script.callbacks[id] = fnRef;
+        script.callbacksAdded = true;
     }
 
     return p.rtn();
@@ -931,6 +1039,7 @@ auto CLuaFunctions::drawTextOnScreen(lua_State *L) -> int {
                                          lua_tonumber(L, 3),
                                          lua_tonumber(L, 4));
     }
+
     return p.rtn();
 }
 
@@ -944,15 +1053,11 @@ auto CLuaFunctions::newMenu(lua_State *L) -> int {
         std::string str;
         p >> str;
 
-        if (!str.empty()) {
-            {
-                str = std::to_string(rand());
-            }
-        }
-
-        auto menu = GPPGame::GuitarPP().newNamedMenu(str);
+        auto &game = GPPGame::GuitarPP();
+        auto &menu = str.empty() ? game.newMenu() : game.newNamedMenu(str);
         p << menu.getName();
     }
+
     return p.rtn();
 }
 
@@ -964,6 +1069,11 @@ auto CLuaFunctions::assingGameFunctionToMenuOption(lua_State *L) -> int {
 
     if (p.getNumParams() == 3 && (lua_isstring(L, 1) != 0) &&
         (lua_isnumber(L, 2) != 0) && (lua_isstring(L, 3) != 0)) {
+        if (!validInteger(L, 2, 0, std::numeric_limits<int>::max())) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
+
         std::string menuName;
         std::string gameFunction;
         int optID;
@@ -972,10 +1082,17 @@ auto CLuaFunctions::assingGameFunctionToMenuOption(lua_State *L) -> int {
         p >> optID;
         p >> gameFunction;
 
-        auto &menu = GPPGame::GuitarPP().getMenuByName(menuName);
+        auto *foundMenu = GPPGame::GuitarPP().findMenu(menuName);
+        if (!foundMenu || !validMenuIndex(L, 2, *foundMenu)) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
+
+        auto &menu = *foundMenu;
 
         menu.options[optID].menusXRef.push_back(gameFunction);
     }
+
     return p.rtn();
 }
 
@@ -987,6 +1104,11 @@ auto CLuaFunctions::assingMenuToOtherMenuOption(lua_State *L) -> int {
 
     if (p.getNumParams() == 3 && (lua_isstring(L, 1) != 0) &&
         (lua_isnumber(L, 2) != 0) && (lua_isstring(L, 3) != 0)) {
+        if (!validInteger(L, 2, 0, std::numeric_limits<int>::max())) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
+
         std::string menuName;
         std::string targetMenuName;
         int optID;
@@ -995,10 +1117,17 @@ auto CLuaFunctions::assingMenuToOtherMenuOption(lua_State *L) -> int {
         p >> optID;
         p >> targetMenuName;
 
-        auto &menu = GPPGame::GuitarPP().getMenuByName(menuName);
+        auto *foundMenu = GPPGame::GuitarPP().findMenu(menuName);
+        if (!foundMenu || !validMenuIndex(L, 2, *foundMenu)) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
+
+        auto &menu = *foundMenu;
 
         menu.options[optID].menusXRef.push_back(targetMenuName);
     }
+
     return p.rtn();
 }
 
@@ -1058,6 +1187,7 @@ auto CLuaFunctions::printTolog(lua_State *L) -> int {
             break;
         }
     }
+
     CLog::log() << str;
 
     return 0;
@@ -1079,7 +1209,18 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
 
         p >> menuName;
 
+        auto *menu = GPPGame::GuitarPP().findMenu(menuName);
+        if (!menu || !validInteger(L, 6, -1, std::numeric_limits<int>::max()) ||
+            !validInteger(L, 7, -1, CMenu::static_text) ||
+            !std::isfinite(lua_tonumber(L, 3)) ||
+            !std::isfinite(lua_tonumber(L, 4)) ||
+            !std::isfinite(lua_tonumber(L, 5)) || lua_tonumber(L, 5) <= 0) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
+
         CMenu::menuOpt opt;
+        opt.manualPosition = true;
 
         p >> opt.text;
         p >> opt.x;
@@ -1093,7 +1234,7 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
             opt.goback = true;
         }
 
-        p << (optID = GPPGame::GuitarPP().getMenuByName(menuName).addOpt(opt));
+        p << (optID = menu->addOpt(opt));
 
         // ************************************************************** auto
         // callback system
@@ -1104,8 +1245,16 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
 
         int id = CLuaH::Lua().idForCallbackEvent(
             GPPGame::GuitarPP().getMenuByName(menuName).getNameFromOpt(optID));
-        CLuaH::Lua().getLuaStateScript(L).callbacks[id] = fnRef;
+        auto &script = CLuaH::Lua().getLuaStateScript(L);
+        auto previous = script.callbacks.find(id);
+        if (previous != script.callbacks.end()) {
+            luaL_unref(L, LUA_REGISTRYINDEX, previous->second);
+        }
+
+        script.callbacks[id] = fnRef;
+        script.callbacksAdded = true;
     }
+
     return p.rtn();
 }
 
@@ -1121,9 +1270,14 @@ auto CLuaFunctions::getMenuOptionName(lua_State *L) -> int {
         int optID = 0;
 
         p >> menuName;
-        p >> optID;
+        auto *menu = GPPGame::GuitarPP().findMenu(menuName);
+        if (!menu || !validMenuIndex(L, 2, *menu)) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
 
-        p << GPPGame::GuitarPP().getMenuByName(menuName).getNameFromOpt(optID);
+        p >> optID;
+        p << menu->getNameFromOpt(static_cast<size_t>(optID));
     }
 
     return p.rtn();
@@ -1140,7 +1294,13 @@ auto CLuaFunctions::getNumOfMenuOptions(lua_State *L) -> int {
 
         p >> menuName;
 
-        p << GPPGame::GuitarPP().getMenuByName(menuName).getNumOfOptions();
+        auto *menu = GPPGame::GuitarPP().findMenu(menuName);
+        if (!menu) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
+
+        p << menu->getNumOfOptions();
     }
 
     return p.rtn();
@@ -1164,7 +1324,13 @@ auto CLuaFunctions::setMenuBackgroundTexture(lua_State *L) -> int {
         p >> texturePath;
         p >> textureName;
 
-        game.getMenuByName(menuName).backgroundTexture =
+        auto *menu = game.findMenu(menuName);
+        if (!menu) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
+
+        menu->backgroundTexture =
             game.loadTexture(texturePath, textureName).getGTextureName();
     }
 
@@ -1194,30 +1360,44 @@ auto CLuaFunctions::setFontCharMetrics(lua_State *L) -> int {
         lua_type(L, 2) == LUA_TSTRING && lua_type(L, 3) == LUA_TNUMBER &&
         lua_type(L, 4) == LUA_TNUMBER) {
         success = CFonts::fonts().setFontCharMetrics(
-            lua_tostring(L, 1), lua_tostring(L, 2),
-            lua_tonumber(L, 3), lua_tonumber(L, 4));
+            lua_tostring(L, 1), lua_tostring(L, 2), lua_tonumber(L, 3),
+            lua_tonumber(L, 4));
     }
+
     lua_pushboolean(L, success);
     return 1;
 }
 
 auto CLuaFunctions::addTextureToFont(lua_State *L) -> int {
-    LuaParams p(L);
-
-    auto to_wstring = [](const std::string &s) {
-        std::wstring result(s.begin(), s.end());
-        return result;
-    };
-
-    if (p.getNumParams() == 4 && (lua_isstring(L, 1) != 0) &&
-        (lua_isstring(L, 2) != 0) && (lua_isstring(L, 3) != 0) &&
-        (lua_isstring(L, 4) != 0)) {
-        p << CFonts::fonts().addTextureToFont(
-            lua_tostring(L, 1), lua_tostring(L, 2), lua_tostring(L, 3),
-            lua_tostring(L, 4));
+    const int count = lua_gettop(L);
+    if ((count != 4 && count != 6) || lua_type(L, 1) != LUA_TSTRING ||
+        lua_type(L, 2) != LUA_TSTRING || lua_type(L, 3) != LUA_TSTRING ||
+        lua_type(L, 4) != LUA_TSTRING) {
+        lua_pushboolean(L, false);
+        return 1;
     }
 
-    return p.rtn();
+    CFonts::AtlasGrid grid;
+    if (count == 6) {
+        if (!validInteger(L, 5, 1, 65535) || !validInteger(L, 6, 1, 65535)) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
+
+        grid = {static_cast<int>(lua_tointeger(L, 5)),
+                static_cast<int>(lua_tointeger(L, 6))};
+    }
+
+    const auto result = CFonts::fonts().addTextureToFont(
+        lua_tostring(L, 1), lua_tostring(L, 2), lua_tostring(L, 3),
+        lua_tostring(L, 4), grid);
+    if (result.empty()) {
+        lua_pushboolean(L, false);
+    } else {
+        lua_pushlstring(L, result.data(), result.size());
+    }
+
+    return 1;
 }
 
 /*
@@ -1273,6 +1453,9 @@ void CLuaFunctions::registerFunctions(CLuaH::luaState_t &Lstate) {
     lua_register(L, "loadTexture", loadTexture);
     lua_register(L, "addTextureToFont", addTextureToFont);
     lua_register(L, "setFontCharMetrics", setFontCharMetrics);
+    lua_register(L, "setFontCharSpacing", fontSpacing);
+    lua_register(L, "setFontMetrics", fontMetrics);
+    lua_register(L, "setMenuBinding", menuBinding);
     lua_register(L, "assingMenuToOtherMenuOption", assingMenuToOtherMenuOption);
     lua_register(L, "setMenuBackgroundTexture", setMenuBackgroundTexture);
     lua_register(L, "getActualMenu", getActualMenu);

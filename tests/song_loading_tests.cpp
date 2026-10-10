@@ -57,10 +57,43 @@ class SongLoading : public ::testing::Test {
 };
 }
 
+TEST_F(SongLoading, MetadataRemovesChartDelimitersInBothLoaders) {
+    const auto contents = chart("\tName = \"Breakthrough - Guitar\"\r\n"
+                                "\tArtist = \"MindFlow\"\r\n"
+                                "\tCharter = \"Junior_Djjr\"\r\n"
+                                "\tResolution = 192\r\n");
+    const auto path = writeChart(contents);
+    CPlayer direct("direct");
+    ASSERT_TRUE(direct.Notes.loadFeedbackChart(path, direct));
+    EXPECT_EQ(direct.songName, "Breakthrough - Guitar");
+    EXPECT_EQ(direct.songArtist, "MindFlow");
+    EXPECT_EQ(direct.songCharter, "Junior_Djjr");
+
+    CChart source;
+    ASSERT_TRUE(source.open(path));
+    CPlayer restored("compiled");
+    ASSERT_TRUE(restored.Notes.loadChart(compiled(source), restored));
+    EXPECT_EQ(restored.songName, direct.songName);
+    EXPECT_EQ(restored.songArtist, direct.songArtist);
+    EXPECT_EQ(restored.songCharter, direct.songCharter);
+}
+
+TEST_F(SongLoading, MetadataUnquotePreservesContentsAndUnquotedValues) {
+    EXPECT_EQ(CChart::unquoteSongMetadata(" \t\"ação çã\" \r"), "ação çã");
+    EXPECT_EQ(CChart::unquoteSongMetadata("\"  spaced  \""), "  spaced  ");
+    EXPECT_EQ(CChart::unquoteSongMetadata("\"\""), "");
+    EXPECT_EQ(CChart::unquoteSongMetadata(" \t\r"), "");
+    EXPECT_EQ(CChart::unquoteSongMetadata(""), "");
+    EXPECT_EQ(CChart::unquoteSongMetadata("  unquoted  "), "unquoted");
+    EXPECT_EQ(CChart::unquoteSongMetadata("\"unfinished"), "\"unfinished");
+    EXPECT_EQ(CChart::unquoteSongMetadata("\"Live \"Mix\" C:\\music\""),
+              "Live \"Mix\" C:\\music");
+}
+
 TEST_F(SongLoading, HeaderRejectsMalformedTimingAndTruncation) {
-    for (const auto &header : {"Resolution = 0\n", "Resolution = -192\n",
-                              "Resolution = nan\n", "Resolution = 192oops\n",
-                              "Offset = inf\n", "Offset = invalid\n"}) {
+    for (const auto &header :
+         {"Resolution = 0\n", "Resolution = -192\n", "Resolution = nan\n",
+          "Resolution = 192oops\n", "Offset = inf\n", "Offset = invalid\n"}) {
         const auto path = writeChart(chart(header));
         EXPECT_FALSE(CChart::validateChartHeader(path)) << header;
         CPlayer player("test");
