@@ -20,50 +20,30 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install build-essential
           sudo apt install cmake -y
-          sudo apt install clang-18 clang-tidy-18 clang-format-18 ninja-build xorg-dev libglew-dev libgl-dev libxrandr-dev libxinerama-dev libgtest-dev xvfb xauth libgl1-mesa-dri unzip wget -y
+          sudo apt install clang-18 clang-tidy-18 clang-format-18 ninja-build xorg-dev libglew-dev libgl-dev libxrandr-dev libxinerama-dev libgtest-dev xvfb xauth libgl1-mesa-dri file unzip wget -y
 
       # Download and setup Bass libraries
       - name: Setup Bass Libraries
         run: |
-          cd bass
-          # Download Bass library
-          echo "Downloading Bass library..."
-          wget https://www.un4seen.com/files/bass24-linux.zip -O bass24-linux.zip
+          set -euo pipefail
+          download_dir=$(mktemp -d)
+          trap 'rm -rf "$download_dir"' EXIT
 
-          # Download Bass FX library
-          echo "Downloading Bass FX library..."
-          wget https://www.un4seen.com/files/z/0/bass_fx24-linux.zip -O bass_fx24-linux.zip
+          wget https://www.un4seen.com/files/bass24-linux.zip -O "$download_dir/bass.zip"
+          wget https://www.un4seen.com/files/z/0/bass_fx24-linux.zip -O "$download_dir/bass_fx.zip"
 
-          # Extract Bass library
-          echo "Extracting Bass library..."
-          unzip -o bass24-linux.zip
+          # Select only the x86-64 libraries used by the ubuntu-24.04 runner.
+          # The archives also contain incompatible x86, ARM and AArch64 builds.
+          unzip -p "$download_dir/bass.zip" c/bass.h > bass/bass.h
+          unzip -p "$download_dir/bass_fx.zip" C/bass_fx.h > bass/bass_fx.h
+          unzip -p "$download_dir/bass.zip" libs/x86_64/libbass.so > bass/libbass.so
+          unzip -p "$download_dir/bass_fx.zip" libs/x86_64/libbass_fx.so > bass/libbass_fx.so
 
-          # Extract Bass FX library
-          echo "Extracting Bass FX library..."
-          unzip -o bass_fx24-linux.zip
-
-          # Find and copy header files
-          echo "Locating and copying header files..."
-          find . -name "bass.h" -exec cp {} ./ \;
-          find . -name "bass_fx.h" -exec cp {} ./ \;
-
-          # Find and copy library files for 64-bit Linux
-          echo "Locating and copying library files..."
-          find . -name "libbass.so" -exec cp {} ./ \;
-          find . -name "libbass_fx.so" -exec cp {} ./ \;
-
-          # If 64-bit libraries are in a subdirectory, try to find them
-          find . -path "*/x64/*" -name "libbass.so" -exec cp {} ./ \; 2>/dev/null || true
-          find . -path "*/x64/*" -name "libbass_fx.so" -exec cp {} ./ \; 2>/dev/null || true
-
-          # Verify files are present
-          echo "Verifying required files..."
-          ls -la *.h *.so 2>/dev/null || echo "Some files may be missing"
-
-          # Cleanup downloaded archives and extracted directories
-          rm -rf bass24-linux.zip bass_fx24-linux.zip bass*/ 2>/dev/null || true
-
-          echo "Bass library setup completed"
+          # Fail during setup if an archive contains an unexpected architecture.
+          for library in bass/libbass.so bass/libbass_fx.so; do
+            file "$library"
+            file -b "$library" | grep -q 'ELF 64-bit LSB shared object, x86-64'
+          done
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v1.8
