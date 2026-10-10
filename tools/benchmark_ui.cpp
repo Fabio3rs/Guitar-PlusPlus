@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
             opt.type = CMenu::textbtn;
             opt.x = -.9;
             opt.y = .7 - i * .1;
-            opt.size = .075;
+
             opt.group = 1;
             menu.addOpt(opt);
         }

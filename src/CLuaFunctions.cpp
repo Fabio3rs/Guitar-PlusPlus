@@ -1201,7 +1201,8 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
 
     if (p.getNumParams() == 8 && (lua_isstring(L, 1) != 0) &&
         (lua_isstring(L, 2) != 0) && (lua_isnumber(L, 3) != 0) &&
-        (lua_isnumber(L, 4) != 0) && (lua_isnumber(L, 5) != 0) &&
+        (lua_isnumber(L, 4) != 0) &&
+        (lua_isnil(L, 5) || lua_isnumber(L, 5)) &&
         (lua_isnumber(L, 6) != 0) && (lua_isnumber(L, 7) != 0) &&
         lua_isfunction(L, 8)) {
         std::string menuName;
@@ -1210,11 +1211,13 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
         p >> menuName;
 
         auto *menu = GPPGame::GuitarPP().findMenu(menuName);
-        if (!menu || !validInteger(L, 6, -1, std::numeric_limits<int>::max()) ||
+        if (!menu ||
+            !validInteger(L, 6, -1, std::numeric_limits<int>::max()) ||
             !validInteger(L, 7, -1, CMenu::static_text) ||
             !std::isfinite(lua_tonumber(L, 3)) ||
             !std::isfinite(lua_tonumber(L, 4)) ||
-            !std::isfinite(lua_tonumber(L, 5)) || lua_tonumber(L, 5) <= 0) {
+            (!lua_isnil(L, 5) && (!std::isfinite(lua_tonumber(L, 5)) ||
+                                  lua_tonumber(L, 5) <= 0))) {
             lua_pushboolean(L, false);
             return 1;
         }
@@ -1225,7 +1228,11 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
         p >> opt.text;
         p >> opt.x;
         p >> opt.y;
-        p >> opt.size;
+        double size = 0;
+        p >> size;
+        if (!lua_isnil(L, 5)) {
+            opt.styleOverrides.textSize = size;
+        }
         p >> opt.group;
         p >> opt.type;
 

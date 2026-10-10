@@ -162,7 +162,6 @@ static auto load_data() -> bool {
                     opt.langEntryKey = "menuPlayTitle";
                     opt.y = 0.4;
                     opt.x = -proportion + 0.2;
-                    opt.size = 0.075;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -186,7 +185,6 @@ static auto load_data() -> bool {
                     opt.langEntryKey = "menuOptionsTitle";
                     opt.y = 0.3;
                     opt.x = -proportion + 0.2;
-                    opt.size = 0.075;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -203,7 +201,6 @@ static auto load_data() -> bool {
                     opt.langEntryKey = "menuExtrasTitle";
                     opt.y = 0.2;
                     opt.x = -proportion + 0.2;
-                    opt.size = 0.075;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -219,7 +216,6 @@ static auto load_data() -> bool {
                     opt.text = "Ajuda";
                     opt.y = 0.1;
                     opt.x = -proportion + 0.2;
-                    opt.size = 0.075;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -237,7 +233,6 @@ static auto load_data() -> bool {
                     opt.text = "Sair";
                     opt.y = 0.0;
                     opt.x = -proportion + 0.2;
-                    opt.size = 0.075;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -252,7 +247,6 @@ static auto load_data() -> bool {
                     opt.text = "aaaa";
                     opt.y = -0.3;
                     opt.x = -proportion + 0.2;
-                    opt.size = 0.075;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::text_input;
@@ -266,9 +260,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Maratona";
                     opt.y = 0.4;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
+                    opt.centerX = -0.5;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -285,9 +277,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Quick play";
                     opt.y = 0.4;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -304,9 +294,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Campaing";
                     opt.y = 0.3;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -320,9 +308,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Server MP";
                     opt.y = 0.2;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -339,9 +325,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Client MP";
                     opt.y = 0.1;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -358,9 +342,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Voltar";
                     opt.y = 0.0;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -382,9 +364,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Graficos";
                     opt.y = 0.4;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -397,9 +377,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Audio";
                     opt.y = 0.3;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -414,9 +392,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Gameplay";
                     opt.y = 0.2;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -429,9 +405,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Voltar";
                     opt.y = -0.4;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -447,9 +421,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Volume principal";
                     opt.y = 0.3;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::deslizant_Select_list;
@@ -523,9 +495,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Voltar";
                     opt.y = -0.4;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -562,7 +532,6 @@ static auto load_data() -> bool {
                     opt.text = "Charts";
                     opt.y = 0.4;
                     opt.x = -proportion + 0.2;
-                    opt.size = 0.075;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -577,9 +546,7 @@ static auto load_data() -> bool {
 
                     opt.text = "Voltar";
                     opt.y = 0.0;
-                    opt.size = 0.075;
-                    opt.x =
-                        CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+                    opt.centerX = 0.0;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -596,7 +563,6 @@ static auto load_data() -> bool {
                         opt.text = "Compilador de .chart para .gpp";
                         opt.y = 0.4;
                         opt.x = -proportion + 0.2;
-                        opt.size = 0.075;
                         opt.group = 1;
                         opt.status = 0;
                         opt.type = CMenu::menusOPT::textbtn;
@@ -612,7 +578,6 @@ static auto load_data() -> bool {
                         opt.text = "Criador de charts";
                         opt.y = 0.3;
                         opt.x = -proportion + 0.2;
-                        opt.size = 0.075;
                         opt.group = 1;
                         opt.status = 0;
                         opt.type = CMenu::menusOPT::textbtn;
@@ -629,9 +594,7 @@ static auto load_data() -> bool {
 
                         opt.text = "Voltar";
                         opt.y = 0.0;
-                        opt.size = 0.075;
-                        opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size,
-                                                             0.0);
+                        opt.centerX = 0.0;
                         opt.group = 1;
                         opt.status = 0;
                         opt.type = CMenu::menusOPT::textbtn;
@@ -647,7 +610,6 @@ static auto load_data() -> bool {
 
                         opt.text = "Voltar";
                         opt.y = 0.85;
-                        opt.size = 0.075;
                         opt.x = -1.0;
                         opt.group = 1;
                         opt.status = 0;

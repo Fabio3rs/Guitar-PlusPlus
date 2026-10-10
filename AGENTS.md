@@ -93,7 +93,9 @@ Guitar++ is a **game**, not safety-critical infrastructure or a financial transa
 ## Audio, scripts and assets
 
 - Audio is integrated through **BASS/BASS_FX** and `CEngine`. Gameplay already uses more than one notion of time: a `std::chrono::steady_clock`-based song timeline (`startSongTime` / `getRunningMusicTime()`), mutable per-player `musicRunningTime`, and BASS playback positions that may be adjusted. Trace their relationship before changing synchronization; do not silently replace one clock or add an unsynchronized one.
-- Lua is part of the game's configuration, events, menus, themes and extensibility. Preserve existing Lua interfaces and event hooks when changing the corresponding C++ code.
+- Lua is part of the game's configuration, events, menus, themes and extensibility. Preserve existing Lua interfaces and event hooks outside the UI/theme reform.
+- Existing UI and theme Lua APIs/formats are experimental microdemos, with no backwards-compatibility requirement during the UI reform. They may be replaced directly; migrate maintained repository scripts and tests rather than adding legacy adapters or aliases. This exception does not extend to saves, charts or gameplay APIs.
+- Runtime UI testing uses the assets in `build/bin`. When migrating `Theme.lua`, update its runtime copy under `build/bin/data/themes/` as well as the maintained source.
 - Game assets are **not fully included in this repository**. Runtime paths refer to `data/models`, `data/sprites`, `data/songs`, themes and other assets; startup also looks for `Config.lua` in the working directory (a sample exists at `src/Config.lua`). Do not mistake missing runtime assets for an unrelated code failure.
 - Preserve established asset file names and directory conventions unless a change deliberately updates all consumers. Avoid committing third-party music, models or other assets without appropriate redistribution rights.
 

@@ -2767,7 +2767,6 @@ CGamePlay::CGamePlay() : engine(CEngine::engine()) {
         opt.text = "Voltar";
         opt.y = 0.4;
         opt.x = -0.5;
-        opt.size = 0.075;
         opt.group = 1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
@@ -2782,7 +2781,6 @@ CGamePlay::CGamePlay() : engine(CEngine::engine()) {
         opt.text = "Sair";
         opt.y = -0.4;
         opt.x = -0.5;
-        opt.size = 0.075;
         opt.group = 1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;

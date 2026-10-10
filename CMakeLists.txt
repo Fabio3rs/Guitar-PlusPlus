@@ -46,6 +46,7 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CLuaFunctions.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CLuaH.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CMenu.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CUIStyle.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CMultiplayer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CParticle.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CPlusLightning.cpp"

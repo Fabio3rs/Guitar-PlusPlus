@@ -69,7 +69,7 @@ CMenu::CMenu(const std::string &name)
 CMenu::CMenu(const CMenu &m) : CMenu(m.menuName) {
     x = m.x;
     y = m.y;
-    style = m.style;
+    styleOverrides = m.styleOverrides;
     flow = m.flow;
     modal = m.modal;
     viewportEnabled = m.viewportEnabled;
@@ -147,6 +147,7 @@ void CMenu::resetData() {
     }
 
     focused = hovered = captured = -1;
+    focusGeometryOption = -1;
     dragging = false;
     status = 0;
 }
@@ -186,10 +187,6 @@ void CMenu::ensureLayout(menuOpt &o) {
         o.valueRevision = fonts.revision();
     }
 
-    if (!std::isfinite(o.size) || o.size <= 0) {
-        o.size = style.textSize;
-    }
-
     if (!std::isfinite(o.deslizantBarSize) || o.deslizantBarSize < 0) {
         o.deslizantBarSize = 0;
     }
@@ -199,52 +196,81 @@ void CMenu::ensureLayout(menuOpt &o) {
     }
 }
 
+ui::Style CMenu::resolvedStyle() const {
+    return ui::resolveStyle(ui::activeStyle(), styleOverrides);
+}
+
+ui::Typography CMenu::resolvedOptionStyle(const menuOpt &option) const {
+    return ui::resolveTypography(resolvedStyle().typography,
+                                 option.styleOverrides);
+}
+
 CMenu::Rect CMenu::controlRect(size_t i) {
+    const auto style = resolvedStyle();
+    reflow(style);
+    return controlRect(i, style);
+}
+
+CMenu::Rect CMenu::optionRect(size_t i) {
+    const auto style = resolvedStyle();
+    reflow(style);
+    return optionRect(i, style);
+}
+
+void CMenu::reflow() { reflow(resolvedStyle()); }
+
+CMenu::Rect CMenu::controlRect(size_t i, const ui::Style &style) {
     if (i >= options.size()) {
         return {};
     }
 
     auto &o = options[i];
     ensureLayout(o);
+    const auto appearance =
+        ui::resolveTypography(style.typography, o.styleOverrides);
     const double yy =
         o.y + y +
         ((viewportEnabled && o.group == flowGroup) ? scrollOffset : 0);
     double xx = o.x + x;
 
     if (o.type == deslizant_Select_list) {
-        xx += o.layout.right * o.size + o.size;
+        xx += o.layout.right * appearance.textSize + appearance.textSize;
     }
 
-    return {xx, yy, xx + o.deslizantBarSize, yy + o.size};
+    return {xx, yy, xx + o.deslizantBarSize, yy + appearance.textSize};
 }
 
-CMenu::Rect CMenu::optionRect(size_t i) {
+CMenu::Rect CMenu::optionRect(size_t i, const ui::Style &style) {
     if (i >= options.size()) {
         return {};
     }
 
     auto &o = options[i];
     ensureLayout(o);
+    const auto appearance =
+        ui::resolveTypography(style.typography, o.styleOverrides);
     const double yy =
         o.y + y +
         ((viewportEnabled && o.group == flowGroup) ? scrollOffset : 0);
-    Rect r{o.x + x + o.layout.left * o.size, yy + o.layout.bottom * o.size,
-           o.x + x + o.layout.right * o.size, yy + o.layout.top * o.size};
+    Rect r{o.x + x + o.layout.left * appearance.textSize,
+           yy + o.layout.bottom * appearance.textSize,
+           o.x + x + o.layout.right * appearance.textSize,
+           yy + o.layout.top * appearance.textSize};
 
     if (o.type == text_input) {
-        r = {o.x + x, yy, o.x + x + o.fieldWidth, yy + o.size};
+        r = {o.x + x, yy, o.x + x + o.fieldWidth, yy + appearance.textSize};
     }
 
     if (o.type == drag_bar) {
-        r = controlRect(i);
+        r = controlRect(i, style);
     }
 
     if (o.type == deslizant_Select_list) {
-        r.right =
-            controlRect(i).right + o.size + o.valueLayout.width() * o.size;
+        r.right = controlRect(i, style).right + appearance.textSize +
+                  o.valueLayout.width() * appearance.textSize;
     }
 
-    const double pad = style.padding * o.size;
+    const double pad = style.layout.padding * appearance.textSize;
     return {r.left - pad, r.bottom - pad, r.right + pad, r.top + pad};
 }
 
@@ -255,15 +281,27 @@ void CMenu::setFlow(Flow direction, double originX, double originY, int group) {
     flowGroup = group;
 }
 
-void CMenu::reflow() {
+void CMenu::reflow(const ui::Style &style) {
     for (auto &o : options) {
+        const auto appearance =
+            ui::resolveTypography(style.typography, o.styleOverrides);
+        if (o.centerX && !o.anchorRight &&
+            (flow == Flow::Manual || o.group != flowGroup ||
+             o.manualPosition)) {
+            ensureLayout(o);
+            o.x = *o.centerX -
+                  (o.layout.left + o.layout.right) * appearance.textSize / 2;
+        }
+
         if (o.anchorRight) {
             ensureLayout(o);
-            o.x = GPPGame::getWindowProportion() - .1 - o.layout.right * o.size;
+            o.x = GPPGame::getWindowProportion() - .1 -
+                  o.layout.right * appearance.textSize;
         }
     }
 
     if (flow == Flow::Manual) {
+        refreshFocusGeometry(style);
         return;
     }
 
@@ -276,17 +314,49 @@ void CMenu::reflow() {
     for (auto &o : options) {
         if (o.group == flowGroup && !o.manualPosition) {
             ensureLayout(o);
+            const auto appearance =
+                ui::resolveTypography(style.typography, o.styleOverrides);
             o.x = px;
             o.y = py;
 
             if (flow == Flow::Vertical) {
-                py -= std::max(style.rowStep,
-                               (o.layout.top - o.layout.bottom + .3) * o.size);
+                py -= std::max(style.layout.rowStep,
+                               (o.layout.top - o.layout.bottom + .3) *
+                                   appearance.textSize);
             } else {
-                px += o.layout.width() * o.size +
-                      (1 + style.pickGap + .5) * o.size;
+                px +=
+                    o.layout.width() * appearance.textSize +
+                    (1 + style.selection.pickGap + .5) * appearance.textSize;
             }
         }
+    }
+
+    refreshFocusGeometry(style);
+}
+
+void CMenu::refreshFocusGeometry(const ui::Style &style) {
+    if (!viewportEnabled || focused < 0 ||
+        static_cast<size_t>(focused) >= options.size() ||
+        options[static_cast<size_t>(focused)].group != flowGroup) {
+        focusGeometryOption = -1;
+        return;
+    }
+
+    auto &o = options[static_cast<size_t>(focused)];
+    ensureLayout(o);
+    const auto appearance =
+        ui::resolveTypography(style.typography, o.styleOverrides);
+    // Exclude scrollOffset: scrolling must not pull focus back into view.
+    const std::array<double, 5> geometry{o.y, appearance.textSize,
+                                         style.layout.padding, o.layout.top,
+                                         o.layout.bottom};
+    const bool changed =
+        focusGeometryOption == focused && geometry != focusGeometry;
+    focusGeometryOption = focused;
+    focusGeometry = geometry;
+
+    if (changed) {
+        revealFocused(style);
     }
 }
 
@@ -317,13 +387,19 @@ void CMenu::select(int i) {
 }
 
 void CMenu::revealFocused() {
+    const auto style = resolvedStyle();
+    reflow(style);
+    revealFocused(style);
+}
+
+void CMenu::revealFocused(const ui::Style &style) {
     if (!viewportEnabled || focused < 0 ||
         static_cast<size_t>(focused) >= options.size() ||
         options[static_cast<size_t>(focused)].group != flowGroup) {
         return;
     }
 
-    const auto r = optionRect(static_cast<size_t>(focused));
+    const auto r = optionRect(static_cast<size_t>(focused), style);
 
     if (r.top > viewport.top + y) {
         scrollOffset -= r.top - (viewport.top + y);
@@ -337,6 +413,7 @@ void CMenu::revealFocused() {
 }
 
 bool CMenu::isMouseOnThisMenu() {
+    const auto style = resolvedStyle();
     const double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
 
     if (qbgd.Text &&
@@ -346,7 +423,7 @@ bool CMenu::isMouseOnThisMenu() {
     }
 
     for (size_t i = 0; i < options.size(); ++i) {
-        if (optionRect(i).contains(mx, my)) {
+        if (optionRect(i, style).contains(mx, my)) {
             return true;
         }
     }
@@ -371,6 +448,8 @@ bool CMenu::isInterfaceOver() const {
 }
 
 void CMenu::processEvent(const CControls::MenuEvent &event) {
+    const auto style = resolvedStyle();
+    reflow(style);
     using Event = CControls::MenuEvent;
 
     if (event.kind == Event::Focus && !event.action) {
@@ -387,8 +466,9 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
             }
         }
 
-        scrollOffset = std::clamp(scrollOffset - event.y * style.rowStep * 3,
-                                  0.0, std::max(0.0, viewport.bottom - lowest));
+        scrollOffset =
+            std::clamp(scrollOffset - event.y * style.layout.rowStep * 3, 0.0,
+                       std::max(0.0, viewport.bottom - lowest));
         return;
     }
 
@@ -404,7 +484,7 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
             }
 
             if (interactive(options[i]) &&
-                optionRect(i).contains(event.x, event.y)) {
+                optionRect(i, style).contains(event.x, event.y)) {
                 hit = static_cast<int>(i);
             }
         }
@@ -418,16 +498,18 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
 
             select(hit);
             auto &o = options[static_cast<size_t>(hit)];
+            const auto appearance =
+                ui::resolveTypography(style.typography, o.styleOverrides);
             dragX = event.x;
             dragY = event.y;
-            dragging =
-                o.type == drag_bar || (o.type == deslizant_Select_list &&
-                                       controlRect(static_cast<size_t>(hit))
-                                           .contains(event.x, event.y));
+            dragging = o.type == drag_bar ||
+                       (o.type == deslizant_Select_list &&
+                        controlRect(static_cast<size_t>(hit), style)
+                            .contains(event.x, event.y));
 
             if (dragging && o.type == deslizant_Select_list &&
                 !o.optList.empty() && o.deslizantBarSize > 0) {
-                auto r = controlRect(static_cast<size_t>(hit));
+                auto r = controlRect(static_cast<size_t>(hit), style);
                 o.listID = static_cast<int>(std::round(
                     std::clamp((event.x - r.left) / o.deslizantBarSize, 0.0,
                                1.0) *
@@ -436,8 +518,9 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
 
             if (o.type == text_input) {
                 o.status |= 4;
-                o.strEditPoint = static_cast<int>(o.layout.cursorAt(
-                    (event.x - x - o.x + o.textScroll) / o.size));
+                o.strEditPoint = static_cast<int>(
+                    o.layout.cursorAt((event.x - x - o.x + o.textScroll) /
+                                      appearance.textSize));
             }
         } else if (event.action == GLFW_RELEASE) {
             if (captured >= 0 && captured == hit &&
@@ -678,10 +761,12 @@ void CMenu::dispatchInput() {
                     continue;
                 }
 
+                const auto childStyle = m->resolvedStyle();
                 bool hit = m->modal;
 
                 for (size_t i = 0; !hit && i < m->options.size(); ++i) {
-                    hit = m->optionRect(i).contains(event.x, event.y);
+                    hit = m->optionRect(i, childStyle)
+                              .contains(event.x, event.y);
                 }
 
                 if (hit) {
@@ -802,6 +887,7 @@ void CMenu::prepareUpdate() {
 }
 
 void CMenu::finishUpdate() {
+    const auto style = resolvedStyle();
     auto &lua = CLuaH::Lua();
 
     if (dragging && captured >= 0 &&
@@ -817,7 +903,7 @@ void CMenu::finishUpdate() {
 
         if (o.type == deslizant_Select_list && !o.optList.empty() &&
             o.deslizantBarSize > 0) {
-            auto r = controlRect(static_cast<size_t>(captured));
+            auto r = controlRect(static_cast<size_t>(captured), style);
             const double fraction =
                 std::clamp((mx - r.left) / o.deslizantBarSize, 0.0, 1.0);
             o.listID = static_cast<int>(std::round(
@@ -834,7 +920,8 @@ void CMenu::finishUpdate() {
         hovered = -1;
 
         for (size_t i = 0; i < options.size(); ++i) {
-            if (interactive(options[i]) && optionRect(i).contains(mx, my)) {
+            if (interactive(options[i]) &&
+                optionRect(i, style).contains(mx, my)) {
                 if (viewportEnabled && options[i].group == flowGroup &&
                     !Rect{viewport.left + x, viewport.bottom + y,
                           viewport.right + x, viewport.top + y}
@@ -918,19 +1005,43 @@ void CMenu::finishUpdate() {
                    myUiList.end());
 }
 
+void CMenu::beginManualEdit(size_t index) {
+    if (index >= options.size()) {
+        return;
+    }
+
+    reflow();
+    if (flow != Flow::Manual) {
+        for (auto &o : options) {
+            if (o.group == flowGroup && !o.manualPosition) {
+                // These anchors were overridden by flow. Do not reactivate
+                // them when freezing the menu at its current positions.
+                o.centerX.reset();
+                o.anchorRight = false;
+            }
+        }
+    }
+
+    options[index].centerX.reset();
+    options[index].anchorRight = false;
+    flow = Flow::Manual;
+}
+
 void CMenu::updateDev() {
+    const auto style = resolvedStyle();
     const bool down = CEngine::engine().getMouseButton(0) != 0;
     const double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
 
     if (down && !lastMouseClickStatus && !isInterfaceOver()) {
         for (size_t i = 0; i < options.size(); ++i) {
-            if (optionRect(i).contains(mx, my)) {
+            if (optionRect(i, style).contains(mx, my)) {
                 for (auto &o : options) {
                     o.devStatus = 0;
                 }
 
                 captured = static_cast<int>(i);
                 options[i].devStatus = 3;
+                beginManualEdit(i);
                 break;
             }
         }
@@ -945,9 +1056,13 @@ void CMenu::updateDev() {
         const int direction = engine.getKey(GLFW_KEY_KP_ADD)        ? 1
                               : engine.getKey(GLFW_KEY_KP_SUBTRACT) ? -1
                                                                     : 0;
-        o.size =
-            std::max(.005, o.size + direction * engine.getDeltaTime() * .1);
-        flow = Flow::Manual;
+        if (direction != 0) {
+            const auto appearance =
+                ui::resolveTypography(style.typography, o.styleOverrides);
+            o.styleOverrides.textSize =
+                std::max(.005, appearance.textSize +
+                                   direction * engine.getDeltaTime() * .1);
+        }
     }
 
     if (!down) {
@@ -964,10 +1079,12 @@ void CMenu::updateDev() {
 }
 
 void CMenu::render() {
+    const auto style = resolvedStyle();
+    reflow(style);
     auto &engine = CEngine::engine();
     auto &fonts = CFonts::fonts();
-    auto color = [&](const std::array<double, 4> &c) {
-        engine.setColor(c[0], c[1], c[2], c[3]);
+    auto color = [&](const ui::Color &c) {
+        engine.setColor(c.r, c.g, c.b, c.a);
     };
 
     glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_CURRENT_BIT |
@@ -992,7 +1109,7 @@ void CMenu::render() {
     glLoadIdentity();
 
     if (qbgd.Text) {
-        color(style.panel);
+        color(style.panel.background);
         rectangle({qbgd.x1 + x, qbgd.y3 + y, qbgd.x2 + x, qbgd.y1 + y},
                   qbgd.Text);
     }
@@ -1036,7 +1153,9 @@ void CMenu::render() {
     for (size_t i = 0; i < options.size(); ++i) {
         auto &o = options[i];
         ensureLayout(o);
-        const Rect r = optionRect(i);
+        const auto appearance =
+            ui::resolveTypography(style.typography, o.styleOverrides);
+        const Rect r = optionRect(i, style);
         const bool clipped = viewportEnabled && o.group == flowGroup;
         const Rect view{viewport.left + x, viewport.bottom + y,
                         viewport.right + x, viewport.top + y};
@@ -1056,55 +1175,63 @@ void CMenu::render() {
         const double px = o.x + x, py = o.y + y + (clipped ? scrollOffset : 0);
 
         if (static_cast<int>(i) == focused) {
-            auto selectedColor = style.selection;
+            auto selectedColor = style.selection.background;
 
-            if (style.animateSelection) {
-                selectedColor[3] *= .9 + .1 * std::sin(engine.getTime() * 4);
+            if (style.selection.animated) {
+                selectedColor.a *= .9 + .1 * std::sin(engine.getTime() * 4);
             }
 
             color(selectedColor);
             rectangle(r);
-            color(style.accent);
-            rectangle({r.left - o.size * (1 + style.pickGap), py,
-                       r.left - o.size * style.pickGap, py + o.size},
-                      pickTexture);
+            color(style.selection.accent);
+            rectangle(
+                {r.left - appearance.textSize * (1 + style.selection.pickGap),
+                 py, r.left - appearance.textSize * style.selection.pickGap,
+                 py + appearance.textSize},
+                pickTexture);
         }
 
-        engine.setColor(o.color[0], o.color[1], o.color[2],
-                        o.disabled ? .35 : o.color[3]);
+        engine.setColor(appearance.textColor.r, appearance.textColor.g,
+                        appearance.textColor.b,
+                        o.disabled ? .35 : appearance.textColor.a);
 
         if (o.type == text_input) {
-            color(style.field);
+            color(style.controls.field);
             rectangle(r);
-            clip({px, py, px + o.fieldWidth, py + o.size});
+            clip({px, py, px + o.fieldWidth, py + appearance.textSize});
             const size_t cursor =
                 std::min(static_cast<size_t>(std::max(0, o.strEditPoint)),
                          o.layout.carets.empty() ? size_t(0)
                                                  : o.layout.carets.size() - 1);
             const double caret =
-                o.layout.carets.empty() ? 0 : o.layout.carets[cursor] * o.size;
+                o.layout.carets.empty()
+                    ? 0
+                    : o.layout.carets[cursor] * appearance.textSize;
             o.textScroll =
                 std::clamp(o.textScroll,
                            std::max(0.0, caret - o.fieldWidth +
                                              std::min(.02, o.fieldWidth * .25)),
                            std::max(0.0, caret));
-            engine.setColor(o.color[0], o.color[1], o.color[2], o.color[3]);
-            fonts.drawLayout(o.layout, px - o.textScroll, py, o.size);
+            engine.setColor(appearance.textColor.r, appearance.textColor.g,
+                            appearance.textColor.b, appearance.textColor.a);
+            fonts.drawLayout(o.layout, px - o.textScroll, py,
+                             appearance.textSize);
 
             if (o.status & 4) {
-                color(style.accent);
+                color(style.selection.accent);
                 rectangle({px + caret - o.textScroll, py,
-                           px + caret - o.textScroll + .003, py + o.size});
+                           px + caret - o.textScroll + .003,
+                           py + appearance.textSize});
             }
         } else if (o.type == drag_bar) {
-            color(style.control);
-            rectangle(controlRect(i));
+            color(style.controls.track);
+            rectangle(controlRect(i, style));
         } else {
-            fonts.drawLayout(o.layout, px, py, o.size);
+            fonts.drawLayout(o.layout, px, py, appearance.textSize);
 
             if (o.type == deslizant_Select_list) {
-                const auto bar = controlRect(i);
-                color(style.control);
+                const auto bar = controlRect(i, style);
+                color(style.controls.track);
                 rectangle(bar);
 
                 if (!o.optList.empty() && o.deslizantBarSize > 0) {
@@ -1115,14 +1242,18 @@ void CMenu::render() {
                             : 0;
                     const double cursor =
                         bar.left +
-                        fraction * std::max(0.0, o.deslizantBarSize - o.size);
-                    color(style.accent);
-                    rectangle({cursor, bar.bottom, cursor + o.size, bar.top},
+                        fraction * std::max(0.0, o.deslizantBarSize -
+                                                     appearance.textSize);
+                    color(style.selection.accent);
+                    rectangle({cursor, bar.bottom,
+                               cursor + appearance.textSize, bar.top},
                               pickTexture);
-                    engine.setColor(o.color[0], o.color[1], o.color[2],
-                                    o.color[3]);
-                    fonts.drawLayout(o.valueLayout, bar.right + o.size, py,
-                                     o.size);
+                    engine.setColor(
+                        appearance.textColor.r, appearance.textColor.g,
+                        appearance.textColor.b, appearance.textColor.a);
+                    fonts.drawLayout(o.valueLayout,
+                                     bar.right + appearance.textSize, py,
+                                     appearance.textSize);
                 }
             }
         }

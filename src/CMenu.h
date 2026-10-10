@@ -4,9 +4,11 @@
 #define GUITARPP_CMENU_H
 
 #include "CControls.h"
+#include "CUIStyle.h"
 #include "CEngine.h"
 #include "CFonts.h"
 #include "CLuaH.hpp"
+#include <array>
 #include <cstdint>
 #include <deque>
 #include <iostream>
@@ -49,6 +51,8 @@ class CMenu {
     int thisUiID;
 
     int focused = -1, hovered = -1, captured = -1;
+    int focusGeometryOption = -1;
+    std::array<double, 5> focusGeometry{};
     bool dragging = false;
     double dragX = 0, dragY = 0;
     static CMenu *inputFocus;
@@ -84,13 +88,8 @@ class CMenu {
         }
     };
 
-    struct Style {
-        double textSize = .075, rowStep = .1, pickGap = .2, padding = .08;
-        std::array<double, 4> accent{{1, .88, .5, 1}},
-            selection{{.04, .04, .055, .72}}, field{{.025, .025, .035, .82}},
-            control{{.15, .17, .21, .9}}, panel{{.07, .08, .10, .95}};
-        bool animateSelection = false;
-    } style;
+    ui::StyleOverrides styleOverrides;
+    ui::Style resolvedStyle() const;
     enum class Flow { Manual, Vertical, Horizontal };
     Flow flow = Flow::Manual;
     bool modal = false;
@@ -153,6 +152,8 @@ class CMenu {
         bool disabled = false;
         bool manualPosition = false;
         bool anchorRight = false;
+        std::optional<double> centerX;
+        ui::OptionStyleOverrides styleOverrides;
         double fieldWidth = .55, textScroll = 0;
         int eventID = 0;
         CFonts::TextLayout layout, valueLayout;
@@ -186,10 +187,8 @@ class CMenu {
 
         std::deque<std::string> menusXRef;
 
-        double x, y, size;
+        double x, y;
         int strEditPoint;
-
-        double color[4];
 
         std::function<int(CMenu &, menuOpt &)> updateCppCallback;
         std::function<int(CMenu &, menuOpt &)> posUpdateCppCallback;
@@ -201,7 +200,6 @@ class CMenu {
             group = -1;
             status = 0;
             x = y = 0.0;
-            size = 0.1;
             texture = 0;
             deslizantBarSize = 0.0;
             listID = 0;
@@ -220,16 +218,26 @@ class CMenu {
 
             pressingShortcutKey = shortcutKey = 0;
 
-            color[0] = color[1] = color[2] = color[3] = 1.0;
-
             preText = "type here";
         }
     };
 
+    ui::Typography resolvedOptionStyle(const menuOpt &option) const;
+
+  private:
+    Rect optionRect(size_t index, const ui::Style &style);
+    Rect controlRect(size_t index, const ui::Style &style);
+    void reflow(const ui::Style &style);
+    void refreshFocusGeometry(const ui::Style &style);
+    void revealFocused(const ui::Style &style);
+
+  public:
     Rect optionRect(size_t index);
     Rect controlRect(size_t index);
     void ensureLayout(menuOpt &);
     void revealFocused();
+    // Freeze automatic positions before the editor moves an individual item.
+    void beginManualEdit(size_t index);
     void select(int index);
 
     struct group {

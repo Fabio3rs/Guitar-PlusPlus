@@ -318,3 +318,67 @@ TEST_F(FontAtlasGL, MenuRestoresMatricesColorAndScissor) {
     EXPECT_NEAR(color[3], .5, 1e-6);
     EXPECT_TRUE(glIsEnabled(GL_SCISSOR_TEST));
 }
+
+TEST_F(FontAtlasGL, MenuStyleChangesColorsAndKeepsUnitGlyphCache) {
+    struct RestoreStyle {
+        ui::Style previous = ui::activeStyle();
+        ~RestoreStyle() { ui::setActiveStyle(previous); }
+    } restore;
+    atlas("style.tga", true);
+    auto &fonts = CFonts::fonts();
+    ASSERT_FALSE(fonts
+                     .addTextureToFont("default", path.string(), "style.tga",
+                                       "a", {1, 1})
+                     .empty());
+    CMenu menu;
+    CMenu::menuOpt option;
+    option.type = CMenu::textbtn;
+    option.text = "a";
+    option.x = -.7;
+    option.y = -.6;
+    menu.addOpt(option);
+    option.y = .1;
+    option.styleOverrides.textColor = ui::Color{0, 1, 0, 1};
+    menu.addOpt(option);
+    ui::Style style;
+    style.typography.textSize = .25;
+    style.typography.textColor = {1, 0, 0, 1};
+    ui::setActiveStyle(style);
+    auto countColors = [&]() {
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        menu.render();
+        std::array<unsigned char, 128 * 128 * 3> pixels{};
+        glReadPixels(0, 0, 128, 128, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+        std::array<int, 3> count{};
+        for (size_t i = 0; i < pixels.size(); i += 3) {
+            for (size_t channel = 0; channel < 3; ++channel) {
+                if (pixels[i + channel] > 200 &&
+                    pixels[i + (channel + 1) % 3] < 20 &&
+                    pixels[i + (channel + 2) % 3] < 20) {
+                    ++count[channel];
+                }
+            }
+        }
+
+        return count;
+    };
+    auto first = countColors();
+    EXPECT_GT(first[0], 0);
+    EXPECT_GT(first[1], 0);
+    EXPECT_EQ(first[2], 0);
+    const auto *glyphs = menu.options[0].layout.glyphs.data();
+    const auto revision = menu.options[0].cachedRevision;
+    const auto carets = menu.options[0].layout.carets;
+    style.typography.textColor = {0, 0, 1, 1};
+    style.typography.textSize = .35;
+    ui::setActiveStyle(style);
+    auto second = countColors();
+    EXPECT_EQ(second[0], 0);
+    EXPECT_GT(second[1], first[1]);
+    EXPECT_GT(second[2], first[0]);
+    EXPECT_EQ(menu.options[0].layout.glyphs.data(), glyphs);
+    EXPECT_EQ(menu.options[0].cachedRevision, revision);
+    EXPECT_EQ(menu.options[0].layout.carets, carets);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}

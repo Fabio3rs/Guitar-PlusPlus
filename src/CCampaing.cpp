@@ -190,8 +190,7 @@ auto CCampaing::campaingMainMenu(CMenu &menu) -> int {
 
         opt.text = "Nova campanha";
         opt.y = 0.4;
-        opt.size = 0.075;
-        opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
+        opt.centerX = -0.5;
         opt.group = 1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
@@ -204,8 +203,7 @@ auto CCampaing::campaingMainMenu(CMenu &menu) -> int {
 
         opt.text = "Continuar campanha";
         opt.y = 0.3;
-        opt.size = 0.075;
-        opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
+        opt.centerX = -0.5;
         opt.group = 1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
@@ -221,8 +219,7 @@ auto CCampaing::campaingMainMenu(CMenu &menu) -> int {
 
         opt.text = "Voltar";
         opt.y = -0.2;
-        opt.size = 0.075;
-        opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
+        opt.centerX = -0.5;
         opt.group = 1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
@@ -460,8 +457,8 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
 
             opt.text = "Modo campanha";
             opt.y = 0.8;
-            opt.size = 0.1;
-            opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+            opt.styleOverrides.textSize = 0.1;
+            opt.centerX = 0.0;
             // opt.group = 0;
             opt.status = 0;
             opt.type = CMenu::menusOPT::static_text;
@@ -474,8 +471,7 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
 
             opt.text = "Jogar";
             opt.y = 0.4;
-            opt.size = 0.075;
-            opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
+            opt.centerX = -0.5;
             opt.group = 1;
             opt.status = 0;
             opt.type = CMenu::menusOPT::textbtn;
@@ -494,9 +490,9 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
 
             opt.text = "Informa\xc3\xa7ões:";
             opt.y = 0.3;
-            opt.size = 0.075;
-            opt.x = infoPos =
-                CFonts::fonts().getCenterPos(opt.text, opt.size, -0.3);
+            opt.x = infoPos = CFonts::fonts().getCenterPos(
+                opt.text, contOptions.resolvedOptionStyle(opt).textSize,
+                -0.3);
             // opt.group = 0;
             opt.status = 0;
             opt.type = CMenu::menusOPT::static_text;
@@ -509,7 +505,6 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
 
             opt.text = "* Show em um lugar público xyz";
             opt.y = 0.2;
-            opt.size = 0.075;
             opt.x = infoPos;
             // opt.group = 0;
             opt.status = 0;
@@ -523,7 +518,6 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
 
             opt.text = "* Várias músicas";
             opt.y = 0.11;
-            opt.size = 0.075;
             opt.x = infoPos;
             // opt.group = 0;
             opt.status = 0;
@@ -537,7 +531,6 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
 
             opt.text = "* Possibilidade de música aleatoria";
             opt.y = 0.02;
-            opt.size = 0.075;
             opt.x = infoPos;
             // opt.group = 0;
             opt.status = 0;
@@ -551,7 +544,6 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
 
             opt.text = "* Reputação máxima prevista 10000";
             opt.y = -0.07;
-            opt.size = 0.075;
             opt.x = infoPos;
             // opt.group = 0;
             opt.status = 0;
@@ -565,7 +557,6 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
 
             opt.text = "* Musicas previstas:";
             opt.y = -0.16;
-            opt.size = 0.075;
             opt.x = infoPos;
             // opt.group = 0;
             opt.status = 0;
@@ -593,7 +584,6 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
 
                 opt.text = songs[i];
                 opt.y = -0.25 - static_cast<double>(i) * 0.08;
-                opt.size = 0.075;
                 opt.x = infoPos + 0.075 * 2.0;
                 // opt.group = 0;
                 opt.status = 0;
@@ -610,8 +600,7 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
 
             opt.text = "Voltar";
             opt.y = -0.8;
-            opt.size = 0.075;
-            opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, -0.5);
+            opt.centerX = -0.5;
             opt.group = 1;
             opt.status = 0;
             opt.type = CMenu::menusOPT::textbtn;

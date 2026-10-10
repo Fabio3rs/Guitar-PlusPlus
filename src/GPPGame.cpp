@@ -568,7 +568,7 @@ void GPPGame::selectPlayerMenu() {
         opt.text = "Voltar";
         opt.y = 0.85;
         opt.x = -0.8;
-        opt.size = 0.1;
+        opt.styleOverrides.textSize = 0.1;
         opt.group = -1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
@@ -576,7 +576,7 @@ void GPPGame::selectPlayerMenu() {
 
         opt.shortcutKey = GLFW_KEY_ESCAPE;
 
-        opt.color[0] = opt.color[1] = opt.color[2] = 0.5;
+        opt.styleOverrides.textColor = ui::Color{.5, .5, .5, 1};
 
         opt.updateCppCallback = [&menuPlayers](CMenu &menu,
                                                CMenu::menuOpt &opt) {
@@ -629,7 +629,7 @@ void GPPGame::selectPlayerMenu() {
         opt.anchorRight = true;
         opt.y = 0.85;
         opt.x = 0.6;
-        opt.size = 0.1;
+        opt.styleOverrides.textSize = 0.1;
         opt.group = -1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
@@ -681,7 +681,7 @@ void GPPGame::selectPlayerMenu() {
                     opt.text = profiles;
                     opt.y = 0.8 - menuPlayers.size() * 0.1;
                     opt.x = CFonts::fonts().getCenterPos(profiles, 0.09, 0.0);
-                    opt.size = 0.09;
+                    opt.styleOverrides.textSize = 0.09;
                     opt.group = 1;
                     opt.status = 0;
                     opt.type = CMenu::menusOPT::textbtn;
@@ -2615,8 +2615,7 @@ void GPPGame::continueCampaing(const std::string &name) {
 
             opt.text = "Patos voadores";
             opt.y = 0.3;
-            opt.size = 0.075;
-            opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+            opt.centerX = 0.0;
             opt.group = 1;
             opt.status = 0;
             opt.type = CMenu::menusOPT::textbtn;
@@ -2629,8 +2628,7 @@ void GPPGame::continueCampaing(const std::string &name) {
 
             opt.text = "Voltar";
             opt.y = 0.0;
-            opt.size = 0.075;
-            opt.x = CFonts::fonts().getCenterPos(opt.text, opt.size, 0.0);
+            opt.centerX = 0.0;
             opt.group = 1;
             opt.status = 0;
             opt.type = CMenu::menusOPT::textbtn;
@@ -3818,7 +3816,7 @@ auto GPPGame::selectSong() -> std::string {
         opt.text = "Voltar";
         opt.y = 0.85;
         opt.x = -0.8;
-        opt.size = 0.1;
+        opt.styleOverrides.textSize = 0.1;
         opt.group = -1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
@@ -3826,7 +3824,7 @@ auto GPPGame::selectSong() -> std::string {
 
         opt.shortcutKey = GLFW_KEY_ESCAPE;
 
-        opt.color[0] = opt.color[1] = opt.color[2] = 0.5;
+        opt.styleOverrides.textColor = ui::Color{.5, .5, .5, 1};
 
         voltarOpt = selectSongMenu.addOpt(opt);
     }
@@ -3858,11 +3856,13 @@ auto GPPGame::selectSong() -> std::string {
         for (const auto &song : pending.get()) {
             CMenu::menuOpt opt;
             opt.text = song.first;
-            opt.size = .09;
+            opt.styleOverrides.textSize = .09;
             opt.group = 1;
             opt.type = CMenu::textbtn;
             opt.goback = true;
-            opt.color[1] = opt.color[2] = song.second ? 1.0 : 0.0;
+            if (!song.second) {
+                opt.styleOverrides.textColor = ui::Color{1, 0, 0, 1};
+            }
             menuMusics[selectSongMenu.addOpt(opt)] = song.first;
         }
     }
@@ -4004,7 +4004,7 @@ void GPPGame::addSongListToMenu(CMenu &selectSongMenu,
         opt.text = "Voltar";
         opt.y = 0.85;
         opt.x = -0.8;
-        opt.size = 0.1;
+        opt.styleOverrides.textSize = 0.1;
         opt.group = -1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
@@ -4012,7 +4012,7 @@ void GPPGame::addSongListToMenu(CMenu &selectSongMenu,
 
         opt.shortcutKey = GLFW_KEY_ESCAPE;
 
-        opt.color[0] = opt.color[1] = opt.color[2] = 0.5;
+        opt.styleOverrides.textColor = ui::Color{.5, .5, .5, 1};
 
         voltarOpt = selectSongMenu.addOpt(opt);
     }
@@ -4044,11 +4044,13 @@ void GPPGame::addSongListToMenu(CMenu &selectSongMenu,
         for (const auto &song : pending.get()) {
             CMenu::menuOpt opt;
             opt.text = song.first;
-            opt.size = .09;
+            opt.styleOverrides.textSize = .09;
             opt.group = 1;
             opt.type = CMenu::textbtn;
             opt.goback = false;
-            opt.color[1] = opt.color[2] = song.second ? 1.0 : 0.0;
+            if (!song.second) {
+                opt.styleOverrides.textColor = ui::Color{1, 0, 0, 1};
+            }
             menuMusics[selectSongMenu.addOpt(opt)] = song.first;
         }
     }
@@ -4111,7 +4113,6 @@ auto GPPGame::openMenus(CMenu *startMenu,
             opt.text = m;
             opt.y = 0.5 - optn * 0.2;
             opt.x = 0.15;
-            opt.size = 0.075;
             opt.group = 1;
             opt.status = 0;
             opt.type = CMenu::menusOPT::textbtn;
@@ -4127,7 +4128,6 @@ auto GPPGame::openMenus(CMenu *startMenu,
         opt.text = "Back/voltar";
         opt.y = -0.75;
         opt.x = 0.5;
-        opt.size = 0.075;
         opt.group = 1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
@@ -4814,12 +4814,13 @@ GPPGame::GPPGame()
         opt.y = -0.6 + 0.75;
         opt.x = -0.1;
         opt.deslizantBarSize = 1.5;
-        opt.size = 0.1;
+        opt.styleOverrides.textSize = 0.1;
         opt.group = 2;
         opt.status = 0;
         opt.type = CMenu::menusOPT::drag_bar;
 
-        CEngine::colorRGBToArray(0x3F51B5, opt.color);
+        opt.styleOverrides.textColor =
+            ui::Color{63.0 / 255, 81.0 / 255, 181.0 / 255, 1};
 
         uiRenameMenu.addOpt(opt);
         uiCreateProfile.addOpt(opt);
@@ -4831,7 +4832,6 @@ GPPGame::GPPGame()
         opt.text = "aaaa";
         opt.y = 0.05;
         opt.x = 0.0;
-        opt.size = 0.075;
         opt.group = 1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::text_input;
@@ -4846,7 +4846,6 @@ GPPGame::GPPGame()
         opt.text = "Path:";
         opt.y = -0.05;
         opt.x = 0.0;
-        opt.size = 0.075;
         opt.group = 1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::static_text;
@@ -4860,14 +4859,11 @@ GPPGame::GPPGame()
         opt.text = "Close";
         opt.y = -0.5;
         opt.x = 0.0;
-        opt.size = 0.075;
         opt.group = 1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
         opt.goback = true;
-        opt.color[0] = 1.0;
-        opt.color[1] = 0.0;
-        opt.color[2] = 0.0;
+        opt.styleOverrides.textColor = ui::Color{1, 0, 0, 1};
 
         uiRenameMenu.addOpt(opt);
         uiCreateProfile.addOpt(opt);
@@ -4882,7 +4878,6 @@ GPPGame::GPPGame()
         // opt.langEntryKey = "devMenuRename";
         opt.y = 0.8;
         opt.x = -1.0;
-        opt.size = 0.075;
         opt.group = 1;
         opt.status = 0;
         opt.type = CMenu::menusOPT::textbtn;
