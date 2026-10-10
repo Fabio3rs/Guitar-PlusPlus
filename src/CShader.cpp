@@ -326,6 +326,9 @@ void CShader::prepareEffects() {
             effect.time = getEventUniform(effect.event, "uTime");
             effect.opacity = getEventUniform(effect.event, "uOpacity");
             effect.spark = getEventUniform(effect.event, "uSpark");
+            effect.plusActive = getEventUniform(effect.event, "uPlusActive");
+            effect.multiplier = getEventUniform(effect.event, "uMultiplier");
+            effect.publicApproval = getEventUniform(effect.event, "uPublicApproval");
         } catch (const std::exception &error) {
             effect = {};
             CLog::log() << std::string(name) + ": " + error.what();

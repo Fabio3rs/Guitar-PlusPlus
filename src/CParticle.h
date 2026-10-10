@@ -33,7 +33,8 @@ class CParticle {
     bool emitFire(const particleData &pdata, double now);
     void moveEmitter(int emitter, double height);
     void render();
-    void renderFire();
+    void renderFire(bool plusActive = false, double multiplier = 4.0,
+                    double publicApproval = 1.0);
 
     CParticle();
 };

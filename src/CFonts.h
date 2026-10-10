@@ -60,12 +60,28 @@ class CFonts {
             int pos;
             int line;
             double align, size;
+            double height = 1.0, baselineOffset = 0.0;
             const fontTexture *textureLst;
             unsigned int textID;
 
             void setTextID(const fontTexture &texture);
 
           public:
+            void setVerticalMetrics(double newHeight, double newOffset) noexcept {
+                height = newHeight;
+                baselineOffset = newOffset;
+            }
+
+            // Transform along the glyph's vertical axis (Y and Z for 3D text).
+            void applyVerticalMetrics(CEngine::RenderDoubleStruct &quad,
+                                      double y, double z,
+                                      double sizeY, double sizeZ) const noexcept {
+                quad.y1 = quad.y2 = y + (baselineOffset + height) * sizeY;
+                quad.y3 = quad.y4 = y + baselineOffset * sizeY;
+                quad.z1 = quad.z2 = z + (baselineOffset + height) * sizeZ;
+                quad.z3 = quad.z4 = z + baselineOffset * sizeZ;
+            }
+
             void internalProcessTexture(int ch);
 
             inline double getAlign() const noexcept { return align; }
@@ -119,6 +135,13 @@ class CFonts {
                                size_t at);
     static void utf8RemoveLast(std::string &s);
     static void utf8RemoveAtRange(std::string &s, int at, int size);
+
+    // UTF-8 characters must already be registered. Height > 0; positive offset
+    // raises the glyph relative to posY1. Both values are multiples of text size.
+    // Returns false without changing any glyph on invalid input.
+    bool setFontCharMetrics(const std::string &fontName,
+                            const std::string &characters,
+                            double height, double baselineOffset);
 
     // Adds Texture to font and create a font inst if doesnt exists
     std::string addTextureToFont(const std::string &fontName,

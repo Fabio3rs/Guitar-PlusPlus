@@ -1192,6 +1192,19 @@ auto CLuaFunctions::getMainMenuName(lua_State *L) -> int {
     return p.rtn();
 }
 
+auto CLuaFunctions::setFontCharMetrics(lua_State *L) -> int {
+    bool success = false;
+    if (lua_gettop(L) == 4 && lua_type(L, 1) == LUA_TSTRING &&
+        lua_type(L, 2) == LUA_TSTRING && lua_type(L, 3) == LUA_TNUMBER &&
+        lua_type(L, 4) == LUA_TNUMBER) {
+        success = CFonts::fonts().setFontCharMetrics(
+            lua_tostring(L, 1), lua_tostring(L, 2),
+            lua_tonumber(L, 3), lua_tonumber(L, 4));
+    }
+    lua_pushboolean(L, success);
+    return 1;
+}
+
 auto CLuaFunctions::addTextureToFont(lua_State *L) -> int {
     LuaParams p(L);
 
@@ -1263,6 +1276,7 @@ void CLuaFunctions::registerFunctions(CLuaH::luaState_t &Lstate) {
     lua_register(L, "getNumOfMenuOptions", getNumOfMenuOptions);
     lua_register(L, "loadTexture", loadTexture);
     lua_register(L, "addTextureToFont", addTextureToFont);
+    lua_register(L, "setFontCharMetrics", setFontCharMetrics);
     lua_register(L, "assingMenuToOtherMenuOption", assingMenuToOtherMenuOption);
     lua_register(L, "setMenuBackgroundTexture", setMenuBackgroundTexture);
     lua_register(L, "getActualMenu", getActualMenu);

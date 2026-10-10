@@ -2295,7 +2295,12 @@ void CGamePlay::renderPlayer(CPlayer &player) {
 
     if (!player.playerParticles.part.empty()) {
 
-        player.playerParticles.renderFire();
+        const double publicApproval = player.maxPublicAprov > 0
+            ? static_cast<double>(player.publicAprov) /
+                  static_cast<double>(player.maxPublicAprov)
+            : 0.0;
+        player.playerParticles.renderFire(
+            player.plusEnabled, player.comboToMultiplier(), publicApproval);
     }
 
     engine.setColor(1.0, 1.0, 1.0, 1.0);

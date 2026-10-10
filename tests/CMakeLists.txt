@@ -21,3 +21,11 @@ if(UNIX AND NOT APPLE AND XVFB_RUN)
 else()
     add_test(NAME shader_gl COMMAND tests --gtest_filter=ShaderGL.*)
 endif()
+
+if(UNIX AND NOT APPLE AND XVFB_RUN)
+    add_test(NAME font_metrics COMMAND ${XVFB_RUN} -a $<TARGET_FILE:tests>
+             --gtest_filter=FontMetricsGL.*)
+    set_tests_properties(font_metrics PROPERTIES ENVIRONMENT "LIBGL_ALWAYS_SOFTWARE=1")
+else()
+    add_test(NAME font_metrics COMMAND tests --gtest_filter=FontMetricsGL.*)
+endif()

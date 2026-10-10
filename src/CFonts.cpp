@@ -10,6 +10,7 @@
 #include "GPPGame.h"
 #include "utf8.h"
 #include <cstdint>
+#include <cmath>
 #include <iostream>
 
 auto CFonts::fonts() -> CFonts & {
@@ -78,6 +79,7 @@ void CFonts::Font::registerTexture(const std::string &path,
             charInst.setLine(tex.lines - 1);
             charInst.setPos(pos++);
             charInst.setText(tex);
+            charInst.setVerticalMetrics(1.0, 0.0);
 
             break;
         }
@@ -120,6 +122,7 @@ void CFonts::Font::registerTexture(const std::string &path,
             charInst.setLine(tex.lines - 1);
             charInst.setPos(pos++);
             charInst.setText(tex);
+            charInst.setVerticalMetrics(1.0, 0.0);
 
             break;
         }
@@ -354,6 +357,7 @@ void CFonts::draw3DTextInScreen(const std::string &str, const double posX1,
             RenderData.TextureX2 =
                 (positionFromCharInTexture * sizeFromChar) + sizeFromChar;
 
+            chData.applyVerticalMetrics(RenderData, posY1, posZ1, sizeY, sizeZ);
             engine.Render3DQuad(RenderData);
         }
 
@@ -602,6 +606,7 @@ void CFonts::drawTextInScreenWithBuffer(const std::string &str,
 
             // engine.Render2DQuad(RenderData);
 
+            chData.applyVerticalMetrics(RenderData, posY1, 0.0, size, 0.0);
             CEngine::pushQuad(*buffer, RenderData);
         }
 
@@ -694,11 +699,43 @@ void CFonts::drawTextInScreen(const std::string &str, const double posX1,
             RenderData.TextureX2 =
                 (positionFromCharInTexture * sizeFromChar) + sizeFromChar;
 
+            chData.applyVerticalMetrics(RenderData, posY1, 0.0, size, 0.0);
             engine.Render2DQuad(RenderData);
         }
 
         ++i;
     }
+}
+
+bool CFonts::setFontCharMetrics(const std::string &fontName,
+                                const std::string &characters,
+                                double height, double baselineOffset) {
+    auto font = fontsReg.find(fontName);
+    if (font == fontsReg.end() || characters.empty() ||
+        !std::isfinite(height) || height <= 0.0 ||
+        !std::isfinite(baselineOffset)) {
+        return false;
+    }
+
+    std::vector<Font::chartbl *> glyphs;
+    try {
+        for (auto it = characters.begin(); it != characters.end();) {
+            auto ch = utf8::next(it, characters.end());
+            auto glyph = font->second.chars.find(ch);
+            if (glyph == font->second.chars.end() ||
+                glyph->second.getText() == nullptr) {
+                return false;
+            }
+            glyphs.push_back(&glyph->second);
+        }
+    } catch (const std::exception &) {
+        return false;
+    }
+
+    for (auto *glyph : glyphs) {
+        glyph->setVerticalMetrics(height, baselineOffset);
+    }
+    return true;
 }
 
 auto CFonts::addTextureToFont(const std::string &fontName,

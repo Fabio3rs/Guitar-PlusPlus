@@ -192,6 +192,7 @@ class CLuaFunctions {
      * Adds Texture to font and create a font instance if it doesn't exists
      */
     static int addTextureToFont(lua_State *L);
+    static int setFontCharMetrics(lua_State *L);
 
     /*
      *

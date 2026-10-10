@@ -165,6 +165,14 @@ TEST_F(ShaderGL, FireProgramProducesTransparentEdgesAndAnimatedFlame) {
     const int time = manager.getEventUniform(event, "uTime");
     ASSERT_GE(time, 0);
     manager.processEvent(event);
+    const int multiplier = manager.getEventUniform(event, "uMultiplier");
+    const int approval = manager.getEventUniform(event, "uPublicApproval");
+    const int plus = manager.getEventUniform(event, "uPlusActive");
+    ASSERT_GE(multiplier, 0);
+    ASSERT_GE(approval, 0);
+    ASSERT_GE(plus, 0);
+    CShader::setFloatUniform(multiplier, 4.0f);
+    CShader::setFloatUniform(approval, 1.0f);
     glViewport(0, 0, 32, 32);
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
@@ -199,6 +207,34 @@ TEST_F(ShaderGL, FireProgramProducesTransparentEdgesAndAnimatedFlame) {
     EXPECT_NE(first, draw(0.4f, 1.0f));
     const auto faded = draw(0.0f, 0.25f);
     EXPECT_LT(faded[center + 3], first[center + 3] / 2);
+    // Compare rendered coverage, not just uniform values, across multipliers.
+    const auto coverage = [](const auto &pixels) {
+        unsigned int total = 0;
+        for (size_t i = 3; i < pixels.size(); i += 4)
+            total += pixels[i];
+        return total;
+    };
+    unsigned int previousCoverage = 0;
+    for (float value : {1.0f, 2.0f, 3.0f, 4.0f}) {
+        CShader::setFloatUniform(multiplier, value);
+        const auto current = draw(0.0f, 1.0f);
+        EXPECT_GT(coverage(current), previousCoverage);
+        previousCoverage = coverage(current);
+    }
+    CShader::setFloatUniform(multiplier, 8.0f);
+    EXPECT_EQ(first, draw(0.0f, 1.0f));
+    CShader::setFloatUniform(approval, 0.0f);
+    const auto red = draw(0.0f, 1.0f);
+    EXPECT_EQ(red[center], first[center]);
+    EXPECT_LT(red[center + 1], first[center + 1]);
+    EXPECT_EQ(coverage(red), coverage(first));
+    CShader::setFloatUniform(plus, 1.0f);
+    const auto blue = draw(0.0f, 1.0f);
+    EXPECT_GT(blue[center + 2], blue[center]);
+    CShader::setFloatUniform(approval, 1.0f);
+    EXPECT_EQ(blue, draw(0.0f, 1.0f));
+    CShader::setFloatUniform(plus, 0.0f);
+    EXPECT_EQ(first, draw(0.0f, 1.0f));
     EXPECT_EQ(glGetError(), GL_NO_ERROR);
     manager.deactivateShader();
 }

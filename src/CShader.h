@@ -107,6 +107,9 @@ class CShader {
         int time = -1;
         int opacity = -1;
         int spark = -1;
+        int plusActive = -1;
+        int multiplier = -1;
+        int publicApproval = -1;
     };
 
   private:
