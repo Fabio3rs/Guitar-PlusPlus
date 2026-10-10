@@ -2,20 +2,184 @@
 #ifndef _GUITARPP_CCHART_H_
 #define _GUITARPP_CCHART_H_
 
-#include "CPlayer.h"
 #include <cereal/cereal.hpp>
+#include <cstdint>
 #include <deque>
 #include <fstream>
 #include <map>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <vector>
 
-typedef CPlayer::NotesData::Note Note_t;
-typedef CPlayer::NotesData::NoteInt NoteInt_t;
-typedef CPlayer::NotesData::plusNote plusNote_t;
-typedef std::vector<Note_t> BPM_t;
+class CPlayer;
+class CCharter;
+
+enum notesFlags {
+    nf_green = 1,
+    nf_red = 2,
+    nf_yellow = 4,
+    nf_blue = 8,
+    nf_orange = 16,
+    nf_not_hopo = 32,
+    nf_doing_slide = 64,
+    nf_failed = 128,
+    nf_picked = 256,
+    nf_slide = 512,
+    nf_slide_picked = 1024,
+    losted = 2048,
+    plus_mid = 4096,
+    plus_end = 8192,
+    hopontstrmmd = 16384,
+    strmstlrc = 32768,
+    noteTap = 65536,
+    nf_open = 131072,
+    nf_reverseStrumHopo = 262144
+};
 
 class CChart {
+  public:
+    // Each player owns its own mutable buffers and playback cursors.
+    class NotesData {
+        friend CCharter;
+        void deducePlusLastNotes();
+        bool validateLoadedChart();
+
+      public:
+        size_t notePos, plusPos;
+        size_t lastNotePicked;
+        double fretsNotePickedTime[5]{};
+
+        double getChartEnd(double offset = 2.0);
+
+        struct NoteInt {
+            uint64_t time, lTime;
+
+            int type;
+
+            inline bool operator<(const NoteInt &b) const noexcept {
+                return time < b.time;
+            }
+
+            inline bool operator>(const NoteInt &b) const noexcept {
+                return time > b.time;
+            }
+
+            template <class Archive> void load(Archive &archive) {
+                archive(time, lTime, type);
+            }
+
+            template <class Archive> void save(Archive &archive) const {
+                archive(time, lTime, type);
+            }
+
+            NoteInt() noexcept {
+                time = 0uLL;
+                lTime = 0uLL;
+                type = 0;
+            }
+        };
+
+        struct Note {
+            double time;
+            double lTime;
+
+            int type;
+
+            inline bool operator<(const Note &b) const noexcept {
+                return time < b.time;
+            }
+
+            inline bool operator>(const Note &b) const noexcept {
+                return time > b.time;
+            }
+
+            template <class Archive> void load(Archive &archive) {
+                archive(time, lTime, type);
+            }
+
+            template <class Archive> void save(Archive &archive) const {
+                archive(time, lTime, type);
+            }
+
+            Note(NoteInt &&n) noexcept {
+                time = static_cast<double>(n.time);
+                lTime = static_cast<double>(n.lTime);
+                type = n.type;
+            }
+
+            Note(const NoteInt &n) noexcept {
+                time = static_cast<double>(n.time);
+                lTime = static_cast<double>(n.lTime);
+                type = n.type;
+            }
+
+            Note() noexcept {
+                time = 0.0;
+                lTime = 0.0;
+                type = 0;
+            }
+        };
+
+        struct plusNote {
+            double time, lTime /*, unmodifiedTime*/;
+            int type;
+
+            size_t firstNote, lastNote;
+
+            inline bool operator<(const plusNote &b) const noexcept {
+                return time < b.time;
+            }
+
+            inline bool operator>(const plusNote &b) const noexcept {
+                return time > b.time;
+            }
+
+            template <class Archive> void load(Archive &archive) {
+                archive(time, lTime, type, firstNote, lastNote);
+            }
+
+            template <class Archive> void save(Archive &archive) const {
+                archive(time, lTime, type, firstNote, lastNote);
+            }
+
+            plusNote() noexcept {
+                time = 0.0;
+                lTime = 0.0;
+                // unmodifiedTime = 0.0;
+                type = 0;
+                firstNote = ~0uLL;
+                lastNote = 0;
+            }
+        };
+
+        std::vector<Note> gNotes;
+        std::vector<Note> BPM;
+        std::vector<plusNote> gPlus;
+
+        bool loadChart(std::string_view chartFile, CPlayer &player);
+        bool loadFeedbackChart(std::string_view chartFile, CPlayer &player);
+        void unloadChart();
+
+        NotesData();
+        NotesData(const NotesData &) = default;
+        NotesData &operator=(const NotesData &) = default;
+        NotesData(NotesData &&) noexcept = default;
+        NotesData &operator=(NotesData &&) noexcept = default;
+        ~NotesData();
+
+        // Computed on successful chart loading; moved with the note buffers.
+        double lastNoteEnd = 0.0;
+        double BPMMinPosition, chartEnd;
+        double chartResolutionProp;
+    };
+
+    using Note = NotesData::Note;
+    using NoteInt = NotesData::NoteInt;
+    using plusNote = NotesData::plusNote;
+    using BPM_t = std::vector<Note>;
+
+  private:
     friend class cereal::access;
 
     struct instrumentNotes {
@@ -24,8 +188,8 @@ class CChart {
 
         bool present;
 
-        std::vector<Note_t> gNotes;
-        std::vector<plusNote_t> gPlus;
+        std::vector<Note> gNotes;
+        std::vector<plusNote> gPlus;
 
         instrumentNotes();
 
@@ -90,8 +254,10 @@ class CChart {
 
     static const int notesEnum, notesEnumWithOpenNotes;
 
-    // Cheap header check for text charts; binary archives have no separate header.
+    // Cheap header check for text charts; binary archives have no separate
+    // header.
     static bool validateChartHeader(const std::string &chartFile);
+    static std::string smartChartSearch(const std::string &path);
     static bool hasLegacyTextHeader(const std::string &chartFile);
 
     bool open(const std::string &chartFile);
@@ -100,5 +266,11 @@ class CChart {
     CChart();
     ~CChart() noexcept {}
 };
+
+// Compatibility aliases for existing editor and rendering consumers.
+using Note_t = CChart::Note;
+using NoteInt_t = CChart::NoteInt;
+using plusNote_t = CChart::plusNote;
+using BPM_t = CChart::BPM_t;
 
 #endif

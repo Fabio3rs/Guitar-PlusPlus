@@ -43,6 +43,7 @@ if(UNIX AND NOT APPLE AND XVFB_RUN)
 endif()
 
 add_test(NAME song_loading COMMAND tests --gtest_filter=SongLoading.*)
+add_test(NAME chart_runtime COMMAND tests --gtest_filter=ChartRuntime.*)
 
 add_test(NAME scene_definitions COMMAND tests --gtest_filter=Scenes.*)
 if(UNIX AND NOT APPLE AND XVFB_RUN)

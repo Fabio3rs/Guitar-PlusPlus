@@ -1,30 +1,23 @@
-#include <utility>
 #include "CPlayer.h"
 #include "CChart.h"
 #include "CEngine.h"
 #include "CFonts.h"
 #include "CLog.h"
 #include "CMultiplayer.h"
-#include "CText.h"
 #include "GPPGame.h"
 #include <algorithm>
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/cereal.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/vector.hpp>
-#include <cfloat>
 #include <cctype>
+#include <cfloat>
 #include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
-#include <stdexcept>
+#include <utility>
 
 // static constexpr size_t PLAYSZ = sizeof(CPlayer);
 
@@ -34,28 +27,7 @@ const int CPlayer::notesEnumWithOpenNotes =
     nf_green | nf_red | nf_yellow | nf_blue | nf_orange | nf_open;*/
 
 auto CPlayer::smartChartSearch(const std::string &path) -> std::string {
-    auto file_exists = [](const std::string &fileName) {
-        return std::fstream(fileName).is_open();
-    };
-
-    const std::string fullPath = std::string("data/songs/") + path;
-
-    const std::string chartFormats[] = {path + ".gpp", path + ".chart",
-                                        "Chart.gpp",   "Notes.gpp",
-                                        "Chart.chart", "notes.chart"};
-
-    std::string tmp;
-
-    for (const auto &str : chartFormats) {
-        tmp = GPPGame::caseInsensitiveSearchDir(fullPath.c_str(), true, false,
-                                                str);
-
-        if (!tmp.empty()) {
-            { return tmp; }
-        }
-    }
-
-    return "";
+    return CChart::smartChartSearch(path);
 }
 
 void CPlayer::muteInstrument() const {
@@ -64,21 +36,6 @@ void CPlayer::muteInstrument() const {
 
 void CPlayer::unmuteInstrument() const {
     CEngine::engine().setSoundVolume(instrumentSound, 1.0f);
-}
-
-static auto trim(const std::string &str) -> std::string {
-    size_t first = str.find_first_not_of(" \t\r");
-    size_t last = str.find_last_not_of(" \t\r");
-
-    if (first == std::string::npos) {
-        { return str; }
-    }
-
-    if (last == std::string::npos) {
-        { last = str.size(); }
-    }
-
-    return str.substr(first, last - first + 1);
 }
 
 std::atomic<int> palhetaNpKey;
@@ -194,7 +151,9 @@ void CPlayer::update() {
                 palhetaKey = 0;
 
                 if (f) {
-                    { fretsPressedTime[countI] = timeC; }
+                    {
+                        fretsPressedTime[countI] = timeC;
+                    }
                 }
             }
 
@@ -243,8 +202,9 @@ void CPlayer::update() {
             if (ftemp != f) {
                 palhetaKey = false;
 
-                if (f)
+                if (f) {
                     fretsPressedTime[i] = timeC;
+                }
             }
         }
 #endif
@@ -268,7 +228,9 @@ auto CPlayer::smartSongSearch(const std::string &path) -> std::string {
                                                 str);
 
         if (!tmp.empty()) {
-            { return tmp; }
+            {
+                return tmp;
+            }
         }
     }
 
@@ -289,11 +251,11 @@ auto CPlayer::loadSongOnlyChart(const std::string &path) -> bool {
     }
     const std::string fullFilePath = "data/songs/" + path + "/" + chartName;
     std::string extension = chartName.substr(chartName.find_last_of('.'));
-    std::transform(extension.begin(), extension.end(), extension.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    return extension == ".chart"
-               ? Notes.loadFeedbackChart(fullFilePath, *this)
-               : Notes.loadChart(fullFilePath, *this);
+    std::transform(
+        extension.begin(), extension.end(), extension.begin(),
+        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return extension == ".chart" ? Notes.loadFeedbackChart(fullFilePath, *this)
+                                 : Notes.loadChart(fullFilePath, *this);
 }
 
 auto CPlayer::loadSong(const std::string &path) -> bool {
@@ -312,20 +274,23 @@ bool CPlayer::loadSongAudio(const std::string &path) {
     songFullPath = fullPath + "/" + audioName;
     // The session clock/playback uses the main song stream. Instrument stems
     // are optional and must not turn an otherwise playable song into a failure.
-    if (audioName.empty() || !engine.loadSoundStream(songFullPath.c_str(), songAudioID)) {
+    if (audioName.empty() ||
+        !engine.loadSoundStream(songFullPath.c_str(), songAudioID)) {
         CLog::log() << "Cannot load song audio: " + songFullPath;
         releaseSong();
         songFullPath.clear();
         return false;
     }
 
-    const char *stem = instrument == "[ExpertSingle]" ? "guitar.ogg"
-                     : instrument == "[ExpertDoubleBass]" ? "rhythm.ogg" : nullptr;
+    const char *stem = instrument == "[ExpertSingle]"       ? "guitar.ogg"
+                       : instrument == "[ExpertDoubleBass]" ? "rhythm.ogg"
+                                                            : nullptr;
     if (stem != nullptr) {
         const auto stemName = GPPGame::caseInsensitiveSearchDir(
             fullPath.c_str(), true, false, stem);
         if (!stemName.empty() &&
-            !engine.loadSoundStream((fullPath + "/" + stemName).c_str(), instrumentSound)) {
+            !engine.loadSoundStream((fullPath + "/" + stemName).c_str(),
+                                    instrumentSound)) {
             engine.unloadSoundStream(instrumentSound);
             CLog::log() << "Cannot load optional instrument audio: " + stemName;
         }
@@ -339,788 +304,16 @@ auto CPlayer::getLevel() const -> int {
     return static_cast<int>(log(experience));
 }
 
-auto CPlayer::NotesData::loadFeedbackChart(std::string_view chartFile, CPlayer &player) -> bool try {
-    unloadChart();
-    if (!CChart::validateChartHeader(std::string(chartFile))) {
-        CLog::log() << "Invalid chart header: " + std::string(chartFile);
-        return false;
-    }
-    typedef std::map<std::string,
-                     std::map<std::string, std::deque<std::string>>>
-        parsedChart;
-    chartEnd = 0;
-    plusPos = 0;
-    double chartOffset = 0.0;
-
-    parsedChart feedBackChartMap;
-
-    struct SyncTrackBPM {
-        double BPM, offset;
-
-        auto operator<(const SyncTrackBPM &b) const noexcept -> bool {
-            return offset < b.offset;
-        }
-        auto operator>(const SyncTrackBPM &b) const noexcept -> bool {
-            return offset > b.offset;
-        }
-    };
-
-    using noteContainer = std::vector<Note>;
-    using BPMContainer = std::vector<SyncTrackBPM>;
-    noteContainer Ntsdata;
-    BPMContainer BPMsdata;
-
-    BPMsdata.reserve(64);
-
-    auto parseFeedBackChart = [chartFile](parsedChart &data) {
-        std::ifstream chart((std::string(chartFile)));
-        if (!chart) {
-            throw std::runtime_error("Cannot open chart");
-        }
-        char temp[1024];
-
-        std::string myScope = "nothing";
-        bool scopeOpen = false;
-        bool awaitingBrace = false;
-
-        while (chart.getline(temp, sizeof(temp))) {
-            {
-                char *tln = strchr(temp, '\n');
-                if (tln != nullptr) {
-                    { *tln = '\0'; }
-                }
-                tln = strchr(temp, '\r');
-                if (tln != nullptr) {
-                    { *tln = '\0'; }
-                }
-            }
-
-            std::string str = temp;
-
-            str = trim(str);
-
-            if (str.empty() || str.compare(0, 2, "//") == 0) { continue; }
-            if (str == "{") {
-                if (!awaitingBrace) { throw std::runtime_error("Unexpected chart section"); }
-                awaitingBrace = false;
-                scopeOpen = true;
-                continue;
-            }
-            if (str == "}") {
-                if (!scopeOpen) { throw std::runtime_error("Unexpected chart section end"); }
-                scopeOpen = false;
-                continue;
-            }
-            if (str.front() == '[') {
-                if (scopeOpen || awaitingBrace || str.back() != ']') {
-                    throw std::runtime_error("Invalid chart section");
-                }
-                myScope = str;
-                awaitingBrace = true;
-            } else {
-                if (!scopeOpen) { throw std::runtime_error("Missing chart section"); }
-                size_t s = str.find_first_of('=');
-                size_t sB;
-                size_t sC;
-                size_t d = str.find_first_not_of('	');
-
-                d = (d == std::string::npos) ? str.find_first_not_of(' ') : d;
-                d = (d == std::string::npos) ? 0uL : d;
-
-                if (s == std::string::npos) {
-                    { continue; }
-                }
-
-                sB = str.find_first_of(' ', d);
-                sB = (sB == std::string::npos || sB >= s) ? (s - 1) : (sB);
-
-                std::string name;
-
-                if (isblank(str[0]) == 0) {
-                    d = 0;
-                }
-
-                name.insert(0, str, d, sB);
-
-                name = trim(name);
-
-                sC = str.find_first_not_of(' ', ++s);
-                sC = sC == std::string::npos ? s : sC;
-
-                std::string contents;
-                contents.insert(0, str, sC, std::string::npos);
-
-                data[myScope][name].push_back(contents);
-            }
-        }
-        if (!chart.eof() || scopeOpen || awaitingBrace) {
-            throw std::runtime_error("Cannot read complete chart");
-        }
-    };
-
-    auto BPMRead = [](BPMContainer &BPMs, parsedChart &chartMap) {
-        for (auto &SyncTrack : chartMap["[SyncTrack]"]) {
-            char c[32] = {0};
-            int i = 0;
-            for (auto &inst : SyncTrack.second) {
-                if (sscanf(inst.c_str(), "%31s %d", c, &i) == 2) {
-                    if (std::string(c) == "B") {
-                        SyncTrackBPM bp{};
-                        bp.BPM = i;
-                        try {
-                            bp.offset = std::stod(SyncTrack.first);
-                        } catch (const std::exception &e) {
-                            CLog::log().multiRegister(__FILE__
-                                                      " exception: %0 LINE %1",
-                                                      e, (int)__LINE__);
-                        }
-                        BPMs.push_back(bp);
-                    }
-                }
-            }
-        }
-
-        std::sort(BPMs.begin(), BPMs.end());
-
-        if (BPMs.empty()) {
-            SyncTrackBPM bp{};
-            bp.BPM = 120000;
-            bp.offset = 0.0;
-
-            BPMs.push_back(bp);
-        }
-    };
-
-    auto pureBPMToCalcBPM = [this](double BPM) {
-        return (BPM / 1000.0 * 3.2) * chartResolutionProp;
-    };
-
-    auto getNoteTime = [&pureBPMToCalcBPM](const BPMContainer &BPMs, size_t pos,
-                                           int64_t off) {
-        double timeT = 0.0;
-        size_t i = 0;
-
-        if (pos > (BPMs.size() - 1)) {
-            pos = BPMs.size() - 1;
-        }
-
-        for (; i < pos; i++) {
-            timeT += (BPMs[i + 1].offset - BPMs[i].offset) /
-                     pureBPMToCalcBPM(BPMs[i].BPM);
-        }
-
-        /*if (off < BPMs[pos].offset)
-        {
-                timeT -= (BPMs[i + 1].offset - BPMs[i].offset) /
-        pureBPMToCalcBPM(BPMs[i].BPM); return timeT + (off - BPMs[i].offset) /
-        pureBPMToCalcBPM(BPMs[i].BPM);
-        }*/
-
-        return timeT +
-               (off - BPMs[pos].offset) / pureBPMToCalcBPM(BPMs[pos].BPM);
-    };
-
-    auto getRefBPM = [](const BPMContainer &BPMs, int64_t tick) {
-        int result = 0;
-        int irbp = 0;
-
-        for (const auto &b : BPMs) {
-            if (b.offset < tick) {
-                result = irbp;
-            } else {
-                break;
-            }
-            irbp++;
-        }
-
-        return result;
-    };
-
-    auto hopoTest = [this](Note &note) {
-        size_t size = gNotes.size();
-        size_t i;
-        i = size - 1;
-        if (size > 0) {
-            size_t BPMsize = BPM.size();
-            size_t BPMi;
-            BPMi = BPMsize - 1;
-
-            double BPMStepCalc = 60.0 / 120.0;
-
-            if (BPMsize > 0) {
-                BPMStepCalc = 60.0 / BPM[BPMi].lTime;
-            }
-
-            for (auto &b : BPM) {
-                if (b.time > note.time) {
-                    { break; }
-                }
-
-                BPMStepCalc = 60.0 / b.lTime;
-            }
-
-            BPMStepCalc /= 2.08;
-
-            if ((note.time - gNotes[i].time) >= BPMStepCalc) {
-                note.type |= nf_not_hopo;
-            }
-
-            int type1 = note.type & notesEnumWithOpenNotes;
-            int type2 = gNotes[i].type & notesEnumWithOpenNotes;
-
-            if (type1 == type2) {
-                note.type |= nf_not_hopo;
-            }
-        } else {
-            note.type |= nf_not_hopo;
-        }
-    };
-
-    auto notesCountToReserve = [](const parsedChart &chartMap,
-                                  const std::string &difficulty) -> size_t {
-        size_t noten_length = 0;
-        auto chartmapscope = chartMap.find(difficulty);
-
-        if (chartmapscope == chartMap.end()) {
-            return noten_length;
-        }
-
-        for (auto &scopeData : chartmapscope->second) {
-            noten_length += scopeData.second.size();
-        }
-
-        if ((noten_length & 1) != 0) {
-            noten_length++;
-        }
-
-        return noten_length;
-    };
-
-    auto noteRead = [&getNoteTime, &getRefBPM, &chartOffset](
-                        noteContainer &NTS, const BPMContainer &BPMs,
-                        parsedChart &chartMap, const std::string &difficulty) {
-        std::vector<NoteInt> ntsI;
-        for (auto &scopeData : chartMap[difficulty]) {
-            char c[32] = {0};
-            int i = 0;
-            int j = 0;
-            for (auto &inst : scopeData.second) {
-                if (sscanf(inst.c_str(), "%31s %d %d", c, &i, &j) == 3) {
-                    if (std::string(c) == "N") {
-                        NoteInt nt;
-                        nt.time = std::stoull(scopeData.first);
-                        nt.lTime = j;
-                        nt.type = i;
-
-                        if (nt.type >= 0 && nt.type < 5) {
-                            nt.type = (int)pow(2, nt.type);
-
-                            if (nt.lTime > 0) {
-                                { nt.type |= nf_slide; }
-                            }
-
-                            if (!ntsI.empty()) {
-                                auto &last = ntsI[ntsI.size() - 1];
-
-                                if (last.time == nt.time) {
-                                    last.type |= nt.type;
-                                    last.type |= nf_not_hopo;
-                                } else {
-                                    /*auto noteType0 = last.type &
-                                    notesEnumWithOpenNotes; auto noteType1 =
-                                    nt.type & notesEnumWithOpenNotes;
-
-                                    if (noteType0 == noteType1)
-                                    {
-                                            nt.type |= nf_not_hopo;
-                                    }*/
-
-                                    ntsI.push_back(nt);
-                                }
-                            } else {
-                                ntsI.push_back(nt);
-                            }
-                        } else if (nt.type == 5) {
-                            if (!ntsI.empty()) {
-                                auto &last = ntsI[ntsI.size() - 1];
-                                if (last.time == nt.time) {
-                                    last.type |= nf_reverseStrumHopo;
-                                }
-                            }
-                        } else if (nt.type == 6) {
-                            if (!ntsI.empty()) {
-                                auto &last = ntsI[ntsI.size() - 1];
-                                if (last.time == nt.time) {
-                                    last.type |= noteTap;
-                                    last.type |= nf_not_hopo;
-                                }
-                            }
-                        } else if (nt.type == 7) {
-                            nt.type = nf_open;
-
-                            nt.lTime = 0;
-
-                            if (!ntsI.empty()) {
-                                auto &last = ntsI[ntsI.size() - 1];
-                                if (last.time == nt.time) {
-                                    last.type = nt.type;
-                                    last.type |= nf_not_hopo;
-                                } else {
-                                    ntsI.push_back(nt);
-                                }
-                            } else {
-                                ntsI.push_back(nt);
-                            }
-                        }
-                    }
-
-                    if (std::string(c) == "S" && i == 2) {
-                        NoteInt nt;
-                        nt.time = std::stoull(scopeData.first);
-                        nt.lTime = j;
-                        nt.type = -1;
-
-                        ntsI.push_back(nt);
-                    }
-                }
-            }
-        }
-
-        std::sort(ntsI.begin(), ntsI.end());
-
-        uint64_t loffset = ~((uint64_t)0uLL);
-        double lnotet = -1.0;
-        double llngnotet = -1.0;
-
-        size_t BPM = 0;
-        for (auto &nt : ntsI) {
-            NTS.push_back({});
-
-            auto &nt0 = NTS.back();
-            nt0 = nt;
-
-            uint64_t loffsettmp = nt.time;
-            if (nt0.type == -1) {
-                nt0.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
-                nt0.lTime =
-                    getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime),
-                                loffsettmp + nt.lTime) -
-                    nt0.time;
-
-                nt0.time += chartOffset;
-                continue;
-            }
-
-            if (BPM < (BPMs.size() - 1)) {
-                if (BPMs[BPM + 1].offset < nt.time) {
-                    { ++BPM; }
-                }
-            }
-
-            if (loffset == nt.time) {
-                nt0.time = lnotet;
-                nt0.lTime = llngnotet;
-            } else {
-                nt0.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
-                nt0.lTime =
-                    getNoteTime(BPMs, getRefBPM(BPMs, loffsettmp + nt.lTime),
-                                loffsettmp + nt.lTime) -
-                    nt0.time;
-
-                nt0.time += chartOffset;
-            }
-
-            lnotet = nt0.time;
-            llngnotet = nt0.lTime;
-            loffset = loffsettmp;
-        }
-    };
-
-    auto fillChartInfo = [&](parsedChart &chartMap) {
-        auto chk = [](std::deque<std::string> &s, size_t i) {
-            std::string result;
-
-            if (i < s.size()) {
-                { result = s[i]; }
-            }
-
-            return result;
-        };
-
-        auto &Song = chartMap["[Song]"];
-
-        try {
-            chartResolutionProp = std::stod(chk(Song["Resolution"], 0)) / 192.0;
-        } catch (const std::exception &e) {
-            chartResolutionProp = 1.0;
-            CLog::log().multiRegister(__FILE__ " exception: %0 LINE %1", e,
-                                      static_cast<int>(__LINE__));
-        }
-        player.songName = CChart::unquoteSongMetadata(chk(Song["Name"], 0u));
-        player.songArtist =
-            CChart::unquoteSongMetadata(chk(Song["Artist"], 0u));
-        player.songCharter =
-            CChart::unquoteSongMetadata(chk(Song["Charter"], 0u));
-        try {
-            chartOffset = std::stod(chk(Song["Offset"], 0));
-        } catch (...) {
-            chartOffset = 0;
-        }
-    };
-
-    parseFeedBackChart(feedBackChartMap);
-
-    fillChartInfo(feedBackChartMap);
-
-    Ntsdata.reserve(notesCountToReserve(feedBackChartMap, player.instrument));
-
-    BPMRead(BPMsdata, feedBackChartMap);
-    if (!std::isfinite(chartResolutionProp) || chartResolutionProp <= 0.0 ||
-        !std::isfinite(chartOffset) ||
-        std::any_of(BPMsdata.begin(), BPMsdata.end(), [](const SyncTrackBPM &b) {
-            return !std::isfinite(b.offset) || b.BPM <= 0.0;
-        })) {
-        throw std::runtime_error("Invalid chart timing");
-    }
-    noteRead(Ntsdata, BPMsdata, feedBackChartMap,
-             player.instrument); // Default: "[ExpertSingle]"
-
-    /*
-    int bpdqpos = 0;
-    for (auto &bpdq : BPMs)
-    {
-            std::cout << "BPM " << bpdq.BPM / 1000.0 << "  offset " <<
-    bpdq.offset << "   " << getNoteTime(BPMs, bpdqpos, bpdq.offset) <<
-    std::endl; bpdqpos++;
-    }
-    */
-    int p = 0;
-    for (auto &BP : BPMsdata) {
-        Note newNote;
-        newNote.time = getNoteTime(BPMsdata, p, (int64_t)BP.offset);
-        newNote.lTime = BP.BPM / 1000.0;
-
-        if (newNote.time != 0.0) {
-            newNote.time += chartOffset;
-        }
-
-        BPM.push_back(newNote);
-
-        ++p;
-    }
-
-    for (auto &Nt : Ntsdata) {
-        if (!std::isfinite(Nt.time) || !std::isfinite(Nt.lTime)) {
-            throw std::runtime_error("Invalid note timing");
-        }
-
-        if (Nt.type == -1) {
-            plusNote plusT;
-
-            plusT.time = Nt.time;
-            plusT.lTime = Nt.lTime;
-            plusT.type = 0;
-
-            gPlus.push_back(plusT);
-        } else {
-            Note newNote;
-            newNote.time = Nt.time;
-            newNote.lTime = Nt.lTime;
-            newNote.type = Nt.type;
-
-            hopoTest(newNote);
-
-            if ((newNote.type & nf_reverseStrumHopo) != 0) {
-                newNote.type ^= nf_not_hopo;
-            }
-
-            gNotes.push_back(newNote);
-        }
-    }
-    deducePlusLastNotes();
-    return validateLoadedChart();
-} catch (const std::exception &e) {
-    CLog::log() << "Cannot load chart " + std::string(chartFile) + ": " + e.what();
-    unloadChart();
-    return false;
-}
-
-void CPlayer::NotesData::deducePlusLastNotes() {
-    size_t plusPosTemp = 0;
-
-    for (size_t i = 0, size = gNotes.size(); i < size; ++i) {
-        const auto &note = gNotes[i];
-
-        if (plusPosTemp < gPlus.size()) {
-            auto &plusNote = gPlus[plusPosTemp];
-
-            if (note.time >= (plusNote.time - 0.0001) &&
-                note.time < (plusNote.time + plusNote.lTime)) {
-                if (plusNote.firstNote == ~0uLL) {
-                    plusNote.firstNote = i;
-                }
-
-                plusNote.lastNote = i;
-            }
-
-            if (note.time >= (plusNote.time + plusNote.lTime)) {
-                ++plusPosTemp;
-            }
-        } else {
-            break;
-        }
-    }
-}
-
-auto CPlayer::NotesData::getChartEnd(double offset) -> double {
-    if (chartEnd > 0) {
-        return chartEnd;
-    }
-
-    auto size = gNotes.size();
-
-    if (size > 0) {
-        auto &lastNote = gNotes[size - 1];
-
-        double finalTime = lastNote.time + lastNote.lTime;
-        finalTime += offset;
-
-        chartEnd = finalTime;
-        return finalTime;
-    }
-
-    chartEnd = 2;
-    return 2.0;
-}
-
-auto CPlayer::NotesData::loadChart(std::string_view chartFile, CPlayer &player) -> bool try {
-    unloadChart();
-
-    std::string lowerPath(chartFile);
-    std::transform(lowerPath.begin(), lowerPath.end(), lowerPath.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    if (lowerPath.size() >= 4 && lowerPath.compare(lowerPath.size() - 4, 4, ".gpp") == 0 &&
-        !CChart::hasLegacyTextHeader(std::string(chartFile))) {
-        CChart chart;
-
-        std::fstream chartf(std::string(chartFile),
-                            std::ios::binary | std::ios::in);
-
-        try {
-            cereal::BinaryInputArchive oarchive(chartf);
-
-            oarchive(chart);
-
-            if (!chart.loadToNotesData(player, player.instrument)) {
-                return false;
-            }
-            return validateLoadedChart();
-        } catch (const std::exception &e) {
-            CLog::log().multiRegister("Exception %0", e);
-            unloadChart();
-            return false;
-        }
-    }
-
-    CText ACTEXTChart(chartFile.data(), true);
-
-    std::deque<CText::field_t> &textArray = ACTEXTChart[""].fields;
-
-    double ntInfoTime = 0;
-    double ntInfoLTime = 0;
-    int ntIDInfo = 0;
-    int scanResult;
-
-    Note PlusNow;
-
-    PlusNow.type = -1;
-
-    auto plusFunc = [&PlusNow](Note &note) {
-        if (PlusNow.type == -1) {
-            { return; }
-        }
-
-        if (note.time >= PlusNow.time && note.time <= PlusNow.lTime) {
-            note.type |= plus_mid;
-        }
-    };
-
-    auto hopoTest = [this](Note &note) {
-        size_t size = gNotes.size();
-        size_t i;
-        i = size - 1;
-        if (size > 0) {
-            size_t BPMsize = BPM.size();
-            size_t BPMi;
-            BPMi = BPMsize - 1;
-
-            double BPMStepCalc = 60.0 / 120.0;
-
-            if (BPMsize > 0) {
-                BPMStepCalc = 60.0 / BPM[BPMi].lTime;
-            }
-
-            for (auto &b : BPM) {
-                if (b.time > note.time) {
-                    { break; }
-                }
-
-                BPMStepCalc = 60.0 / b.lTime;
-            }
-
-            BPMStepCalc /= 2.05;
-
-            if ((note.time - gNotes[i].time) >= BPMStepCalc) {
-                note.type |= nf_not_hopo;
-            }
-
-            int type1 = note.type & notesEnum;
-            int type2 = gNotes[i].type & notesEnum;
-
-            if (type1 == type2) {
-                note.type |= nf_not_hopo;
-            }
-        } else {
-            note.type |= nf_not_hopo;
-        }
-    };
-
-    for (auto &i : textArray) {
-        if (i.name[0] == 'N') {
-            scanResult = sscanf(i.content.c_str(), "%d %lf %lf", &ntIDInfo,
-                                &ntInfoTime, &ntInfoLTime);
-
-            if (scanResult != 3 || !std::isfinite(ntInfoTime) ||
-                !std::isfinite(ntInfoLTime)) {
-                throw std::runtime_error("Invalid legacy chart record");
-            }
-
-            if (scanResult == 3) {
-                if (ntIDInfo >= 0 && ntIDInfo < 5 && ntInfoTime > 0.0) {
-                    if (gNotes.empty()) {
-                        Note newNote;
-                        newNote.time = ntInfoTime;
-                        // newNote.unmodifiedTime = ntInfoTime;
-                        newNote.lTime = ntInfoLTime;
-                        newNote.type = (int)pow(2, ntIDInfo);
-                        if (newNote.lTime > 0.0) {
-                            { newNote.type |= nf_slide; }
-                        }
-
-                        plusFunc(newNote);
-                        hopoTest(newNote);
-
-                        gNotes.push_back(newNote);
-                    } else {
-                        if (gNotes[gNotes.size() - 1].time == ntInfoTime) {
-                            gNotes[gNotes.size() - 1].type |=
-                                (int)pow(2, ntIDInfo);
-                            gNotes[gNotes.size() - 1].type |= nf_not_hopo;
-                        } else {
-                            Note newNote;
-                            newNote.time = ntInfoTime;
-                            // newNote.unmodifiedTime = ntInfoTime;
-                            newNote.lTime = ntInfoLTime;
-                            newNote.type = (int)pow(2, ntIDInfo);
-                            if (newNote.lTime > 0.0) {
-                                { newNote.type |= nf_slide; }
-                            }
-
-                            plusFunc(newNote);
-                            hopoTest(newNote);
-
-                            gNotes.push_back(newNote);
-                        }
-                    }
-                } else if (ntIDInfo == 5) {
-                    PlusNow.type = 1;
-                    PlusNow.time = ntInfoTime;
-                    PlusNow.lTime = ntInfoLTime;
-                } else if (ntIDInfo == 6) {
-                    Note newNote;
-                    newNote.time = ntInfoTime;
-                    newNote.lTime = ntInfoLTime;
-
-                    BPM.push_back(newNote);
-                }
-            }
-        }
-    }
-
-    deducePlusLastNotes();
-    return validateLoadedChart();
-} catch (const std::exception &e) {
-    CLog::log() << "Cannot load chart " + std::string(chartFile) + ": " + e.what();
-    unloadChart();
-    return false;
-}
-
-bool CPlayer::NotesData::validateLoadedChart() {
-    const bool valid = !gNotes.empty() && !BPM.empty() &&
-        std::isfinite(chartResolutionProp) && chartResolutionProp > 0.0 &&
-        std::is_sorted(gNotes.begin(), gNotes.end()) &&
-        std::is_sorted(BPM.begin(), BPM.end()) &&
-        std::all_of(gNotes.begin(), gNotes.end(), [](const Note &n) {
-            return std::isfinite(n.time) && std::isfinite(n.lTime) &&
-                   std::isfinite(n.time + n.lTime) && n.lTime >= 0.0;
-        }) &&
-        std::all_of(BPM.begin(), BPM.end(), [](const Note &b) {
-            return std::isfinite(b.time) && std::isfinite(b.lTime) && b.lTime > 0.0;
-        });
-    if (valid) {
-        lastNoteEnd = gNotes.front().time + gNotes.front().lTime;
-        for (const auto &note : gNotes) {
-            lastNoteEnd = std::max(lastNoteEnd, note.time + note.lTime);
-        }
-    }
-    if (!valid) {
-        CLog::log() << "Chart has no playable notes or invalid timing";
-        unloadChart();
-    }
-    return valid;
-}
-
-void CPlayer::NotesData::unloadChart() {
-    lastNoteEnd = 0.0;
-    chartEnd = 0;
-    notePos = 0;
-    lastNotePicked = ~0uL;
-    chartResolutionProp = 1.0;
-    plusPos = 0;
-
-    for (auto &fretNotePickedTime : fretsNotePickedTime) {
-        fretNotePickedTime = 0.0;
-    }
-
-    gNotes.clear();
-    BPM.clear();
-    gPlus.clear();
-}
-
 void CPlayer::resetData() {
     correctNotes = 0;
     bRenderP = bUpdateP = true;
     bPlusStrike = false;
 }
 
-CPlayer::NotesData::NotesData() {
-    notePos = 0;
-    lastNotePicked = ~0uL;
-    chartResolutionProp = 1.0;
-    plusPos = 0;
-    BPMMinPosition = 0.0;
-    chartEnd = 0;
-    BPM.reserve(200);
-    gPlus.reserve(200);
-    gNotes.reserve(10000);
-
-    for (auto &fretNotePickedTime : fretsNotePickedTime) {
-        fretNotePickedTime = 0.0;
-    }
-}
-
 void CPlayer::addPointsByDoingLongNote(double activeSeconds) {
-    if (!std::isfinite(activeSeconds) || activeSeconds <= 0.0) { return; }
+    if (!std::isfinite(activeSeconds) || activeSeconds <= 0.0) {
+        return;
+    }
     const double earned = comboToMultiplier() * 50.0 * activeSeconds;
     points += earned;
     // Provisional XP rate: 0.5 * multiplier per active second. XP progression,
@@ -1135,7 +328,9 @@ void CPlayer::processError() {
     muteInstrument();
 
     if (publicAprov > 0) {
-        { publicAprov--; }
+        {
+            publicAprov--;
+        }
     }
 }
 
@@ -1191,7 +386,9 @@ void CPlayer::breakCombo() { combo = 0; }
 auto CPlayer::comboToMultiplierWM() -> double { return comboToMultiplier(); }
 
 void CPlayer::takeLoadedSong(CPlayer &source) {
-    if (&source == this) { return; }
+    if (&source == this) {
+        return;
+    }
     releaseSong();
     Notes = std::move(source.Notes);
     songAudioID = std::exchange(source.songAudioID, -1);
@@ -1204,7 +401,9 @@ void CPlayer::takeLoadedSong(CPlayer &source) {
     correctNotes = 0;
     strklinent = -1;
     BPMNowBuffer = 0;
-    for (auto &slide : notesSlide) { slide = ~0uL; }
+    for (auto &slide : notesSlide) {
+        slide = ~0uL;
+    }
 }
 
 void CPlayer::beginSongResult() {
@@ -1214,7 +413,8 @@ void CPlayer::beginSongResult() {
 }
 PlayerSongResult CPlayer::songResult() const {
     return {static_cast<int64_t>(points - songScoreStart), songMaxCombo,
-            correctNotes - songCorrectStart, static_cast<uint64_t>(Notes.gNotes.size())};
+            correctNotes - songCorrectStart,
+            static_cast<uint64_t>(Notes.gNotes.size())};
 }
 
 auto CPlayer::getCombo() const -> int64_t { return combo; }
@@ -1281,8 +481,6 @@ void CPlayer::doNote(size_t i) {
         }
     }
 }
-
-CPlayer::NotesData::~NotesData() { unloadChart(); }
 
 void CPlayer::instrumentPlay() const {
     CEngine::engine().playSoundStream(instrumentSound);

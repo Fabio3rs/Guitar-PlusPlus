@@ -548,3 +548,73 @@ the same flow rules, but an audible in-song pause/resume playtest is still pendi
 Continuous typing, dynamic HUD updates, theme/language transitions and repeated
 modal lifetimes have regression coverage or implementation safeguards; their
 allocation peaks and p95/p99 CPU/frame costs have not yet been benchmarked.
+
+### Chart loader migration evidence
+
+The runtime chart loaders and `NotesData` now live in `CChart`. Each `CPlayer`
+still owns its mutable note buffers and playback cursors through the compatibility
+alias `CPlayer::NotesData = CChart::NotesData`. Existing `Note_t`, `NoteInt_t`,
+`plusNote_t` and `BPM_t` names remain available. The chart discovery method on
+`CPlayer` forwards to `CChart`; audio loading and gameplay remain in `CPlayer`.
+
+This first step is a relocation, not a change to parsing rules. The older,
+separate parser used by `CChart::open()`/`openFromMemory()` is still present and
+has no calls from game runtime. It must not replace the runtime loader yet:
+its HOPO threshold, Plus boundaries, supported sections, validation and reload
+behavior differ. The moved runtime loader still accepts a `CPlayer` for metadata;
+decoupling that interface and unifying the two parsers are subsequent steps.
+Existing binary field types, flag values and cereal field order are unchanged.
+
+To capture a baseline **before editing the loader**, build the optional CPU-only
+dump tool, then capture complete local songs:
+
+```sh
+cmake -S . -B build -DBUILD_CHART_TOOLS=ON
+cmake --build build --target gpp_dump_chart
+python3 tools/chart_evidence.py capture build/bin/gpp_dump_chart build/chart-baseline build/bin/data/songs
+```
+
+After rebuilding the modified loader, compare against that same directory:
+
+```sh
+python3 tools/chart_evidence.py compare build/bin/gpp_dump_chart build/chart-baseline
+```
+
+Capture refuses to overwrite an existing evidence directory. The manifest hashes
+inputs, the executable and dumps; comparison checks that inputs and baseline have
+not changed. Feedback files are exercised for each discovered Easy/Medium/Hard/
+Expert section; `.gpp` inputs use ExpertSingle. Additional sections can be tested
+with `gpp_dump_chart feedback|compiled INPUT INSTRUMENT OUTPUT`.
+
+The dump records the load result, song metadata, instrument and every logical
+field of `NotesData`, including every note/BPM/Plus entry, playback cursors,
+per-fret times, resolution and end caches. It also exercises the end-time query,
+reload and unload. Doubles are recorded as exact 64-bit representations rather
+than rounded decimal values. Container capacity, addresses and struct padding
+are intentionally excluded. This verifies behavior for the captured corpus;
+it does not prove correctness for every possible chart or validate live gameplay.
+
+The initial local migration evidence is in `build/chart-loader-evidence/`:
+14 complete song files across 54 instrument/difficulty cases, seven synthetic
+Feedback cases, one legacy text `.gpp` and one binary `.gpp` generated before
+migration. All 63 before/after dumps matched exactly (61 successful loads and two
+expected rejected cases). Synthetic cases include HOPO boundaries, BPM changes,
+sustains, offsets, chords, taps, open notes, Plus boundaries, defaults and invalid
+bodies. The original executable and SHA-256 manifest are retained there. Dumps
+and compiled real-song fixtures stay outside version control because they contain
+third-party chart data. They are local evidence, not bundled CI fixtures.
+
+`ctest --test-dir build -R '^chart_runtime$' --output-on-failure` runs focused
+CPU-only runtime-loader contract tests using small synthetic sections. Expected
+values come from the chart's resolution, tempo and offset, independently of the
+historical dumps. Coverage includes UTF-8 metadata, quarter-note timing at several
+resolutions/tempos, signed offsets, tempo transitions, sustains crossing changes,
+instrument/player isolation, and Plus notes strictly inside a single phrase.
+
+Still open: the automatic HOPO threshold, forced-marker ordering, chord sustain
+merging, open-note sustains, Plus boundary tolerance and transitions between
+consecutive/empty phrases, and offset handling for the initial BPM entry. These
+are not asserted as correct merely because the old loader produced them. The
+before/after dumps continue to detect changes to those behaviors without defining
+their intended semantics. The focused suite exercises the runtime loader, not the
+older parser behind `CChart::open()`.

@@ -3,12 +3,13 @@
 #ifndef __GUITARPP_CPLAYER_H_
 #define __GUITARPP_CPLAYER_H_
 
+#include "CChart.h"
 #include "CEngine.h"
-#include "SongResult.h"
 #include "CFonts.h"
 #include "CGuitars.h"
 #include "CParticle.h"
 #include "CPlusLightning.h"
+#include "SongResult.h"
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
@@ -22,28 +23,6 @@
 #include <string_view>
 
 class CCharter;
-
-enum notesFlags {
-    nf_green = 1,
-    nf_red = 2,
-    nf_yellow = 4,
-    nf_blue = 8,
-    nf_orange = 16,
-    nf_not_hopo = 32,
-    nf_doing_slide = 64,
-    nf_failed = 128,
-    nf_picked = 256,
-    nf_slide = 512,
-    nf_slide_picked = 1024,
-    losted = 2048,
-    plus_mid = 4096,
-    plus_end = 8192,
-    hopontstrmmd = 16384,
-    strmstlrc = 32768,
-    noteTap = 65536,
-    nf_open = 131072,
-    nf_reverseStrumHopo = 262144
-};
 
 enum playerTypes { local_main, local, lan, lan_main };
 
@@ -124,139 +103,7 @@ class CPlayer {
     friend CCharter;
 
   public:
-    class NotesData {
-        friend CCharter;
-        void deducePlusLastNotes();
-        bool validateLoadedChart();
-
-      public:
-        size_t notePos, plusPos;
-        size_t lastNotePicked;
-        double fretsNotePickedTime[5]{};
-
-        double getChartEnd(double offset = 2.0);
-
-        struct NoteInt {
-            uint64_t time, lTime;
-
-            int type;
-
-            inline bool operator<(const NoteInt &b) const noexcept {
-                return time < b.time;
-            }
-
-            inline bool operator>(const NoteInt &b) const noexcept {
-                return time > b.time;
-            }
-
-            template <class Archive> void load(Archive &archive) {
-                archive(time, lTime, type);
-            }
-
-            template <class Archive> void save(Archive &archive) const {
-                archive(time, lTime, type);
-            }
-
-            NoteInt() noexcept {
-                time = 0uLL;
-                lTime = 0uLL;
-                type = 0;
-            }
-        };
-
-        struct Note {
-            double time;
-            double lTime;
-
-            int type;
-
-            inline bool operator<(const Note &b) const noexcept {
-                return time < b.time;
-            }
-
-            inline bool operator>(const Note &b) const noexcept {
-                return time > b.time;
-            }
-
-            template <class Archive> void load(Archive &archive) {
-                archive(time, lTime, type);
-            }
-
-            template <class Archive> void save(Archive &archive) const {
-                archive(time, lTime, type);
-            }
-
-            Note(NoteInt &&n) noexcept {
-                time = static_cast<double>(n.time);
-                lTime = static_cast<double>(n.lTime);
-                type = n.type;
-            }
-
-            Note(const NoteInt &n) noexcept {
-                time = static_cast<double>(n.time);
-                lTime = static_cast<double>(n.lTime);
-                type = n.type;
-            }
-
-            Note() noexcept {
-                time = 0.0;
-                lTime = 0.0;
-                type = 0;
-            }
-        };
-
-        struct plusNote {
-            double time, lTime /*, unmodifiedTime*/;
-            int type;
-
-            size_t firstNote, lastNote;
-
-            inline bool operator<(const plusNote &b) const noexcept {
-                return time < b.time;
-            }
-
-            inline bool operator>(const plusNote &b) const noexcept {
-                return time > b.time;
-            }
-
-            template <class Archive> void load(Archive &archive) {
-                archive(time, lTime, type, firstNote, lastNote);
-            }
-
-            template <class Archive> void save(Archive &archive) const {
-                archive(time, lTime, type, firstNote, lastNote);
-            }
-
-            plusNote() noexcept {
-                time = 0.0;
-                lTime = 0.0;
-                // unmodifiedTime = 0.0;
-                type = 0;
-                firstNote = ~0uLL;
-                lastNote = 0;
-            }
-        };
-
-        std::vector<Note> gNotes;
-        std::vector<Note> BPM;
-        std::vector<plusNote> gPlus;
-
-        bool loadChart(std::string_view chartFile, CPlayer &player);
-        bool loadFeedbackChart(std::string_view chartFile, CPlayer &player);
-        void unloadChart();
-
-        NotesData();
-        NotesData(const NotesData &) = default;
-        NotesData &operator=(const NotesData &) = default;
-        NotesData(NotesData &&) noexcept = default;
-        NotesData &operator=(NotesData &&) noexcept = default;
-        ~NotesData();
-
-        // Computed on successful chart loading; moved with the note buffers.
-        double lastNoteEnd = 0.0;
-        double BPMMinPosition, chartEnd;
-        double chartResolutionProp;
-    };
+    using NotesData = CChart::NotesData;
 
   private:
     /**/
