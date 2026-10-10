@@ -1,3 +1,4 @@
+#include "CBackgroundRenderer.h"
 #include "GPPGame.h"
 #include "CCharter.h"
 #include "CControls.h"
@@ -549,7 +550,7 @@ void GPPGame::selectPlayerMenu() {
             }
 
             engine.activateNormals(true);
-            testobj.draw(0);
+            CBackgroundRenderer::inst().draw(testobj);
             engine.activateNormals(false);
 
             engine.activateLighting(false);
@@ -2201,7 +2202,7 @@ void GPPGame::startMarathonModule(const std::string &name) {
                     engine.renderAt(0.0, 0.0, 0.0);
                 }
 
-                // game.testobj.draw(0);
+                // CBackgroundRenderer::inst().draw(game.testobj);
                 engine.activateNormals(false);
 
                 engine.activateLighting(false);
@@ -2795,7 +2796,7 @@ void GPPGame::campaingPlayModule(const std::string &name) {
                 }
 
                 engine.activateNormals(true);
-                game.testobj.draw(0);
+                CBackgroundRenderer::inst().draw(game.testobj);
                 engine.activateNormals(false);
 
                 engine.activateLighting(false);
@@ -3519,7 +3520,7 @@ auto GPPGame::selectSong() -> std::string {
             }
 
             engine.activateNormals(true);
-            testobj.draw(0);
+            CBackgroundRenderer::inst().draw(testobj);
             engine.activateNormals(false);
 
             engine.activateLighting(false);
@@ -3779,7 +3780,7 @@ void GPPGame::addSongListToMenu(CMenu &selectSongMenu,
             }
 
             engine.activateNormals(true);
-            testobj.draw(0);
+            CBackgroundRenderer::inst().draw(testobj);
             engine.activateNormals(false);
 
             engine.activateLighting(false);
@@ -4152,7 +4153,7 @@ auto GPPGame::openMenus(CMenu *startMenu,
         }
 
         engine.activateNormals(true);
-        testobj.draw(0);
+        CBackgroundRenderer::inst().draw(testobj);
         engine.activateNormals(false);
 
         engine.activateLighting(false);
@@ -4562,6 +4563,7 @@ GPPGame::GPPGame()
     : devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu"),
       uiCreateProfile("uiCreateProfileMenu"), glanguage("PT-BR"),
       gppTextureKeepBuffer(false) {
+    CBackgroundRenderer::inst();
     songVolume = 0.8f;
     drawGamePlayBackground = true;
     showTextsTest = true;

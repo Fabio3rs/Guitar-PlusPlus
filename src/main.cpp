@@ -1,4 +1,5 @@
-﻿// Guitar++.cpp : Defines the entry point for the console application.
+#include "CBackgroundRenderer.h"
+// Guitar++.cpp : Defines the entry point for the console application.
 //
 // brmodstudio.forumeiros.com
 
@@ -143,6 +144,7 @@ static auto load_data() -> int {
             case 0:
                 game.loadBasicSprites();
                 ShaderProject::CShader::inst().prepareEffects();
+                CBackgroundRenderer::inst().prepare();
                 break;
 
             case 1: {

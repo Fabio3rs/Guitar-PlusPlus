@@ -1,3 +1,4 @@
+#include "CBackgroundRenderer.h"
 #include "CGamePlay.h"
 #include "CEngine.h"
 #include "CFonts.h"
@@ -2626,7 +2627,7 @@ auto CGamePlay::renderBackground() -> bool {
         }
 
         engine.activateNormals(true);
-        GPPGame::GuitarPP().testobj.draw(0);
+        CBackgroundRenderer::inst().draw(GPPGame::GuitarPP().testobj);
         engine.activateNormals(false);
 
         engine.activateLighting(false);

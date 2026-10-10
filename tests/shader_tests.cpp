@@ -1,4 +1,9 @@
 #include "CParticle.h"
+#include "CBackgroundRenderer.h"
+#include "BackgroundShader.h"
+#include "GPPOBJ.h"
+#include "SceneAO.h"
+#include <glm/gtc/type_ptr.hpp>
 #include "CPlusLightning.h"
 #include "CShader.h"
 #include "FireShader.h"
@@ -50,6 +55,7 @@ class ShaderGL : public testing::Test {
         ASSERT_GE(CShader::inst().lightningProgram().event, 0);
     }
     void TearDown() override {
+        CBackgroundRenderer::shutdown();
         CShader::shutdown();
         if (window)
             glfwDestroyWindow(window);
@@ -488,4 +494,178 @@ TEST_F(ShaderGL, EffectsArePreparedOnceAndSharedAcrossInstances) {
     EXPECT_EQ(manager.eventsSize(), 2u);
 }
 
+} // namespace
+
+namespace {
+struct ObjFixture {
+    std::filesystem::path directory =
+        std::filesystem::temp_directory_path() / "gpp-background-tests";
+    ObjFixture() {
+        std::filesystem::create_directories(directory);
+        std::ofstream file(directory / "scene.obj");
+        file << "o floor\nv 2 0 -7\nv 4 0 -7\nv 4 0 -5\nv 2 0 -5\n"
+                "f 4 3 2 1\no box\nv 3 1 -6\nv 3.5 1 -6\nv 3.5 1 -5.5\nf 5 6 "
+                "7\n";
+    }
+    ~ObjFixture() {
+        std::filesystem::remove(directory / "scene.obj");
+        std::filesystem::remove(directory / "scene.obj.ao");
+        std::filesystem::remove(directory / "scene.obj.ao.pgm");
+        std::filesystem::remove(directory / "scene.mtl");
+        std::filesystem::remove(directory);
+    }
+};
+TEST_F(ShaderGL, BackgroundShadersCompileAndLinkOnGL20) {
+    EXPECT_GE(CShader::inst().addProgram("background-test",
+                                         BackgroundShader::vertex,
+                                         BackgroundShader::fragment),
+              0);
+    EXPECT_GE(CShader::inst().addProgram("background-depth-test",
+                                         BackgroundShader::depthVertex,
+                                         BackgroundShader::depthFragment),
+              0);
+}
+TEST_F(ShaderGL, ObjUploadMoveReloadAndUntexturedMaterialAreSafe) {
+    ObjFixture fixture;
+    GPPOBJ model;
+    ASSERT_TRUE(model.loadInternalObj(fixture.directory.string(), "scene.obj"));
+    GLuint texture = 0;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glEnable(GL_TEXTURE_2D);
+    int calls = 0;
+    model.drawMaterials([&](const ObjModel::Part &part,
+                            const ObjModel::Material &, bool textured) {
+        ++calls;
+        EXPECT_FALSE(textured);
+        EXPECT_FALSE(part.textured);
+        GLint bound = -1;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+        EXPECT_EQ(bound, 0);
+        return true;
+    });
+    EXPECT_EQ(calls, 2);
+    GLint bound = 0;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+    EXPECT_EQ(bound, static_cast<GLint>(texture));
+    GPPOBJ moved(std::move(model));
+    moved.draw(0);
+    ASSERT_TRUE(moved.loadInternalObj(fixture.directory.string(), "scene.obj"));
+    moved.draw(0);
+    EXPECT_FALSE(
+        moved.loadInternalObj(fixture.directory.string(), "missing.obj"));
+    moved.draw(0);
+    moved.unload();
+    moved.draw(0);
+    glDeleteTextures(1, &texture);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+TEST_F(ShaderGL, BackgroundAOChangesAmbientPixelsAndCanBeDisabled) {
+    ObjFixture fixture;
+    {
+        std::ofstream obj(fixture.directory / "scene.obj");
+        obj << "mtllib scene.mtl\nusemtl matte\nv 2 0 -7\nv 4 0 -7\nv 4 0 "
+               "-5\nv 2 0 -5\nf 4 3 2 1\n";
+        std::ofstream mtl(fixture.directory / "scene.mtl");
+        mtl << "newmtl matte\nKa 1 1 1\nKd .2 .2 .2\nKs 0 0 0\n";
+    }
+    std::ifstream obj(fixture.directory / "scene.obj");
+    auto parsed = ObjModel::read(obj);
+    SceneAO::Atlas atlas;
+    atlas.width = atlas.height = 2;
+    atlas.pixels.assign(4, 0);
+    atlas.coordinates.assign(6, ObjModel::Vec2{.5f, .5f});
+    SceneAO::write(fixture.directory / "scene.obj", parsed, atlas);
+    GPPOBJ model;
+    ASSERT_TRUE(model.loadInternalObj(fixture.directory.string(), "scene.obj"));
+    auto &renderer = CBackgroundRenderer::inst();
+    renderer.quality = 1;
+    CEngine::engine().nowCamera.eye = {3, 3, -4};
+    const auto projection =
+        glm::perspective(glm::radians(45.f), 1.f, .1f, 20.f) *
+        glm::lookAt(glm::vec3(3, 3, -4), glm::vec3(3, 0, -6),
+                    glm::vec3(0, 1, 0));
+    glViewport(0, 0, 32, 32);
+    glMatrixMode(GL_PROJECTION);
+    glLoadMatrixf(glm::value_ptr(projection));
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glClearColor(0, 0, 0, 1);
+    auto pixel = [&](bool ao) {
+        renderer.ambientOcclusion = ao;
+        glDepthMask(GL_TRUE);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        renderer.draw(model);
+        std::array<unsigned char, 4> color{};
+        glReadPixels(16, 16, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, color.data());
+        return color;
+    };
+    const auto occluded = pixel(true), plain = pixel(false);
+    EXPECT_TRUE(model.hasAO());
+    EXPECT_GT(occluded[0], 10);
+    EXPECT_GT(plain[0], occluded[0] + 3);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+    renderer.quality = 2;
+    renderer.ambientOcclusion = true;
+}
+TEST_F(ShaderGL, BackgroundRestoresStateAndReusesStaticShadow) {
+    ObjFixture fixture;
+    GPPOBJ model;
+    ASSERT_TRUE(model.loadInternalObj(fixture.directory.string(), "scene.obj"));
+    auto &renderer = CBackgroundRenderer::inst();
+    renderer.quality = 2;
+    auto p = make_program();
+    auto v = CShader::compileShader(vertex, VERTEX),
+         f = CShader::compileShader(fragment, FRAGMENT);
+    CShader::attachShaderToProgram(p, v);
+    CShader::attachShaderToProgram(p, f);
+    CShader::linkShaderProgram(p);
+    glUseProgram(p.get());
+    glViewport(1, 2, 20, 21);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+    glDepthMask(GL_FALSE);
+    glColorMask(GL_TRUE, GL_FALSE, GL_TRUE, GL_FALSE);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glTranslatef(.2f, .3f, .4f);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glScalef(.7f, .8f, .9f);
+    std::array<float, 16> before{}, after{};
+    glGetFloatv(GL_PROJECTION_MATRIX, before.data());
+    glActiveTexture(GL_TEXTURE1);
+    renderer.draw(model);
+    GLint value = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &value);
+    EXPECT_EQ(value, static_cast<GLint>(p.get()));
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &value);
+    EXPECT_EQ(value, GL_TEXTURE1);
+    glGetIntegerv(GL_MATRIX_MODE, &value);
+    EXPECT_EQ(value, GL_PROJECTION);
+    glGetFloatv(GL_PROJECTION_MATRIX, after.data());
+    EXPECT_EQ(before, after);
+    std::array<GLint, 4> viewport{};
+    glGetIntegerv(GL_VIEWPORT, viewport.data());
+    EXPECT_EQ(viewport, (std::array<GLint, 4>{1, 2, 20, 21}));
+    GLboolean mask = GL_TRUE;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &mask);
+    EXPECT_FALSE(mask);
+    EXPECT_TRUE(glIsEnabled(GL_BLEND));
+    const auto updates = renderer.shadowUpdates();
+    if (GLEW_EXT_framebuffer_object)
+        EXPECT_EQ(updates, 1u);
+    CEngine::engine().nowCamera.eye.x += 1.;
+    renderer.draw(model);
+    EXPECT_EQ(renderer.shadowUpdates(), updates);
+    ASSERT_TRUE(model.loadInternalObj(fixture.directory.string(), "scene.obj"));
+    renderer.draw(model);
+    if (updates)
+        EXPECT_EQ(renderer.shadowUpdates(), updates + 1);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+    renderer.quality = 0;
+    renderer.draw(model);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+    renderer.quality = 2;
+}
 } // namespace

@@ -541,6 +541,8 @@ class CEngine {
                           GLFWimage *eimg = nullptr);
     unsigned int uploadTextureToOGL(GLFWimage *eimg);
     void bindTexture(unsigned int text);
+    // Call after restoring GL bindings changed outside the engine cache.
+    void invalidateRenderBindings() { lastUsedTexture = lastUsedVBOBuffer = ~0u; }
 
     static void glEnable(int num);
     static void glDisable(int num);

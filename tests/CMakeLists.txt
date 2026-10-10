@@ -29,3 +29,5 @@ if(UNIX AND NOT APPLE AND XVFB_RUN)
 else()
     add_test(NAME font_metrics COMMAND tests --gtest_filter=FontMetricsGL.*)
 endif()
+
+add_test(NAME obj_loader COMMAND tests --gtest_filter=ObjLoader.*)

@@ -55,6 +55,9 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CVideo.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GPPGame.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GPPOBJ.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ObjModel.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SceneAO.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CBackgroundRenderer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/exception.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/tga.cpp"
 
@@ -95,4 +98,12 @@ target_link_libraries(${myprojectname} "${myprojectname}_lib")
 include(CTest)
 if(BUILD_TESTING)
     add_subdirectory(tests)
+endif()
+
+option(BUILD_SCENE_TOOLS "Build offline scene preparation tools" OFF)
+if(BUILD_SCENE_TOOLS)
+    add_executable(gpp_bake_ao tools/bake_scene_ao.cpp)
+    target_link_libraries(gpp_bake_ao GuitarPP_lib)
+    add_executable(gpp_preview_background tools/preview_background.cpp)
+    target_link_libraries(gpp_preview_background GuitarPP_lib)
 endif()

@@ -1,4 +1,5 @@
-﻿#ifndef _CRT_SECURE_NO_WARNINGS
+#include "CBackgroundRenderer.h"
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 #include "CEngine.h"
@@ -1967,6 +1968,7 @@ CEngine::CEngine() {
 
 CEngine::~CEngine() {
     if (window) glfwMakeContextCurrent(static_cast<GLFWwindow *>(window));
+    CBackgroundRenderer::shutdown();
     ShaderProject::CShader::shutdown();
     glfwTerminate();
 }
