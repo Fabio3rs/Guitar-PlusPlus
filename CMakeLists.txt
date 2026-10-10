@@ -1,6 +1,6 @@
 set(myprojectname GuitarPP)
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 project(${myprojectname} VERSION 0.1.0)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -15,7 +15,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include(CPack)
 
-add_subdirectory(glm)
+add_subdirectory(glm SYSTEM)
 
 #if(POLICY CMP0072)
 #    cmake_policy(SET CMP0072 NEW)
@@ -26,7 +26,7 @@ find_package(PkgConfig)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/glfw)
+add_subdirectory(${CMAKE_SOURCE_DIR}/glfw SYSTEM)
 
 # setando todos arquivos fontes que serão compilados
 file(
