@@ -4600,18 +4600,6 @@ GPPGame::GPPGame()
 
     gameplayRunningTime = 0.0;
 
-    // if (!mainSave.loadn("data/saves/mains"))
-    {
-        CLog::log() << "data/saves/mains error";
-
-        {
-            if (mainSave.createNew()) {
-                { CLog::log() << "data/saves/mains clean"; }
-            } else {
-                { CLog::log() << "data/saves/mains recreate error"; }
-            }
-        }
-    }
     devMenus.gameMenu = true;
     uiRenameMenu.gameMenu = true;
     uiCreateProfile.gameMenu = true;
@@ -4635,10 +4623,9 @@ GPPGame::GPPGame()
     CEngine::engine().renderFrameCallback = callbackRenderFrame;
 
     windowCFGs = getWindowDefaults();
-    mainSave.addVariableAttData("windowCFGs", windowCFGs, true);
-    mainSave.addVariableAttData("glanguage", glanguage, true);
-
-    windowCFGs.name = std::string("");
+    if (settings.load(windowCFGs, glanguage) == CGameSettings::LoadResult::Error) {
+        CLog::log() << "Settings load failed; using defaults. " + settings.error();
+    }
 
     srand((unsigned int)time(0));
 
@@ -4792,9 +4779,12 @@ GPPGame::GPPGame()
     CLuaH::Lua().loadFiles("data");
 }
 
-GPPGame::~GPPGame() noexcept {
-    try {
-        mainSave.saves();
-    } catch (...) {
+bool GPPGame::saveSettings() {
+    if (!settings.save(windowCFGs, glanguage)) {
+        CLog::log() << "Settings save failed. " + settings.error();
+        return false;
     }
+    return true;
 }
+
+GPPGame::~GPPGame() noexcept = default;

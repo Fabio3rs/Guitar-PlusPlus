@@ -15,18 +15,19 @@
 #include "CLuaH.hpp"
 #include "CMenu.h"
 #include "CPlayer.h"
-#include "CSaveSystem.h"
 #include "CShader.h"
 #include "GPPGame.h"
 #include <exception>
 #include <fstream>
+#include <filesystem>
+#include <stdexcept>
 #include <iostream>
 #include <sstream>
 #include <string>
 
 #include "CMultiplayer.h"
 
-static auto load_data() -> int {
+static auto load_data() -> bool {
     auto &lngmgr = CLanguageManager::langMGR();
 
     auto &game = GPPGame::GuitarPP();
@@ -80,6 +81,10 @@ static auto load_data() -> int {
         }
 
         game.renderFrame();
+    }
+
+    if (!wOpened) {
+        return false;
     }
 
     const auto &logotext = game.loadTexture("data/sprites", "logo.tga");
@@ -687,13 +692,12 @@ if (game.futureTextureLoad.getAddedElementsNum() > 0 && t > 5) {
     }
 }
 }
-return 0;
+return CEngine::engine().windowOpened() && loadLoop >= 8;
 }
 
 auto main(int argc, char *argv[]) -> int {
-    /// startGambiarras();
-    // try
-    {
+    const char *stage = "engine initialization";
+    try {
         CEngine::engine().errorCallbackFun = GPPGame::logError;
         CLog::log();
         CEngine::engine().init();
@@ -706,17 +710,33 @@ auto main(int argc, char *argv[]) -> int {
 
         auto &lua = CLuaH::Lua();
 
+        // Register enableShaders before Config.lua can set it. No GL upload here.
+        ShaderProject::CShader::inst();
+
         // Configuration file
+        stage = "Config.lua";
         auto script = lua.newScript(".", "Config.lua");
 
         if (script.luaState) {
-            lua.runScript(script);
+            if (lua.runScript(script) != 0) {
+                const char *error = lua_tostring(script.luaState.get(), -1);
+                throw std::runtime_error(error ? error : "Config.lua execution failed");
+            }
+        } else if (std::filesystem::exists("Config.lua")) {
+            throw std::runtime_error("Cannot load Config.lua; see Guitar++.log");
+        } else {
+            CLog::log() << "Config.lua not found; using saved settings/defaults";
         }
 
         // Run all scripts in quere
+        stage = "data scripts";
         lua.runScripts();
 
-        load_data();
+        stage = "window and assets";
+        if (!load_data()) {
+            CLog::log() << "Startup loading cancelled";
+            return 0;
+        }
         auto &guitars = CGuitars::inst();
 
         GPPGame::GuitarPP().setVSyncMode(1);
@@ -731,17 +751,18 @@ auto main(int argc, char *argv[]) -> int {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         mp.clientConnect("127.0.0.1", "7777");*/
 
+        stage = "campaign loading";
         {
-            // CCampaing::campaingMGR().loadedCampaingFilepath =
-            // "./data/saves/campaings/campaingZoeira/save";
             cfile_ptr svfstream(CEngine::make_cfile(
                 "./data/saves/campaings/campaingZoeira/save", "rb"));
 
             if (svfstream) {
                 svfstream.reset();
 
-                CCampaing::campaingMGR().loadCampaingF(
-                    "./data/saves/campaings/campaingZoeira/save");
+                if (!CCampaing::campaingMGR().loadCampaingF(
+                        "./data/saves/campaings/campaingZoeira/save")) {
+                    throw std::runtime_error("Cannot load campaign save; file preserved");
+                }
             } else {
                 svfstream.reset();
 
@@ -749,15 +770,24 @@ auto main(int argc, char *argv[]) -> int {
             }
         }
 
+        stage = "menus/gameplay";
         game.selectPlayerMenu();
         game.openMenus(game.getMainMenu(), nullptr, nullptr, nullptr, false);
 
         lua.runEvent(atExitSE);
+        game.saveSettings();
         guitars.unload();
         lua.unloadAll();
-    } // catch (const std::exception &e)
-    //{
-    //	CLog::log() << e.what();
-    //}
+    } catch (const std::exception &e) {
+        const std::string message = std::string("Failure during ") + stage + ": " + e.what();
+        std::cerr << message << '\n';
+        // Keep the terminal diagnostic even if logging itself fails.
+        try {
+            CLog::log() << message;
+            CLog::log().SaveBuffer();
+        } catch (const std::exception &) {
+        }
+        return 1;
+    }
     return 0;
 }

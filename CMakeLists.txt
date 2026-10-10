@@ -39,6 +39,7 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CFonts.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CGPPFileMGR.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CGamePlay.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CGameSettings.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CGuitars.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CLanguageManager.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CLog.cpp"
@@ -49,7 +50,6 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CParticle.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CPlusLightning.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CPlayer.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/CSaveSystem.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CShader.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CText.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CVideo.cpp"
@@ -80,16 +80,21 @@ link_directories(${INCLUDE_DIRS})
 add_library("${myprojectname}_lib" STATIC ${SOURCES})
 add_executable(${myprojectname} "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
+option(GPP_NATIVE_CPU "Optimize for the build machine (not for distribution)" OFF)
+if(GPP_NATIVE_CPU AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options("${myprojectname}_lib" PRIVATE -march=native -mtune=native)
+endif()
+
 # Compiler-specific compile flags
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     message(STATUS "Setting G++ flags")
-    target_compile_options("${myprojectname}_lib" PRIVATE -march=native -mtune=native -Wall -Wextra $<$<COMPILE_LANGUAGE:CXX>:-std=c++17> -Wformat-security -Wconversion -Wsign-conversion)
+    target_compile_options("${myprojectname}_lib" PRIVATE -Wall -Wextra $<$<COMPILE_LANGUAGE:CXX>:-std=c++17> -Wformat-security -Wconversion -Wsign-conversion)
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
     message(STATUS "Setting MSVC flags")
     target_compile_options("${myprojectname}_lib" PRIVATE /EHsc /W2 /c)
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     message(STATUS "Setting Clang flags")
-    target_compile_options("${myprojectname}_lib" PRIVATE -march=native -mtune=native -Weverything -Wno-date-time -Wno-disabled-macro-expansion -Wno-global-constructors $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>  -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-exit-time-destructors)
+    target_compile_options("${myprojectname}_lib" PRIVATE -Weverything -Wno-date-time -Wno-disabled-macro-expansion -Wno-global-constructors $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>  -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-exit-time-destructors)
 endif()
 
 target_link_libraries("${myprojectname}_lib" glfw GLEW OpenGL::GL bass bass_fx)

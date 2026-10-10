@@ -8,7 +8,7 @@
 #include "CMenu.h"
 #include "CMultiThreadPool.h"
 #include "CPlayer.h"
-#include "CSaveSystem.h"
+#include "CGameSettings.h"
 #include "CShader.h"
 #include "GPPOBJ.h"
 #include <atomic>
@@ -71,8 +71,6 @@ class GPPGame {
     int uiCreateUITextID, uiCreateUIPathID;
 
     std::string glanguage;
-
-    CSaveSystem::CSave mainSave;
 
     bool gppTextureKeepBuffer, drawGamePlayBackground, showTextsTest;
     float songVolume;
@@ -276,11 +274,7 @@ class GPPGame {
     void streammingProcess();
     int getNumTexturesToLoad();
 
-    struct gameWindow {
-        int h, w, AA, colorBits, VSyncMode;
-        int fullscreen;
-        std::string name; // "Guitar ++ - name"/"Guitar++"
-    };
+    using gameWindow = CGameSettings::Window;
 
     class CTheme {
         friend GPPGame;
@@ -532,11 +526,13 @@ class GPPGame {
     bool windowChangedParams{}; // update in case of realtime changes - TODO
 
     gameWindow windowCFGs; // Actual config
+    CGameSettings settings;
 
     GPPGame();
     ~GPPGame() noexcept;
 
   public:
+    bool saveSettings();
     const gameWindow &getWindowConfig() const { return windowCFGs; };
     int createWindow();
 

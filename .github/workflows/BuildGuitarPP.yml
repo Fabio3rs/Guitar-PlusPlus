@@ -55,7 +55,7 @@ jobs:
           export CC=$(which clang-18)
           export CXX=$(which clang++-18)
           mkdir build && cd build
-          cmake .. -G Ninja
+          cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGPP_NATIVE_CPU=OFF
           cmake --build . --config Debug --target all -j $(nproc) --
 
       - name: Test project

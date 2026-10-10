@@ -1,4 +1,5 @@
 #include "CBackgroundRenderer.h"
+#include "CLog.h"
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #endif
@@ -102,6 +103,10 @@ void CEngine::init() {
     lastFrameTime = lastFPSSwapTime = 0.0;
 
     auto result = BASS_Init(-1, 44100, 0, 0, NULL);
+    if (!result) {
+        CLog::log() << "BASS initialization failed, error " +
+                           std::to_string(BASS_ErrorGetCode());
+    }
 
     glfwSetErrorCallback(GLFWerrorfun);
 
@@ -1076,7 +1081,11 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen) {
     }
 
     if (w < 1 || h < 1) {
-        const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        GLFWmonitor *primary = glfwGetPrimaryMonitor();
+        const GLFWvidmode *mode = primary ? glfwGetVideoMode(primary) : nullptr;
+        if (!mode) {
+            throw std::runtime_error("Cannot determine monitor resolution");
+        }
 
         w = mode->width;
         h = mode->height;
@@ -1123,6 +1132,7 @@ void CEngine::openWindow(const char *name, int w, int h, int fullScreen) {
 #else
 
 #endif
+        throw std::runtime_error("GLEW initialization failed");
     }
 
     if (glUseProgram) {

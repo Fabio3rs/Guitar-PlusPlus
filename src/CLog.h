@@ -6,6 +6,8 @@
  *****************************************************************************************************/
 #pragma once
 #include <cstddef>
+#include <array>
+#include <mutex>
 #ifndef LOGGING_SYSTEM_CLOG_H
 #define LOGGING_SYSTEM_CLOG_H
 #include <chrono>
@@ -21,21 +23,14 @@
 #include <type_traits>
 #include <utility>
 
-class CLogException : public std::exception {
-    std::string str;
-
-  public:
-    const char *what() const noexcept { return str.c_str(); }
-
-    CLogException(const char *except) noexcept
-        : std::exception(), str(except) {}
-
-    ~CLogException() noexcept {}
-};
-
 class CLog {
     std::string FileName;
-    std::fstream LogFile;
+    std::ofstream LogFile;
+    std::mutex writeMutex;
+    bool useStderr = false;
+
+    // Caller holds writeMutex (or is constructing this instance).
+    void writeLocked(const std::string &text);
 
     class argToString {
         const std::string str;
@@ -45,7 +40,7 @@ class CLog {
 
         argToString(bool value) : str(value ? "true" : "false") {}
 
-        argToString(const char *str) : str(str) {}
+        argToString(const char *str) : str(str ? str : "(null)") {}
 
         argToString(const std::exception &e) : str(e.what()) {}
 
@@ -64,83 +59,32 @@ class CLog {
 
     template <class... Types>
     std::string multiRegister(const std::string &format, Types &&... args) {
-        const std::array<argToString,
-                         std::tuple_size<std::tuple<Types...>>::value>
-            a = {std::forward<Types>(args)...};
-        std::string printbuf, numbuf;
-
-        bool ignoreNext = false;
-
-        for (size_t i = 0, size = format.size(); i < size; i++) {
-            auto ch = format[i];
-            size_t ti = i + 1;
-
-            switch (ch) {
-            case '\\':
-                if (ignoreNext) {
-                    printbuf.insert(printbuf.end(), 1, ch);
-                    ignoreNext = false;
-                    break;
-                }
-
-                ignoreNext = true;
-                break;
-
-            case '%':
-                if (ignoreNext) {
-                    printbuf.insert(printbuf.end(), 1, ch);
-                    ignoreNext = false;
-                    break;
-                }
-
-                numbuf = "";
-
-                {
-                    bool stringEnd = true;
-                    while (ti < size) {
-                        if (format[ti] < '0' || format[ti] > '9') {
-                            i = ti - 1;
-                            if (numbuf.size() > 0) {
-                                size_t argId = std::stoul(numbuf);
-
-                                if (argId < a.size()) {
-                                    printbuf += a[argId].getStr();
-                                } else {
-                                    printbuf += "%";
-                                    printbuf += numbuf;
-                                }
-
-                                stringEnd = false;
-
-                                break;
-                            }
-                        } else {
-                            numbuf.insert(numbuf.end(), 1, format[ti]);
-                        }
-
-                        ti++;
+        const std::array<argToString, sizeof...(Types)> a = {std::forward<Types>(args)...};
+        std::string printbuf;
+        printbuf.reserve(format.size());
+        for (size_t i = 0; i < format.size();) {
+            if (format[i] == '\\' && i + 1 < format.size() &&
+                (format[i + 1] == '%' || format[i + 1] == '\\')) {
+                printbuf += format[i + 1];
+                i += 2;
+            } else if (format[i] == '%' && i + 1 < format.size() &&
+                       format[i + 1] >= '0' && format[i + 1] <= '9') {
+                const size_t start = i++;
+                size_t argument = 0;
+                // Saturate to an invalid index; arbitrarily long tokens never throw.
+                while (i < format.size() && format[i] >= '0' && format[i] <= '9') {
+                    const size_t digit = static_cast<size_t>(format[i++] - '0');
+                    if (argument <= a.size() / 10) {
+                        argument = argument * 10 + digit;
+                    } else {
+                        argument = a.size();
                     }
-
-                    if (stringEnd) {
-                        i = size;
-                        if (numbuf.size() > 0) {
-                            size_t argId = std::stoul(numbuf);
-
-                            if (argId < a.size()) {
-                                printbuf += a[argId].getStr();
-                            } else {
-                                printbuf += "%";
-                                printbuf += numbuf;
-                            }
-                        }
-                    }
+                    if (argument >= a.size()) argument = a.size();
                 }
-                break;
-
-            default:
-                ignoreNext = false;
-                printbuf.insert(printbuf.end(), 1, ch);
-                break;
+                if (argument < a.size()) printbuf += a[argument].getStr();
+                else printbuf.append(format, start, i - start);
+            } else {
+                printbuf += format[i++];
             }
         }
 
@@ -157,7 +101,6 @@ class CLog {
 
     CLog(const CLog &) = delete;
 
-  private:
-    CLog(const std::string &NameOfFile);
+    explicit CLog(const std::string &NameOfFile);
 };
 #endif

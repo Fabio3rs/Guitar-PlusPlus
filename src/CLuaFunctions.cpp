@@ -3,6 +3,8 @@
 #include "CLog.h"
 #include "GPPGame.h"
 #include <iostream>
+#include <cmath>
+#include <limits>
 
 void CLuaFunctions::registerLuaFuncsAPI(
     const std::function<int(CLuaH::luaState_t &)> &fun) {
@@ -440,34 +442,35 @@ auto CLuaFunctions::printGlobals(lua_State *L) -> int {
 
 auto CLuaFunctions::setConfigs(lua_State *L) -> int {
     auto cfg = GPPGame::GuitarPP().getWindowConfig();
-
-    lua_getglobal(L, "WindowWidth");
-
-    if (lua_isnumber(L, -1) != 0) {
-        {
-            cfg.w = static_cast<int>(lua_tointeger(L, -1));
+    auto readWindowInteger = [L](const char *name, int &value, int maximum) {
+        lua_getglobal(L, name);
+        if (!lua_isnil(L, -1)) {
+            const double number = lua_tonumber(L, -1);
+            if (lua_isnumber(L, -1) && std::isfinite(number) &&
+                number >= 0 && number <= maximum && std::floor(number) == number) {
+                value = static_cast<int>(number);
+            } else {
+                CLog::log() << std::string("Invalid configuration value: ") + name;
+            }
         }
-    }
+        lua_pop(L, 1);
+    };
 
-    lua_getglobal(L, "WindowHeight");
+    readWindowInteger("WindowWidth", cfg.w, std::numeric_limits<int>::max());
 
-    if (lua_isnumber(L, -1) != 0) {
-        {
-            cfg.h = static_cast<int>(lua_tointeger(L, -1));
-        }
-    }
+    readWindowInteger("WindowHeight", cfg.h, std::numeric_limits<int>::max());
 
     lua_getglobal(L, "FullScreen");
 
     if (lua_isboolean(L, -1)) {
-        cfg.fullscreen = static_cast<int>(lua_toboolean(L, -1) != 0);
+        cfg.fullscreen = (cfg.fullscreen & ~1) | (lua_toboolean(L, -1) ? 1 : 0);
     }
 
     lua_getglobal(L, "Borderless");
 
     if (lua_isboolean(L, -1)) {
         {
-            cfg.fullscreen |= (lua_toboolean(L, -1) != 0) ? 2 : 0;
+            cfg.fullscreen = (cfg.fullscreen & ~2) | (lua_toboolean(L, -1) ? 2 : 0);
         }
     }
 
@@ -479,21 +482,9 @@ auto CLuaFunctions::setConfigs(lua_State *L) -> int {
         }
     }
 
-    lua_getglobal(L, "VSync");
+    readWindowInteger("VSync", cfg.VSyncMode, 3);
 
-    if (lua_isnumber(L, -1) != 0) {
-        {
-            cfg.VSyncMode = static_cast<int>(lua_tointeger(L, -1));
-        }
-    }
-
-    lua_getglobal(L, "AntiAliasing");
-
-    if (lua_isnumber(L, -1) != 0) {
-        {
-            cfg.AA = static_cast<int>(lua_tointeger(L, -1));
-        }
-    }
+    readWindowInteger("AntiAliasing", cfg.AA, std::numeric_limits<int>::max());
 
     lua_getglobal(L, "Green");
 
@@ -570,7 +561,12 @@ auto CLuaFunctions::setConfigs(lua_State *L) -> int {
 
     if (lua_isnumber(L, -1) != 0) {
         {
-            GPPGame::GuitarPP().hyperSpeed = lua_tonumber(L, -1);
+            const double value = lua_tonumber(L, -1);
+            if (std::isfinite(value) && value > 0.0) {
+                GPPGame::GuitarPP().hyperSpeed = value;
+            } else {
+                CLog::log() << "Invalid configuration value: hyperSpeed";
+            }
         }
     }
 

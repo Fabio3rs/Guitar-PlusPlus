@@ -32,7 +32,7 @@ Guitar++ is a **game**, not safety-critical infrastructure or a financial transa
 - `src/CGuitars.{h,cpp}` and `src/GPPOBJ.{h,cpp}`: instrument configuration and OBJ-based 3D models.
 - `src/CShader.{h,cpp}`, `src/FireShader.h`, `src/PlusLightningShader.h`, `src/CPlusLightning.{h,cpp}` and `src/CParticle.{h,cpp}`: shaders, fire, lightning and particle effects.
 - `src/CMenu.{h,cpp}`, `src/CFonts.{h,cpp}`, `src/CLuaH.*`, `src/CLuaFunctions.*`, `src/CLanguageManager.*`: menus, text, Lua scripting and translations.
-- `src/CSaveSystem.*`, `src/CCampaing.*`, `src/CMultiplayer.*`: persistence, campaign and networking. Some existing identifiers have historical spelling; do not rename them as an incidental cleanup.
+- `src/CGameSettings.*`, `src/CCampaing.*`, `src/CMultiplayer.*`: preferences, campaign and networking. Preferences use cereal JSON in `data/saves/settings.json`; the obsolete raw-memory `CSaveSystem` was removed. Some existing identifiers have historical spelling; do not rename them as an incidental cleanup.
 - `tests/`: GoogleTest-based tests. `CMakeLists.txt` and `.github/workflows/BuildGuitarPP.yml` are the build/CI references.
 
 `glfw`, `glm` and `cereal` are Git submodules; `src/Lua/` and `src/utf8/` contain bundled third-party code. Avoid editing these when implementing game features unless explicitly necessary.
@@ -113,7 +113,7 @@ Guitar++ is a **game**, not safety-critical infrastructure or a financial transa
 - On headless Linux, graphical tests can use **Xvfb**; `tests/CMakeLists.txt` already wraps the GL/font tests with `xvfb-run` when available. CI runs on Ubuntu with Clang, Ninja, Mesa and Xvfb.
 - The existing test suite covers shader ownership/lifetimes, GL state and effects, Plus lightning, particle limits and font rendering. Add focused tests for new behaviors. Rendering changes should be checked with the shader tests **and**, when assets/hardware are available, visually in-game.
 - If a dependency or asset prevents a test, report exactly what could and could not be checked. Do not treat a successful build as proof that gameplay and performance were validated.
-- The current CMake compiler flags include `-march=native` on GNU/Clang. Consider its impact when working on **portable distribution builds**; a binary built for the local CPU may not run on older machines.
+- `GPP_NATIVE_CPU` enables `-march=native` / `-mtune=native` on GNU/Clang for local builds. It defaults to OFF and is explicitly OFF in CI. Keep it OFF for **portable distribution builds**; a binary built for the local CPU may not run on older machines.
 
 ## Working conventions
 

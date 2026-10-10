@@ -34,16 +34,18 @@ auto CLuaH::loadFiles(const std::string &path) -> bool {
                                : (""));
     };
 
-    DIR *direntd = opendir((std::string("./") + path).c_str());
+    DIR *direntd = opendir(path.c_str());
     dirent *rrd = nullptr;
 
     if (direntd != nullptr) {
-        rrd = readdir(direntd);
         while ((rrd = readdir(direntd)) != nullptr) {
             if ((rrd->d_type & DT_DIR) == 0 &&
                 extension_from_filename(rrd->d_name) == "lua") {
                 CLog::log() << ("Loading <<" + path + "/" + rrd->d_name + ">>");
-                files[path][rrd->d_name] = newScript(path, rrd->d_name);
+                auto script = newScript(path, rrd->d_name);
+                if (script.luaState) {
+                    files[path][rrd->d_name] = std::move(script);
+                }
             }
         }
         closedir(direntd);
@@ -61,16 +63,18 @@ auto CLuaH::loadFilesDequeStorage(const std::string &path,
                                : (""));
     };
 
-    DIR *direntd = opendir((std::string("./") + path).c_str());
+    DIR *direntd = opendir(path.c_str());
     dirent *rrd = nullptr;
 
     if (direntd != nullptr) {
-        rrd = readdir(direntd);
         while ((rrd = readdir(direntd)) != nullptr) {
             if ((rrd->d_type & DT_DIR) == 0 &&
                 extension_from_filename(rrd->d_name) == "lua") {
                 CLog::log() << ("Loading <<" + path + "/" + rrd->d_name + ">>");
-                storage.push_back(newScript(path, rrd->d_name));
+                auto script = newScript(path, rrd->d_name);
+                if (script.luaState) {
+                    storage.push_back(std::move(script));
+                }
             }
         }
         closedir(direntd);
@@ -256,6 +260,7 @@ auto CLuaH::newScript(const std::string &path, const std::string &f)
                            std::to_string(load_result);
 
         catchErrorString(lData);
+        lData.luaState.reset();
     }
     return lData;
 }
@@ -546,7 +551,9 @@ void CLuaH::runScripts() {
     static const std::string barra("/");
     for (auto &pathScripts : Lua().files) {
         for (auto &scripts : pathScripts.second) {
-            runScript(scripts.second);
+            if (runScript(scripts.second) != 0) {
+                catchErrorString(scripts.second);
+            }
         }
     }
 }

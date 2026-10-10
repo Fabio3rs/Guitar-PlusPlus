@@ -31,3 +31,12 @@ else()
 endif()
 
 add_test(NAME obj_loader COMMAND tests --gtest_filter=ObjLoader.*)
+add_test(NAME settings COMMAND tests --gtest_filter=Settings.*)
+add_test(NAME logging COMMAND tests --gtest_filter=Logging.*)
+
+if(UNIX AND NOT APPLE AND XVFB_RUN)
+    add_test(NAME startup_errors COMMAND ${XVFB_RUN} -a ${CMAKE_COMMAND}
+        -DGPP_EXECUTABLE=$<TARGET_FILE:GuitarPP>
+        -DGPP_TEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/startup-errors
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/startup_errors.cmake)
+endif()

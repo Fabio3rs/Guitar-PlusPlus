@@ -31,6 +31,50 @@ Place the binary with the assets (not updated yet...) https://brmodstudio.forume
 
 Put your song assets in the data/songs directory
 
+## Configuration and preferences
+
+[`src/Config.lua`](src/Config.lua) documents the existing window, keyboard,
+gameplay, scene and legacy multiplayer options. Copy it to the game's working
+directory as `Config.lua` when preparing a new installation; do not overwrite
+an existing user's script during builds or updates. Paths still resolve from
+the working directory, so launch from the directory containing `data/`.
+
+Window preferences are loaded in this order: C++ defaults, then
+`data/saves/settings.json`, then the values explicitly supplied by `Config.lua`.
+The new settings file uses cereal JSON, version 1, with individual window fields
+and the language identifier. It stores string contents rather than C++ object
+memory, so `gameWindow` no longer depends on the layout of `std::string` or the
+compiler's struct padding. Other Lua options remain in `Config.lua`; they are
+not automatically persisted. The existing VSync overrides in menus/gameplay
+remain in effect after window creation.
+
+Preferences are saved on normal application exit. The complete archive is
+written to a sibling `.tmp` file, closed and then replaces the previous file.
+An invalid or unsupported settings file leaves defaults in memory and is not
+overwritten; the log explains the error. Correct or remove that file to resume
+saving. The former `data/saves/mains` raw-memory format is not read or migrated.
+Campaign and chart formats are unchanged.
+
+Missing `Config.lua` uses saved preferences/defaults. Syntax or execution errors
+in an existing configuration abort startup with a diagnostic in `Guitar++.log`
+and a nonzero exit status. Closing/cancelling loading does not enter partially
+initialized menus or save preferences. Optional data-script errors are logged.
+
+`CLog` serializes individual log records from loading threads, uses thread-safe
+timestamp conversion and falls back to stderr when its file cannot be opened or
+written. It remains a synchronous logger; no gameplay/render lock or logging
+worker was added. On Windows, the existing crash tracer writes a separate
+`Guitar++.crash.log` on a best-effort basis, avoiding the normal logger's mutex.
+
+## CPU-specific builds
+
+The default build and CI do not use `-march=native` or `-mtune=native`. For a
+local-only optimized build, configure with `-DGPP_NATIVE_CPU=ON`. Keep it `OFF`
+for distribution; this avoids requiring the build machine's CPU instruction
+set, but does not bundle runtime libraries or guarantee compatibility with every
+Linux distribution. Public asset packages exclude the contents of `data/songs/`;
+the other game assets belong to the game team.
+
 # Garage lighting and OBJ assets
 
 The garage uses a shared OpenGL 2.0 / GLSL 1.10 renderer in menus and gameplay.

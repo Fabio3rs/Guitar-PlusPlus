@@ -6,7 +6,6 @@
 #include "CLuaFunctions.hpp"
 #include "CMenu.h"
 #include "CPlayer.h"
-#include "CSaveSystem.h"
 #include <algorithm>
 #include <cstdint>
 #include <deque>
