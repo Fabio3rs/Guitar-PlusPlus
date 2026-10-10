@@ -536,7 +536,7 @@ results. Test rendering remains compatible with GL 2.0 / GLSL 1.10.
 CPU tests can run under ASan/UBSan without a display, including through NativeLab.
 For graphical sanitizer runs, this machine's Mesa GLX retains allocations after
 context teardown. Use `LSAN_OPTIONS=suppressions=/absolute/path/to/tests/lsan.supp`
-with `ctest -R 'font_metrics|shader_gl|scene_gl' --output-on-failure` in the
+with `ctest -L gpu --output-on-failure` in the
 sanitized build. The suppression matches only `libGLX_mesa.so`; leak detection
 remains enabled. CPU sanitizer tests should run without this suppression.
 
@@ -604,7 +604,7 @@ bodies. The original executable and SHA-256 manifest are retained there. Dumps
 and compiled real-song fixtures stay outside version control because they contain
 third-party chart data. They are local evidence, not bundled CI fixtures.
 
-`ctest --test-dir build -R '^chart_runtime$' --output-on-failure` runs focused
+`ctest --test-dir build -R '^ChartRuntime\.' --output-on-failure` runs focused
 CPU-only runtime-loader contract tests using small synthetic sections. Expected
 values come from the chart's resolution, tempo and offset, independently of the
 historical dumps. Coverage includes UTF-8 metadata, quarter-note timing at several
@@ -618,3 +618,13 @@ are not asserted as correct merely because the old loader produced them. The
 before/after dumps continue to detect changes to those behaviors without defining
 their intended semantics. The focused suite exercises the runtime loader, not the
 older parser behind `CChart::open()`.
+
+GoogleTest cases share the `tests` executable and are individually registered by
+`gtest_discover_tests` (CMake 3.16 or newer, matching CI). New test sources are
+automatically picked up on the next build. Use `ctest --test-dir build -N` to list
+cases, `-L cpu` for tests without a graphics context, `-L gpu` for graphics tests,
+or `-R '^SongLoading\.'` to select a suite. On headless Linux, GL cases use Xvfb
+when available. They retain their Mesa environment and run serially with respect
+to other graphics cases because some fixtures share temporary assets. CPU cases
+can run in parallel. `startup_errors` remains a CMake integration test that
+launches the actual game, rather than a GoogleTest case.

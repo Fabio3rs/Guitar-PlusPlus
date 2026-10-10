@@ -1,0 +1,19 @@
+foreach(test IN LISTS discovered_tests)
+    # Separate runtime logs and relative files when CTest runs cases in parallel.
+    string(SHA256 directory "${test}")
+    set(work "@CMAKE_CURRENT_BINARY_DIR@/cases/${directory}")
+    file(MAKE_DIRECTORY "${work}")
+    set_tests_properties("${test}" PROPERTIES WORKING_DIRECTORY "${work}")
+
+    if(test MATCHES "^(ShaderGL|FontMetricsGL|FontAtlasGL|SceneGL)\\.")
+        set_tests_properties("${test}" PROPERTIES LABELS gpu
+            RESOURCE_LOCK gpp_graphics
+            ENVIRONMENT "LIBGL_ALWAYS_SOFTWARE=1")
+        if(test MATCHES "^(ShaderGL|SceneGL)\\.")
+            set_tests_properties("${test}" PROPERTIES ENVIRONMENT
+                "LIBGL_ALWAYS_SOFTWARE=1;MESA_GL_VERSION_OVERRIDE=2.0;MESA_GLSL_VERSION_OVERRIDE=110")
+        endif()
+    else()
+        set_tests_properties("${test}" PROPERTIES LABELS cpu)
+    endif()
+endforeach()
