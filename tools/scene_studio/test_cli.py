@@ -108,11 +108,14 @@ with tempfile.TemporaryDirectory(prefix="isolation-", dir=output) as temporary:
         run(*args, success=False)
 
     # Persistent commands share one context and retain a scene after errors.
+    large_obj = output / "large-coordinate.obj"
+    large_obj.write_text("v 2000000 0 0\nv 2000001 0 0\nv 2000000 1 0\nf 1 2 3\n")
     requests = [
         {"method": "capture", "params": {"path": "rpc-a.png"}},
         {"method": "set", "params": {"light": [-2, 4, 1]}},
         {"method": "capture", "params": {"path": "rpc-b.png"}},
         {"method": "load", "params": {"kind": "model", "source": "missing.obj"}},
+        {"method": "load", "params": {"kind": "model", "source": str(large_obj)}},
         {"method": "state"}, {"method": "shutdown"},
     ]
     wire = "\n".join(json.dumps(dict(item, jsonrpc="2.0", id=i)) for i, item in enumerate(requests)) + "\n"
@@ -121,7 +124,10 @@ with tempfile.TemporaryDirectory(prefix="isolation-", dir=output) as temporary:
     replies = [json.loads(line) for line in response.stdout.splitlines()]
     assert len(replies) == len(requests), replies
     assert replies[2]["result"]["shadow_updates"] == replies[0]["result"]["shadow_updates"] + 1
-    assert "error" in replies[3] and replies[4]["result"]["scene"] == "synthetic"
+    assert "error" in replies[3] and "error" in replies[4]
+    assert replies[5]["result"]["scene"] == "synthetic"
+    for key in ("eye", "target", "light", "quality", "shadow_updates"):
+        assert replies[5]["result"][key] == replies[2]["result"][key], key
     assert replies[-1]["result"]["stopping"]
     assert png(output / "rpc-a.png")[2] != png(output / "rpc-b.png")[2]
     malformed = "x" * 70000 + "\n{bad}\n" + json.dumps({"jsonrpc": "2.0", "id": 99, "method": "shutdown"}) + "\n"

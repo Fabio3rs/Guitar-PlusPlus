@@ -89,6 +89,28 @@ TEST_F(StudioGL, FailedChangesKeepPreviousSceneAndNoPersonalFiles) {
     EXPECT_FALSE(fs::exists(scratch / "data/saves"));
 }
 
+TEST_F(StudioGL, FailedInitialCameraKeepsSceneSettingsAndShadowCache) {
+    session->render(session->viewport, 200, 120);
+    auto settings = session->settings;
+    settings.light = {-2, 4, 1};
+    session->apply(settings);
+    session->render(session->viewport, 200, 120);
+    const auto previous = session->state();
+    const auto updates = CBackgroundRenderer::inst().shadowUpdates();
+    const auto obj = scratch / "large.obj";
+    {
+        std::ofstream file(obj);
+        file << "v 2000000 0 0\nv 2000001 0 0\nv 2000000 1 0\nf 1 2 3\n";
+    }
+    EXPECT_THROW(session->load("model", obj.string()), Error);
+    EXPECT_EQ(session->state(), previous);
+    session->render(session->viewport, 200, 120);
+    EXPECT_EQ(CBackgroundRenderer::inst().shadowUpdates(), updates);
+    session->reset();
+    EXPECT_EQ(session->settings.light, (Vec{2, 4, 2}));
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
 TEST_F(StudioGL, RestrictedDefinitionsDoNotRunHooksOrUnboundedLua) {
     const auto path = scratch / "scene.lua";
     CScene::Definition definition = CScene::Definition::garage();

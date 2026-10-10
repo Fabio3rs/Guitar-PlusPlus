@@ -80,6 +80,26 @@ performance claims or cross-driver golden images.
 
 ## Remaining limits
 
+### Review follow-up — 2026-10-10
+
+The reported late-load failure was reproduced through RPC with a triangle near
+X = 2,000,000: `load` returned an error but replaced the active scene. Loading now
+validates the candidate's initial settings before committing the scene or changing
+the renderer. Regression tests cover scene/settings preservation, reset defaults,
+shadow-cache preservation and the persistent RPC response after this failure.
+
+After the fix, the full NativeLab software suite passed **114/114 CTest entries**
+(the Studio GL entry now contains five cases), and the EGL Studio tests passed
+**5/5**. The new separate `SceneStudio.yml` workflow enables Studio, runs the full
+software suite and uploads diagnostic artifacts. YAML parsing and shell syntax
+were checked locally; its first GitHub-hosted execution remains pending push.
+
+The operational `.codex/config.toml` was removed from the Git index and ignored,
+with the local file preserved. The configuration example remains versioned.
+CMake's minimum remains 3.25 to support `add_subdirectory(... SYSTEM)`.
+
+### Platform and operational limits
+
 - Linux desktop/X11, Xvfb and AMD EGL were exercised. Windows, macOS, Wayland,
   other GPU vendors and physical legacy GPUs remain untested.
 - No performance comparison against an earlier game build was claimed; the

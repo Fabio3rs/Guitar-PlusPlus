@@ -19,6 +19,44 @@ Vec array(glm::vec3 v) {
     return {v.x, v.y, v.z};
 }
 
+void validateSettings(const Settings &s) {
+    for (const auto &v :
+         {s.camera.eye, s.camera.target, s.camera.up, s.light}) {
+        for (float x : v) {
+            if (!std::isfinite(x) || std::abs(x) > 1.e6f) {
+                throw Error("parameters",
+                            "Coordinates must be finite and within +/-1000000");
+            }
+        }
+    }
+    const auto forward = vector(s.camera.target) - vector(s.camera.eye);
+    if (glm::length(forward) < .0001f ||
+        glm::length(glm::cross(forward, vector(s.camera.up))) < .0001f) {
+        throw Error("parameters", "Camera eye/target/up are degenerate");
+    }
+    if (!std::isfinite(s.camera.fov) || s.camera.fov < 5 ||
+        s.camera.fov > 120 || s.quality < 0 || s.quality > 3 ||
+        !std::isfinite(s.bias) || s.bias < 0 || s.bias > .02 ||
+        !std::isfinite(s.time) || s.time < 0 || s.time > 1.e9) {
+        throw Error("parameters", "Invalid FOV, quality, bias or time");
+    }
+}
+
+Settings framedSettings(const GPPOBJ &model, const Settings &settings) {
+    const auto bounds = model.bounds();
+    const glm::vec3 center =
+        (vector(bounds.first) + vector(bounds.second)) * .5f;
+    const float radius = std::max(
+        .1f, glm::length(vector(bounds.second) - vector(bounds.first)) * .5f);
+    Settings s = settings;
+    s.camera.target = array(center);
+    s.camera.eye =
+        array(center + glm::normalize(glm::vec3(1, .65f, 1)) * radius /
+                           std::sin(glm::radians(s.camera.fov) * .5f) * 1.15f);
+    s.camera.up = {0, 1, 0};
+    return s;
+}
+
 void regularFile(const fs::path &file) {
     if (!fs::is_regular_file(file) || fs::file_size(file) > 256 * 1024 * 1024) {
         throw Error("load", "Missing, non-regular or oversized asset: " +
@@ -179,18 +217,21 @@ void Session::load(const std::string &kind, const std::string &value) {
     candidate->definition = definition;
     candidate->source = fs::absolute(file).lexically_normal().string();
     candidate->inspection = candidate->model.inspect();
-    scene.swap(candidate);
-    settings = Settings{};
-    settings.light = definition.light;
-    CBackgroundRenderer::inst().setScene(settings.light,
-                                         definition.garageMaterials);
-    frame();
+    Settings prepared;
+    prepared.light = definition.light;
+    prepared = framedSettings(candidate->model, prepared);
     if (definition.id == "garage") {
         // Match the existing background preview's useful interior viewpoint.
-        settings.camera.eye = {3, 2.5f, 2};
-        settings.camera.target = {3, .5f, -5};
+        prepared.camera.eye = {3, 2.5f, 2};
+        prepared.camera.target = {3, .5f, -5};
     }
-    apply(settings);
+    validateSettings(prepared);
+
+    // Commit only after all fallible loading and initial-state validation.
+    scene.swap(candidate);
+    CBackgroundRenderer::inst().setScene(prepared.light,
+                                         definition.garageMaterials);
+    apply(prepared);
     initial = settings;
 }
 
@@ -205,26 +246,7 @@ void Session::reload() {
 }
 
 void Session::apply(const Settings &s) {
-    for (const auto &v :
-         {s.camera.eye, s.camera.target, s.camera.up, s.light}) {
-        for (float x : v) {
-            if (!std::isfinite(x) || std::abs(x) > 1.e6f) {
-                throw Error("parameters",
-                            "Coordinates must be finite and within +/-1000000");
-            }
-        }
-    }
-    const auto forward = vector(s.camera.target) - vector(s.camera.eye);
-    if (glm::length(forward) < .0001f ||
-        glm::length(glm::cross(forward, vector(s.camera.up))) < .0001f) {
-        throw Error("parameters", "Camera eye/target/up are degenerate");
-    }
-    if (!std::isfinite(s.camera.fov) || s.camera.fov < 5 ||
-        s.camera.fov > 120 || s.quality < 0 || s.quality > 3 ||
-        !std::isfinite(s.bias) || s.bias < 0 || s.bias > .02 ||
-        !std::isfinite(s.time) || s.time < 0 || s.time > 1.e9) {
-        throw Error("parameters", "Invalid FOV, quality, bias or time");
-    }
+    validateSettings(s);
     if (s.light != settings.light && scene) {
         CBackgroundRenderer::inst().setScene(s.light,
                                              scene->definition.garageMaterials);
@@ -244,18 +266,7 @@ void Session::frame() {
     if (!scene) {
         return;
     }
-    const auto bounds = scene->model.bounds();
-    const glm::vec3 center =
-        (vector(bounds.first) + vector(bounds.second)) * .5f;
-    const float radius = std::max(
-        .1f, glm::length(vector(bounds.second) - vector(bounds.first)) * .5f);
-    Settings s = settings;
-    s.camera.target = array(center);
-    s.camera.eye =
-        array(center + glm::normalize(glm::vec3(1, .65f, 1)) * radius /
-                           std::sin(glm::radians(s.camera.fov) * .5f) * 1.15f);
-    s.camera.up = {0, 1, 0};
-    apply(s);
+    apply(framedSettings(scene->model, settings));
 }
 
 void Session::navigate(float orbitX, float orbitY, float panX, float panY,

@@ -179,6 +179,8 @@ Use the existing NativeLab MCP **after** the program builds and captures correct
 
 1. Merge [the local configuration example](examples/scene-studio-codex.toml) into
    this project's `.codex/config.toml` on the client/host. Do not install globally.
+   The operational file is Git-ignored; only the example is versioned. Adapt its
+   absolute paths to your trusted NativeLab installation before using it.
    The directory is intentionally masked inside NativeLab; Studio never reads it.
    If `.codex` does not exist yet, install this configuration before starting the
    NativeLab session. An active session may have created an empty synthetic
@@ -208,6 +210,12 @@ and [official Codex MCP documentation](https://learn.chatgpt.com/docs/extend/mcp
 for client configuration and connection details.
 
 ## Tests and ownership
+
+The separate `SceneStudio.yml` GitHub Actions workflow enables the Studio and
+runs the full suite with Xvfb/Mesa software rendering, including mouse automation.
+It uploads captures, visual reports and CTest logs. The game's existing workflow
+keeps its default build with the Studio disabled. EGL is compiled in the Studio
+job, but hardware acceleration still requires a separate GPU validation run.
 
 ```sh
 native-lab run ctest --test-dir build --output-on-failure
