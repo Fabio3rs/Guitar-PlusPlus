@@ -41,3 +41,5 @@ if(UNIX AND NOT APPLE AND XVFB_RUN)
         -DGPP_TEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/startup-errors
         -P ${CMAKE_CURRENT_SOURCE_DIR}/startup_errors.cmake)
 endif()
+
+add_test(NAME song_loading COMMAND tests --gtest_filter=SongLoading.*)

@@ -87,6 +87,10 @@ class CChart {
 
     static const int notesEnum, notesEnumWithOpenNotes;
 
+    // Cheap header check for text charts; binary archives have no separate header.
+    static bool validateChartHeader(const std::string &chartFile);
+    static bool hasLegacyTextHeader(const std::string &chartFile);
+
     bool open(const std::string &chartFile);
     bool openFromMemory(const char *chart);
 

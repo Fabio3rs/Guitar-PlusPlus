@@ -1,5 +1,8 @@
 #include "CChart.h"
 #include "CLog.h"
+#include <cmath>
+#include <cctype>
+#include <filesystem>
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/portable_binary.hpp>
 #include <cereal/types/deque.hpp>
@@ -29,6 +32,93 @@ static auto trim(const std::string &str) -> std::string {
     }
 
     return str.substr(first, last - first + 1);
+}
+
+bool CChart::hasLegacyTextHeader(const std::string &chartFile) {
+    std::ifstream input(chartFile, std::ios::binary);
+    std::string line;
+    while (std::getline(input, line)) {
+        // Old .gpp files contain N records rather than a cereal archive.
+        // Reject binary bytes before trying the permissive legacy text reader.
+        if (std::any_of(line.begin(), line.end(), [](unsigned char c) {
+                return c < 32 && c != '\t' && c != '\r';
+            })) { return false; }
+        std::istringstream record(line);
+        std::string name;
+        if (!(record >> name)) { continue; }
+        if (name.front() != 'N') { continue; }
+        int id = -1;
+        double time = 0, length = 0;
+        return name.front() == 'N' && (record >> id >> time >> length) &&
+            id >= 0 && id <= 6 && std::isfinite(time) && std::isfinite(length);
+    }
+    return false;
+}
+
+bool CChart::validateChartHeader(const std::string &chartFile) {
+    try {
+        std::ifstream input(chartFile, std::ios::binary);
+        if (!input) { return false; }
+        auto extension = std::filesystem::path(chartFile).extension().string();
+        std::transform(extension.begin(), extension.end(), extension.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (extension == ".gpp") {
+            if (hasLegacyTextHeader(chartFile)) { return true; }
+            // The historical archive stores notes before metadata, so reading
+            // metadata alone is not possible without changing the file format.
+            CChart chart;
+            cereal::BinaryInputArchive archive(input);
+            archive(chart);
+            return !chart.instruments.empty() && !chart.BPM.empty() &&
+                std::isfinite(chart.chartData.chartResolutionProp) &&
+                chart.chartData.chartResolutionProp > 0.0 &&
+                std::isfinite(chart.chartData.chartOffset) &&
+                std::all_of(chart.BPM.begin(), chart.BPM.end(), [](const Note_t &b) {
+                    return std::isfinite(b.time) && std::isfinite(b.lTime) && b.lTime > 0.0;
+                });
+        }
+        if (extension != ".chart") { return false; }
+
+        auto strip = [](const std::string &line) {
+            const auto first = line.find_first_not_of(" \t\r");
+            return first == std::string::npos ? std::string() :
+                line.substr(first, line.find_last_not_of(" \t\r") - first + 1);
+        };
+        bool songSection = false;
+        bool opened = false;
+        std::string line;
+        while (std::getline(input, line)) {
+            line = strip(line);
+            if (line.empty() || line.compare(0, 2, "//") == 0) { continue; }
+            if (!songSection) {
+                if (line == "[Song]") { songSection = true; }
+                continue;
+            }
+            if (!opened) {
+                if (line != "{") { return false; }
+                opened = true;
+                continue;
+            }
+            if (line == "}") { return true; }
+            if (line.front() == '[') { return false; }
+            const auto equals = line.find('=');
+            if (equals == std::string::npos) { return false; }
+            const auto key = strip(line.substr(0, equals));
+            if (key == "Resolution" || key == "Offset") {
+                const auto value = strip(line.substr(equals + 1));
+                size_t used = 0;
+                const double number = std::stod(value, &used);
+                const auto suffix = strip(value.substr(used));
+                if (!std::isfinite(number) || (key == "Resolution" && number <= 0.0) ||
+                    (!suffix.empty() && suffix.compare(0, 2, "//") != 0)) {
+                    return false;
+                }
+            }
+        }
+    } catch (const std::exception &e) {
+        CLog::log() << "Cannot inspect chart " + chartFile + ": " + e.what();
+    }
+    return false;
 }
 
 auto CChart::parseFeebackChart(std::istream &chartStream) -> bool {

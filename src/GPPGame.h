@@ -504,12 +504,14 @@ class GPPGame {
     static void callbackJoystick(int jid, int eventId);
 
     struct loadThreadData {
-        std::atomic<bool> processing;
-        std::atomic<bool> continueThread;
-        std::atomic<bool> loadSong;
-        std::atomic<bool> sendToModulePlayers;
-        std::atomic<bool> listEnd;
-        std::atomic<size_t> songID;
+        std::atomic<bool> processing{};
+        // Written by the loader, read by the session before starting gameplay.
+        std::atomic<bool> loadFailed{};
+        std::atomic<bool> continueThread{};
+        std::atomic<bool> loadSong{};
+        std::atomic<bool> sendToModulePlayers{};
+        std::atomic<bool> listEnd{};
+        std::atomic<size_t> songID{};
 
         std::deque<std::string> songsList;
 

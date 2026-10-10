@@ -534,7 +534,16 @@ CCharter::CCharter() {
     // module.players[0].loadSongOnlyChart(song);
     // module.players[1].loadSong(song);
     auto &player = *gpModule.players.back();
-    player.loadSong(song);
+    if (!player.loadSong(song)) {
+        // Editing may start with an empty/invalid chart; session validation
+        // must not prevent loading its audio to author a replacement chart.
+        player.loadSongAudio(song);
+        if (player.Notes.BPM.empty()) {
+            CPlayer::NotesData::Note bpm;
+            bpm.lTime = 120.0;
+            player.Notes.BPM.push_back(bpm);
+        }
+    }
     std::cout << "audio id "
               << CEngine::engine().loadSoundStream(
                      player.songFullPath.c_str(), songAudioID, true)

@@ -126,6 +126,7 @@ class CPlayer {
     class NotesData {
         friend CCharter;
         void deducePlusLastNotes();
+        bool validateLoadedChart();
 
       public:
         size_t notePos, plusPos;
@@ -252,6 +253,9 @@ class CPlayer {
 
   private:
     /**/
+
+    // The editor can open audio while creating an empty chart.
+    bool loadSongAudio(const std::string &path);
 
     double points;
     int64_t combo;

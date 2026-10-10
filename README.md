@@ -62,6 +62,33 @@ overwritten; the log explains the error. Correct or remove that file to resume
 saving. The former `data/saves/mains` raw-memory format is not read or migrated.
 Campaign and chart formats are unchanged.
 
+
+Song discovery now checks chart headers before adding entries to the song menus.
+Text `.chart` files are checked through the end of their `[Song]` section;
+invalid timing fields and incomplete headers are rejected and logged. Missing
+optional metadata retains the existing defaults. Binary `.gpp` files have no
+independent header, so inspecting their metadata requires deserializing the
+archive. Recognizable legacy text `.gpp` files remain supported. This preflight
+is not a substitute for validating the selected instrument and notes at load time.
+
+Session loading rejects missing/empty instruments, invalid BPM/timing and unreadable
+main audio. Optional instrument stems remain optional. Feedback charts without
+BPM events retain the 120 BPM fallback. Failed chart loads clear partial/previous
+note data; a valid chart with missing audio remains available to the editor, but
+cannot start a gameplay session. The editor can still load audio to create an
+empty chart. Load failures are logged and gameplay returns to its caller rather
+than advancing past the loading phase. There is no campaign result contract yet.
+
+Quick Play and the legacy marathon runners join their loading/update threads
+before resetting player data, including failure and window-close exits. The new
+failure flag is atomic and owned by the loader; the main thread consumes it.
+The existing scope of `playersMutex` is unchanged. Remaining campaign-related
+debt: natural completion/result delivery, sustain score/XP timing, Plus phrase
+validation, marathon handoff/ownership and existing update/render/input races.
+These changes do not make the entire gameplay subsystem thread-safe or validate
+its latency. Runtime checks still needed with assets: loading failure in menus,
+close during loading, repeated play/pause/exit, and marathon song transitions.
+
 Missing `Config.lua` uses saved preferences/defaults. Syntax or execution errors
 in an existing configuration abort startup with a diagnostic in `Guitar++.log`
 and a nonzero exit status. Closing/cancelling loading does not enter partially
