@@ -451,7 +451,8 @@ class CLuaH {
     /*
      * Run a internal with parameteres (calls him specifics callbacks)
      */
-    void
+    // Missing optional callbacks succeed; Lua errors are logged and return false.
+    bool
     runInternalEventWithParams(luaScript &L, int id,
                                const multiCallBackParams_t &params) noexcept;
 

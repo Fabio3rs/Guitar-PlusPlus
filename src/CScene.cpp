@@ -93,7 +93,7 @@ bool CScene::readDefinition(const std::string &file, const std::string &id,
             }
         }
         lua_pop(L, 1);
-        for (const char *hook : {"onLoaded", "onSessionStarted", "onSessionEnded", "onUnloaded"}) {
+        for (const char *hook : {"onLoaded", "onSessionStarted", "onSessionEnded", "onUnloaded", "onSongStarted", "onSongEnded"}) {
             rawField(L, -1, hook);
             if (!lua_isnil(L, -1) && !lua_isfunction(L, -1)) {
                 throw std::runtime_error(std::string(hook) + " must be a function");
@@ -164,15 +164,30 @@ bool CScene::load(GPPOBJ &model, const std::string &id,
     }
 }
 
-void CScene::event(const char *name, double songSeconds) {
+void CScene::event(const char *name, double songSeconds,
+                   const std::string *song, const SongResult *result) {
     if (!script) { return; }
     auto *L = script.get();
     rawField(L, 1, name);
     if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
     lua_newtable(L);
     lua_pushstring(L, current.id.c_str()); lua_setfield(L, -2, "sceneId");
-    lua_pushstring(L, sessionSong.c_str()); lua_setfield(L, -2, "songId");
+    lua_pushstring(L, (song ? *song : sessionSong).c_str()); lua_setfield(L, -2, "songId");
     lua_pushnumber(L, songSeconds); lua_setfield(L, -2, "songSeconds");
+    if (result) {
+        lua_pushstring(L, songEndReasonName(result->reason)); lua_setfield(L, -2, "reason");
+        lua_newtable(L);
+        for (size_t i = 0; i < result->players.size(); ++i) {
+            const auto &p = result->players[i];
+            lua_newtable(L);
+            lua_pushnumber(L, static_cast<lua_Number>(p.score)); lua_setfield(L, -2, "score");
+            lua_pushnumber(L, static_cast<lua_Number>(p.maxCombo)); lua_setfield(L, -2, "maxCombo");
+            lua_pushnumber(L, static_cast<lua_Number>(p.correctNotes)); lua_setfield(L, -2, "correctNotes");
+            lua_pushnumber(L, static_cast<lua_Number>(p.totalNotes)); lua_setfield(L, -2, "totalNotes");
+            lua_rawseti(L, -2, static_cast<int>(i + 1));
+        }
+        lua_setfield(L, -2, "players");
+    }
     if (lua_pcall(L, 1, 0, 0)) {
         const char *message = lua_tostring(L, -1);
         CLog::log() << std::string("Scene ") + current.id + " " + name + ": " +
@@ -188,9 +203,28 @@ void CScene::sessionStarted(const std::string &song, double songSeconds) {
 }
 void CScene::sessionEnded(double songSeconds) {
     if (!sessionActive) { return; }
+    if (!activeSong.empty()) {
+        SongResult aborted;
+        aborted.songId = activeSong;
+        aborted.reason = SongEndReason::Aborted;
+        aborted.elapsedSeconds = std::max(0.0, songSeconds);
+        songEnded(aborted);
+    }
     event("onSessionEnded", songSeconds);
     sessionActive = false;
     sessionSong.clear();
+}
+void CScene::songStarted(const std::string &song, double songSeconds) {
+    if (!sessionActive || !activeSong.empty()) { return; }
+    activeSong = song;
+    event("onSongStarted", songSeconds, &activeSong);
+}
+void CScene::songEnded(const SongResult &result) {
+    if (activeSong.empty()) {
+        if (result.reason != SongEndReason::LoadFailed) { return; }
+    } else if (activeSong != result.songId) { return; }
+    event("onSongEnded", result.elapsedSeconds, &result.songId, &result);
+    activeSong.clear();
 }
 void CScene::unload(GPPOBJ &model) {
     sessionEnded(0.0);

@@ -2,6 +2,7 @@
 
 #include "CLuaH.hpp"
 #include "GPPOBJ.h"
+#include "SongResult.h"
 #include <array>
 #include <functional>
 #include <string>
@@ -30,6 +31,8 @@ class CScene {
               const std::function<bool()> &loadingFrame = {});
     void sessionStarted(const std::string &song, double songSeconds);
     void sessionEnded(double songSeconds);
+    void songStarted(const std::string &song, double songSeconds);
+    void songEnded(const SongResult &result);
     void unload(GPPOBJ &model);
     const Definition &definition() const { return current; }
     bool loaded() const { return !current.id.empty(); }
@@ -38,7 +41,8 @@ class CScene {
   private:
     Definition current;
     CLuaH::luaState_t script;
-    std::string lastError, sessionSong;
+    std::string lastError, sessionSong, activeSong;
     bool sessionActive = false;
-    void event(const char *name, double songSeconds);
+    void event(const char *name, double songSeconds,
+               const std::string *song = nullptr, const SongResult *result = nullptr);
 };

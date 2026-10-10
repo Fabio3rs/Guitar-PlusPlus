@@ -1,3 +1,4 @@
+#include "ActiveDelta.h"
 #pragma once
 #include <cstddef>
 #include <future>
@@ -139,7 +140,9 @@ class CGamePlay {
 
     // static CGamePlay &gamePlay();
 
-    void update();
+    // Returns completion while still holding the player-container lock.
+    bool update();
+    void compensatePause(std::chrono::steady_clock::duration duration);
     void marathonUpdate();
     void render();
 
@@ -158,6 +161,7 @@ class CGamePlay {
 
     bool showBPMVlaues;
 
+    ActiveDelta activeDelta;
     double updateLastTimeCalled, lastiFPSUpdated{};
     int iFPS, iFPSCount;
 };

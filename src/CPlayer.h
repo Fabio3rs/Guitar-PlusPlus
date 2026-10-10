@@ -4,6 +4,7 @@
 #define __GUITARPP_CPLAYER_H_
 
 #include "CEngine.h"
+#include "SongResult.h"
 #include "CFonts.h"
 #include "CGuitars.h"
 #include "CParticle.h"
@@ -245,8 +246,14 @@ class CPlayer {
         void unloadChart();
 
         NotesData();
+        NotesData(const NotesData &) = default;
+        NotesData &operator=(const NotesData &) = default;
+        NotesData(NotesData &&) noexcept = default;
+        NotesData &operator=(NotesData &&) noexcept = default;
         ~NotesData();
 
+        // Computed on successful chart loading; moved with the note buffers.
+        double lastNoteEnd = 0.0;
         double BPMMinPosition, chartEnd;
         double chartResolutionProp;
     };
@@ -260,6 +267,9 @@ class CPlayer {
     double points;
     int64_t combo;
     double experience;
+    double songScoreStart = 0.0;
+    uint64_t songCorrectStart = 0;
+    int64_t songMaxCombo = 0;
 
   public:
     NotesData Notes;
@@ -357,7 +367,8 @@ class CPlayer {
     static std::string smartChartSearch(const std::string &path);
     static std::string smartSongSearch(const std::string &path);
 
-    void addPointsByDoingLongNote();
+    void addPointsByDoingLongNote(double activeSeconds);
+    double getExperience() const { return experience; }
     void processErrorNonPickedB(size_t pos);
     void doNote(size_t i);
     double comboToMultiplier() const;
@@ -385,6 +396,10 @@ class CPlayer {
     bool loadSongOnlyChart(const std::string &path);
 
     int64_t getCombo() const;
+    // Called by the main thread between songs, while gameplay is quiescent.
+    void takeLoadedSong(CPlayer &source);
+    void beginSongResult();
+    PlayerSongResult songResult() const;
     int64_t getPoints() const;
 
     bool isSongChartFinished();

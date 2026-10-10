@@ -35,7 +35,9 @@ class CGuitars {
 
         std::string name;
 
-        void load();
+        // Loading/unloading belongs to the GL owner, outside gameplay.
+        bool load();
+        bool isLoaded() const noexcept { return loaded; }
         void unload();
 
         CGuitar() noexcept;
@@ -43,9 +45,11 @@ class CGuitars {
 
     static CGuitars &inst();
 
+    // Throws std::out_of_range for missing IDs; never inserts.
     CGuitar &getGuitar(const std::string &internalName);
     CGuitar *getGuitarIfExists(const std::string &internalName);
-    CGuitar &addGuitar(const std::string &path,
+    // Returns nullptr on invalid configuration; existing IDs retain their cache.
+    CGuitar *addGuitar(const std::string &path,
                        const std::string &internalName);
 
     void loadAllGuitars();
@@ -59,7 +63,9 @@ class CGuitars {
     static int changeGuitarData(lua_State *L);
 
   private:
+    // Entries remain stable until explicit shutdown; no eviction during sessions.
     std::map<std::string, CGuitar> guitars;
+    CGuitar *staging = nullptr;
 
     CGuitars();
 };

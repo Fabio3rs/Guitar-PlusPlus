@@ -361,8 +361,8 @@ void GPPOBJ::onlyDraw(bool /*autoBindZeroVBO*/) const {
     // Retained legacy entry point also safely handles a not-yet-uploaded model.
     const_cast<GPPOBJ *>(this)->draw(0);
 }
-void GPPOBJ::load(const std::string &path, const std::string &file) {
-    loadInternalObj(path, file);
+bool GPPOBJ::load(const std::string &path, const std::string &file) {
+    return loadInternalObj(path, file);
 }
 void GPPOBJ::unload() {
     if (!impl)

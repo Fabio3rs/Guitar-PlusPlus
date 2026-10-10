@@ -1595,6 +1595,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
         }
 
         bool cklngNote = false;
+        double sustainSeconds = 0.0;
 
         {
             bool cancelAllLongNotes = false;
@@ -1607,6 +1608,10 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
                     auto &note = player.Notes.gNotes[id];
                     double noteTime = note.time - musicTime;
                     double endNoteTime = noteTime + note.lTime;
+                    // Score only the active overlap, retaining the existing
+                    // 130 ms sustain release tolerance. Chords score once.
+                    sustainSeconds = std::max(sustainSeconds,
+                        sustainActiveSeconds(note.time, note.lTime, musicTime, deltatime));
 
                     int ntsInac = 0;
                     int ntsT = note.type & CPlayer::notesEnum;
@@ -1664,7 +1669,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
         }
 
         if (cklngNote) {
-            player.addPointsByDoingLongNote();
+            player.addPointsByDoingLongNote(sustainSeconds);
         }
 
         if (noteDoedThisFrame && GPPGame::GuitarPP().showTextsTest) {
@@ -2177,7 +2182,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
     }
 
     unsigned int fretboardText =
-        (player.guitar == nullptr) ? GPPGame::GuitarPP().fretboardText
+        (player.guitar == nullptr || !player.guitar->isLoaded()) ? GPPGame::GuitarPP().fretboardText
                                    : ((player.guitar->fretboardText != 0)
                                           ? player.guitar->fretboardText
                                           : GPPGame::GuitarPP().fretboardText);
@@ -2195,7 +2200,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
 
     auto renderScene = [&]() {
         engine.setColor(1.0, 1.0, 1.0, 1.0);
-        if (player.guitar == nullptr) {
+        if (player.guitar == nullptr || !player.guitar->isLoaded()) {
             renderPylmBar();
         } else {
             renderPlayerPylmBar(player);
@@ -2455,15 +2460,15 @@ void CGamePlay::renderPlayer(CPlayer &player) {
     }
 }
 
-void CGamePlay::update() {
+bool CGamePlay::update() {
     std::lock_guard<std::mutex> l(GPPGame::playersMutex);
 
     double now = CEngine::engine().getTime();
-    double delta = now - updateLastTimeCalled;
+    double delta = activeDelta.sample(now);
     updateLastTimeCalled = now;
     iFPSCount++;
 
-    if (now - lastiFPSUpdated > 1.0) {
+    if (!players.empty() && now - lastiFPSUpdated > 1.0) {
         iFPS = iFPSCount;
         iFPSCount = 0;
         lastiFPSUpdated = now;
@@ -2481,11 +2486,20 @@ void CGamePlay::update() {
             updatePlayer(p, delta);
         }
     }
+    return std::all_of(players.begin(), players.end(),
+        [](const auto &player) { return player->isSongChartFinished(); });
+}
+
+// Caller has quiesced the update worker. Use the same duration for all clocks.
+void CGamePlay::compensatePause(std::chrono::steady_clock::duration duration) {
+    startSongTime += duration;
+    const double seconds = std::chrono::duration<double>(duration).count();
+    for (auto &player : players) { player->startTime += seconds; }
 }
 
 void CGamePlay::marathonUpdate() {
     double now = CEngine::engine().getTime();
-    double delta = now - updateLastTimeCalled;
+    double delta = activeDelta.sample(now);
     updateLastTimeCalled = now;
     iFPSCount++;
 
@@ -2641,6 +2655,7 @@ auto CGamePlay::renderBackground() -> bool {
 }
 
 void CGamePlay::startUpdateDelta() {
+    activeDelta.reset();
     updateLastTimeCalled = CEngine::engine().getTime();
 }
 

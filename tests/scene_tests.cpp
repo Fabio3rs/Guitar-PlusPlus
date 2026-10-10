@@ -1,4 +1,5 @@
 #include "CScene.h"
+#include "CGuitars.h"
 #include "CBackgroundRenderer.h"
 #include "CShader.h"
 #include "GPPGame.h"
@@ -143,6 +144,7 @@ class SceneGL : public Scenes {
         ShaderProject::CShader::inst().prepareEffects();
     }
     void TearDown() override {
+        CGuitars::inst().unload();
         CBackgroundRenderer::shutdown();
         ShaderProject::CShader::shutdown();
         if (window) { glfwDestroyWindow(window); }
@@ -259,4 +261,121 @@ TEST_F(SceneGL, CancellationAndCallbackErrorsAreContained) {
     EXPECT_EQ(scene.definition().id, "room");
     scene.unload(model);
 }
+TEST_F(SceneGL, SongEventsAreSeparateFromSessionAndCarryResults) {
+    model();
+    write("data/scenes/songs.lua", R"(
+local function record(text)
+    local f = assert(io.open('songs.txt','a')); f:write(text .. '\n'); f:close()
+end
+return {
+ model='../models/room.obj', materials='room.mtl',
+ onSessionStarted=function(c) record('session-start') end,
+ onSessionEnded=function(c) record('session-end') end,
+ onSongStarted=function(c) record('start:' .. c.songId) end,
+ onSongEnded=function(c)
+    record(c.reason .. ':' .. c.songId .. ':' .. #c.players)
+    if c.reason == 'Completed' then assert(c.players[1].score == 125) end
+ end
+}
+)");
+    GPPOBJ model;
+    CScene scene;
+    ASSERT_TRUE(scene.load(model, "songs")) << scene.error();
+    scene.sessionStarted("one", -3);
+    scene.songStarted("one", -3);
+    scene.songStarted("one", -3);
+    SongResult first{"one", SongEndReason::Completed, 10, {{125, 3, 3, 4}}};
+    scene.songEnded(first);
+    scene.songEnded(first); // No duplicate completion.
+    scene.songStarted("two", -3);
+    scene.songEnded({"two", SongEndReason::Aborted, 2, {}});
+    scene.songEnded({"bad", SongEndReason::LoadFailed, 0, {}});
+    scene.sessionEnded(2);
+    scene.unload(model);
+    EXPECT_EQ(contents("songs.txt"),
+        "session-start\nstart:one\nCompleted:one:1\nstart:two\nAborted:two:0\nLoadFailed:bad:0\nsession-end\n");
+}
 } // namespace
+
+namespace {
+TEST_F(Scenes, GuitarCatalogueRejectsBrokenScriptsAndDoesNotInsertOnLookup) {
+    auto &catalogue = CGuitars::inst();
+    catalogue.unload();
+    EXPECT_EQ(catalogue.getGuitarIfExists("unknown"), nullptr);
+    EXPECT_THROW(catalogue.getGuitar("unknown"), std::out_of_range);
+    EXPECT_EQ(catalogue.getGuitarIfExists("unknown"), nullptr);
+    std::filesystem::create_directories(directory / "bad");
+    for (const auto *script : {"syntax ?", "error('broken')", "",
+        "changeGuitarData('bad','gameplayBarName','bar.obj'); setCallBackToEvent('addGuitar',function() error('bad callback') end)"}) {
+        write("bad/GuitarScript.lua", script);
+        EXPECT_EQ(catalogue.addGuitar(directory.string(), "bad"), nullptr);
+        EXPECT_EQ(catalogue.getGuitarIfExists("bad"), nullptr);
+    }
+    write("bad/GuitarScript.lua", "setCallBackToEvent('addGuitar',function(path,id) assert(changeGuitarData(id,'gameplayBarName','bar.obj')) end)");
+    auto *guitar = catalogue.addGuitar(directory.string(), "bad");
+    ASSERT_NE(guitar, nullptr);
+    EXPECT_EQ(catalogue.addGuitar(directory.string(), "bad"), guitar);
+    EXPECT_FALSE(guitar->isLoaded());
+    catalogue.unload();
+}
+TEST_F(SceneGL, GuitarLoadingRetriesAndCachesWithBalancedEvents) {
+    auto &catalogue = CGuitars::inst();
+    catalogue.unload();
+    std::filesystem::create_directories(directory / "guitar");
+    write("guitar/GuitarScript.lua", R"(
+        local loads, unloads = 0, 0
+        setCallBackToEvent('addGuitar',function(path,id)
+            assert(changeGuitarData(id,'gameplayBarName','bar.obj'))
+        end)
+        setCallBackToEvent('loadGuitar',function(path,id)
+            loads = loads + 1
+            changeGuitarData(id,'name', tostring(loads))
+        end)
+        setCallBackToEvent('unloadingGuitar',function(path,id)
+            unloads = unloads + 1
+            local f = assert(io.open('unloads.txt','w'))
+            f:write(unloads); f:close()
+        end)
+    )");
+    auto *guitar = catalogue.addGuitar(directory.string(), "guitar");
+    ASSERT_NE(guitar, nullptr);
+    guitar->unload();
+    EXPECT_FALSE(std::filesystem::exists(directory / "unloads.txt"));
+    EXPECT_FALSE(guitar->load());
+    EXPECT_FALSE(guitar->isLoaded());
+    EXPECT_TRUE(guitar->name.empty());
+    write("guitar/bar.obj", "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+    ASSERT_TRUE(guitar->load());
+    EXPECT_TRUE(guitar->isLoaded());
+    EXPECT_TRUE(guitar->load());
+    EXPECT_EQ(guitar->name, "1");
+    guitar->unload();
+    guitar->unload();
+    EXPECT_FALSE(guitar->isLoaded());
+    EXPECT_EQ(contents("unloads.txt"), "1");
+    ASSERT_TRUE(guitar->load());
+    EXPECT_EQ(guitar->name, "2");
+    catalogue.unload();
+    EXPECT_EQ(contents("unloads.txt"), "2");
+    EXPECT_EQ(catalogue.getGuitarIfExists("guitar"), nullptr);
+}
+TEST_F(SceneGL, GuitarLoadCallbackFailureCanBeRetried) {
+    auto &catalogue = CGuitars::inst();
+    catalogue.unload();
+    std::filesystem::create_directories(directory / "retry");
+    write("retry/bar.obj", "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+    write("retry/GuitarScript.lua", R"(
+        changeGuitarData('retry','gameplayBarName','bar.obj')
+        local first = true
+        setCallBackToEvent('loadGuitar',function()
+            if first then first = false; error('retry me') end
+        end)
+    )");
+    auto *guitar = catalogue.addGuitar(directory.string(), "retry");
+    ASSERT_NE(guitar, nullptr);
+    EXPECT_FALSE(guitar->load());
+    EXPECT_FALSE(guitar->isLoaded());
+    EXPECT_TRUE(guitar->load());
+    EXPECT_TRUE(guitar->isLoaded());
+}
+}

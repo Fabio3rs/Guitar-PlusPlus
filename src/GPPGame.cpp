@@ -230,96 +230,50 @@ void GPPGame::loadThread(CGamePlay &module, loadThreadData &l) {
     l.processing = false;
 }
 
-void GPPGame::loadMarathonThread(CGamePlay &module, loadThreadData &l) try {
-    std::lock_guard<std::mutex> m(GPPGame::playersMutex);
-    if (module.players.empty() || l.songsList.empty()) {
-        l.loadFailed = true;
-        l.processing = false;
-        return;
-    }
-    std::vector<CPlayer> tmpPlayers;
-    // module.players[0].loadSongOnlyChart(song);
-    // module.players[1].loadSong(song);
-    for (auto &p : module.players) {
-        p->resetSongThings();
-        tmpPlayers.push_back("");
-    }
-
-    l.listEnd = false;
-    l.sendToModulePlayers = false;
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
+void GPPGame::loadMarathonThread(loadThreadData &l) try {
+    // No module/player access here. The main thread owns the live players and
+    // holds playersMutex for this mode, preserving the legacy multiplayer exclusion.
     while (l.continueThread) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        if (l.loadSong && l.songID < l.songsList.size()) {
-            const std::string &song = l.songsList[l.songID];
-
-            std::cout << "Loading Song " << song << std::endl;
-
-            for (auto &p : tmpPlayers) {
-                if (!p.loadSong(song)) {
-                    CLog::log() << "Cannot load marathon song: " + song;
-                    l.loadFailed = true;
-                    l.processing = false;
-                    return;
-                }
-            }
-
-            l.loadSong = false;
-            l.processing = false;
-        } else if (l.songID >= l.songsList.size()) {
+        if (!l.loadSong) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
+        }
+        const size_t index = l.songID;
+        if (index >= l.songsList.size()) {
             l.listEnd = true;
-        }
-
-        if (l.sendToModulePlayers && l.songID < l.songsList.size()) {
-            l.processing = true;
-            const std::string &song = l.songsList[l.songID];
-
-            module.loadSongLyrics(song);
-
-            for (size_t i = 0, size = module.players.size(); i < size; ++i) {
-                module.getPlayer(i).releaseSong();
-                module.getPlayer(i).Notes.unloadChart();
-
-                module.getPlayer(i).Notes = std::move(tmpPlayers[i].Notes);
-                module.getPlayer(i).songAudioID = tmpPlayers[i].songAudioID;
-                module.getPlayer(i).instrumentSound =
-                    tmpPlayers[i].instrumentSound;
-
-                module.getPlayer(i).correctNotesMarathon +=
-                    module.getPlayer(i).correctNotes;
-                module.getPlayer(i).correctNotes = 0;
-                module.getPlayer(i).strklinent = -1;
-
-                module.getPlayer(i).BPMNowBuffer = 0;
-
-                tmpPlayers[i].songAudioID = -1;
-                tmpPlayers[i].instrumentSound = -1;
-
-                tmpPlayers[i].resetData();
-                tmpPlayers[i].Notes.unloadChart();
+        } else {
+            std::vector<std::unique_ptr<CPlayer>> prepared;
+            for (const auto &instrument : l.instruments) {
+                auto player = std::make_unique<CPlayer>("");
+                player->instrument = instrument;
+                if (!player->loadSong(l.songsList[index])) {
+                    l.loadFailed = true;
+                    break;
+                }
+                prepared.push_back(std::move(player));
             }
-
-            tmpPlayers.clear();
-
-            for (auto &p : module.players) {
-                tmpPlayers.push_back("");
-            }
-
-            l.sendToModulePlayers = false;
-            l.loadSong = false;
-            l.processing = false;
+            if (!l.loadFailed) { l.prepared = std::move(prepared); }
         }
+        l.loadSong = false;
+        l.processing = false; // Publish data and failure status last.
+        if (l.loadFailed) { return; }
     }
-
-    // module.loadSongLyrics(song);
-
-    l.processing = false;
 } catch (const std::exception &e) {
     CLog::log() << std::string("Marathon loading failed: ") + e.what();
     l.loadFailed = true;
     l.processing = false;
+}
+
+bool GPPGame::installMarathonSong(CGamePlay &module, loadThreadData &l) {
+    if (l.processing || l.loadFailed || l.listEnd ||
+        l.prepared.size() != module.players.size() || l.prepared.empty()) { return false; }
+    module.loadSongLyrics(l.songsList[l.songID]);
+    for (size_t i = 0; i < module.players.size(); ++i) {
+        module.getPlayer(i).takeLoadedSong(*l.prepared[i]);
+    }
+    l.prepared.clear();
+    module.startUpdateDelta();
+    return true;
 }
 
 auto GPPGame::getDirectory(const char *dir, bool getFiles, bool getDirectories)
@@ -1389,19 +1343,71 @@ void GPPGame::serverModule(const std::string &name) {
     }
 }
 
+namespace {
+// Owned by the main thread. Quick Play calls finish only after joining its
+// worker; marathon calls it before installing the next prepared song.
+class SongRun {
+    GPPGame &game;
+    CGamePlay &module;
+    std::string active;
+  public:
+    SongRun(GPPGame &game, CGamePlay &module) : game(game), module(module) {
+        game.clearSongResults();
+    }
+    void start(const std::string &id, double seconds) {
+        active = id;
+        for (auto &p : module.players) { p->beginSongResult(); }
+        game.scene.songStarted(id, seconds);
+    }
+    bool finish(SongEndReason reason) {
+        if (active.empty()) { return false; }
+        SongResult result;
+        result.songId = std::move(active);
+        active.clear();
+        result.reason = reason;
+        if (!module.players.empty()) {
+            result.elapsedSeconds = std::max(0.0, module.getBPlayer().musicRunningTime);
+        }
+        for (const auto &p : module.players) { result.players.push_back(p->songResult()); }
+        game.recordSongResult(std::move(result));
+        return true;
+    }
+    void cancelled(const std::string &id) {
+        SongResult result;
+        result.songId = id;
+        result.reason = SongEndReason::Aborted;
+        game.recordSongResult(std::move(result));
+    }
+    void failed(const std::string &id) {
+        SongResult result;
+        result.songId = id;
+        game.recordSongResult(std::move(result));
+    }
+};
+} // namespace
+
 std::atomic<bool> pausegplay;
 std::atomic<bool> continuegplay;
 
-static void updateGamePLay(GPPGame &game, CGamePlay &module) {
-    module.startUpdateDelta();
+static void updateGamePLay(GPPGame &game, CGamePlay &module,
+                          std::atomic<uint64_t> &pauseRequest, std::atomic<uint64_t> &pauseAck,
+                          std::atomic<bool> &finished) {
+    bool wasPaused = true;
     while (continuegplay) {
         if (pausegplay) {
+            wasPaused = true;
+            pauseAck = pauseRequest.load(); // Publish quiescence for this pause generation.
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         } else {
-            module.update();
+            if (wasPaused) { module.startUpdateDelta(); wasPaused = false; }
+            if (module.update()) {
+                finished = true;
+                break;
+            }
             std::this_thread::sleep_for(std::chrono::microseconds(200));
         }
     }
+    pauseAck = pauseRequest.load();
 }
 
 void GPPGame::startModule(const std::string &name) {
@@ -1422,19 +1428,24 @@ void GPPGame::startModule(const std::string &name) {
         return;
     }
 
+    game.clearSongResults();
     if (!game.prepareScene()) { return; }
 
     module.setHyperSpeed(2.5 * game.hyperSpeed);
 
     module.players.push_back(game.mainPlayer);
     loadThreadData l;
+    SongRun songRun(game, module);
+    std::atomic<uint64_t> pauseRequest{0}, pauseAck{0};
+    std::atomic<bool> songFinished{false};
+    SongEndReason endReason = SongEndReason::Aborted;
 
     l.processing = true;
 
     std::thread load(loadThread, std::ref(module), std::ref(l));
-    std::thread updateThread(updateGamePLay, std::ref(game), std::ref(module));
+    std::thread updateThread(updateGamePLay, std::ref(game), std::ref(module), std::ref(pauseRequest), std::ref(pauseAck), std::ref(songFinished));
 
-    callOnDctor<void(void)> exitguard([&load, &updateThread, &module, &game]() {
+    callOnDctor<void(void)> exitguard([&]() {
         pausegplay = true;
         continuegplay = false;
         if (load.joinable()) {
@@ -1444,6 +1455,10 @@ void GPPGame::startModule(const std::string &name) {
             { updateThread.join(); }
         }
         // Neither loader nor gameplay worker may still access player data.
+        if (l.loadFailed) { songRun.failed(game.songToLoad); }
+        else if (!songRun.finish(songFinished ? SongEndReason::Completed : endReason)) {
+            songRun.cancelled(game.songToLoad); // Closed while still loading.
+        }
         game.scene.sessionEnded(module.players.empty() ? 0.0 : module.getBPlayer().musicRunningTime);
         module.resetModule();
     });
@@ -1527,7 +1542,8 @@ void GPPGame::startModule(const std::string &name) {
     bool showTexts = true;
 
     while (engine.windowOpened()) {
-        game.clearScreen();
+        if (songFinished) { endReason = SongEndReason::Completed; return; }
+        if (state != 3) { game.clearScreen(); }
 
         switch (state) {
             // Load thread state
@@ -1574,6 +1590,11 @@ void GPPGame::startModule(const std::string &name) {
             playerb.playerCamera.eye.z += 2.0;
 
             game.scene.sessionStarted(game.songToLoad, -3.0);
+            songRun.start(game.songToLoad, -3.0);
+            // Hooks/loading do not consume the countdown.
+            startTime = engine.getTime() + 3.0;
+            for (auto &p : module.players) { p->startTime = startTime; }
+            module.startSongTime = std::chrono::steady_clock::now() + std::chrono::seconds(3);
             pausegplay = false;
             state++;
         } break;
@@ -1704,13 +1725,22 @@ void GPPGame::startModule(const std::string &name) {
             if (controls.keyEscape() != 0) {
                 pausegplay = true;
                 state++;
+                // Complete the pause handshake before any potentially blocked swap.
+                continue;
             }
         } break;
 
             // Pause state
         case 3: {
+            const auto request = ++pauseRequest;
+            while (pauseAck != request && !songFinished) {
+                std::this_thread::sleep_for(std::chrono::microseconds(200));
+            }
+            if (songFinished) { endReason = SongEndReason::Completed; return; }
+            const auto pauseStart = std::chrono::steady_clock::now();
             // Pauses audio
-            if (musicstartedg == 2) {
+            const bool resumeAudio = musicstartedg == 2;
+            if (resumeAudio) {
                 for (auto &pp : module.players) {
                     auto &p = *pp;
                     p.instrumentPause();
@@ -1734,16 +1764,18 @@ void GPPGame::startModule(const std::string &name) {
                 return;
             }
 
-            double time = engine.getTime();
-
-            for (auto &pp : module.players) {
-                auto &p = *pp;
-                p.startTime += time - openMenuTime;
+            // Resume audio before releasing the worker and before rendering again.
+            if (resumeAudio) {
+                engine.playSoundStream(module.getBPlayer().songAudioID);
+                for (auto &p : module.players) { p->instrumentPlay(); }
+                musicstartedg = 2;
             }
-
+            const auto paused = std::chrono::steady_clock::now() - pauseStart;
+            module.compensatePause(paused);
+            startTime += std::chrono::duration<double>(paused).count();
             pausegplay = false;
-            // Back to gameplay
             state = 2;
+            continue;
         } break;
 
             // Bug state
@@ -1764,6 +1796,7 @@ void GPPGame::startMarathonModule(const std::string &name) {
     auto realname = game.getCallBackRealName(name);
     auto &module = game.gameModules[realname];
 
+    game.clearSongResults();
     if (!game.prepareScene()) { return; }
 
     game.HUDText = game.loadTexture("data/sprites", "HUD.tga").getTextId();
@@ -1790,17 +1823,32 @@ void GPPGame::startMarathonModule(const std::string &name) {
                        ? getDirectory("./data/songs", false, true)
                        : std::move(game.marathonSongsList));
     l.listEnd = false;
-    l.sendToModulePlayers = false;
     l.loadSong = true;
 
     for (auto &p : l.songsList) {
         std::cout << p << std::endl;
     }
 
-    std::thread load(loadMarathonThread, std::ref(module), std::ref(l));
+    // Keep the old exclusion against multiplayer container changes, but let
+    // only this thread install live song data. The worker owns prepared data.
+    std::unique_lock<std::mutex> sessionPlayersLock(playersMutex);
+    for (auto &p : module.players) {
+        p->resetSongThings();
+        l.instruments.push_back(p->instrument);
+    }
+    SongRun songRun(game, module);
+    bool reportedLoadFailure = false;
+    std::thread load(loadMarathonThread, std::ref(l));
     callOnDctor<void(void)> exitguard([&]() {
         l.continueThread = false;
         if (load.joinable()) { load.join(); }
+        if (!songRun.finish(SongEndReason::Aborted) && game.getSongResults().empty() &&
+            !l.loadFailed && !l.songsList.empty()) {
+            songRun.cancelled(l.songsList.front());
+        }
+        if (l.loadFailed && !reportedLoadFailure && l.songID < l.songsList.size()) {
+            songRun.failed(l.songsList[l.songID]);
+        }
         game.scene.sessionEnded(module.players.empty() ? 0.0 : module.getBPlayer().musicRunningTime);
         module.resetModule();
     });
@@ -1816,21 +1864,10 @@ void GPPGame::startMarathonModule(const std::string &name) {
 
     if (!engine.windowOpened() || l.loadFailed) { return; }
 
-    l.processing = true;
-    l.sendToModulePlayers = true;
-
-    while (engine.windowOpened() && l.processing && !l.loadFailed) {
-        game.clearScreen();
-
-        CFonts::fonts().drawTextInScreenWithBuffer("loading marathon 50%", -0.4,
-                                                   0.0, 0.1);
-
-        game.renderFrame();
-    }
-
-    if (!engine.windowOpened() || l.loadFailed) { return; }
+    if (!installMarathonSong(module, l)) { return; }
 
     l.songID++;
+    l.processing = true;
     l.loadSong = true;
 
     double startWaitTime = 10.0;
@@ -1881,8 +1918,14 @@ void GPPGame::startMarathonModule(const std::string &name) {
     double marathonTime = 0.0;
 
     game.scene.sessionStarted(l.songsList.front(), -startWaitTime);
+    songRun.start(l.songsList.front(), -startWaitTime);
+    startTime = engine.getTime() + startWaitTime;
+    for (auto &p : module.players) { p->startTime = startTime; }
+    module.startSongTime = std::chrono::steady_clock::now() +
+        std::chrono::milliseconds(static_cast<int64_t>(1000 * startWaitTime));
+    module.startUpdateDelta();
 
-    while (engine.windowOpened() && !l.loadFailed) {
+    while (engine.windowOpened()) {
         game.clearScreen();
 
         if (engine.getKey(GLFW_KEY_ESCAPE) != 0) {
@@ -1894,6 +1937,7 @@ void GPPGame::startMarathonModule(const std::string &name) {
         }
 
         if (enterInMenu) {
+            const auto pauseStart = std::chrono::steady_clock::now();
             if (musicstartedg == 2) {
                 for (auto &pp : module.players) {
                     auto &p = *pp;
@@ -1922,6 +1966,9 @@ void GPPGame::startMarathonModule(const std::string &name) {
                 p.startTime += time - openMenuTime;
             }
 
+            module.startSongTime += std::chrono::steady_clock::now() - pauseStart;
+            startTime += time - openMenuTime;
+            module.startUpdateDelta();
             enterInMenu = false;
             esc = false;
         } else {
@@ -1966,9 +2013,8 @@ void GPPGame::startMarathonModule(const std::string &name) {
 
             if (interval) {
                 if (!waitingIntervalLoad) {
-                    l.processing = true;
-                    l.sendToModulePlayers = true;
-
+                    songRun.finish(SongEndReason::Completed);
+                    if (l.songID >= l.songsList.size()) { return; }
                     waitingIntervalLoad = true;
                     module.showBPMLines = false;
                 } else {
@@ -1976,6 +2022,11 @@ void GPPGame::startMarathonModule(const std::string &name) {
                         //// TODO
 
                     } else {
+                        if (l.loadFailed) {
+                            songRun.failed(l.songsList[l.songID]);
+                            reportedLoadFailure = true;
+                            return;
+                        }
                         double waitTime = 10.0;
 
                         double deltaTol = engine.getDeltaTime();
@@ -2017,6 +2068,8 @@ void GPPGame::startMarathonModule(const std::string &name) {
 
                         if (fretBoardPos > rningTimeFretCalcMn &&
                             fretBoardPos < rningTimeFretCalcMs) {
+                            if (!installMarathonSong(module, l)) { return; }
+                            songRun.start(l.songsList[l.songID], -waitTime);
                             for (auto &pp : module.players) {
                                 auto &p = *pp;
                                 p.startTime = engine.getTime() + waitTime;
@@ -2037,6 +2090,7 @@ void GPPGame::startMarathonModule(const std::string &name) {
 
                             l.songID++;
                             interval = false;
+                            l.processing = true;
                             l.loadSong = true;
                             waitingIntervalLoad = false;
 
@@ -2437,6 +2491,7 @@ void GPPGame::campaingPlayModule(const std::string &name) {
     auto realname = game.getCallBackRealName(name);
     auto &module = game.gameModules[realname];
 
+    game.clearSongResults();
     if (!game.prepareScene()) { return; }
 
     game.HUDText = game.loadTexture("data/sprites", "HUD.tga").getTextId();
@@ -2460,17 +2515,32 @@ void GPPGame::campaingPlayModule(const std::string &name) {
     l.songID = 0;
     l.songsList = getDirectory("./data/songs", false, true);
     l.listEnd = false;
-    l.sendToModulePlayers = false;
     l.loadSong = true;
 
     for (auto &p : l.songsList) {
         std::cout << p << std::endl;
     }
 
-    std::thread load(loadMarathonThread, std::ref(module), std::ref(l));
+    // Keep the old exclusion against multiplayer container changes, but let
+    // only this thread install live song data. The worker owns prepared data.
+    std::unique_lock<std::mutex> sessionPlayersLock(playersMutex);
+    for (auto &p : module.players) {
+        p->resetSongThings();
+        l.instruments.push_back(p->instrument);
+    }
+    SongRun songRun(game, module);
+    bool reportedLoadFailure = false;
+    std::thread load(loadMarathonThread, std::ref(l));
     callOnDctor<void(void)> exitguard([&]() {
         l.continueThread = false;
         if (load.joinable()) { load.join(); }
+        if (!songRun.finish(SongEndReason::Aborted) && game.getSongResults().empty() &&
+            !l.loadFailed && !l.songsList.empty()) {
+            songRun.cancelled(l.songsList.front());
+        }
+        if (l.loadFailed && !reportedLoadFailure && l.songID < l.songsList.size()) {
+            songRun.failed(l.songsList[l.songID]);
+        }
         game.scene.sessionEnded(module.players.empty() ? 0.0 : module.getBPlayer().musicRunningTime);
         module.resetModule();
     });
@@ -2486,21 +2556,10 @@ void GPPGame::campaingPlayModule(const std::string &name) {
 
     if (!engine.windowOpened() || l.loadFailed) { return; }
 
-    l.processing = true;
-    l.sendToModulePlayers = true;
-
-    while (engine.windowOpened() && l.processing && !l.loadFailed) {
-        game.clearScreen();
-
-        CFonts::fonts().drawTextInScreenWithBuffer("loading marathon 50%", -0.4,
-                                                   0.0, 0.1);
-
-        game.renderFrame();
-    }
-
-    if (!engine.windowOpened() || l.loadFailed) { return; }
+    if (!installMarathonSong(module, l)) { return; }
 
     l.songID++;
+    l.processing = true;
     l.loadSong = true;
 
     for (auto &pp : module.players) {
@@ -2545,8 +2604,13 @@ void GPPGame::campaingPlayModule(const std::string &name) {
     bool waitingIntervalLoad = false;
 
     game.scene.sessionStarted(l.songsList.front(), -3.0);
+    songRun.start(l.songsList.front(), -3.0);
+    startTime = engine.getTime() + 3.0;
+    for (auto &p : module.players) { p->startTime = startTime; }
+    module.startSongTime = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+    module.startUpdateDelta();
 
-    while (engine.windowOpened() && !l.loadFailed) {
+    while (engine.windowOpened()) {
         game.clearScreen();
 
         if (engine.getKey(GLFW_KEY_ESCAPE) != 0) {
@@ -2558,6 +2622,7 @@ void GPPGame::campaingPlayModule(const std::string &name) {
         }
 
         if (enterInMenu) {
+            const auto pauseStart = std::chrono::steady_clock::now();
             if (musicstartedg == 2) {
                 for (auto &pp : module.players) {
                     auto &p = *pp;
@@ -2586,6 +2651,9 @@ void GPPGame::campaingPlayModule(const std::string &name) {
                 p.startTime += time - openMenuTime;
             }
 
+            module.startSongTime += std::chrono::steady_clock::now() - pauseStart;
+            startTime += time - openMenuTime;
+            module.startUpdateDelta();
             enterInMenu = false;
             esc = false;
         } else {
@@ -2630,15 +2698,19 @@ void GPPGame::campaingPlayModule(const std::string &name) {
 
             if (interval) {
                 if (!waitingIntervalLoad) {
-                    l.processing = true;
-                    l.sendToModulePlayers = true;
-
+                    songRun.finish(SongEndReason::Completed);
+                    if (l.songID >= l.songsList.size()) { return; }
                     waitingIntervalLoad = true;
                 } else {
                     if (l.processing) {
                         //// TODO
 
                     } else {
+                        if (l.loadFailed) {
+                            songRun.failed(l.songsList[l.songID]);
+                            reportedLoadFailure = true;
+                            return;
+                        }
                         double waitTime = 5.0;
 
                         double deltaTol = engine.getDeltaTime();
@@ -2680,6 +2752,8 @@ void GPPGame::campaingPlayModule(const std::string &name) {
 
                         if (fretBoardPos > rningTimeFretCalcMn &&
                             fretBoardPos < rningTimeFretCalcMs) {
+                            if (!installMarathonSong(module, l)) { return; }
+                            songRun.start(l.songsList[l.songID], -waitTime);
                             for (auto &pp : module.players) {
                                 auto &p = *pp;
                                 p.startTime = engine.getTime() + waitTime;
@@ -2700,6 +2774,7 @@ void GPPGame::campaingPlayModule(const std::string &name) {
 
                             l.songID++;
                             interval = false;
+                            l.processing = true;
                             l.loadSong = true;
                             waitingIntervalLoad = false;
 

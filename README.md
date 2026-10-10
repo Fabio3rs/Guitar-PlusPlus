@@ -243,7 +243,8 @@ session's workers have joined and before player reset, and unloaded before
 replacement or normal shutdown. Pause/resume does not repeat start/end hooks.
 A marathon is one session; its start supplies the first song and its end supplies
 the last player's song clock, not accumulated show time. These are lifecycle
-hooks, not success/failure or campaign reward notifications. Hook errors are
+hooks. Per-song notifications are described below; campaign rewards remain a
+controller responsibility. Hook errors are
 logged without aborting gameplay. Each loaded scene keeps its Lua locals until
 unloaded; no scene state or bytecode is saved in campaign progress.
 
@@ -276,13 +277,6 @@ cache entry, so queued completion callbacks still run through the streamer.
 Follow-up work should keep strict synchronization at loading boundaries without
 adding a render/update-wide lock:
 
-- Marathon still installs notes, audio handles and lyrics from its loader while
-  the main loop can render player data. The existing `playersMutex` is not taken
-  by that render path. Its atomic `processing`/`sendToModulePlayers` flags
-  publish readiness, but rendering continues while the handoff is pending;
-  checking readiness only before advancing does not protect those reads.
-  Replace this with a prepared-song result consumed by the
-  main thread between songs; preserve preload of the following song.
 - Texture cache access is not uniformly synchronized (`gTextures`, `lasync`,
   image metadata and returned references). Some cached completion callbacks can
   execute on the requesting thread and under loader locks. Establish one owner
@@ -299,3 +293,105 @@ These are loading/lifetime debts, separate from the already known gameplay
 update/render sharing. Passing build/GL tests does not establish race freedom;
 concurrent loading/cancellation stress and sanitizer runs remain necessary for
 a broader loader redesign. No FPS improvement is claimed by these changes.
+
+
+## Song boundaries, timing and results
+
+`onSongStarted(context)` and `onSongEnded(context)` complement the scene/session
+hooks. A marathon starts/ends its session once, but each song has its own events.
+A start is the start of that song's countdown, not audio onset. Pause/resume does
+not emit another start. End receives `songId`, `songSeconds`, `reason`
+(`Completed`, `Aborted`, `LoadFailed`) and a 1-based `players` array containing
+`score`, `maxCombo`, `correctNotes`, `totalNotes`. A load failure may have no
+preceding start and no player statistics. Cancelling initial loading records an
+aborted result without a song-start/end hook pair. Script errors remain logged;
+Lua receives copies, not access to the gameplay worker or authoritative results.
+
+C++ controllers can copy `GPPGame::getSongResults()` after the mode returns.
+Results are collected before reset/replacement and cleared for the next mode
+attempt. Scores are per-song deltas; marathon still retains its cumulative score,
+combo and Plus state. `maxCombo` is the largest combo reached on a hit during the
+song, so it may include a streak carried from the preceding song. Completion
+uses three seconds after the maximum `time + lTime` across the loaded notes,
+not merely the note with the latest start. This boundary is cached during chart
+validation and moves with `NotesData`; checking completion does not scan notes
+in the update loop. It is not the audio-file duration or a narrative success
+objective.
+Quick Play now returns naturally at that boundary; finishing the last marathon
+song exits instead of requesting a nonexistent next song.
+
+Marathon decoding now uses individually owned temporary players. The worker
+publishes prepared data with `processing=false`; only the main thread installs
+notes, lyrics, metadata and transferred audio handles between songs, before
+requesting the next preload. `NotesData` explicitly moves its contiguous buffers;
+`CPlayer` itself is not moved/copied in this loader. Existing multiplayer
+exclusion via `playersMutex` is retained for the mode, with the main thread now
+holding it instead of the loader. This does not fix the separate legacy Quick
+Play update/render sharing or multiplayer rendering risks.
+
+Gameplay delta is measured on its updating thread. Resetting its active clock at
+loading/resume/song boundaries makes the first sample zero, excluding idle time.
+Quick Play acknowledges each pause before the main thread adjusts the shared song
+timeline, and restarts its update clock on resume. The Quick Play pause handshake
+and audio pause run before another clear/swap; resume restarts audio and releases
+the worker before rendering again. Timeline/countdown compensation uses one
+monotonic duration. Completion is checked inside the existing update player lock.
+Marathon resets its own clock
+on resume and song installation. Both shift the song timeline across a pause.
+Sustains use the update's active overlap with their judged duration, retaining
+the existing 130 ms release tolerance, and award 50 points times multiplier per
+second, once for simultaneous held lanes. There is no render delta in that award.
+
+XP is provisional and currently has little practical use. Its progression,
+balance and persistence architecture are **not decided**. Sustain XP temporarily
+uses 0.5 times multiplier per active second solely to remove tick-rate dependence;
+this is not a finalized campaign reward policy. Single-note XP remains unchanged.
+
+Regression tests cover buffer transfer/copy support, audio ownership, pause-clock
+reset, sustain rates at 1/2/5/33 ms with Plus on/off, stable result values after
+reset, multiple song callbacks within one scene session, and real worker
+publication/handoff with two players, repeated songs, missing audio/chart and an
+empty playlist. Full interactive
+validation is still needed for rapid pause/resume, two-player marathon transitions,
+input edge cases, real audio synchronization and low/high FPS; these tests do not
+establish race freedom for the whole gameplay subsystem.
+
+### Guitar resource lifecycle
+
+`CGuitars` remains a shared installed catalogue, separate from the chart's
+`CPlayer::instrument`. Discovery and Lua configuration run before gameplay.
+`addGuitar` returns a pointer, or `nullptr` for a missing/invalid script, failed
+`addGuitar` callback or empty model name. A temporary map node lets legacy
+`changeGuitarData(id, ...)` configure the candidate without publishing it; insertion
+preserves the Lua script object's address. During registration, changes to other
+guitars are rejected. Registering an existing ID preserves its object and cache.
+`getGuitar` throws for an unknown ID; `getGuitarIfExists` returns null. Neither
+lookup inserts an entry.
+
+`CGuitar::load()` returns success only after OBJ decoding, the `loadGuitar` hook
+and GL preparation. Calls require the GL owner during loading. Failures leave the
+guitar unavailable and retryable; repeated successful loads reuse the resource.
+Rendering uses the standard bar and fretboard when the selected guitar is not
+loaded. Legacy numeric texture handles remain supported; invalid nonzero handles
+are replaced with zero during loading. Textures belong to the existing cache or
+scripts, not to the guitar model, so they are not blindly deleted by this class.
+
+Unload invokes `unloadingGuitar` once per successful load, including catalogue
+shutdown, then releases the model. Stop all consumers before clearing the
+catalogue and retain the current GL context through cleanup. Player pointers stay
+valid between songs; do not clear the catalogue or mutate Lua guitar settings
+concurrently with gameplay. This is an ownership contract, not a thread-safe
+hot-reload API. Lua filesystem/global side effects cannot be rolled back when a
+script fails. Missing models can remain discoverable and be retried later.
+
+Scene tests cover invalid scripts/callbacks, non-inserting lookup, OBJ failure and
+retry, repeated load/unload, retained cache and manager shutdown events. Real
+asset appearance and gameplay frame times still need interactive validation.
+Future work: structured asset-path definitions, read-only menu catalogue and
+campaign inventory using stable IDs; preserve `GuitarScript.lua` compatibility.
+
+Review regression tests also cover a sustain that ends after the last-starting
+note, preservation of that boundary through marathon transfer, all-player
+completion, and repeated pause compensation of timeline/countdown clocks. These
+clock tests do not simulate a real blocked swap or verify audible pause/resume;
+interactive validation of those transitions is still required.

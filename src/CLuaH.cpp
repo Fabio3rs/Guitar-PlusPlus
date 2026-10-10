@@ -551,7 +551,7 @@ void CLuaH::runInternalEvent(luaScript &L, int id) noexcept {
     }
 }
 
-void CLuaH::runInternalEventWithParams(
+bool CLuaH::runInternalEventWithParams(
     luaScript &L, int id, const multiCallBackParams_t &params) noexcept {
     if (L.callbacksAdded) {
         auto it = L.callbacks.find(id);
@@ -566,10 +566,12 @@ void CLuaH::runInternalEventWithParams(
             if (runScriptWithArgs(L, params.size()) != 0) {
                 {
                     catchErrorString(L);
+                    return false;
                 }
             }
         }
     }
+    return true;
 }
 
 CLuaH::luaScript::luaScript() noexcept {

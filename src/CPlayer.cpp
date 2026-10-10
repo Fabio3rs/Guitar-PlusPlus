@@ -1,3 +1,4 @@
+#include <utility>
 #include "CPlayer.h"
 #include "CChart.h"
 #include "CEngine.h"
@@ -1058,11 +1059,18 @@ bool CPlayer::NotesData::validateLoadedChart() {
         std::is_sorted(gNotes.begin(), gNotes.end()) &&
         std::is_sorted(BPM.begin(), BPM.end()) &&
         std::all_of(gNotes.begin(), gNotes.end(), [](const Note &n) {
-            return std::isfinite(n.time) && std::isfinite(n.lTime) && n.lTime >= 0.0;
+            return std::isfinite(n.time) && std::isfinite(n.lTime) &&
+                   std::isfinite(n.time + n.lTime) && n.lTime >= 0.0;
         }) &&
         std::all_of(BPM.begin(), BPM.end(), [](const Note &b) {
             return std::isfinite(b.time) && std::isfinite(b.lTime) && b.lTime > 0.0;
         });
+    if (valid) {
+        lastNoteEnd = gNotes.front().time + gNotes.front().lTime;
+        for (const auto &note : gNotes) {
+            lastNoteEnd = std::max(lastNoteEnd, note.time + note.lTime);
+        }
+    }
     if (!valid) {
         CLog::log() << "Chart has no playable notes or invalid timing";
         unloadChart();
@@ -1071,6 +1079,7 @@ bool CPlayer::NotesData::validateLoadedChart() {
 }
 
 void CPlayer::NotesData::unloadChart() {
+    lastNoteEnd = 0.0;
     chartEnd = 0;
     notePos = 0;
     lastNotePicked = ~0uL;
@@ -1108,9 +1117,14 @@ CPlayer::NotesData::NotesData() {
     }
 }
 
-void CPlayer::addPointsByDoingLongNote() {
-    points += comboToMultiplier() * 50.0 * CEngine::engine().getDeltaTime();
-    experience += 50.0 * comboToMultiplier() / 100.0;
+void CPlayer::addPointsByDoingLongNote(double activeSeconds) {
+    if (!std::isfinite(activeSeconds) || activeSeconds <= 0.0) { return; }
+    const double earned = comboToMultiplier() * 50.0 * activeSeconds;
+    points += earned;
+    // Provisional XP rate: 0.5 * multiplier per active second. XP progression,
+    // balance and persistence have no settled architecture yet; only remove
+    // tick-rate dependence here, without establishing campaign rewards.
+    experience += earned / 100.0;
 }
 
 void CPlayer::processError() {
@@ -1165,6 +1179,7 @@ void CPlayer::releaseSong() {
     }
 
     songAudioID = -1;
+    instrumentSound = 0;
 
     BPMNowBuffer = 0;
 }
@@ -1173,6 +1188,33 @@ void CPlayer::breakCombo() { combo = 0; }
 
 auto CPlayer::comboToMultiplierWM() -> double { return comboToMultiplier(); }
 
+void CPlayer::takeLoadedSong(CPlayer &source) {
+    if (&source == this) { return; }
+    releaseSong();
+    Notes = std::move(source.Notes);
+    songAudioID = std::exchange(source.songAudioID, -1);
+    instrumentSound = std::exchange(source.instrumentSound, -1);
+    songName = std::move(source.songName);
+    songArtist = std::move(source.songArtist);
+    songCharter = std::move(source.songCharter);
+    songFullPath = std::move(source.songFullPath);
+    correctNotesMarathon += correctNotes;
+    correctNotes = 0;
+    strklinent = -1;
+    BPMNowBuffer = 0;
+    for (auto &slide : notesSlide) { slide = ~0uL; }
+}
+
+void CPlayer::beginSongResult() {
+    songScoreStart = points;
+    songCorrectStart = correctNotes;
+    songMaxCombo = 0;
+}
+PlayerSongResult CPlayer::songResult() const {
+    return {static_cast<int64_t>(points - songScoreStart), songMaxCombo,
+            correctNotes - songCorrectStart, static_cast<uint64_t>(Notes.gNotes.size())};
+}
+
 auto CPlayer::getCombo() const -> int64_t { return combo; }
 
 auto CPlayer::getPoints() const -> int64_t {
@@ -1180,20 +1222,7 @@ auto CPlayer::getPoints() const -> int64_t {
 }
 
 auto CPlayer::isSongChartFinished() -> bool {
-    size_t size = Notes.gNotes.size();
-    if (size > 0) {
-        auto &lastNote = Notes.gNotes[size - 1];
-
-        double finalTime = lastNote.time + lastNote.lTime;
-
-        if ((musicRunningTime - finalTime) > 3.0) {
-            return true;
-        }
-    } else {
-        return true;
-    }
-
-    return false;
+    return Notes.gNotes.empty() || musicRunningTime > Notes.lastNoteEnd + 3.0;
 }
 
 auto CPlayer::comboToMultiplier() const -> double {
@@ -1230,6 +1259,7 @@ auto CPlayer::getFretsPressedFlags() const -> int {
 void CPlayer::doNote(size_t i) {
     if ((Notes.gNotes[i].type & notesFlags::nf_picked) == 0) {
         ++combo;
+        songMaxCombo = std::max(songMaxCombo, combo);
         ++correctNotes;
 
         Notes.lastNotePicked = i;

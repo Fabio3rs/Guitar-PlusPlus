@@ -39,6 +39,7 @@ class gameException : public std::exception {
 class GPPGame {
     std::map<std::string, CMenu> gameMenus;
 
+    std::vector<SongResult> songResults;
     CMenu *mainMenu;
 
     CMenu *currentMenu{};
@@ -513,13 +514,17 @@ class GPPGame {
     static void callbackKeys(int key, int scancode, int action, int mods);
     static void callbackJoystick(int jid, int eventId);
 
+    friend struct GPPGameLoadingTestAccess;
     struct loadThreadData {
         std::atomic<bool> processing{};
         // Written by the loader, read by the session before starting gameplay.
         std::atomic<bool> loadFailed{};
         std::atomic<bool> continueThread{};
         std::atomic<bool> loadSong{};
-        std::atomic<bool> sendToModulePlayers{};
+        // prepared is owned by the worker until processing=false is published.
+        // Main consumes it before publishing the next loadSong request.
+        std::vector<std::unique_ptr<CPlayer>> prepared;
+        std::vector<std::string> instruments;
         std::atomic<bool> listEnd{};
         std::atomic<size_t> songID{};
 
@@ -529,7 +534,8 @@ class GPPGame {
     };
 
     static void loadThread(CGamePlay &module, loadThreadData &l);
-    static void loadMarathonThread(CGamePlay &module, loadThreadData &l);
+    static void loadMarathonThread(loadThreadData &l);
+    static bool installMarathonSong(CGamePlay &module, loadThreadData &l);
 
     void eraseGameMenusAutoCreateds();
 
@@ -544,6 +550,14 @@ class GPPGame {
     ~GPPGame() noexcept;
 
   public:
+    // Main-thread API: snapshots remain valid after the module/player reset.
+    const std::vector<SongResult> &getSongResults() const { return songResults; }
+    void clearSongResults() { songResults.clear(); }
+    void recordSongResult(SongResult result) {
+        songResults.push_back(std::move(result));
+        scene.songEnded(songResults.back());
+    }
+
     bool saveSettings();
     const gameWindow &getWindowConfig() const { return windowCFGs; };
     int createWindow();

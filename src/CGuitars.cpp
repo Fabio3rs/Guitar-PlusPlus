@@ -2,41 +2,47 @@
 #include "CLog.h"
 #include "CLuaFunctions.hpp"
 #include "CGPPFileMGR.h"
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 
 int CGuitars::addGuitarScriptEvent = 0, CGuitars::loadGuitarScriptEvent = 0,
     CGuitars::unloadingGuitarScriptEvent = 0;
 
-void CGuitars::unload() { guitars.clear(); }
+// Call after players stop using the catalogue, while the GL context is current.
+void CGuitars::unload() {
+    for (auto &entry : guitars) { entry.second.unload(); }
+    guitars.clear();
+}
 
 auto CGuitars::addGuitar(const std::string &path,
-                         const std::string &internalName)
-    -> CGuitars::CGuitar & {
-    std::string fullPath;
-    CGuitar &newGuitar = guitars[internalName];
-
-    newGuitar.path = path;
-    newGuitar.internalName = internalName;
-    fullPath = path + "/" + internalName;
-
-    newGuitar.luaF = CLuaH::Lua().newScript(fullPath, "GuitarScript.lua");
-
-    if (newGuitar.luaF.luaState != nullptr) {
-        CLuaH::multiCallBackParams_t g = {path, internalName};
-
-        CLuaH::Lua().runScript(newGuitar.luaF);
-
-        CLuaH::Lua().runInternalEventWithParams(newGuitar.luaF,
-                                                addGuitarScriptEvent, g);
-    } else {
-        CLog::log() << "CGuitars::addGuitar <<script.luaState = nullptr>>";
+                         const std::string &internalName) -> CGuitar * {
+    if (auto *existing = getGuitarIfExists(internalName)) { return existing; }
+    if (staging || internalName.empty()) { return nullptr; }
+    // A node transfer preserves the luaScript address stored in its Lua state.
+    std::map<std::string, CGuitar> pending;
+    auto &candidate = pending[internalName];
+    candidate.path = path;
+    candidate.internalName = internalName;
+    staging = &candidate;
+    struct ResetStaging {
+        CGuitar *&pointer;
+        ~ResetStaging() { pointer = nullptr; }
+    } reset{staging};
+    candidate.luaF = CLuaH::Lua().newScript(path + "/" + internalName, "GuitarScript.lua");
+    const CLuaH::multiCallBackParams_t params = {path, internalName};
+    if (!candidate.luaF.luaState || CLuaH::Lua().runScript(candidate.luaF) != 0 ||
+        !CLuaH::Lua().runInternalEventWithParams(candidate.luaF, addGuitarScriptEvent, params) ||
+        candidate.gameplayBarName.empty()) {
+        CLog::log() << std::string("Invalid guitar configuration: ") + internalName;
+        return nullptr;
     }
-
-    return newGuitar;
+    guitars.insert(pending.extract(internalName));
+    return &candidate;
 }
 
 auto CGuitars::getGuitar(const std::string &internalName)
     -> CGuitars::CGuitar & {
-    return guitars[internalName];
+    return guitars.at(internalName);
 }
 
 auto CGuitars::getGuitarIfExists(const std::string &internalName)
@@ -52,29 +58,42 @@ auto CGuitars::getGuitarIfExists(const std::string &internalName)
     return nullptr;
 }
 
-void CGuitars::CGuitar::load() {
-    if (this == nullptr) {
-        {
-            return;
-        }
+bool CGuitars::CGuitar::load() {
+    if (loaded) { return true; }
+    if (!glfwGetCurrentContext()) { return false; }
+    GPPOBJ candidate;
+    if (!candidate.load(path + "/" + internalName, gameplayBarName)) {
+        CLog::log() << std::string("Cannot load guitar model: ") + internalName;
+        return false;
     }
-
-    if (!loaded) {
-        loaded = true;
-
-        CLuaH::multiCallBackParams_t g = {path, internalName};
-
-        gameplayBar.load(path + "/" + internalName, gameplayBarName);
-
-        CLuaH::Lua().runInternalEventWithParams(luaF, loadGuitarScriptEvent, g);
+    const auto previousTexture = textureID;
+    const auto previousFretboard = fretboardText;
+    const CLuaH::multiCallBackParams_t params = {path, internalName};
+    if (!CLuaH::Lua().runInternalEventWithParams(luaF, loadGuitarScriptEvent, params)) {
+        textureID = previousTexture;
+        fretboardText = previousFretboard;
+        return false;
     }
+    // Legacy scripts supply cached texture handles; the guitar does not own them.
+    if (textureID != 0 && !glIsTexture(static_cast<GLuint>(textureID))) { textureID = 0; }
+    if (fretboardText != 0 && !glIsTexture(fretboardText)) { fretboardText = 0; }
+    try {
+        candidate.prepareForDraw();
+    } catch (const std::exception &error) {
+        textureID = previousTexture;
+        fretboardText = previousFretboard;
+        CLog::log() << std::string("Cannot prepare guitar: ") + error.what();
+        return false;
+    }
+    gameplayBar = std::move(candidate);
+    loaded = true;
+    return true;
 }
 
 void CGuitars::CGuitar::unload() {
-    if (!loaded) {
-        CLuaH::multiCallBackParams_t g = {path, internalName};
-        CLuaH::Lua().runInternalEventWithParams(luaF,
-                                                unloadingGuitarScriptEvent, g);
+    if (loaded) {
+        const CLuaH::multiCallBackParams_t params = {path, internalName};
+        CLuaH::Lua().runInternalEventWithParams(luaF, unloadingGuitarScriptEvent, params);
         gameplayBar.unload();
         loaded = false;
     }
@@ -108,9 +127,12 @@ auto CGuitars::changeGuitarData(lua_State *L) -> int {
 
         p >> targetGuitar;
 
-        auto it = inst().guitars.find(targetGuitar);
+        auto &manager = inst();
+        auto *target = manager.staging
+            ? (manager.staging->internalName == targetGuitar ? manager.staging : nullptr)
+            : manager.getGuitarIfExists(targetGuitar);
 
-        if (it != inst().guitars.end()) {
+        if (target != nullptr) {
             std::string dataName;
             p >> dataName;
 
@@ -119,19 +141,19 @@ auto CGuitars::changeGuitarData(lua_State *L) -> int {
             if (it2 != mp.end()) {
                 switch ((*it2).second) {
                 case 0:
-                    p >> (*it).second.name;
+                    p >> target->name;
                     break;
 
                 case 1:
-                    p >> (*it).second.gameplayBarName;
+                    p >> target->gameplayBarName;
                     break;
 
                 case 2:
-                    p >> (*it).second.textureID;
+                    p >> target->textureID;
                     break;
 
                 case 3:
-                    p >> (*it).second.fretboardText;
+                    p >> target->fretboardText;
                     break;
 
                 default:

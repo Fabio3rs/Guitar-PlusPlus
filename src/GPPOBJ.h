@@ -19,7 +19,7 @@ class GPPOBJ {
     // CPU-only explicit MTL selection for a model not yet loaded.
     void setMaterialLibrary(const std::string &file);
     void loadTextureList(const std::string &path, const std::string &file);
-    void load(const std::string &path, const std::string &file);
+    bool load(const std::string &path, const std::string &file);
     void draw(unsigned int texture, bool autoBindZeroVBO = true);
     void onlyDraw(bool autoBindZeroVBO = true) const;
     // All GL work (including lazy upload) happens here, on the rendering
