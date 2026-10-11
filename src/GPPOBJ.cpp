@@ -13,17 +13,21 @@
 
 namespace {
 namespace fs = std::filesystem;
+
 struct MaterialResource {
     ObjModel::Material values;
     std::string directory;
     GLuint texture = 0;
     bool attempted = false;
 };
+
 using Materials = std::map<std::string, MaterialResource>;
+
 void readLibrary(const fs::path &file, Materials &materials) {
     std::ifstream input(file);
-    if (!input)
+    if (!input) {
         return; // OBJ files without an accompanying MTL remain usable.
+    }
     for (auto &entry : ObjModel::readMaterials(input)) {
         auto &m = entry.second;
         // Preserve the project's historic material-name.tga convention only
@@ -32,8 +36,9 @@ void readLibrary(const fs::path &file, Materials &materials) {
             const auto name = fs::path(entry.first).extension() == ".tga"
                                   ? entry.first
                                   : entry.first + ".tga";
-            if (fs::is_regular_file(file.parent_path() / name))
+            if (fs::is_regular_file(file.parent_path() / name)) {
                 m.diffuseMap = name;
+            }
         }
         if (!m.diffuseMap.empty()) {
             const auto texture =
@@ -41,10 +46,12 @@ void readLibrary(const fs::path &file, Materials &materials) {
             m.diffuseMap = texture.filename().string();
             materials[entry.first] = {m, texture.parent_path().string(), 0,
                                       false};
-        } else
+        } else {
             materials[entry.first] = {m, file.parent_path().string(), 0, false};
+        }
     }
 }
+
 // Unique ownership, stable addresses, and no pointers into CPU vectors retained
 // by the GPU owner. The only integer-to-pointer conversions are GL VBO offsets.
 struct Buffer {
@@ -64,21 +71,24 @@ struct Buffer {
         const size_t countSize = part.positions.size();
         if (countSize != part.normals.size() || countSize != part.uvs.size() ||
             countSize >
-                static_cast<size_t>(std::numeric_limits<GLsizei>::max()))
+                static_cast<size_t>(std::numeric_limits<GLsizei>::max())) {
             throw std::runtime_error("invalid OBJ vertex array sizes");
+        }
         static_assert(sizeof(ObjModel::Vec3) == 3 * sizeof(float),
                       "packed position array");
         static_assert(sizeof(ObjModel::Vec2) == 2 * sizeof(float),
                       "packed UV array");
         ao = !part.aoUVs.empty();
-        if (ao && part.aoUVs.size() != countSize)
+        if (ao && part.aoUVs.size() != countSize) {
             throw std::runtime_error("invalid AO UV count");
+        }
         const size_t bytesPerVertex = 2 * sizeof(ObjModel::Vec3) +
                                       (ao ? 2u : 1u) * sizeof(ObjModel::Vec2);
         if (countSize >
             static_cast<size_t>(std::numeric_limits<GLsizeiptr>::max()) /
-                bytesPerVertex)
+                bytesPerVertex) {
             throw std::runtime_error("OBJ buffer too large");
+        }
         count = static_cast<GLsizei>(countSize);
         uvOffset = countSize * sizeof(ObjModel::Vec3);
         normalOffset = uvOffset + countSize * sizeof(ObjModel::Vec2);
@@ -95,11 +105,12 @@ struct Buffer {
                         part.uvs.data());
         glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>(normalOffset),
                         static_cast<GLsizeiptr>(uvOffset), part.normals.data());
-        if (ao)
+        if (ao) {
             glBufferSubData(
                 GL_ARRAY_BUFFER, static_cast<GLintptr>(aoOffset),
                 static_cast<GLsizeiptr>(countSize * sizeof(ObjModel::Vec2)),
                 part.aoUVs.data());
+        }
     }
     void draw() const {
         glBindBuffer(GL_ARRAY_BUFFER, id);
@@ -116,12 +127,14 @@ struct Buffer {
             glTexCoordPointer(2, GL_FLOAT, 0,
                               reinterpret_cast<const void *>(
                                   static_cast<uintptr_t>(aoOffset)));
-        } else
+        } else {
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        }
         glClientActiveTexture(GL_TEXTURE0);
         glDrawArrays(GL_TRIANGLES, 0, count);
     }
 };
+
 struct DrawState {
     GLint active = GL_TEXTURE0, client = GL_TEXTURE0, buffer = 0;
     DrawState() {
@@ -164,6 +177,7 @@ struct GPPOBJ::Impl {
     std::string explicitLibrary;
     size_t version = 0, uploadedVersion = 0;
 };
+
 GPPOBJ::GPPOBJ() : impl(std::make_unique<Impl>()) {}
 
 GPPOBJ::GPPOBJ(TextureLoader loader) : GPPOBJ() {
@@ -184,6 +198,7 @@ GPPOBJ::Inspection GPPOBJ::inspect() const {
     result.aoAtlas = !impl->ao.pixels.empty();
     return result;
 }
+
 GPPOBJ::~GPPOBJ() = default;
 GPPOBJ::GPPOBJ(GPPOBJ &&) noexcept = default;
 GPPOBJ &GPPOBJ::operator=(GPPOBJ &&) noexcept = default;
@@ -208,10 +223,11 @@ void GPPOBJ::loadTextureList(const std::string &path, const std::string &file) {
     for (const auto &entry : materials) {
         const auto &m = entry.second;
         if (!m.values.diffuseMap.empty() &&
-            fs::is_regular_file(fs::path(m.directory) / m.values.diffuseMap))
+            fs::is_regular_file(fs::path(m.directory) / m.values.diffuseMap)) {
             GPPGame::GuitarPP().loadTextureSingleAsync(
                 GPPGame::loadTextureBatch(m.directory, m.values.diffuseMap,
                                           nullptr, nullptr));
+        }
     }
 }
 
@@ -220,11 +236,13 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
     try {
         const auto filename = fs::path(path) / file;
         std::ifstream input(filename);
-        if (!input)
+        if (!input) {
             return false;
+        }
         auto model = ObjModel::read(input, objName);
-        if (model.parts.empty())
+        if (model.parts.empty()) {
             return false;
+        }
         SceneAO::Atlas ao;
         try {
             ao = SceneAO::read(filename, model);
@@ -250,12 +268,14 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
         if (!explicitLibrary.empty()) {
             readLibrary(explicitLibrary, materials);
         } else {
-            for (const auto &library : model.libraries)
+            for (const auto &library : model.libraries) {
                 readLibrary(filename.parent_path() / library, materials);
+            }
         }
         std::lock_guard<std::mutex> lock(impl->mutex);
-        for (const auto &warning : model.warnings)
+        for (const auto &warning : model.warnings) {
             CLog::log() << warning;
+        }
         impl->model = std::move(model);
         impl->ao = std::move(ao);
         impl->materials = std::move(materials);
@@ -268,15 +288,19 @@ bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
         return false;
     }
 }
+
 void GPPOBJ::prepareForDraw() {
-    if (!impl)
+    if (!impl) {
         return;
+    }
     std::lock_guard<std::mutex> lock(impl->mutex);
-    if (impl->uploadedVersion == impl->version)
+    if (impl->uploadedVersion == impl->version) {
         return;
+    }
     DrawState state;
     prepareBuffers();
 }
+
 void GPPOBJ::prepareBuffers() {
     if (impl->uploadedVersion != impl->version) {
         impl->buffers.clear();
@@ -324,7 +348,7 @@ void GPPOBJ::prepareBuffers() {
             if (!m.attempted && !m.values.diffuseMap.empty()) {
                 m.attempted = true;
                 if (fs::is_regular_file(fs::path(m.directory) /
-                                        m.values.diffuseMap))
+                                        m.values.diffuseMap)) {
                     m.texture =
                         impl->textureLoader
                             ? impl->textureLoader(
@@ -333,6 +357,7 @@ void GPPOBJ::prepareBuffers() {
                             : GPPGame::GuitarPP()
                                   .loadTexture(m.directory, m.values.diffuseMap)
                                   .getTextId();
+                }
                 if (m.texture) {
                     glBindTexture(GL_TEXTURE_2D, m.texture);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
@@ -349,10 +374,12 @@ void GPPOBJ::prepareBuffers() {
         impl->uploadedVersion = impl->version;
     }
 }
+
 void GPPOBJ::drawMaterials(const MaterialBinder &bind,
                            unsigned int overrideTexture) {
-    if (!impl)
+    if (!impl) {
         return;
+    }
     std::lock_guard<std::mutex> lock(impl->mutex);
     DrawState state;
     prepareBuffers();
@@ -368,31 +395,39 @@ void GPPOBJ::drawMaterials(const MaterialBinder &bind,
         GLuint texture = overrideTexture               ? overrideTexture
                          : it == impl->materials.end() ? 0
                                                        : it->second.texture;
-        if (!part.textured)
+        if (!part.textured) {
             texture = 0;
+        }
         glBindTexture(GL_TEXTURE_2D, texture);
-        if (texture)
+        if (texture) {
             glEnable(GL_TEXTURE_2D);
-        else
+        } else {
             glDisable(GL_TEXTURE_2D);
-        if (bind && !bind(part, material, texture != 0))
+        }
+        if (bind && !bind(part, material, texture != 0)) {
             continue;
+        }
         impl->buffers[i]->draw();
     }
 }
+
 void GPPOBJ::draw(unsigned int texture, bool /*autoBindZeroVBO*/) {
     drawMaterials({}, texture);
 }
+
 void GPPOBJ::onlyDraw(bool /*autoBindZeroVBO*/) const {
     // Retained legacy entry point also safely handles a not-yet-uploaded model.
     const_cast<GPPOBJ *>(this)->draw(0);
 }
+
 bool GPPOBJ::load(const std::string &path, const std::string &file) {
     return loadInternalObj(path, file);
 }
+
 void GPPOBJ::unload() {
-    if (!impl)
+    if (!impl) {
         return;
+    }
     std::lock_guard<std::mutex> lock(impl->mutex);
     impl->model = {};
     impl->materials.clear();
@@ -400,29 +435,34 @@ void GPPOBJ::unload() {
     ++impl->version;
     if (glGetString(GL_VERSION)) {
         impl->buffers.clear();
-        if (impl->aoTexture)
+        if (impl->aoTexture) {
             glDeleteTextures(1, &impl->aoTexture);
+        }
         impl->aoTexture = 0;
     }
 }
+
 std::pair<ObjModel::Vec3, ObjModel::Vec3> GPPOBJ::bounds() const {
     std::lock_guard<std::mutex> lock(impl->mutex);
     return {impl->model.minimum, impl->model.maximum};
 }
+
 bool GPPOBJ::hasAO() const {
     std::lock_guard<std::mutex> lock(impl->mutex);
     return impl->uploadedVersion == impl->version && impl->aoTexture != 0;
 }
+
 size_t GPPOBJ::revision() const {
     std::lock_guard<std::mutex> lock(impl->mutex);
     return impl->version;
 }
+
 gppVec3f GPPOBJ::boxTestForMtl(const std::string &name) {
     std::lock_guard<std::mutex> lock(impl->mutex);
     ObjModel::Vec3 minimum{}, maximum{};
     bool first = true;
-    for (const auto &part : impl->model.parts)
-        if (part.material == name)
+    for (const auto &part : impl->model.parts) {
+        if (part.material == name) {
             for (const auto &p : part.positions) {
                 if (first) {
                     minimum = maximum = p;
@@ -433,6 +473,8 @@ gppVec3f GPPOBJ::boxTestForMtl(const std::string &name) {
                     maximum[i] = std::max(maximum[i], p[i]);
                 }
             }
+        }
+    }
     return {maximum[0] - minimum[0], maximum[1] - minimum[1],
             maximum[2] - minimum[2]};
 }

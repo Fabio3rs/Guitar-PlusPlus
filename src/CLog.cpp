@@ -65,11 +65,14 @@ auto CLog::GetDateAndTime() -> std::string {
 #ifdef _WIN32
     if (localtime_s(&local, &now) != 0) return "unknown time";
 #else
-    if (!localtime_r(&now, &local)) return "unknown time";
+    if (!localtime_r(&now, &local)) {
+        return "unknown time";
+    }
 #endif
     char text[64]{};
-    if (std::strftime(text, sizeof(text), "%Y-%m-%d %H:%M:%S", &local) == 0)
+    if (std::strftime(text, sizeof(text), "%Y-%m-%d %H:%M:%S", &local) == 0) {
         return "unknown time";
+    }
     return text;
 }
 
@@ -77,7 +80,9 @@ void CLog::writeLocked(const std::string &text) {
     if (!useStderr) {
         if (LogFile.good()) {
             LogFile.write(text.data(), static_cast<std::streamsize>(text.size()));
-            if (LogFile.good()) return;
+            if (LogFile.good()) {
+                return;
+            }
         }
         useStderr = true;
         std::fprintf(stderr, "Cannot write log '%s'; using stderr\n", FileName.c_str());
@@ -88,15 +93,22 @@ void CLog::writeLocked(const std::string &text) {
 void CLog::AddToLog(const std::string &Text) {
     const std::string entry = GetDateAndTime() + ": " + Text + "\n";
     std::lock_guard<std::mutex> lock(writeMutex);
-    if (!Finished) writeLocked(entry);
+    if (!Finished) {
+        writeLocked(entry);
+    }
 }
 
 void CLog::FinishLog() {
     std::lock_guard<std::mutex> lock(writeMutex);
-    if (Finished) return;
+    if (Finished) {
+        return;
+    }
     writeLocked("* Log finished at: " + GetDateAndTime() + "\n");
-    if (!useStderr) LogFile.flush();
-    else std::fflush(stderr);
+    if (!useStderr) {
+        LogFile.flush();
+    } else {
+        std::fflush(stderr);
+    }
     Finished = true;
 }
 
@@ -104,7 +116,9 @@ void CLog::SaveBuffer() {
     std::lock_guard<std::mutex> lock(writeMutex);
     if (!useStderr) {
         LogFile.flush();
-        if (!LogFile.good()) writeLocked("Log flush failed\n");
+        if (!LogFile.good()) {
+            writeLocked("Log flush failed\n");
+        }
     } else {
         std::fflush(stderr);
     }

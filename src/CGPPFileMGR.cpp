@@ -5,11 +5,18 @@
 std::deque<std::string> CGPPFileMGR::getDirectory(const std::string &directory,
     bool getFiles, bool getDirectories, std::error_code *error) {
     std::deque<std::string> result;
-    if (error) error->clear();
-    if (!getFiles && !getDirectories) return result;
+    if (error) {
+        error->clear();
+    }
+    if (!getFiles && !getDirectories) {
+        return result;
+    }
 
-    auto report = [&](const std::filesystem::path &path, const std::error_code &ec) {
-        if (error && !*error) *error = ec;
+    auto report = [&](const std::filesystem::path &path,
+                      const std::error_code &ec) {
+        if (error && !*error) {
+            *error = ec;
+        }
         CLog::log() << "Cannot list " + path.string() + ": " + ec.message();
     };
     std::error_code ec;
@@ -22,7 +29,9 @@ std::deque<std::string> CGPPFileMGR::getDirectory(const std::string &directory,
         const auto status = entry->status(ec);
         if (ec) {
             // A dangling link or an entry removed during enumeration is harmless.
-            if (ec != std::errc::no_such_file_or_directory) report(entry->path(), ec);
+            if (ec != std::errc::no_such_file_or_directory) {
+                report(entry->path(), ec);
+            }
         } else if ((getDirectories && std::filesystem::is_directory(status)) ||
                    (getFiles && std::filesystem::is_regular_file(status))) {
             result.push_back(entry->path().filename().string());

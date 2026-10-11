@@ -1,6 +1,8 @@
 #pragma once
 #include <string_view>
+
 namespace BackgroundShader {
+
 inline constexpr std::string_view vertex = R"glsl(#version 110
 uniform mat4 uLightMatrix;
 varying vec3 worldPosition;
@@ -20,6 +22,7 @@ void main() {
     gl_Position=gl_ModelViewProjectionMatrix*gl_Vertex;
 }
 )glsl";
+
 inline constexpr std::string_view fragment = R"glsl(#version 110
 uniform sampler2D uTexture;
 uniform sampler2D uShadow;

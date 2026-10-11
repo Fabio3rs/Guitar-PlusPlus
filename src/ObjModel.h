@@ -11,6 +11,7 @@
 namespace ObjModel {
 using Vec2 = std::array<float, 2>;
 using Vec3 = std::array<float, 3>;
+
 struct Material {
     Vec3 ambient{1.f, 1.f, 1.f};
     Vec3 diffuse{1.f, 1.f, 1.f};
@@ -25,6 +26,7 @@ struct Material {
     Vec2 uvOffset{0.f, 0.f};
     bool clampMap = false;
 };
+
 struct Part {
     std::string object, group, material;
     // All arrays have the same number of elements, a multiple of three.
@@ -34,12 +36,14 @@ struct Part {
                              // tiled diffuse UVs.
     bool textured = true;
 };
+
 struct Model {
     uint64_t sourceSignature = 14695981039346656037ull;
     std::vector<Part> parts;
     std::vector<std::string> libraries, warnings;
     Vec3 minimum{}, maximum{};
 };
+
 // Invalid geometry throws with a line number; missing optional attributes are
 // synthesized. Parsing never calls GL or partially replaces a live model.
 Model read(std::istream &input, const std::string &objectFilter = "");

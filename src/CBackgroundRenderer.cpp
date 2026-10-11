@@ -12,7 +12,9 @@
 
 namespace {
 using namespace ShaderProject;
+
 CBackgroundRenderer *live = nullptr;
+
 ProgramObject program(std::string_view vertex, std::string_view fragment) {
     auto v = CShader::compileShader(vertex, VERTEX);
     auto f = CShader::compileShader(fragment, FRAGMENT);
@@ -22,6 +24,7 @@ ProgramObject program(std::string_view vertex, std::string_view fragment) {
     CShader::linkShaderProgram(p);
     return p;
 }
+
 struct Uniforms {
     GLint texture = -1, textured = -1, scale = -1, offset = -1, clamp = -1,
           opacity = -1;
@@ -29,6 +32,7 @@ struct Uniforms {
           light = -1;
     GLint shadow = -1, shadows = -1, lightMatrix = -1, texel = -1, bias = -1,
           ao = -1, aoEnabled = -1, ambient = -1, cutoff = -1;
+
     void read(const ProgramObject &p) {
         auto get = [&](const char *name) {
             return CShader::getProgramUniform(p, name);
@@ -55,6 +59,7 @@ struct Uniforms {
         texel = get("uShadowTexel");
         bias = get("uShadowBias");
     }
+
     void material(const ObjModel::Material &m, bool hasTexture) const {
         glUniform1i(textured, hasTexture);
         glUniform2fv(scale, 1, m.uvScale.data());
@@ -63,26 +68,31 @@ struct Uniforms {
         glUniform1f(opacity, m.opacity);
     }
 };
+
 struct State {
     GLint program = 0, active = GL_TEXTURE0, matrix = GL_MODELVIEW,
           framebuffer = 0;
     bool fbo = false;
+
     explicit State(bool supportsFBO) : fbo(supportsFBO) {
         glGetIntegerv(GL_CURRENT_PROGRAM, &program);
         glGetIntegerv(GL_ACTIVE_TEXTURE, &active);
         glGetIntegerv(GL_MATRIX_MODE, &matrix);
-        if (fbo)
+        if (fbo) {
             glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &framebuffer);
+        }
         glPushAttrib(GL_ALL_ATTRIB_BITS);
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
     }
+
     ~State() {
-        if (fbo)
+        if (fbo) {
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT,
                                  static_cast<GLuint>(framebuffer));
+        }
         glMatrixMode(GL_MODELVIEW);
         glPopMatrix();
         glMatrixMode(GL_PROJECTION);
@@ -94,11 +104,14 @@ struct State {
         CEngine::engine().invalidateRenderBindings();
     }
 };
+
 bool decal(const ObjModel::Part &part) { return part.material == "decal_oil"; }
+
 struct Surface {
     ObjModel::Vec3 specular, emission;
     float shininess;
 };
+
 Surface garageMaterial(const ObjModel::Part &part,
                        const ObjModel::Material &source) {
     Surface m{source.specular, source.emission, source.shininess};
@@ -115,11 +128,13 @@ Surface garageMaterial(const ObjModel::Part &part,
         m.specular = {.025f, .025f, .025f};
         m.shininess = 12.f;
     }
-    if (source.illumination < 2)
+    if (source.illumination < 2) {
         m.specular = {0, 0, 0};
+    }
     return m;
 }
 } // namespace
+
 struct CBackgroundRenderer::Impl {
     ProgramObject lighting, depth;
     Uniforms lit, dep;
@@ -132,10 +147,12 @@ struct CBackgroundRenderer::Impl {
     glm::vec3 light{3.5f, 2.88f, -6.05f};
     glm::mat4 lightMatrix{1.f};
     void releaseShadow() {
-        if (framebuffer)
+        if (framebuffer) {
             glDeleteFramebuffersEXT(1, &framebuffer);
-        if (depthTexture)
+        }
+        if (depthTexture) {
             glDeleteTextures(1, &depthTexture);
+        }
         framebuffer = depthTexture = 0;
         resolution = 0;
         cachedModel = nullptr;
@@ -146,10 +163,12 @@ struct CBackgroundRenderer::Impl {
         }
     }
     bool allocate(int size) {
-        if (shadowFailed || !fbo)
+        if (shadowFailed || !fbo) {
             return false;
-        if (resolution == size)
+        }
+        if (resolution == size) {
             return true;
+        }
         releaseShadow();
         GLint maxSize = 0;
         glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
@@ -188,6 +207,7 @@ struct CBackgroundRenderer::Impl {
         return true;
     }
 };
+
 CBackgroundRenderer::CBackgroundRenderer() : impl(std::make_unique<Impl>()) {
     live = this;
     auto &vars = CLuaFunctions::GameVariables::gv();
@@ -195,34 +215,43 @@ CBackgroundRenderer::CBackgroundRenderer() : impl(std::make_unique<Impl>()) {
     vars.pushVar("backgroundAO", ambientOcclusion);
     vars.pushVar("backgroundShadowBias", shadowBias);
 }
+
 CBackgroundRenderer::~CBackgroundRenderer() { live = nullptr; }
+
 CBackgroundRenderer &CBackgroundRenderer::inst() {
     static CBackgroundRenderer renderer;
     return renderer;
 }
+
 void CBackgroundRenderer::shutdown() {
-    if (live)
+    if (live) {
         live->impl = std::make_unique<Impl>();
+    }
 }
-size_t CBackgroundRenderer::shadowUpdates() const { return impl->updates;
-}
+
+size_t CBackgroundRenderer::shadowUpdates() const { return impl->updates; }
 
 CBackgroundRenderer::Diagnostics CBackgroundRenderer::diagnostics() const {
     return {impl->lighting.get() != 0, impl->fbo && impl->depth.get() != 0,
             impl->shadowFailed, impl->resolution};
 }
-void CBackgroundRenderer::setScene(const std::array<float, 3> &light, bool garageMaterials) {
+
+void CBackgroundRenderer::setScene(const std::array<float, 3> &light,
+                                   bool garageMaterials) {
     auto &r = *impl;
     r.light = {light[0], light[1], light[2]};
     r.garageMaterials = garageMaterials;
     r.lightMatrix = glm::perspective(glm::radians(150.f), 1.f, .1f, 20.f) *
-                    glm::lookAt(r.light, r.light + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1));
+                    glm::lookAt(r.light, r.light + glm::vec3(0, -1, 0),
+                                glm::vec3(0, 0, -1));
     // The same GPPOBJ address/revision can be reused after moving a new scene.
     r.cachedModel = nullptr;
 }
+
 void CBackgroundRenderer::prepare() {
-    if (impl->attempted)
+    if (impl->attempted) {
         return;
+    }
     impl->attempted = true;
     impl->fbo = GLEW_EXT_framebuffer_object && glGenFramebuffersEXT &&
                 glBindFramebufferEXT;
@@ -241,6 +270,7 @@ void CBackgroundRenderer::prepare() {
         CLog::log() << std::string("Background shadows: ") + e.what();
     }
 }
+
 void CBackgroundRenderer::draw(GPPOBJ &model) {
     if (quality <= 0 || !CShader::inst().isShadersEnabled()) {
         model.draw(0);
@@ -291,9 +321,11 @@ void CBackgroundRenderer::draw(GPPOBJ &model) {
                 model.drawMaterials([&](const ObjModel::Part &part,
                                         const ObjModel::Material &m,
                                         bool textured) {
-                    if (m.opacity < .5f || (r.garageMaterials &&
-                        (decal(part) || part.material == "light")))
+                    if (m.opacity < .5f ||
+                        (r.garageMaterials &&
+                         (decal(part) || part.material == "light"))) {
                         return false;
+                    }
                     r.dep.material(m, textured);
                     return true;
                 });
@@ -341,11 +373,15 @@ void CBackgroundRenderer::draw(GPPOBJ &model) {
         model.drawMaterials([&](const ObjModel::Part &part,
                                 const ObjModel::Material &source,
                                 bool textured) {
-            const bool translucent = (r.garageMaterials && decal(part)) || source.opacity < .999f;
-            if (translucent != (pass == 1))
+            const bool translucent =
+                (r.garageMaterials && decal(part)) || source.opacity < .999f;
+            if (translucent != (pass == 1)) {
                 return false;
-            const auto m = r.garageMaterials ? garageMaterial(part, source) :
-                Surface{source.specular, source.emission, source.shininess};
+            }
+            const auto m = r.garageMaterials
+                               ? garageMaterial(part, source)
+                               : Surface{source.specular, source.emission,
+                                         source.shininess};
             r.lit.material(source, textured);
             glUniform3fv(r.lit.ambient, 1, source.ambient.data());
             glUniform3fv(r.lit.diffuse, 1, source.diffuse.data());

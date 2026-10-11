@@ -4,17 +4,22 @@
 namespace PlusLightningShader {
 inline constexpr std::string_view vertex = R"glsl(#version 110
 varying vec2 uv;
+
 void main() {
     gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
     uv = gl_MultiTexCoord0.xy;
 }
+
 )glsl";
+
 inline constexpr std::string_view fragment = R"glsl(#version 110
 uniform float uTime;
 uniform float uOpacity;
 uniform float uSpark;
 varying vec2 uv;
+
 float hash(float n) { return fract(sin(n * 127.1) * 43758.5453); }
+
 float path(float y, float tick) {
     float segment = y * 18.0;
     float index = floor(segment);
@@ -22,6 +27,7 @@ float path(float y, float tick) {
                        hash(index + 1.0 + tick * 31.0), fract(segment));
     return 0.5 + (jitter - 0.5) * 0.32 * sin(y * 3.14159265);
 }
+
 void main() {
     if (uSpark > 0.5) {
         vec2 delta = (uv - vec2(0.5)) * 2.0;

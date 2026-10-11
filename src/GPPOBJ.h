@@ -27,18 +27,23 @@ class GPPOBJ {
     };
 
     Inspection inspect() const;
+
     using MaterialBinder = std::function<bool(
         const ObjModel::Part &, const ObjModel::Material &, bool)>;
+
     bool keepModelDataLoaded = false;
+
     bool loadInternalObj(const std::string &path, const std::string &file,
                          const std::string &objName = "",
                          bool loadMtlLib = false);
+
     // CPU-only explicit MTL selection for a model not yet loaded.
     void setMaterialLibrary(const std::string &file);
     void loadTextureList(const std::string &path, const std::string &file);
     bool load(const std::string &path, const std::string &file);
     void draw(unsigned int texture, bool autoBindZeroVBO = true);
     void onlyDraw(bool autoBindZeroVBO = true) const;
+
     // All GL work (including lazy upload) happens here, on the rendering
     // thread.
     void prepareForDraw();
@@ -48,9 +53,13 @@ class GPPOBJ {
     bool hasAO() const;
     gppVec3f boxTestForMtl(const std::string &mtl);
     void unload();
+
     GPPOBJ();
+
     explicit GPPOBJ(TextureLoader loader);
+
     ~GPPOBJ();
+
     GPPOBJ(GPPOBJ &&) noexcept;
     GPPOBJ &operator=(GPPOBJ &&) noexcept;
     GPPOBJ(const GPPOBJ &) = delete;

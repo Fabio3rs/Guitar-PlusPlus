@@ -7,14 +7,17 @@
 void CPlusLightning::render(double elapsed, unsigned int noteMask) {
     const unsigned int lanes = noteMask & 0x1fu;
     if (lanes == 0u || !std::isfinite(elapsed) || elapsed < 0.0 ||
-        elapsed >= duration)
+        elapsed >= duration) {
         return;
+    }
     auto &shaders = ShaderProject::CShader::inst();
-    if (!shaders.isShadersEnabled())
+    if (!shaders.isShadersEnabled()) {
         return;
+    }
     const auto &effect = shaders.lightningProgram();
-    if (effect.event < 0)
+    if (effect.event < 0) {
         return;
+    }
     struct RestoreState {
         GLint program = 0;
         RestoreState() {
@@ -43,8 +46,9 @@ void CPlusLightning::render(double elapsed, unsigned int noteMask) {
 
     // Emit at each selected button center, using the gameplay lane spacing.
     for (unsigned int lane = 0; lane < 5; ++lane) {
-        if ((lanes & (1u << lane)) == 0u)
+        if ((lanes & (1u << lane)) == 0u) {
             continue;
+        }
         const double centerX = -0.41 + lane * (0.2 + 0.2 / 48.0);
         ShaderProject::CShader::setFloatUniform(effect.spark, 0.0f);
         // Two crossed sheets per discharge.

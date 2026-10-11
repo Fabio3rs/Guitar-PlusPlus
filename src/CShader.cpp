@@ -15,32 +15,37 @@ namespace {
 CShader *liveInstance = nullptr;
 
 void requireShaderAPI() {
-    if (!glGetString(GL_VERSION) || !glCreateShader || !glCreateProgram)
+    if (!glGetString(GL_VERSION) || !glCreateShader || !glCreateProgram) {
         throw std::runtime_error(
             "Shaders require a current OpenGL context and initialized GLEW");
+    }
 }
 
 template <class Container> auto &checked(Container &items, int id) {
-    if (id < 0 || static_cast<size_t>(id) >= items.size())
+    if (id < 0 || static_cast<size_t>(id) >= items.size()) {
         throw std::out_of_range("Invalid shader or event ID: " +
                                 std::to_string(id));
+    }
     return items[static_cast<size_t>(id)];
 }
 
 std::string infoLog(GLuint id, bool program) {
     GLint size = 0;
-    if (program)
+    if (program) {
         glGetProgramiv(id, GL_INFO_LOG_LENGTH, &size);
-    else
+    } else {
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &size);
-    if (size <= 0)
+    }
+    if (size <= 0) {
         return "No driver log available";
+    }
     std::string log(static_cast<size_t>(size), '\0');
     GLsizei written = 0;
-    if (program)
+    if (program) {
         glGetProgramInfoLog(id, size, &written, log.data());
-    else
+    } else {
         glGetShaderInfoLog(id, size, &written, log.data());
+    }
     log.resize(static_cast<size_t>(written));
     return log;
 }
@@ -56,15 +61,18 @@ CShader::shaderEvent::shaderEvent(const char *name)
 
 CShader::shaderInst::shaderInst(const char *fName, shaderTypes shaderType)
     : type(shaderType) {
-    if (!fName)
+    if (!fName) {
         throw std::invalid_argument("Null shader filename");
+    }
     fileName = fName;
     std::ifstream file(fileName, std::ios::binary);
-    if (!file)
+    if (!file) {
         throw std::runtime_error("Can't open shader: " + fileName);
+    }
     shaderContent.assign(std::istreambuf_iterator<char>(file), {});
-    if (file.bad())
+    if (file.bad()) {
         throw std::runtime_error("Can't read shader: " + fileName);
+    }
     try {
         compile();
     } catch (const std::exception &error) {
@@ -83,18 +91,21 @@ auto CShader::addEvent(const char *name) -> int {
         }
     }
 
-    if (!name)
+    if (!name) {
         throw std::invalid_argument("Null shader event name");
+    }
     events.emplace_back(name);
     return static_cast<int>(events.size() - 1);
 }
 
 int CShader::addProgram(const char *name, std::string_view vertexSource,
                         std::string_view fragmentSource) {
-    if (!enableShaders)
+    if (!enableShaders) {
         return -1;
-    if (!name)
+    }
+    if (!name) {
         throw std::invalid_argument("Null shader event name");
+    }
     auto vertex = compileShader(vertexSource, VERTEX);
     auto fragment = compileShader(fragmentSource, FRAGMENT);
     shaderEvent event(name);
@@ -107,8 +118,9 @@ int CShader::addProgram(const char *name, std::string_view vertexSource,
 }
 
 int CShader::getEventUniform(int event, const char *name) const {
-    if (!name)
+    if (!name) {
         throw std::invalid_argument("Null uniform name");
+    }
     return getProgramUniform(checked(events, event).shaderProg, name);
 }
 
@@ -119,8 +131,9 @@ void CShader::addShaderToEvent(const char *shaderEvent, int shaderID) {
         }
     }
 
-    if (!shaderEvent)
+    if (!shaderEvent) {
         throw std::invalid_argument("Null shader event name");
+    }
     int ID = -1;
     for (size_t i = 0, size = events.size(); i < size; i++) {
         if (events[i].eventName == shaderEvent) {
@@ -145,8 +158,9 @@ void CShader::processEvent(int id) {
     }
 
     const auto &event = checked(events, id);
-    if (!event.linked)
+    if (!event.linked) {
         throw std::runtime_error("Shader event is not linked");
+    }
     // Owned programs were validated at link time; no driver queries per frame.
     glUseProgram(event.shaderProg.get());
 }
@@ -173,8 +187,9 @@ auto CShader::newShader(const char *shaderFile, shaderTypes type,
         }
     }
 
-    if (!name)
+    if (!name) {
         throw std::invalid_argument("Null shader event name");
+    }
     int ID = -1;
     for (size_t i = 0, size = events.size(); i < size; i++) {
         if (events[i].eventName == name) {
@@ -196,8 +211,9 @@ void CShader::bindProgram(const ProgramObject &programID) {
 }
 
 bool CShader::isUsingProgram() const {
-    if (!glGetString(GL_VERSION))
+    if (!glGetString(GL_VERSION)) {
         return false;
+    }
     GLint program = 0;
     glGetIntegerv(GL_CURRENT_PROGRAM, &program);
     return program != 0;
@@ -207,11 +223,13 @@ void CShader::bindProgram(unsigned int programID) {
     requireShaderAPI();
     if (programID != 0) {
         GLint linked = GL_FALSE;
-        if (!glIsProgram(programID))
+        if (!glIsProgram(programID)) {
             throw std::invalid_argument("Invalid shader program");
+        }
         glGetProgramiv(programID, GL_LINK_STATUS, &linked);
-        if (!linked)
+        if (!linked) {
             throw std::runtime_error("Shader program is not linked");
+        }
     }
     glUseProgram(programID);
 }
@@ -220,17 +238,21 @@ auto CShader::createShaderProgram() -> ProgramObject { return make_program(); }
 
 auto CShader::compileShader(const char *shaderSource, int length,
                             shaderTypes type) -> ShaderObject {
-    if (!shaderSource || length < 0)
+    if (!shaderSource || length < 0) {
         throw std::invalid_argument("Invalid shader source or length");
+    }
     return compileShader(
         std::string_view(shaderSource, static_cast<size_t>(length)), type);
 }
 
 ShaderObject CShader::compileShader(std::string_view source, shaderTypes type) {
-    if (source.empty())
+    if (source.empty()) {
         throw std::invalid_argument("Empty shader source");
-    if (source.size() > static_cast<size_t>(std::numeric_limits<GLint>::max()))
+    }
+    if (source.size() >
+        static_cast<size_t>(std::numeric_limits<GLint>::max())) {
         throw std::length_error("Shader source is too large");
+    }
     auto shader = make_shader(type);
     const GLchar *data = source.data();
     const GLint length = static_cast<GLint>(source.size());
@@ -238,30 +260,34 @@ ShaderObject CShader::compileShader(std::string_view source, shaderTypes type) {
     glCompileShader(shader.get());
     GLint compiled = GL_FALSE;
     glGetShaderiv(shader.get(), GL_COMPILE_STATUS, &compiled);
-    if (!compiled)
+    if (!compiled) {
         throw std::runtime_error("Shader compilation failed: " +
                                  infoLog(shader.get(), false));
+    }
     return shader;
 }
 
 void CShader::attachShaderToProgram(const ProgramObject &programID,
                                     const ShaderObject &shaderID) {
     requireShaderAPI();
-    if (!glIsProgram(programID.get()) || !glIsShader(shaderID.get()))
+    if (!glIsProgram(programID.get()) || !glIsShader(shaderID.get())) {
         throw std::invalid_argument("Invalid program or shader for attachment");
+    }
     glAttachShader(programID.get(), shaderID.get());
 }
 
 void CShader::linkShaderProgram(const ProgramObject &programID) {
     requireShaderAPI();
-    if (!glIsProgram(programID.get()))
+    if (!glIsProgram(programID.get())) {
         throw std::invalid_argument("Invalid shader program");
+    }
     glLinkProgram(programID.get());
     GLint linked = GL_FALSE;
     glGetProgramiv(programID.get(), GL_LINK_STATUS, &linked);
-    if (!linked)
+    if (!linked) {
         throw std::runtime_error("Shader link failed: " +
                                  infoLog(programID.get(), true));
+    }
 }
 
 auto CShader::getProgramUniform(const ProgramObject &program,
@@ -292,8 +318,9 @@ void CShader::bindVertexArray(const VertexObject &vertexArray) {
 }
 
 void CShader::bindVertexArray(unsigned int vertexArray) {
-    if (!glBindVertexArray)
+    if (!glBindVertexArray) {
         throw std::runtime_error("Vertex arrays are unavailable");
+    }
     glBindVertexArray(vertexArray);
 }
 
@@ -312,8 +339,9 @@ void CShader::linkAllShaders() {
 }
 
 void CShader::prepareEffects() {
-    if (effectsPrepared)
+    if (effectsPrepared) {
         return;
+    }
     requireShaderAPI();
     effectsPrepared = true;
     const auto prepare = [this](const char *name, std::string_view vertex,
@@ -321,8 +349,9 @@ void CShader::prepareEffects() {
                                 EffectProgram &effect) {
         try {
             effect.event = addProgram(name, vertex, fragment);
-            if (effect.event < 0)
+            if (effect.event < 0) {
                 return;
+            }
             effect.time = getEventUniform(effect.event, "uTime");
             effect.opacity = getEventUniform(effect.event, "uOpacity");
             effect.spark = getEventUniform(effect.event, "uSpark");
@@ -351,10 +380,12 @@ CShader::~CShader() {
 }
 
 void CShader::shutdown() {
-    if (!liveInstance)
+    if (!liveInstance) {
         return;
-    if (!liveInstance->events.empty())
+    }
+    if (!liveInstance->events.empty()) {
         glUseProgram(0);
+    }
     liveInstance->events.clear();
     liveInstance->shadersList.clear();
     liveInstance->fireEffect = {};
@@ -365,8 +396,9 @@ void CShader::shutdown() {
 auto make_program() -> ProgramObject {
     requireShaderAPI();
     auto id = glCreateProgram();
-    if (!id)
+    if (!id) {
         throw std::runtime_error("Can't create shader program");
+    }
     return ProgramObject(std::move(id), [](unsigned int programID) {
         if (programID != 0u) {
             glDeleteProgram(programID);
@@ -376,12 +408,14 @@ auto make_program() -> ProgramObject {
 
 auto make_shader(shaderTypes type) -> ShaderObject {
     requireShaderAPI();
-    if (type != VERTEX && type != FRAGMENT)
+    if (type != VERTEX && type != FRAGMENT) {
         throw std::invalid_argument("Unsupported shader type");
+    }
     auto id =
         glCreateShader(type == VERTEX ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER);
-    if (!id)
+    if (!id) {
         throw std::runtime_error("Can't create shader");
+    }
     return ShaderObject(std::move(id), [](unsigned int shaderID) {
         if (shaderID != 0u) {
             glDeleteShader(shaderID);
@@ -391,8 +425,9 @@ auto make_shader(shaderTypes type) -> ShaderObject {
 
 auto make_vertexObject() -> VertexObject {
     requireShaderAPI();
-    if (!glGenVertexArrays || !glDeleteVertexArrays)
+    if (!glGenVertexArrays || !glDeleteVertexArrays) {
         throw std::runtime_error("Vertex arrays are unavailable");
+    }
     auto genVertexArrays = []() {
         unsigned int result = 0;
         glGenVertexArrays(1, &result);

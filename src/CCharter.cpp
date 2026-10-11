@@ -300,8 +300,9 @@ void CCharter::preRender() {
                 newNote.lTime = 0.0;
                 newNote.type = processingP.getFretsPressedFlags();
 
-                if (atMusicTime > processingP.Notes.chartEnd)
+                if (atMusicTime > processingP.Notes.chartEnd) {
                     processingP.Notes.chartEnd = 0;
+                }
 
                 workingNoteIt = gNotes.insert(beforeTime, newNote);
                 result = workingNoteIt;

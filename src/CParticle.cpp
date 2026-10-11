@@ -10,27 +10,33 @@ void CParticle::addParticle(const particleData &pdata) {
 }
 
 bool CParticle::emitFire(const particleData &pdata, double now) {
-    if (pdata.emitter < 0 || pdata.emitter >= 5 || !std::isfinite(now))
+    if (pdata.emitter < 0 || pdata.emitter >= 5 || !std::isfinite(now)) {
         return false;
+    }
     auto &next = nextFireEmission[static_cast<size_t>(pdata.emitter)];
-    if (now < next)
+    if (now < next) {
         return false;
+    }
     constexpr double interval = 1.0 / 30.0;
     next = now - next < interval ? next + interval : now + interval;
     size_t live = 0;
-    for (const auto &p : part)
-        if (p.emitter == pdata.emitter && now - p.addedAt < p.duration)
+    for (const auto &p : part) {
+        if (p.emitter == pdata.emitter && now - p.addedAt < p.duration) {
             ++live;
-    if (live >= 8)
+        }
+    }
+    if (live >= 8) {
         return false;
+    }
     part.push_front(pdata);
     part.front().addedAt = now;
     return true;
 }
 
 void CParticle::moveEmitter(int emitter, double height) {
-    if (emitter < 0)
+    if (emitter < 0) {
         return;
+    }
     for (auto &particle : part) {
         if (particle.emitter == emitter) {
             particle.y += height - particle.emitterHeight;
