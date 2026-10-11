@@ -210,6 +210,8 @@ struct UI {
          exportFile[1024] = "preview.wav";
     std::vector<fs::path> files;
     int fxTarget = 1, previewType = 3;
+    int benchmarkIterations = 30;
+    char benchmarkFile[1024] = "benchmark.json";
     bool float32 = false, segment = false, rawExport = false, first = true,
          focusSynth = false;
     double zoom = 1, viewStart = 0;
@@ -879,6 +881,29 @@ struct UI {
             ImGui::TextWrapped(
                 "Audible latency: not measured. API duration and buffer "
                 "configuration are not loopback measurements.");
+            ImGui::SeparatorText("Benchmark / JSON report");
+            ImGui::InputInt("Iterations", &benchmarkIterations);
+            ImGui::InputText("Report filename", benchmarkFile, sizeof(benchmarkFile));
+            ImGui::TextWrapped("Muted API/preparation trials. First run is separate; warm runs report p50/p95/p99. Pause other playback for comparisons.");
+            if (ImGui::Button("Run benchmark and export")) {
+                attempt([&] { s.benchmark(benchmarkIterations, benchmarkFile); });
+            }
+            if (s.busy() && s.jobKind == "benchmark") {
+                ImGui::ProgressBar(float(s.progress()));
+                if (ImGui::Button("Cancel benchmark")) {
+                    s.cancel();
+                }
+            }
+            if (s.benchmarkReport) {
+                ImGui::TextWrapped("Last completed report: %s",
+                    (*s.benchmarkReport)["source"].GetString());
+                const auto &metrics = (*s.benchmarkReport)["metrics"];
+                for (auto it = metrics.MemberBegin(); it != metrics.MemberEnd(); ++it) {
+                    ImGui::Text("%s: p50 %.3f / p95 %.3f ms", it->name.GetString(),
+                        it->value["p50_ms"].GetDouble(), it->value["p95_ms"].GetDouble());
+                }
+                ImGui::TextWrapped("Pending: final-mix probe, system loopback, physical output and glitch/overlap tests. NoSound results describe processing/API cost only.");
+            }
             if (s.product) {
                 const auto &p = *s.product;
                 ImGui::SeparatorText("Current result");

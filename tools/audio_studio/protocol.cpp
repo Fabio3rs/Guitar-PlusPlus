@@ -174,6 +174,10 @@ void savePreset(const fs::path &file, const audio::Settings &settings) {
     put(json, "version", 1, a);
     auto values = settingsJson(settings);
     json.AddMember("settings", Value(values, a), a);
+    saveJson(file, json);
+}
+
+void saveJson(const fs::path &file, const Value &json) {
     // Atomic directory creation reserves a private sibling namespace, including
     // across Studio processes. Never truncate an existing .tmp file.
     fs::path scratch;
@@ -187,15 +191,15 @@ void savePreset(const fs::path &file, const audio::Settings &settings) {
         }
     }
     if (scratch.empty()) {
-        throw audio::Error("Cannot reserve preset temporary directory");
+        throw audio::Error("Cannot reserve JSON temporary directory");
     }
-    const auto temporary = scratch / "preset";
+    const auto temporary = scratch / "report";
     try {
         std::ofstream out(temporary);
         out << encode(json) << '\n';
         out.close();
         if (!out) {
-            throw audio::Error("Cannot write preset");
+            throw audio::Error("Cannot write JSON");
         }
         fs::rename(temporary, file);
     } catch (...) {
@@ -275,6 +279,9 @@ Json stateJson(Session &s) {
     musicSettings.fx = s.musicFx;
     auto musicJson = settingsJson(musicSettings);
     json.AddMember("music_settings", Value(musicJson, a), a);
+    if (s.benchmarkReport) {
+        json.AddMember("benchmark", Value(*s.benchmarkReport, a), a);
+    }
     if (s.wave) {
         put(json, "duration", s.wave->info.duration, a);
         put(json, "rate", int(s.wave->info.rate), a);
@@ -353,6 +360,9 @@ std::string dispatch(Session &s, const std::string &line) {
             const double start = number(p, "start", s.selectionStart),
                          end = number(p, "end", s.selectionEnd);
             s.setSelection(start, end);
+        } else if (method == "benchmark") {
+            job = s.benchmark(integer(p, "iterations", 30),
+                              stringField(p, "path", "benchmark.json"));
         } else if (method == "analyze" || method == "generate") {
             job = s.generate(method == "generate");
         } else if (method == "cancel") {

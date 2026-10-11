@@ -55,6 +55,16 @@ def main():
     assert bad.returncode != 0
     bench = subprocess.run(base + ['--file', str(source), '--benchmark', '2'], capture_output=True, text=True, check=True, timeout=30)
     assert json.loads(bench.stdout)['iterations'] == 2
+    report = json.loads((output / 'benchmark.json').read_text())
+    assert report['no_sound'] and report['audible_latency_ms'] is None
+    assert report['pending']['command_to_audio_system']
+    for metric in report['metrics'].values():
+        samples = sorted(metric['samples_ms'])
+        assert len(samples) == metric['count'] == 2
+        assert 0 <= metric['first_ms']
+        assert metric['p50_ms'] == samples[0]
+        assert metric['p95_ms'] == metric['p99_ms'] == metric['max_ms'] == samples[-1]
+        assert abs(metric['mean_ms'] - sum(samples) / 2) < 1e-8
     with open(output / 'rpc-stderr.log', 'w') as error:
         p = subprocess.Popen(base + ['--rpc-stdio'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=error, text=True)
         try:
@@ -66,6 +76,13 @@ def main():
             state = wait_job(p)
             assert not state['error'] and state['loop_end'] > state['loop_begin']
             rpc(p, 'slot.store', {'slot': 0})
+            assert 'error' in rpc(p, 'benchmark', {'iterations': 0})
+            assert 'error' in rpc(p, 'benchmark', {'path': '../escape.json'})
+            rpc(p, 'benchmark', {'iterations': 2, 'path': 'rpc-benchmark.json'})
+            completed = wait_job(p)
+            assert not completed['error'] and completed['benchmark']['iterations'] == 2
+            assert completed['processed_seconds'] == state['processed_seconds']
+            assert (output / 'rpc-benchmark.json').exists()
             rpc(p, 'preset.save', {'path': 'loop.json'})
             rpc(p, 'export', {'path': 'loop.wav', 'float32': True})
             assert not wait_job(p)['error']

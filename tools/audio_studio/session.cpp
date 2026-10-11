@@ -18,6 +18,7 @@ Session::Session(audio::DeviceSettings device, fs::path output)
     fs::create_directories(outputRoot);
     musicFx.enabled = false;
     musicFx.normalize = false;
+    const auto setupStart = Clock::now();
     try {
         bass_ = std::make_unique<audio::BassSystem>(deviceSettings);
     } catch (const audio::Error &e) {
@@ -30,6 +31,7 @@ Session::Session(audio::DeviceSettings device, fs::path output)
         bass_ = std::make_unique<audio::BassSystem>(deviceSettings);
     }
     streamBuffer = float(deviceSettings.bufferMs) / 1000;
+    deviceSetupMs = elapsed(setupStart);
     worker_ = std::thread(&Session::worker, this, bass_->device());
 }
 
@@ -96,7 +98,15 @@ void Session::worker(int device) {
         try {
             audio::check(deviceReady, "Select worker BASS device");
             checkpoint(0);
-            if (job.kind == "load") {
+            if (job.kind == "benchmark") {
+                done.report = std::make_shared<Json>(runBenchmark(
+                    job.source, job.time, job.settings, job.iterations,
+                    job.bufferSeconds, checkpoint));
+                done.report->AddMember("device_setup_ms", deviceSetupMs,
+                                       done.report->GetAllocator());
+                checkpoint(1);
+                saveJson(job.output, *done.report);
+            } else if (job.kind == "load") {
                 done.wave = std::make_shared<audio::Waveform>(
                     audio::waveform(job.source, checkpoint));
             } else if (job.kind == "analyze" || job.kind == "generate") {
@@ -191,6 +201,9 @@ void Session::tick() {
         if (done->product) {
             product = std::move(done->product);
         }
+        if (done->report) {
+            benchmarkReport = std::move(done->report);
+        }
         if (!done->job.output.empty()) {
             notice = "Exported " + done->job.output.string();
         }
@@ -239,6 +252,21 @@ uint64_t Session::generate(bool synthesis) {
     job.source = source;
     job.time = cursor;
     job.settings = settings;
+    return enqueue(std::move(job));
+}
+
+uint64_t Session::benchmark(int iterations, const fs::path &report) {
+    if (source.empty() || iterations < 1 || iterations > 1000) {
+        throw audio::Error("Load audio and choose 1 to 1000 benchmark iterations");
+    }
+    Job job;
+    job.kind = "benchmark";
+    job.source = source;
+    job.time = cursor;
+    job.settings = settings;
+    job.iterations = iterations;
+    job.bufferSeconds = streamBuffer;
+    job.output = artifact(report);
     return enqueue(std::move(job));
 }
 
@@ -303,6 +331,7 @@ void Session::applyDevice(const audio::DeviceSettings &next) {
     preview.close();
     music.close();
     bass_.reset();
+    const auto setupStart = Clock::now();
     std::string failure;
     try {
         bass_ = std::make_unique<audio::BassSystem>(next);
@@ -323,6 +352,7 @@ void Session::applyDevice(const audio::DeviceSettings &next) {
     }
     quitting_ = false;
     busy_ = false;
+    deviceSetupMs = elapsed(setupStart);
     worker_ = std::thread(&Session::worker, this, bass_->device());
     streamBuffer = float(deviceSettings.bufferMs) / 1000;
     if (!source.empty()) {

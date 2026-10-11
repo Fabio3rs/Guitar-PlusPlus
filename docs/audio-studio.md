@@ -112,8 +112,8 @@ It still performs real BASS decoding and real BASS_FX processing.
 
 `--preset FILE` loads a schema-1 preset. Repeated `--set key=JSON_VALUE` applies
 validated overrides; booleans use `true`/`false`. `--analysis-only` skips synthesis.
-`--benchmark N` excludes file loading and reports mean FFT, synthesis and FX
-processing durations after an initial warmup. `--json` reports state, settings,
+`--benchmark N` runs preparation/API trials and exports `benchmark.json` under
+`--output-dir`; `--benchmark-report NAME.json` changes the filename. `--json` reports state, settings,
 candidates, spectrum, timings, PCM levels and buffer configuration.
 
 `--rpc-stdio` works with either GUI or headless. Send one JSON-RPC 2.0 object per
@@ -143,6 +143,7 @@ result survive a failed load or generation.
 | `seek` | `time`, seconds |
 | `selection` | `start`, `end`, seconds |
 | `analyze`, `generate` | Use current cursor/settings |
+| `benchmark` | `iterations` (1–1000, default 30), `path` (default `benchmark.json`) |
 | `preview` | `mode`: `original`, `raw`, `live`, `processed` |
 | `transport` | `target`: `music`/`preview`; `action`: `play`/`pause`/`stop`/`controls`/`loop` |
 | `transport`, controls | `volume`, `pan`, `buffer_seconds` |
@@ -202,3 +203,50 @@ No commercial song is a test fixture.
 The dedicated AudioStudio CI workflow builds both Studios and runs the full
 suite. See [validation results](audio-studio-validation.md) for Native Lab runs,
 sanitisers, debugger/tracer evidence and limits of the installed vendor binaries.
+
+
+## Preparation and BASS API benchmark
+
+In **Diagnostics → Benchmark / JSON report**, choose a count and filename, then
+Run benchmark and export. The worker runs asynchronously; progress and Cancel
+remain available. Existing music/preview channels and generated results are
+preserved. Pause playback before comparisons to avoid competing audio work.
+The panel shows the last completed report (which may use older settings).
+
+```sh
+./build/bin/gpp_audio_studio --mode headless \
+  --file "build/bin/data/songs/Slow Ride/guitar.ogg" --time 83.25 \
+  --benchmark 100 --benchmark-report slow-ride.json \
+  --output-dir build/audio-studio/benchmarks
+```
+
+Headless defaults to NoSound. Select `--device ID` to measure API/preparation costs
+with an accessible real output. Benchmark channels are muted in both cases.
+The JSON includes source/cursor, synthesis/FX settings, device/library versions,
+compiler/build configuration, configured buffers, PCM size and individual timing
+samples. The first trial is separate from N warm trials. Each metric reports
+mean, min, maximum and nearest-rank p50/p95/p99; small counts cannot characterize
+tails reliably. Filesystem/device caches are not reset, and source loading before
+the benchmark can warm caches. Run performance trials without sanitizers/debugger.
+
+Measured stages: analysis, synthesis, offline FX, loop baking, source opening,
+source seek/play/stop, PCM stream preparation, live FX attachment, explicit
+initial buffer filling and reuse of an already-created PCM stream. Prefill uses
+`BASS_ChannelUpdate(channel, 0)` and measures filling the configured buffer; it
+is not a fixed-frame DSP throughput comparison. Source and generated PCM have
+different content. PCM preparation includes WAV serialization and stream opening;
+these are memory streams, not BASS sample voices. Reused PCM play has no explicit
+prefill step. API timings are wall-clock durations around the transport calls.
+`device_setup_ms` is one sample of device configuration/initialization including
+fallback, not a statistical measurement of `BASS_Init` alone.
+
+The report records **pending** for command-to-final-mix marker detection,
+timestamped Linux system loopback, physical output, sample voices, continuous
+gates, overlap and glitch tests. `audible_latency_ms` remains null. Reported BASS
+latency is labelled separately and is null with NoSound. NoSound costs cannot be
+used to calibrate a player's audible latency. No capture backend or extra library
+is required or installed by this benchmark.
+
+RPC `benchmark` returns a job ID; wait for `state.busy == false`, check `error`,
+and read `state.benchmark` or the exported file. As with other exports, cancelling
+after the final write has started may still produce the report.

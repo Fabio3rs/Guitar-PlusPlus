@@ -1,6 +1,9 @@
 find_package(PNG REQUIRED)
-add_library(gpp_audio_studio_session STATIC session.cpp protocol.cpp)
+add_library(gpp_audio_studio_session STATIC session.cpp protocol.cpp benchmark.cpp)
 target_link_libraries(gpp_audio_studio_session PUBLIC gpp_audio)
+target_compile_definitions(gpp_audio_studio_session PRIVATE
+    GPP_AUDIO_BUILD_TYPE="$<CONFIG>"
+    GPP_AUDIO_COMPILER="${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
 target_include_directories(gpp_audio_studio_session PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(gpp_audio_studio main.cpp ui.cpp)
 target_link_libraries(gpp_audio_studio PRIVATE gpp_audio_studio_session gpp_studio_imgui OpenGL::GL PNG::PNG)

@@ -149,3 +149,30 @@ The shutdown stress test does not prove all thread interleavings; the fix uses
 one mutex for predicate publication and waiting to close the lost-wakeup window.
 TSan was not rerun for these fixes; the existing vendor BASS finding above remains
 unresolved. No physical audio output or audible-latency measurement was available.
+
+## Preparation/API benchmark — 2026-10-10
+
+Added asynchronous GUI/RPC benchmarking and CLI JSON report export, without new
+libraries. Normal and ASan/UBSan/LSan audio CTest suites passed (3/3 each),
+including report percentile/raw-sample consistency, RPC completion and invalid
+count/path checks. Sanitizer timings are not used as benchmark results.
+
+Native Lab has pw-record/parec and PipeWire 1.0.5/PulseAudio 16.1 development
+packages, but no /dev/snd. `pactl info` failed with connection refused and
+`pw-cli info 0` reported host down. System capture and physical output remain
+pending; final-mix marker instrumentation is also explicitly not implemented.
+
+Two sequential, unsanitized RelWithDebInfo runs used the existing Slow Ride
+`guitar.ogg` at 83.25 seconds, 100 measured repetitions plus one separate first
+trial, NoSound, default buffers and default FX. Source loading warmed caches.
+Reports (ignored build artifacts):
+
+- `build/audio-studio/benchmarks/slow-ride-nosound.json`: default 850 ms synthesis.
+- `build/audio-studio/benchmarks/slow-ride-51ms-nosound.json`: 51 ms synthesis;
+  processed length about 131 ms because the configured 80 ms FX tail is retained.
+
+For the 51 ms case, p50/p95 in milliseconds: analysis 3.103/3.550, synthesis
+4.432/4.993, offline FX 0.226/0.317, PCM preparation 0.065/0.079, reused PCM
+play API 0.0043/0.0074. The default-duration synthesis p50 was 73.061 ms.
+These are local processing/API observations, not latency-to-output measurements,
+and do not justify a player calibration offset or a definitive playback strategy.

@@ -30,12 +30,15 @@ class Session {
         audio::Settings settings;
         double time = 0, length = 0;
         bool float32 = false, raw = false;
+        int iterations = 0;
+        float bufferSeconds = 0;
         std::shared_ptr<const Product> product;
     };
     struct Completion {
         Job job;
         std::shared_ptr<audio::Waveform> wave;
         std::shared_ptr<Product> product;
+        std::shared_ptr<Json> report;
         std::string error;
     };
     // BASS must outlive transports and the joined worker.
@@ -61,9 +64,11 @@ class Session {
     fs::path outputRoot, source;
     std::shared_ptr<const audio::Waveform> wave;
     std::shared_ptr<const Product> product;
+    std::shared_ptr<const Json> benchmarkReport;
     std::array<std::shared_ptr<const Product>, 2> slots;
     double cursor = 0, selectionStart = 0, selectionEnd = 1;
     double previewPrepareMs = 0;
+    double deviceSetupMs = 0;
     float musicVolume = .7f, musicPan = 0, previewVolume = .7f, previewPan = 0;
     float streamBuffer = .5f;
     std::string error, notice, jobKind, previewMode = "processed";
@@ -80,6 +85,7 @@ class Session {
     uint64_t revision() const { return revision_.load(); }
     uint64_t load(const fs::path &path);
     uint64_t generate(bool synthesis);
+    uint64_t benchmark(int iterations, const fs::path &report);
     uint64_t exportAudio(const fs::path &path, bool segment, bool raw,
                          bool float32);
     void updateSettings(const audio::Settings &next);
@@ -101,6 +107,10 @@ Json parseJson(const std::string &text);
 std::string encode(const Value &value);
 std::string dispatch(Session &session, const std::string &line);
 void savePreset(const fs::path &file, const audio::Settings &settings);
+void saveJson(const fs::path &file, const Value &json);
+Json runBenchmark(const fs::path &source, double time,
+                  const audio::Settings &settings, int iterations,
+                  float bufferSeconds, const audio::Checkpoint &progress);
 audio::Settings loadPreset(const fs::path &file);
 int runGui(Session &session, bool rpc, int frames, const std::string &capture);
 // Shared bounded stdin pump, called only from the control thread.

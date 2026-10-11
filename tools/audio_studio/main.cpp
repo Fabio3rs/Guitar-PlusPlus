@@ -8,6 +8,7 @@ namespace {
 using namespace AudioStudio;
 struct Options {
     std::string mode = "gui", capture, preset, file, exportFile;
+    std::string benchmarkReport = "benchmark.json";
     fs::path output = "build/audio-studio";
     bool rpc = false, json = false, analysisOnly = false, segment = false,
          float32 = false;
@@ -54,6 +55,7 @@ Options parse(int argc, char **argv) {
                    "--analysis-only\n"
                    "  --device ID (0 = No Sound) --benchmark COUNT --json "
                    "--rpc-stdio\n"
+                   "  --benchmark-report NAME.json (default benchmark.json)\n"
                    "  --output-dir DIR --frames COUNT --ui-capture NAME.png\n"
                    "Default output: build/audio-studio. Exports stay inside "
                    "output-dir.\n"
@@ -78,6 +80,8 @@ Options parse(int argc, char **argv) {
             o.frames = integer();
         } else if (arg == "--benchmark") {
             o.benchmark = integer();
+        } else if (arg == "--benchmark-report") {
+            o.benchmarkReport = next();
         } else if (arg == "--device") {
             o.device.device = integer();
             o.explicitDevice = true;
@@ -156,22 +160,9 @@ int main(int argc, char **argv) {
             if (session.source.empty()) {
                 throw audio::Error("Benchmark requires --file");
             }
-            double analysis = 0, synth = 0, fx = 0;
-            for (int i = 0; i < o.benchmark; ++i) {
-                session.generate(!o.analysisOnly);
-                session.wait();
-                analysis += session.product->analysis.milliseconds;
-                synth += session.product->synthMs;
-                fx += session.product->fxMs;
-            }
-            Json report(rapidjson::kObjectType);
-            auto &a = report.GetAllocator();
-            report.AddMember("iterations", o.benchmark, a);
-            report.AddMember("analysis_mean_ms", analysis / o.benchmark, a);
-            report.AddMember("synth_mean_ms", synth / o.benchmark, a);
-            report.AddMember("fx_mean_ms", fx / o.benchmark, a);
-            report.AddMember("audible_latency_ms", Value(), a);
-            std::cout << encode(report) << '\n';
+            session.benchmark(o.benchmark, o.benchmarkReport);
+            session.wait();
+            std::cout << encode(*session.benchmarkReport) << '\n';
         }
         if (!o.exportFile.empty()) {
             session.exportAudio(o.exportFile, o.segment, false, o.float32);
