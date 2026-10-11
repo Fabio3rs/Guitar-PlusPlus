@@ -1,13 +1,14 @@
 #include "CScene.h"
 #include "CBackgroundRenderer.h"
 #include "CLog.h"
+#include "GPPGame.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
-#include <future>
+#include <thread>
 #include <limits>
 #include <stdexcept>
 
@@ -201,24 +202,38 @@ bool CScene::load(GPPOBJ &model, const std::string &id,
         }
         GPPOBJ candidate;
         candidate.setMaterialLibrary(definition.materials);
-        auto loading = std::async(std::launch::async, [&]() {
-            const fs::path path(definition.model);
-            return candidate.loadInternalObj(path.parent_path().string(), path.filename().string());
-        });
-        while (loading.wait_for(std::chrono::milliseconds(1)) != std::future_status::ready) {
+        auto &loader = GPPGame::GuitarPP().modelLoader();
+        const fs::path path(definition.model);
+        auto handle = GPPGame::GuitarPP().requestModel(
+            path.parent_path().string(), path.filename().string(), candidate);
+        if (!handle) {
+            lastError = "Cannot enqueue scene: " + id;
+            return false;
+        }
+        struct CancelPending {
+            CModelManager &loader;
+            CModelManager::Handle handle;
+            ~CancelPending() { loader.cancel(handle); }
+        } cancel{loader, handle};
+        // Check cancellation even when the CPU job completed immediately.
+        do {
             if (loadingFrame && !loadingFrame()) {
-                // Future joins before candidate destruction. No GPU work occurred.
                 lastError = "Scene loading cancelled";
                 return false;
             }
-        }
-        if (!loading.get()) { lastError = "Cannot decode scene: " + id; return false; }
-        if (loadingFrame && !loadingFrame()) { lastError = "Scene loading cancelled"; return false; }
-        if (!glfwGetCurrentContext()) {
-            lastError = "Scene upload requires a current GL context";
+            if (loadingFrame) {
+                GPPGame::GuitarPP().textureStreammingProcess();
+            }
+            if (loader.finish(handle, !loadingFrame)) {
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        } while (true);
+        const auto result = handle->snapshot();
+        if (result.state != CModelManager::State::Ready) {
+            lastError = "Cannot load scene " + id + ": " + result.error;
             return false;
         }
-        candidate.prepareForDraw();
         event("onUnloaded", 0.0);
         model = std::move(candidate); // Old GL objects retired on the context owner.
         current = std::move(definition);

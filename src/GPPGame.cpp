@@ -362,38 +362,27 @@ int GPPGame::getScene(lua_State *L) {
 }
 
 void GPPGame::initialLoad() {
-    // static std::deque<loadModelBatch> modelBatch;
-    prepareScene();
-    // forceTexturesToLoad();
-
-    // testobj.load("test", "garage_gpp.obj");
-
-    {
-        loadSingleModelAsync(
-            loadModelBatch("data/models", "GPP_Note.obj", noteOBJ));
-        loadSingleModelAsync(
-            loadModelBatch("data/models", "TriggerBase.obj", triggerBASEOBJ));
-        loadSingleModelAsync(
-            loadModelBatch("data/models", "Trigger.obj", triggerOBJ));
-        loadSingleModelAsync(
-            loadModelBatch("data/models", "pylmbar.obj", pylmbarOBJ));
-        loadSingleModelAsync(
-            loadModelBatch("data/models", "GPP_Opennote.obj", openNoteOBJ));
-
-        // testobj.load("test", "garage_gpp.obj");
-
-        /*triggerBASEOBJ.load("data/models", "TriggerBase.obj");
-        pylmbarOBJ.load("data/models", "pylmbar.obj");
-        openNoteOBJ.load("data/models", "GPP_Opennote.obj");
-        triggerOBJ.load("data/models", "Trigger.obj");
-        noteOBJ.load("data/models", "GPP_Note.obj");*/
-
-        // loadModelBatchAsync(modelBatch);
-
-        // modelBatch[0].ft.wait();
+    if (!prepareScene()) {
+        if (!CEngine::engine().windowOpened()) {
+            return; // Closing the loading window is cancellation, not failure.
+        }
+        throw std::runtime_error("Cannot prepare initial scene");
     }
-
-    // forceTexturesToLoad();
+    basicModels.clear();
+    const std::pair<const char *, GPPOBJ *> models[] = {
+        {"GPP_Note.obj", &noteOBJ},
+        {"TriggerBase.obj", &triggerBASEOBJ},
+        {"Trigger.obj", &triggerOBJ},
+        {"Pylmbar.obj", &pylmbarOBJ},
+        {"GPP_Opennote.obj", &openNoteOBJ}};
+    for (const auto &entry : models) {
+        auto handle = requestModel("data/models", entry.first, *entry.second);
+        if (!handle) {
+            throw std::runtime_error(std::string("Cannot enqueue model: ") +
+                                     entry.first);
+        }
+        basicModels.push_back(std::move(handle));
+    }
 
     try {
         int itext = 0;
@@ -455,16 +444,7 @@ void GPPGame::initialLoad() {
 }
 
 void GPPGame::initialLoad2() {
-    /*std::deque<loadModelBatch> batch;
-
-    batch.push_back(loadModelBatch("data/models", "GPP_Note.obj", noteOBJ));
-    batch.push_back(loadModelBatch("data/models", "TriggerBase.obj",
-    triggerBASEOBJ)); batch.push_back(loadModelBatch("data/models",
-    "Trigger.obj", triggerOBJ)); batch.push_back(loadModelBatch("data/models",
-    "pylmbar.obj", pylmbarOBJ)); batch.push_back(loadModelBatch("data/models",
-    "GPP_Opennote.obj", openNoteOBJ));
-
-    loadModelBatchAsync(batch);*/
+    // Retained startup stage; model requests are owned by initialLoad().
 }
 
 void GPPGame::selectPlayerMenu() {
@@ -1238,7 +1218,10 @@ void GPPGame::serverModule(const std::string &name) {
 
             if (playerb.guitar != nullptr) {
                 {
-                    playerb.guitar->load();
+                    if (!playerb.guitar->load()) {
+                        CLog::log()
+                            << "Guitar loading failed; using the default model";
+                    }
                 }
             }
 
@@ -1705,7 +1688,10 @@ void GPPGame::startModule(const std::string &name) {
 
             if (playerb.guitar != nullptr) {
                 {
-                    playerb.guitar->load();
+                    if (!playerb.guitar->load()) {
+                        CLog::log()
+                            << "Guitar loading failed; using the default model";
+                    }
                 }
             }
 
@@ -2053,7 +2039,9 @@ void GPPGame::startMarathonModule(const std::string &name) {
 
     if (module.getBPlayer().guitar != nullptr) {
         {
-            module.getBPlayer().guitar->load();
+            if (!module.getBPlayer().guitar->load()) {
+                CLog::log() << "Guitar loading failed; using the default model";
+            }
         }
     }
 
@@ -2774,7 +2762,9 @@ void GPPGame::campaingPlayModule(const std::string &name) {
 
     if (module.getBPlayer().guitar != nullptr) {
         {
-            module.getBPlayer().guitar->load();
+            if (!module.getBPlayer().guitar->load()) {
+                CLog::log() << "Guitar loading failed; using the default model";
+            }
         }
     }
 
@@ -3241,74 +3231,10 @@ auto GPPGame::getWindowProportion() -> double {
 void GPPGame::textureStreammingProcess() {
     textureManager->pump();
 
-    if (futureModelLoad.getAddedElementsNum() > 0) {
-        for (size_t i = 0, size = futureModelLoad.getNumElements(); i < size;
-             i++) {
-            loadModelBatch *a = futureModelLoad.get(i);
-            if ((a != nullptr) && a->asyncend) {
-                futureModelLoad.removeElementByIndex(i);
-            }
-        }
-    }
+    modelLoader().pump();
 }
 
 void GPPGame::streammingProcess() { textureStreammingProcess(); }
-
-static auto singleModelLoadAsync(GPPGame::loadModelBatch *l) -> bool {
-    try {
-        // std::cout << l->path << "/" << l->model << std::endl;
-        CLog::log().multiRegister("Loading model async %0/%1", l->path,
-                                  l->model);
-        l->obj->loadInternalObj(l->path, l->model);
-        // std::cout << "END" << l->path << "/" << l->model << std::endl;
-    } catch (const std::exception &e) {
-        std::cout << e.what() << '\n';
-    }
-
-    l->asyncend = true;
-    return true;
-}
-
-auto GPPGame::loadSingleModelAsync(loadModelBatch batch) -> bool {
-    {
-        /*int percent = futureTextureLoad.getNumElements() * 0.8;
-        if (futureTextureLoad.getAddedElementsNum() > percent &&
-        std::this_thread::get_id() == GuitarPP().mainthread)
-        {
-            CLog::log().multiRegister("Streamming process: force textures to
-        load"); textureStreammingProcess();
-        }*/
-
-        loadModelBatch *t = futureModelLoad.newElement();
-        if (t == nullptr) {
-            // TODO
-            std::cout << "futureModelLoad.newElement() FAILED  "
-                         "futureModelLoad.getNumElements(): "
-                      << futureModelLoad.getNumElements() << std::endl;
-            return false;
-        }
-
-        *t = std::move(batch);
-        // t->model = std::move(batch.model);
-        // t->path = std::move(batch.path);
-        t->asyncend = false;
-        t->ft = std::async(std::launch::async, singleModelLoadAsync, t);
-    }
-
-    return true;
-}
-
-auto GPPGame::loadModelBatchAsync(std::deque<loadModelBatch> &batch) -> bool {
-    for (auto &b : batch) {
-        // if (b.obj->)
-
-        {
-            b.ft = std::async(std::launch::async, singleModelLoadAsync, &b);
-        }
-    }
-
-    return true;
-}
 
 void GPPGame::loadBasicSprites() {
     CLuaH::Lua().runEvent(preLoadSpritesSE);
@@ -4249,6 +4175,7 @@ Lua events and creates window
 */
 auto GPPGame::createWindow() -> int {
     initializeTextures();
+    initializeModels();
     mainthread = std::this_thread::get_id();
     CLuaH::Lua().runEvent(preCreateWindowSE);
     std::string title = "Guitar++";
@@ -4384,6 +4311,7 @@ GPPGame::GPPGame()
     : devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu"),
       uiCreateProfile("uiCreateProfileMenu"), glanguage("PT-BR") {
     initializeTextures();
+    initializeModels();
     CBackgroundRenderer::inst();
     CLuaFunctions::GameVariables::gv().pushVar("backgroundScene",
                                                backgroundScene);

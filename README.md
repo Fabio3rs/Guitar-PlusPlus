@@ -310,14 +310,75 @@ at a lifecycle boundary, without concurrent callers or surviving legacy refs.
 
 Remaining work is deliberately separate:
 
-- Model loading still uses the legacy slot pool and unsynchronized `asyncend`,
-  and `singleModelLoadAsync` still discards decoder failures. Model publication,
-  queue lifetimes and cancellation require their own incremental migration.
-- `CMultiThreadPool` is not independently safe: occupancy and object lifetime
-  require external synchronization. It is no longer used by the texture queue.
-- A bounded executor, upload time/byte budgets, priorities, per-request
+- `CMultiThreadPool` is no longer used by either asset loader. Its old occupancy
+  and lifetime limitations have not been repaired for hypothetical new users.
+- A bounded executor, upload time/byte budgets, priorities, texture-request
   cancellation and eviction remain future work. Gameplay update/render sharing
   is unchanged; no whole-game race-freedom or FPS improvement is claimed.
+
+### Model loading
+
+`gpp_models` is a CPU-only library containing OBJ/MTL/AO loading and
+`CModelManager`. Workers own their request and return immutable `CModelData`;
+there are no game, Lua or GL calls in the decoder. Optional missing MTL files and
+invalid AO sidecars retain the existing fallback behavior. AO baking remains
+an offline tool operation.
+
+Requests with identical OBJ path, object filter and explicit MTL strings share
+in-flight CPU work. Paths retain their filesystem meaning, including `..` after
+symlinks; differently spelled aliases are not automatically deduplicated. Each request has its own publication and state:
+`Decoding`, `ReadyForUpload`, `WaitingForTextures`, `Ready`, `Failed`, or
+`Cancelled`. CPU-only completion stops at `ReadyForUpload`. There is no persistent
+GPU model cache: each `GPPOBJ` still owns its buffers/atlas exclusively.
+
+| API | Completion contract |
+| --- | --- |
+| `GPPOBJ::load()` / `loadInternalObj()` | Synchronous CPU load, preserving deferred GL upload. Failure preserves existing CPU data. |
+| `GPPGame::loadModelSync()` | Owner-only; returns true only after GPU publication. Joins a matching pending decoder without pumping unrelated callbacks or frames. |
+| `requestModel()` | Owner-only target registration; returns a handle, or null on rejection. Poll its snapshot for actual success/failure. |
+| `loadSingleModelAsync()` / `loadModelBatchAsync()` | Return request acceptance, not loading success. A batch exposes a handle per entry; rejection can be partial. |
+| `CGuitar::load()` | Remains synchronous, with CPU preparation before the Lua load hook, then GPU preparation before return. |
+| `CScene::load()` | Still returns only after transactional replacement or failure/cancellation, optionally drawing loading frames while waiting. |
+
+`CModelManager::requestAsync()` itself supports concurrent CPU requests. Its
+`finish`, `pump`, `cancel`, target publication and `shutdown` belong to its owner.
+A publisher returns false for an abandoned target and throws on upload failure.
+Publications run outside manager/resource locks; a synchronous completion does
+not invoke other requests' publishers. Managers and targets must not be destroyed
+or reinitialized concurrently with their callers. Owner callbacks may enqueue
+other requests; they must not destroy the manager currently executing them.
+
+The game adapter requests material textures through `CTextureManager`; async
+publication waits for terminal dependencies without blocking, while sync use
+completes the needed textures. Failed textures use the existing neutral fallback,
+never the legacy `~0u` GL sentinel. GPU upload builds a temporary model; the old
+model survives decode/upload failures. Weak targets prevent publication into a
+destroyed object. Moves transfer the target identity; unload/new publication
+invalidates older generations. Target registration, moves, unload and GPU use
+must remain on the owner thread.
+
+Startup now waits for the five basic gameplay models to be GPU-ready, including
+the default guitar fallback. A required model/initial-scene failure aborts startup
+with a diagnostic rather than silently drawing missing geometry. Guitar failures
+at gameplay entry are logged and retain the renderer's existing fallback.
+Scene swaps preserve Lua hook order and the active scene on failure. The main
+scope guard joins model work and retires basic/scene GPU resources before texture
+shutdown; instruments are also unloaded while the context exists.
+
+Cancellation abandons a request, not its shared decoder. Running CPU work is
+retained until it finishes or shutdown joins it. The current implementation still
+uses `std::async`, with up to 200 pending requests/jobs and two model completions
+per normal pump; these are not a fixed worker count or a hard frame-time budget.
+`GPPGame::renderFrame()` pumps both loaders. Direct `CEngine::renderFrame()` calls
+do not; no consumer should rely on those loops to complete a new model request.
+
+`gpp_model_tests` links only the CPU library, threads and GoogleTest. Run it with
+`ctest --test-dir build -R '^model_core\.' --output-on-failure`.
+Model facade/GL regressions are in `Scenes.Model*` and `SceneGL.Model*`; existing
+scene/guitar lifecycle and shader cases exercise the synchronous consumers.
+For ASan/UBSan include `model_core`, `ObjLoader`, `Scenes`, `SceneGL`, and `ShaderGL`;
+for TSan use `model_core` and `Scenes.Model` without a GL context. Use NativeLab
+and the same compiler/Mesa setup documented below for texture validation.
 
 ### Texture loader validation
 

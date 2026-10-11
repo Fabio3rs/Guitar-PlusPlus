@@ -137,9 +137,9 @@ static auto load_data() -> bool {
 
     while ((wOpened = CEngine::engine().windowOpened()) &&
            (((CEngine::engine().getTime() - ltime) < 3.0 || loadLoop < 100) ||
-            game.getNumTexturesToLoad() > 0)) {
+            game.getNumTexturesToLoad() > 0 || game.getNumModelsToLoad() > 0)) {
         if (CControls::controls().keyEscape() != 0) {
-            break;
+            return false;
         }
 
         game.clearScreen();
@@ -660,6 +660,10 @@ static auto load_data() -> bool {
         // batch pointers here while other threads may enqueue textures.
     }
 
+    if (CEngine::engine().windowOpened() && loadLoop >= 8 &&
+        !game.basicModelsReady()) {
+        throw std::runtime_error("Required gameplay models failed to load");
+    }
     return CEngine::engine().windowOpened() && loadLoop >= 8;
 }
 
@@ -676,10 +680,17 @@ auto main(int argc, char *argv[]) -> int {
 
         // Runs on normal exit, cancelled startup and exception unwinding,
         // while the engine's window/context and callback targets still exist.
-        struct TextureShutdown {
+        struct AssetShutdown {
             GPPGame &game;
-            ~TextureShutdown() { game.shutdownTextures(); }
-        } textureShutdown{game};
+            CGuitars *guitars = nullptr;
+            ~AssetShutdown() {
+                if (guitars != nullptr) {
+                    guitars->unload();
+                }
+                game.shutdownModels();
+                game.shutdownTextures();
+            }
+        } assetShutdown{game};
 
         game.parseParameters(argc, argv);
 
@@ -718,6 +729,7 @@ auto main(int argc, char *argv[]) -> int {
         }
 
         auto &guitars = CGuitars::inst();
+        assetShutdown.guitars = &guitars;
 
         GPPGame::GuitarPP().setVSyncMode(1);
 

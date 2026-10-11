@@ -3,7 +3,6 @@
 #include "GPPGame.h"
 #include "SceneAO.h"
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -22,35 +21,6 @@ struct MaterialResource {
 };
 
 using Materials = std::map<std::string, MaterialResource>;
-
-void readLibrary(const fs::path &file, Materials &materials) {
-    std::ifstream input(file);
-    if (!input) {
-        return; // OBJ files without an accompanying MTL remain usable.
-    }
-    for (auto &entry : ObjModel::readMaterials(input)) {
-        auto &m = entry.second;
-        // Preserve the project's historic material-name.tga convention only
-        // when that file really exists; absent textures use neutral white.
-        if (m.diffuseMap.empty()) {
-            const auto name = fs::path(entry.first).extension() == ".tga"
-                                  ? entry.first
-                                  : entry.first + ".tga";
-            if (fs::is_regular_file(file.parent_path() / name)) {
-                m.diffuseMap = name;
-            }
-        }
-        if (!m.diffuseMap.empty()) {
-            const auto texture =
-                (file.parent_path() / m.diffuseMap).lexically_normal();
-            m.diffuseMap = texture.filename().string();
-            materials[entry.first] = {m, texture.parent_path().string(), 0,
-                                      false};
-        } else {
-            materials[entry.first] = {m, file.parent_path().string(), 0, false};
-        }
-    }
-}
 
 // Unique ownership, stable addresses, and no pointers into CPU vectors retained
 // by the GPU owner. The only integer-to-pointer conversions are GL VBO offsets.
@@ -84,9 +54,8 @@ struct Buffer {
         }
         const size_t bytesPerVertex = 2 * sizeof(ObjModel::Vec3) +
                                       (ao ? 2u : 1u) * sizeof(ObjModel::Vec2);
-        if (countSize >
-            static_cast<size_t>(std::numeric_limits<GLsizeiptr>::max()) /
-                bytesPerVertex) {
+        if (countSize > static_cast<size_t>(std::numeric_limits<GLint>::max()) /
+                            bytesPerVertex) {
             throw std::runtime_error("OBJ buffer too large");
         }
         count = static_cast<GLsizei>(countSize);
@@ -94,10 +63,19 @@ struct Buffer {
         normalOffset = uvOffset + countSize * sizeof(ObjModel::Vec2);
         aoOffset = normalOffset + uvOffset;
         glGenBuffers(1, &id);
+        if (id == 0) {
+            throw std::runtime_error("Cannot allocate OBJ buffer");
+        }
         glBindBuffer(GL_ARRAY_BUFFER, id);
         glBufferData(GL_ARRAY_BUFFER,
                      static_cast<GLsizeiptr>(countSize * bytesPerVertex),
                      nullptr, GL_STATIC_DRAW);
+        GLint allocated = 0;
+        glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &allocated);
+        if (allocated < 0 ||
+            static_cast<size_t>(allocated) != countSize * bytesPerVertex) {
+            throw std::runtime_error("Cannot upload OBJ buffer");
+        }
         glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(uvOffset),
                         part.positions.data());
         glBufferSubData(GL_ARRAY_BUFFER, static_cast<GLintptr>(uvOffset),
@@ -175,10 +153,10 @@ struct GPPOBJ::Impl {
     Materials materials;
     std::vector<std::unique_ptr<Buffer>> buffers;
     std::string explicitLibrary;
-    size_t version = 0, uploadedVersion = 0;
+    size_t version = 0, uploadedVersion = 0, generation = 0;
 };
 
-GPPOBJ::GPPOBJ() : impl(std::make_unique<Impl>()) {}
+GPPOBJ::GPPOBJ() : impl(std::make_shared<Impl>()) {}
 
 GPPOBJ::GPPOBJ(TextureLoader loader) : GPPOBJ() {
     impl->textureLoader = std::move(loader);
@@ -213,9 +191,9 @@ void GPPOBJ::loadTextureList(const std::string &path, const std::string &file) {
     impl->explicitLibrary = (fs::path(path) / file).string();
     // Decode asynchronously using the existing queue; callbacks do not retain
     // pointers to stack variables or to this model's containers.
-    Materials materials;
+    std::map<std::string, CModelMaterial> materials;
     try {
-        readLibrary(impl->explicitLibrary, materials);
+        materials = readModelMaterials(impl->explicitLibrary);
     } catch (const std::exception &e) {
         CLog::log() << e.what();
         return;
@@ -224,67 +202,97 @@ void GPPOBJ::loadTextureList(const std::string &path, const std::string &file) {
         const auto &m = entry.second;
         if (!m.values.diffuseMap.empty() &&
             fs::is_regular_file(fs::path(m.directory) / m.values.diffuseMap)) {
-            GPPGame::GuitarPP().loadTextureSingleAsync(
-                GPPGame::loadTextureBatch(m.directory, m.values.diffuseMap,
-                                          nullptr, nullptr));
+            if (!GPPGame::GuitarPP().loadTextureSingleAsync(
+                    GPPGame::loadTextureBatch(m.directory, m.values.diffuseMap,
+                                              nullptr, nullptr))) {
+                CLog::log() << "Material texture prefetch rejected: " +
+                                   m.values.diffuseMap;
+            }
         }
     }
+}
+
+CModelRequest GPPOBJ::requestDescription(const std::string &path,
+                                         const std::string &file,
+                                         const std::string &object) const {
+    std::lock_guard<std::mutex> lock(impl->mutex);
+    return {(fs::path(path) / file).string(), object, impl->explicitLibrary};
+}
+
+void GPPOBJ::setModelData(CModelData data) {
+    auto model = std::move(data.model);
+    auto ao = std::move(data.ao);
+    Materials materials;
+    for (const auto &entry : data.materials) {
+        materials.emplace(entry.first,
+                          MaterialResource{entry.second.values,
+                                           entry.second.directory, 0, false});
+    }
+    for (const auto &warning : model.warnings) {
+        CLog::log() << warning;
+    }
+    std::lock_guard<std::mutex> lock(impl->mutex);
+    impl->model = std::move(model);
+    impl->ao = std::move(ao);
+    impl->materials = std::move(materials);
+    ++impl->version;
+    ++impl->generation;
+}
+
+CModelManager::Publisher GPPOBJ::publisher() {
+    const auto owner = std::this_thread::get_id();
+    std::lock_guard<std::mutex> lock(impl->mutex);
+    const auto generation = ++impl->generation;
+    return [target = std::weak_ptr<Impl>(impl), generation,
+            owner](const CModelData &data) {
+        if (owner != std::this_thread::get_id()) {
+            throw std::logic_error("Model publication on a foreign thread");
+        }
+        auto destination = target.lock();
+        if (!destination) {
+            return false;
+        }
+        TextureLoader loader;
+        {
+            std::lock_guard<std::mutex> guard(destination->mutex);
+            if (destination->generation != generation) {
+                return false;
+            }
+            loader = destination->textureLoader;
+        }
+        // A custom texture provider may destroy or replace the target. Do not
+        // keep that target artificially alive across the provider's callback.
+        destination.reset();
+        GPPOBJ candidate(std::move(loader));
+        candidate.setModelData(data);
+        candidate.prepareForDraw();
+        destination = target.lock();
+        if (!destination) {
+            return false;
+        }
+        std::lock_guard<std::mutex> guard(destination->mutex);
+        if (destination->generation != generation) {
+            return false;
+        }
+        // Swap complete GPU/CPU sets. The candidate retires old GL objects
+        // here.
+        destination->model = std::move(candidate.impl->model);
+        destination->materials = std::move(candidate.impl->materials);
+        destination->ao = std::move(candidate.impl->ao);
+        destination->buffers.swap(candidate.impl->buffers);
+        std::swap(destination->aoTexture, candidate.impl->aoTexture);
+        destination->uploadedVersion = ++destination->version;
+        return true;
+    };
 }
 
 bool GPPOBJ::loadInternalObj(const std::string &path, const std::string &file,
                              const std::string &objName, bool /*loadMtlLib*/) {
     try {
-        const auto filename = fs::path(path) / file;
-        std::ifstream input(filename);
-        if (!input) {
-            return false;
-        }
-        auto model = ObjModel::read(input, objName);
-        if (model.parts.empty()) {
-            return false;
-        }
-        SceneAO::Atlas ao;
-        try {
-            ao = SceneAO::read(filename, model);
-        } catch (const std::exception &e) {
-            CLog::log() << std::string("AO disabled: ") + e.what();
-        }
-        if (!ao.coordinates.empty()) {
-            size_t begin = 0;
-            for (auto &part : model.parts) {
-                const size_t end = begin + part.positions.size();
-                part.aoUVs.assign(
-                    ao.coordinates.begin() + static_cast<std::ptrdiff_t>(begin),
-                    ao.coordinates.begin() + static_cast<std::ptrdiff_t>(end));
-                begin = end;
-            }
-        }
-        Materials materials;
-        std::string explicitLibrary;
-        {
-            std::lock_guard<std::mutex> lock(impl->mutex);
-            explicitLibrary = impl->explicitLibrary;
-        }
-        if (!explicitLibrary.empty()) {
-            readLibrary(explicitLibrary, materials);
-        } else {
-            for (const auto &library : model.libraries) {
-                readLibrary(filename.parent_path() / library, materials);
-            }
-        }
-        std::lock_guard<std::mutex> lock(impl->mutex);
-        for (const auto &warning : model.warnings) {
-            CLog::log() << warning;
-        }
-        impl->model = std::move(model);
-        impl->ao = std::move(ao);
-        impl->materials = std::move(materials);
-        ++impl->version;
-        // Existing VBOs are retired at the next draw, never on this loader
-        // thread.
+        setModelData(readModelData(requestDescription(path, file, objName)));
         return true;
-    } catch (const std::exception &e) {
-        CLog::log() << std::string("OBJ ") + file + ": " + e.what();
+    } catch (const std::exception &error) {
+        CLog::log() << std::string("OBJ ") + file + ": " + error.what();
         return false;
     }
 }
@@ -296,6 +304,10 @@ void GPPOBJ::prepareForDraw() {
     std::lock_guard<std::mutex> lock(impl->mutex);
     if (impl->uploadedVersion == impl->version) {
         return;
+    }
+    // Studio also uses surfaceless EGL, without a GLFW window.
+    if (glGetString(GL_VERSION) == nullptr) {
+        throw std::runtime_error("Model upload requires a current GL context");
     }
     DrawState state;
     prepareBuffers();
@@ -318,20 +330,37 @@ void GPPOBJ::prepareBuffers() {
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
                 glActiveTexture(GL_TEXTURE2);
                 glGenTextures(1, &impl->aoTexture);
-                glBindTexture(GL_TEXTURE_2D, impl->aoTexture);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8,
-                             static_cast<GLsizei>(impl->ao.width),
-                             static_cast<GLsizei>(impl->ao.height), 0,
-                             GL_LUMINANCE, GL_UNSIGNED_BYTE,
-                             impl->ao.pixels.data());
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                                GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                                GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                                GL_CLAMP_TO_EDGE);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                                GL_CLAMP_TO_EDGE);
+                if (impl->aoTexture != 0) {
+                    glBindTexture(GL_TEXTURE_2D, impl->aoTexture);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8,
+                                 static_cast<GLsizei>(impl->ao.width),
+                                 static_cast<GLsizei>(impl->ao.height), 0,
+                                 GL_LUMINANCE, GL_UNSIGNED_BYTE,
+                                 impl->ao.pixels.data());
+                    GLint width = 0, height = 0;
+                    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH,
+                                             &width);
+                    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0,
+                                             GL_TEXTURE_HEIGHT, &height);
+                    if (width != static_cast<GLint>(impl->ao.width) ||
+                        height != static_cast<GLint>(impl->ao.height)) {
+                        glDeleteTextures(1, &impl->aoTexture);
+                        impl->aoTexture = 0;
+                        CLog::log() << "AO disabled: GPU upload failed";
+                    }
+                    if (impl->aoTexture != 0) {
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                                        GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                                        GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                                        GL_CLAMP_TO_EDGE);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                                        GL_CLAMP_TO_EDGE);
+                    }
+                } else {
+                    CLog::log() << "AO disabled: texture allocation failed";
+                }
                 glActiveTexture(GL_TEXTURE0);
                 glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
             }
@@ -358,6 +387,10 @@ void GPPOBJ::prepareBuffers() {
                                   .loadTexture(m.directory, m.values.diffuseMap)
                                   .getTextId();
                 }
+                if (m.texture == ~0U ||
+                    (m.texture != 0 && !glIsTexture(m.texture))) {
+                    m.texture = 0;
+                }
                 if (m.texture) {
                     glBindTexture(GL_TEXTURE_2D, m.texture);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
@@ -381,6 +414,10 @@ void GPPOBJ::drawMaterials(const MaterialBinder &bind,
         return;
     }
     std::lock_guard<std::mutex> lock(impl->mutex);
+    // Studio also uses surfaceless EGL, without a GLFW window.
+    if (glGetString(GL_VERSION) == nullptr) {
+        throw std::runtime_error("Model upload requires a current GL context");
+    }
     DrawState state;
     prepareBuffers();
     glActiveTexture(GL_TEXTURE2);
@@ -433,6 +470,7 @@ void GPPOBJ::unload() {
     impl->materials.clear();
     impl->ao = {};
     ++impl->version;
+    ++impl->generation;
     if (glGetString(GL_VERSION)) {
         impl->buffers.clear();
         if (impl->aoTexture) {

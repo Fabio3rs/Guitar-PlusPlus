@@ -200,6 +200,34 @@ TEST_F(Scenes, TextureFacadeConcurrentRequestsAllowReentrantCacheCallbacks) {
     game.shutdownTextures();
 }
 
+TEST_F(Scenes, ModelLegacyCpuLoadPreservesSyncBehaviorAndFailureState) {
+    write("model.obj", "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+    GPPOBJ target;
+    ASSERT_TRUE(target.load(directory.string(), "model.obj"));
+    EXPECT_EQ(target.inspect().parts.size(), 1u);
+    const auto version = target.revision();
+    EXPECT_FALSE(target.load(directory.string(), "missing.obj"));
+    EXPECT_EQ(target.revision(), version);
+    EXPECT_EQ(target.inspect().parts.size(), 1u);
+}
+
+TEST_F(Scenes, ModelFacadeReportsDecodeFailureAndRejectsOffOwnerPublication) {
+    auto &game = GPPGame::GuitarPP();
+    game.initializeModels();
+    GPPOBJ target;
+    auto handle = game.requestModel(directory.string(), "missing.obj", target);
+    ASSERT_NE(handle, nullptr);
+    game.modelLoader().finish(handle);
+    EXPECT_EQ(handle->snapshot().state, CModelManager::State::Failed);
+    std::thread worker([&] {
+        EXPECT_EQ(game.requestModel(directory.string(), "missing.obj", target),
+                  nullptr);
+        EXPECT_FALSE(
+            game.loadModelSync(directory.string(), "missing.obj", target));
+    });
+    worker.join();
+}
+
 class SceneGL : public Scenes {
     GLFWwindow *window = nullptr;
     void SetUp() override {
@@ -213,10 +241,12 @@ class SceneGL : public Scenes {
         glfwMakeContextCurrent(window);
         ASSERT_EQ(glewInit(), GLEW_OK);
         GPPGame::GuitarPP().initializeTextures();
+        GPPGame::GuitarPP().initializeModels();
         ShaderProject::CShader::inst().prepareEffects();
     }
     void TearDown() override {
         CGuitars::inst().unload();
+        GPPGame::GuitarPP().shutdownModels();
         GPPGame::GuitarPP().shutdownTextures();
         CBackgroundRenderer::shutdown();
         ShaderProject::CShader::shutdown();
@@ -225,6 +255,178 @@ class SceneGL : public Scenes {
         Scenes::TearDown();
     }
 };
+TEST_F(SceneGL, InitialModelLoadingUsesRuntimeAssetFilenames) {
+    const std::string triangle = "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n";
+    // Match the asset package, including its case-sensitive Linux filenames.
+    for (const auto *name : {"GPP_Note.obj", "TriggerBase.obj", "Trigger.obj",
+                             "Pylmbar.obj", "GPP_Opennote.obj"}) {
+        write(std::string("data/models/") + name, triangle);
+    }
+    write("data/scenes/startup.lua", "return {model='../models/GPP_Note.obj'}");
+    auto &game = GPPGame::GuitarPP();
+    struct RestoreScene {
+        GPPGame &game;
+        std::string previous;
+        ~RestoreScene() {
+            game.scene.unload(game.testobj);
+            game.backgroundScene = previous;
+        }
+    } restore{game, game.backgroundScene};
+    game.backgroundScene = "startup";
+    // Preload the scene so initialLoad exercises its cached scene path without
+    // requiring the engine's own window/menu loop in this GL fixture.
+    ASSERT_TRUE(game.scene.load(game.testobj, "startup")) << game.scene.error();
+    ASSERT_NO_THROW(game.initialLoad());
+    const auto deadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (game.getNumModelsToLoad() != 0 &&
+           std::chrono::steady_clock::now() < deadline) {
+        game.textureStreammingProcess();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    EXPECT_EQ(game.getNumModelsToLoad(), 0u);
+    EXPECT_TRUE(game.basicModelsReady());
+    EXPECT_FALSE(game.pylmbarOBJ.inspect().parts.empty());
+}
+
+TEST_F(SceneGL, ModelSyncJoinsPendingDecodeAndSupersedesOlderPublication) {
+    write("model.obj", "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+    auto &game = GPPGame::GuitarPP();
+    GPPOBJ target;
+    auto pending = game.requestModel(directory.string(), "model.obj", target);
+    ASSERT_NE(pending, nullptr);
+    EXPECT_TRUE(target.inspect().parts.empty());
+    ASSERT_TRUE(game.loadModelSync(directory.string(), "model.obj", target));
+    const auto version = target.revision();
+    EXPECT_EQ(target.inspect().parts.size(), 1u);
+    EXPECT_TRUE(game.modelLoader().finish(pending));
+    EXPECT_EQ(pending->snapshot().state, CModelManager::State::Cancelled);
+    EXPECT_EQ(target.revision(), version);
+    target.draw(0);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+TEST_F(SceneGL, ModelAsyncTargetMayMoveUnloadOrBeDestroyedBeforeCompletion) {
+    write("model.obj", "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+    auto &game = GPPGame::GuitarPP();
+    auto target = std::make_unique<GPPOBJ>();
+    auto dead = game.requestModel(directory.string(), "model.obj", *target);
+    target.reset();
+    game.modelLoader().finish(dead);
+    EXPECT_EQ(dead->snapshot().state, CModelManager::State::Cancelled);
+    GPPOBJ original;
+    auto moved = game.requestModel(directory.string(), "model.obj", original);
+    GPPOBJ destination(std::move(original));
+    game.modelLoader().finish(moved);
+    EXPECT_EQ(moved->snapshot().state, CModelManager::State::Ready);
+    EXPECT_EQ(destination.inspect().parts.size(), 1u);
+    auto unloaded =
+        game.requestModel(directory.string(), "model.obj", destination);
+    destination.unload();
+    game.modelLoader().finish(unloaded);
+    EXPECT_EQ(unloaded->snapshot().state, CModelManager::State::Cancelled);
+    EXPECT_TRUE(destination.inspect().parts.empty());
+}
+
+TEST_F(SceneGL, ModelPublicationAbandonsTargetDestroyedDuringTextureCallback) {
+    write("model.obj",
+          "mtllib material.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+    write("material.mtl", "newmtl surface\nmap_Kd broken.tga\n");
+    write("broken.tga", "invalid");
+    std::unique_ptr<GPPOBJ> target;
+    target = std::make_unique<GPPOBJ>([&](const std::string &) {
+        target.reset();
+        return 0U;
+    });
+    auto &game = GPPGame::GuitarPP();
+    auto handle = game.requestModel(directory.string(), "model.obj", *target);
+    ASSERT_NE(handle, nullptr);
+    game.modelLoader().finish(handle);
+    EXPECT_EQ(target, nullptr);
+    EXPECT_EQ(handle->snapshot().state, CModelManager::State::Cancelled);
+}
+
+TEST_F(SceneGL, ModelFailuresPreservePreviouslyPublishedGeometry) {
+    write("model.obj", "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+    write("textured.obj",
+          "mtllib material.mtl\nv 0 0 0\nv 2 0 0\nv 0 2 0\nf 1 2 3\n");
+    write("material.mtl", "newmtl surface\nmap_Kd broken.tga\n");
+    write("broken.tga", "invalid");
+    GPPOBJ target([](const std::string &) -> unsigned int {
+        throw std::runtime_error("test upload failure");
+    });
+    auto &game = GPPGame::GuitarPP();
+    ASSERT_TRUE(game.loadModelSync(directory.string(), "model.obj", target));
+    const auto version = target.revision();
+    const auto bounds = target.bounds();
+    EXPECT_FALSE(game.loadModelSync(directory.string(), "missing.obj", target));
+    EXPECT_FALSE(
+        game.loadModelSync(directory.string(), "textured.obj", target));
+    EXPECT_EQ(target.revision(), version);
+    EXPECT_EQ(target.bounds(), bounds);
+    target.draw(0);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+TEST_F(SceneGL, ModelTextureFailureUsesNeutralFallbackInsteadOfMagicId) {
+    write("model.obj", "mtllib material.mtl\nusemtl surface\nv 0 0 0\nv 1 0 "
+                       "0\nv 0 1 0\nvt 0 0\nf 1/1 2/1 3/1\n");
+    write("material.mtl", "newmtl surface\nmap_Kd broken.tga\n");
+    write("broken.tga", "invalid");
+    auto &game = GPPGame::GuitarPP();
+    ASSERT_TRUE(game.loadTextureSingleAsync(GPPGame::loadTextureBatch(
+        directory.string(), "broken.tga", nullptr, nullptr)));
+    game.forceTexturesToLoad();
+    GPPOBJ target;
+    ASSERT_TRUE(game.loadModelSync(directory.string(), "model.obj", target));
+    int draws = 0;
+    target.drawMaterials(
+        [&](const ObjModel::Part &, const ObjModel::Material &, bool textured) {
+            EXPECT_FALSE(textured);
+            ++draws;
+            return true;
+        });
+    EXPECT_EQ(draws, 1);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+TEST_F(SceneGL, ModelShutdownRetiresBasicGpuBuffersBeforeContextDestruction) {
+    write("model.obj",
+          "v 0 0 0\nv 1 0 0\nv 0 1 0\ng one\nf 1 2 3\ng two\nf 1 2 3\n");
+    auto &game = GPPGame::GuitarPP();
+    ASSERT_TRUE(
+        game.loadModelSync(directory.string(), "model.obj", game.noteOBJ));
+    GLint buffer = 0;
+    int parts = 0;
+    game.noteOBJ.drawMaterials(
+        [&](const ObjModel::Part &, const ObjModel::Material &, bool) {
+            if (++parts == 2) {
+                glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &buffer);
+            }
+            return true;
+        });
+    ASSERT_EQ(parts, 2);
+    ASSERT_GT(buffer, 0);
+    ASSERT_TRUE(glIsBuffer(static_cast<GLuint>(buffer)));
+    game.shutdownModels();
+    EXPECT_FALSE(glIsBuffer(static_cast<GLuint>(buffer)));
+    EXPECT_TRUE(game.noteOBJ.inspect().parts.empty());
+}
+
+TEST_F(SceneGL, ModelBatchReportsRejectionAndLeavesCompletionObservable) {
+    auto &game = GPPGame::GuitarPP();
+    GPPOBJ target;
+    std::deque<GPPGame::loadModelBatch> batch;
+    batch.emplace_back(directory.string().c_str(), "missing.obj", target);
+    batch.emplace_back();
+    EXPECT_FALSE(game.loadModelBatchAsync(batch));
+    ASSERT_NE(batch[0].handle, nullptr);
+    EXPECT_EQ(batch[1].handle, nullptr);
+    game.modelLoader().finish(batch[0].handle);
+    EXPECT_EQ(batch[0].handle->snapshot().state, CModelManager::State::Failed);
+    EXPECT_FALSE(batch[0].handle->snapshot().error.empty());
+}
+
 TEST_F(SceneGL, SynchronousTextureUsePreservesQueuedCompletions) {
     auto &game = GPPGame::GuitarPP();
     const auto previousOwner = game.mainthread.load();

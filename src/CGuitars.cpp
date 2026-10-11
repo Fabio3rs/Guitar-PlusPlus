@@ -1,5 +1,6 @@
 #include "CGuitars.h"
 #include "CLog.h"
+#include "GPPGame.h"
 #include "CLuaFunctions.hpp"
 #include "CGPPFileMGR.h"
 #include <GL/glew.h>
@@ -61,11 +62,21 @@ auto CGuitars::getGuitarIfExists(const std::string &internalName)
 bool CGuitars::CGuitar::load() {
     if (loaded) { return true; }
     if (!glfwGetCurrentContext()) { return false; }
+    auto &loader = GPPGame::GuitarPP().modelLoader();
+    if (!loader.isOwnerThread()) {
+        return false;
+    }
     GPPOBJ candidate;
-    if (!candidate.load(path + "/" + internalName, gameplayBarName)) {
+    const auto handle = loader.loadSync(candidate.requestDescription(
+        path + "/" + internalName, gameplayBarName));
+    const auto decoded =
+        handle ? handle->snapshot() : CModelManager::Snapshot{};
+    if (!decoded.data ||
+        decoded.state != CModelManager::State::ReadyForUpload) {
         CLog::log() << std::string("Cannot load guitar model: ") + internalName;
         return false;
     }
+    candidate.setModelData(*decoded.data);
     const auto previousTexture = textureID;
     const auto previousFretboard = fretboardText;
     const CLuaH::multiCallBackParams_t params = {path, internalName};

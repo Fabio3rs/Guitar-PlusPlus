@@ -1,12 +1,12 @@
 #pragma once
 #include "CEngine.h"
-#include "ObjModel.h"
+#include "CModelManager.h"
 #include <functional>
 #include <memory>
 
 class GPPOBJ {
     struct Impl;
-    std::unique_ptr<Impl> impl;
+    std::shared_ptr<Impl> impl; // Publishers retain only weak references.
     void prepareBuffers();
 
   public:
@@ -32,6 +32,17 @@ class GPPOBJ {
         const ObjModel::Part &, const ObjModel::Material &, bool)>;
 
     bool keepModelDataLoaded = false;
+
+    CModelRequest requestDescription(const std::string &path,
+                                     const std::string &file,
+                                     const std::string &object = "") const;
+    // Takes CPU data by value; shared results copy, standalone loads move.
+    // Preserves the legacy deferred-upload contract.
+    void setModelData(CModelData data);
+    // Owner-only. Returns false if this target was unloaded, superseded or
+    // destroyed. A move transfers the target; move assignment retires the old
+    // one.
+    CModelManager::Publisher publisher();
 
     bool loadInternalObj(const std::string &path, const std::string &file,
                          const std::string &objName = "",

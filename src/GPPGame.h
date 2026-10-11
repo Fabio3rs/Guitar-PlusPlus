@@ -7,7 +7,6 @@
 #include "CGameSettings.h"
 #include "CLuaFunctions.hpp"
 #include "CMenu.h"
-#include "CMultiThreadPool.h"
 #include "CPlayer.h"
 #include "CScene.h"
 #include "CShader.h"
@@ -221,45 +220,29 @@ class GPPGame {
     void parseParameters(int argc, char *argv[]);
 
     struct loadModelBatch {
-        GPPOBJ *obj;
-        std::future<bool> ft;
-        std::string path;
-        std::string model;
-        bool asyncend;
-
-        loadModelBatch &operator=(loadModelBatch &&m) {
-            path = std::move(m.path);
-            model = std::move(m.model);
-            obj = std::move(m.obj);
-            ft = std::move(m.ft);
-            asyncend = m.asyncend;
-
-            return *this;
-        }
-
-        loadModelBatch(loadModelBatch &&m) {
-            path = std::move(m.path);
-            model = std::move(m.model);
-            obj = std::move(m.obj);
-            ft = std::move(m.ft);
-            asyncend = m.asyncend;
-        }
-
-        loadModelBatch() {
-            obj = nullptr;
-            asyncend = false;
-        }
-
-        loadModelBatch(const char *pa, const char *md, GPPOBJ &o) {
-            path = pa;
-            model = md;
-            obj = &o;
-            asyncend = false;
-        }
+        GPPOBJ *obj = nullptr;
+        std::string path, model;
+        CModelManager::Handle handle;
+        loadModelBatch() = default;
+        loadModelBatch(const char *directory, const char *file, GPPOBJ &target)
+            : obj(&target), path(directory), model(file) {}
     };
 
-    CMultiThreadPool<loadModelBatch, 200> futureModelLoad;
+    void initializeModels();
+    void shutdownModels();
+    CModelManager &modelLoader();
+    CModelManager::Handle requestModel(const std::string &path,
+                                       const std::string &file, GPPOBJ &target);
+    bool loadModelSync(const std::string &path, const std::string &file,
+                       GPPOBJ &target);
+    size_t getNumModelsToLoad() const;
+    bool basicModelsReady() const;
 
+  private:
+    std::unique_ptr<CModelManager> modelManager;
+    std::vector<CModelManager::Handle> basicModels;
+
+  public:
     void textureBatchLoad(
         const std::vector<std::pair<std::string, std::string>> texts);
     const gppTexture &loadTexture(const std::string &path,
