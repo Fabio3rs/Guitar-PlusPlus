@@ -258,11 +258,13 @@ TEST_F(AudioTest, PresetTemporaryNeverOverwritesLoadedSource) {
     EXPECT_NO_THROW(loadPreset(directory / "preset.json"));
     // A failed rename must also leave unrelated files and directories intact.
     fs::create_directory(directory / "occupied");
-    EXPECT_THROW(savePreset(directory / "occupied", s.settings), fs::filesystem_error);
+    EXPECT_THROW(savePreset(directory / "occupied", s.settings),
+                 fs::filesystem_error);
     EXPECT_TRUE(fs::is_directory(directory / "occupied"));
     EXPECT_TRUE(fs::exists(source));
     for (const auto &entry : fs::directory_iterator(directory)) {
-        EXPECT_EQ(entry.path().filename().string().find(".tmp-"), std::string::npos);
+        EXPECT_EQ(entry.path().filename().string().find(".tmp-"),
+                  std::string::npos);
     }
 }
 
@@ -308,9 +310,11 @@ TEST_F(AudioTest, SelectionAndDeviceChangesPreserveActualLoop) {
     auto checkLoop = [&] {
         s.music.position(.2);
         ASSERT_TRUE(BASS_ChannelUpdate(s.music.handle(), 400));
-        const auto bytes = BASS_ChannelGetPosition(s.music.handle(), BASS_POS_BYTE | BASS_POS_DECODE);
+        const auto bytes = BASS_ChannelGetPosition(
+            s.music.handle(), BASS_POS_BYTE | BASS_POS_DECODE);
         ASSERT_NE(bytes, QWORD(-1));
-        const double decoded = BASS_ChannelBytes2Seconds(s.music.handle(), bytes);
+        const double decoded =
+            BASS_ChannelBytes2Seconds(s.music.handle(), bytes);
         EXPECT_GE(decoded, .2 - 1. / 44100);
         EXPECT_LE(decoded, .3 + 1. / 44100);
         EXPECT_EQ(s.music.loopError(), 0);

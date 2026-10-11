@@ -1,5 +1,5 @@
 find_package(PNG REQUIRED)
-add_library(gpp_audio_studio_session STATIC session.cpp protocol.cpp benchmark.cpp)
+add_library(gpp_audio_studio_session STATIC session.cpp protocol.cpp benchmark.cpp voice_benchmark.cpp)
 target_link_libraries(gpp_audio_studio_session PUBLIC gpp_audio)
 target_compile_definitions(gpp_audio_studio_session PRIVATE
     GPP_AUDIO_BUILD_TYPE="$<CONFIG>"
@@ -8,6 +8,17 @@ target_include_directories(gpp_audio_studio_session PUBLIC ${CMAKE_CURRENT_SOURC
 add_executable(gpp_audio_studio main.cpp ui.cpp)
 target_link_libraries(gpp_audio_studio PRIVATE gpp_audio_studio_session gpp_studio_imgui OpenGL::GL PNG::PNG)
 target_compile_definitions(gpp_audio_studio PRIVATE GPP_AUDIO_WORKSPACE="${PROJECT_SOURCE_DIR}")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_executable(gpp_audio_voice_probe voice_probe.cpp)
+    target_link_libraries(gpp_audio_voice_probe PRIVATE gpp_audio_studio_session)
+    target_compile_definitions(gpp_audio_voice_probe PRIVATE
+        GPP_AUDIO_BUILD_TYPE="$<CONFIG>"
+        GPP_AUDIO_COMPILER="${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
+    add_dependencies(gpp_audio_studio gpp_audio_voice_probe)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(gpp_audio_voice_probe PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(gpp_audio_studio_session PRIVATE -Wall -Wextra -Wpedantic)
     target_compile_options(gpp_audio_studio PRIVATE -Wall -Wextra -Wpedantic)
@@ -21,6 +32,11 @@ if(BUILD_TESTING)
     add_test(NAME audio_cli COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_cli.py
         $<TARGET_FILE:gpp_audio_studio> ${CMAKE_BINARY_DIR}/audio-studio/tests)
     set_tests_properties(audio_core audio_cli PROPERTIES LABELS "audio" TIMEOUT 120)
+    if(TARGET gpp_audio_voice_probe)
+        add_test(NAME audio_voices COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_voices.py
+            $<TARGET_FILE:gpp_audio_studio> ${CMAKE_BINARY_DIR}/audio-studio/voice-tests)
+        set_tests_properties(audio_voices PROPERTIES LABELS "audio" TIMEOUT 120)
+    endif()
     find_program(AUDIO_XVFB xvfb-run)
     find_program(AUDIO_XDOTOOL xdotool)
     if(AUDIO_XVFB AND AUDIO_XDOTOOL)

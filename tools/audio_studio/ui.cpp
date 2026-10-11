@@ -1,4 +1,5 @@
 #include "session.h"
+#include "voice_benchmark.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <cctype>
@@ -210,6 +211,8 @@ struct UI {
          exportFile[1024] = "preview.wav";
     std::vector<fs::path> files;
     int fxTarget = 1, previewType = 3;
+    VoiceBenchmarkOptions voiceOptions;
+    char voiceFile[1024] = "voice-comparison.json";
     int benchmarkIterations = 30;
     char benchmarkFile[1024] = "benchmark.json";
     bool float32 = false, segment = false, rawExport = false, first = true,
@@ -468,11 +471,12 @@ struct UI {
                     "Start (s)", &selectionStart, 0, 0, "%.3f",
                     ImGuiInputTextFlags_EnterReturnsTrue);
                 ImGui::SameLine();
-                selectionChanged |= ImGui::InputDouble(
-                    "End (s)", &selectionEnd, 0, 0, "%.3f",
-                    ImGuiInputTextFlags_EnterReturnsTrue);
+                selectionChanged |=
+                    ImGui::InputDouble("End (s)", &selectionEnd, 0, 0, "%.3f",
+                                       ImGuiInputTextFlags_EnterReturnsTrue);
                 if (selectionChanged) {
-                    attempt([&] { s.setSelection(selectionStart, selectionEnd); });
+                    attempt(
+                        [&] { s.setSelection(selectionStart, selectionEnd); });
                 }
                 if (ImGui::IsItemHovered()) {
                     ImGui::SetTooltip("Press Enter to apply selection bounds");
@@ -883,10 +887,14 @@ struct UI {
                 "configuration are not loopback measurements.");
             ImGui::SeparatorText("Benchmark / JSON report");
             ImGui::InputInt("Iterations", &benchmarkIterations);
-            ImGui::InputText("Report filename", benchmarkFile, sizeof(benchmarkFile));
-            ImGui::TextWrapped("Muted API/preparation trials. First run is separate; warm runs report p50/p95/p99. Pause other playback for comparisons.");
+            ImGui::InputText("Report filename", benchmarkFile,
+                             sizeof(benchmarkFile));
+            ImGui::TextWrapped("Muted API/preparation trials. First run is "
+                               "separate; warm runs report p50/p95/p99. Pause "
+                               "other playback for comparisons.");
             if (ImGui::Button("Run benchmark and export")) {
-                attempt([&] { s.benchmark(benchmarkIterations, benchmarkFile); });
+                attempt(
+                    [&] { s.benchmark(benchmarkIterations, benchmarkFile); });
             }
             if (s.busy() && s.jobKind == "benchmark") {
                 ImGui::ProgressBar(float(s.progress()));
@@ -896,13 +904,99 @@ struct UI {
             }
             if (s.benchmarkReport) {
                 ImGui::TextWrapped("Last completed report: %s",
-                    (*s.benchmarkReport)["source"].GetString());
+                                   (*s.benchmarkReport)["source"].GetString());
                 const auto &metrics = (*s.benchmarkReport)["metrics"];
-                for (auto it = metrics.MemberBegin(); it != metrics.MemberEnd(); ++it) {
-                    ImGui::Text("%s: p50 %.3f / p95 %.3f ms", it->name.GetString(),
-                        it->value["p50_ms"].GetDouble(), it->value["p95_ms"].GetDouble());
+                for (auto it = metrics.MemberBegin(); it != metrics.MemberEnd();
+                     ++it) {
+                    ImGui::Text("%s: p50 %.3f / p95 %.3f ms",
+                                it->name.GetString(),
+                                it->value["p50_ms"].GetDouble(),
+                                it->value["p95_ms"].GetDouble());
                 }
-                ImGui::TextWrapped("Pending: final-mix probe, system loopback, physical output and glitch/overlap tests. NoSound results describe processing/API cost only.");
+                ImGui::TextWrapped(
+                    "Pending: final-mix probe, system loopback, physical "
+                    "output and glitch/overlap tests. NoSound results describe "
+                    "processing/API cost only.");
+            }
+            ImGui::SeparatorText("HSAMPLE vs shared PCM streams");
+            ImGui::InputInt("Maximum voices", &voiceOptions.voices);
+            ImGui::InputInt("Measured bursts", &voiceOptions.bursts);
+            ImGui::InputInt("Trigger interval (ms)", &voiceOptions.intervalMs);
+            ImGui::Checkbox("Replace oldest at capacity",
+                            &voiceOptions.stealOldest);
+            ImGui::Checkbox("Trim FX tail to raw duration",
+                            &voiceOptions.trimTail);
+            ImGui::InputText("Voice report", voiceFile, sizeof(voiceFile));
+            ImGui::TextWrapped(
+                "Uses the last generated one-shot PCM. Each burst attempts "
+                "twice the voice limit; each strategy/count runs in a fresh "
+                "process. Muted playback; pause other audio for comparisons.");
+            if (ImGui::Button("Compare HSAMPLE / streams")) {
+                attempt([&] { s.compare(voiceOptions, voiceFile); });
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Open previous report")) {
+                attempt([&] {
+                    fs::path path(voiceFile);
+                    if (path.is_relative()) {
+                        path = s.outputRoot / path;
+                    }
+                    s.voiceReport =
+                        std::make_shared<Json>(loadVoiceReport(path));
+                });
+            }
+            if (s.busy() && s.jobKind == "compare_voices") {
+                ImGui::ProgressBar(float(s.progress()));
+                if (ImGui::Button("Cancel comparison")) {
+                    s.cancel();
+                }
+            }
+            if (s.voiceReport) {
+                ImGui::TextWrapped(
+                    "Last completed/imported report. Its recorded settings and "
+                    "device may differ from the current session. RSS is "
+                    "process memory, not exact BASS allocation.");
+            }
+            if (s.voiceReport &&
+                ImGui::BeginTable("Voice comparison", 6,
+                                  ImGuiTableFlags_Borders |
+                                      ImGuiTableFlags_ScrollX)) {
+                for (const char *label :
+                     {"Strategy", "Voices", "Acquire p95 ms", "Play p95 ms",
+                      "RSS growth KiB", "Rejected / replaced"}) {
+                    ImGui::TableSetupColumn(label);
+                }
+                ImGui::TableHeadersRow();
+                for (const auto &c : (*s.voiceReport)["cases"].GetArray()) {
+                    const auto &summary = c["summary"];
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::TextUnformatted(c["strategy"].GetString());
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", c["voices"].GetInt());
+                    for (const char *key : {"acquire_p95_ms", "play_p95_ms",
+                                            "rss_growth_bytes"}) {
+                        ImGui::TableNextColumn();
+                        if (summary[key].IsNull()) {
+                            ImGui::TextUnformatted("unavailable");
+                        } else {
+                            ImGui::Text("%.4f", summary[key].GetDouble() /
+                                                    (std::string(key) ==
+                                                             "rss_growth_bytes"
+                                                         ? 1024
+                                                         : 1));
+                        }
+                    }
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%.0f / %.0f",
+                                summary["rejected"].IsNumber()
+                                    ? summary["rejected"].GetDouble()
+                                    : 0,
+                                summary["replaced"].IsNumber()
+                                    ? summary["replaced"].GetDouble()
+                                    : 0);
+                }
+                ImGui::EndTable();
             }
             if (s.product) {
                 const auto &p = *s.product;

@@ -1,4 +1,5 @@
 #include "session.h"
+#include "voice_benchmark.h"
 #include <chrono>
 #include <cmath>
 #include <fstream>
@@ -98,7 +99,27 @@ void Session::worker(int device) {
         try {
             audio::check(deviceReady, "Select worker BASS device");
             checkpoint(0);
-            if (job.kind == "benchmark") {
+            if (job.kind == "compare_voices") {
+                auto pcm = job.product->processed;
+                pcm.loop = {};
+                if (job.voiceOptions.trimTail) {
+                    pcm.samples.resize(std::min(
+                        pcm.samples.size(), job.product->raw.samples.size()));
+                }
+                done.report = std::make_shared<Json>(compareVoices(
+                    pcm, job.voiceOptions, job.device, job.bufferSeconds,
+                    job.output.parent_path(), checkpoint));
+                auto &a = done.report->GetAllocator();
+                done.report->AddMember(
+                    "source", Value(job.product->source.string().c_str(), a),
+                    a);
+                done.report->AddMember("source_time_seconds", job.product->time,
+                                       a);
+                auto parameters = settingsJson(job.product->settings);
+                done.report->AddMember("settings", Value(parameters, a), a);
+                checkpoint(1);
+                saveJson(job.output, *done.report);
+            } else if (job.kind == "benchmark") {
                 done.report = std::make_shared<Json>(runBenchmark(
                     job.source, job.time, job.settings, job.iterations,
                     job.bufferSeconds, checkpoint));
@@ -202,7 +223,11 @@ void Session::tick() {
             product = std::move(done->product);
         }
         if (done->report) {
-            benchmarkReport = std::move(done->report);
+            if (done->job.kind == "compare_voices") {
+                voiceReport = std::move(done->report);
+            } else {
+                benchmarkReport = std::move(done->report);
+            }
         }
         if (!done->job.output.empty()) {
             notice = "Exported " + done->job.output.string();
@@ -257,7 +282,8 @@ uint64_t Session::generate(bool synthesis) {
 
 uint64_t Session::benchmark(int iterations, const fs::path &report) {
     if (source.empty() || iterations < 1 || iterations > 1000) {
-        throw audio::Error("Load audio and choose 1 to 1000 benchmark iterations");
+        throw audio::Error(
+            "Load audio and choose 1 to 1000 benchmark iterations");
     }
     Job job;
     job.kind = "benchmark";
@@ -265,6 +291,25 @@ uint64_t Session::benchmark(int iterations, const fs::path &report) {
     job.time = cursor;
     job.settings = settings;
     job.iterations = iterations;
+    job.bufferSeconds = streamBuffer;
+    job.output = artifact(report);
+    return enqueue(std::move(job));
+}
+
+uint64_t Session::compare(const VoiceBenchmarkOptions &options,
+                          const fs::path &report) {
+    validate(options);
+    if (!product || product->processed.samples.empty() ||
+        product->settings.synth.loop) {
+        throw audio::Error(
+            "Generate a one-shot effect before comparing voices");
+    }
+    Job job;
+    job.kind = "compare_voices";
+    job.voiceOptions = options;
+    job.product = product;
+    job.device = deviceSettings;
+    job.device.device = int(BASS_GetDevice());
     job.bufferSeconds = streamBuffer;
     job.output = artifact(report);
     return enqueue(std::move(job));

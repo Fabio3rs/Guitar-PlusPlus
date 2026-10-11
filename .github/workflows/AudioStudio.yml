@@ -72,6 +72,7 @@ jobs:
           path: |
             build/audio-studio/tests/
             build/audio-studio/ui-tests/
+            build/audio-studio/voice-tests/
             build/scene-studio/tests/
             build/scene-studio/mouse-tests/
             build/Testing/Temporary/

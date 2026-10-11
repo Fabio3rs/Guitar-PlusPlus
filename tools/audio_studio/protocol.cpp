@@ -1,8 +1,9 @@
 #include "session.h"
+#include "voice_benchmark.h"
 #include <cereal/external/rapidjson/stringbuffer.h>
 #include <cereal/external/rapidjson/writer.h>
-#include <cmath>
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -181,10 +182,12 @@ void saveJson(const fs::path &file, const Value &json) {
     // Atomic directory creation reserves a private sibling namespace, including
     // across Studio processes. Never truncate an existing .tmp file.
     fs::path scratch;
-    const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+    const auto stamp =
+        std::chrono::steady_clock::now().time_since_epoch().count();
     for (unsigned attempt = 0; attempt < 100; ++attempt) {
         auto candidate = file;
-        candidate += ".tmp-" + std::to_string(stamp) + "-" + std::to_string(attempt);
+        candidate +=
+            ".tmp-" + std::to_string(stamp) + "-" + std::to_string(attempt);
         if (fs::create_directory(candidate)) {
             scratch = std::move(candidate);
             break;
@@ -282,6 +285,9 @@ Json stateJson(Session &s) {
     if (s.benchmarkReport) {
         json.AddMember("benchmark", Value(*s.benchmarkReport, a), a);
     }
+    if (s.voiceReport) {
+        json.AddMember("voice_comparison", Value(*s.voiceReport, a), a);
+    }
     if (s.wave) {
         put(json, "duration", s.wave->info.duration, a);
         put(json, "rate", int(s.wave->info.rate), a);
@@ -360,6 +366,18 @@ std::string dispatch(Session &s, const std::string &line) {
             const double start = number(p, "start", s.selectionStart),
                          end = number(p, "end", s.selectionEnd);
             s.setSelection(start, end);
+        } else if (method == "voices.compare") {
+            VoiceBenchmarkOptions options;
+            options.voices = integer(p, "voices", 32);
+            options.bursts = integer(p, "bursts", 10);
+            options.intervalMs = integer(p, "interval_ms", 0);
+            options.stealOldest = boolean(p, "steal_oldest", false);
+            options.trimTail = boolean(p, "trim_tail", false);
+            job = s.compare(options,
+                            stringField(p, "path", "voice-comparison.json"));
+        } else if (method == "voices.load") {
+            s.voiceReport =
+                std::make_shared<Json>(loadVoiceReport(stringField(p, "path")));
         } else if (method == "benchmark") {
             job = s.benchmark(integer(p, "iterations", 30),
                               stringField(p, "path", "benchmark.json"));

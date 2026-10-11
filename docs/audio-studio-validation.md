@@ -176,3 +176,65 @@ For the 51 ms case, p50/p95 in milliseconds: analysis 3.103/3.550, synthesis
 play API 0.0043/0.0074. The default-duration synthesis p50 was 73.061 ms.
 These are local processing/API observations, not latency-to-output measurements,
 and do not justify a player calibration offset or a definitive playback strategy.
+
+## Voice/memory comparison and architecture review — 2026-10-10
+
+The Linux workbench now compares HSAMPLE/HCHANNEL against independently playable
+streams sharing one float WAV. Each strategy/count runs in a fresh exec process.
+Both strategies consume identical PCM (verified by a reported fingerprint).
+Reject/oldest-replacement policies, saturation, scheduling lateness, warmup/raw
+API timings, RSS/PSS/HWM snapshots, release snapshots and marginal memory estimates
+are exported together. Burst completion is checked through channel state before
+starting the next burst, including device-buffering grace time.
+
+Validation: normal and ASan/UBSan/LSan audio suites passed (4/4 entries: core,
+CLI, voices and Xvfb UI). The voice test covers distinct process IDs, matching
+PCM hashes, memory availability, saturation/replacement accounting, preserved
+reports on invalid import, cancellation/reaping and temporary-directory cleanup.
+The isolated HSAMPLE probe also exited normally under GDB/ptrace. Performance
+and memory comparisons must use the regular build, not sanitizer/debugger runs.
+TSan's previously documented vendor BASS issue remains unresolved.
+
+Architecture review:
+
+- `src/audio` remains independent of the UI, benchmark subprocess management and
+  gameplay state. Production DSP/transport logic is reused without changing the
+  game's update/render threads or OpenGL compatibility baseline.
+- Session/UI ownership remains on the control thread; immutable job inputs and
+  completions cross the worker boundary under the existing mutex/revision model.
+  The worker launches probes with `posix_spawn`, avoiding C++/BASS work after a
+  raw fork of the multithreaded application. Cancellation reaps the active child.
+- The helper executable has no ImGui/Scene Studio dependency. Keep it beside the
+  Studio binary. Benchmark code is tool-specific; the experimental voice pool
+  has deliberately not become the game's runtime sound-bank API yet.
+- Memory instrumentation is sampled outside API timing; event buffers are
+  allocated before baseline and JSON serialization follows the snapshots.
+  RSS/PSS changes include allocator/page effects and are not exact BASS heap
+  allocations. Acquisition includes sample voice creation/recycling versus
+  scanning the prepared stream pool, which is stated in the report.
+- Reports have a versioned shape and imported GUI fields are validated before
+  publication. Failed imports preserve the last report. Device initialization
+  failures are explicit; the probe never silently substitutes NoSound.
+- C++ code under `tools/audio_studio` and `src/audio` was formatted and checked
+  with `clang-format --dry-run --Werror`, using the existing project style from
+  the root `.clang-format`, without audio-specific overrides.
+
+No blocking architectural issue was found in this increment after fixing the
+burst-drain boundary. Remaining work is final-mix/loopback/physical measurement,
+audible overlap/glitch validation, continuous gates and sustained background CPU
+profiling. The GUI/session currently share a parameter catalogue and report JSON;
+that is sufficient at this size. If more benchmark families are added, typed
+report models and a dedicated benchmark UI panel would reduce schema/UI coupling.
+This is a maintainability direction, not a prerequisite for the present tests.
+
+Reference run: `build/audio-studio/benchmarks/voices-32-nosound.json`, regular
+RelWithDebInfo build, Slow Ride at 83.25 s, 51 ms synthesis plus retained 80 ms
+FX tail, 10 measured bursts, zero inter-trigger interval and reject-at-capacity.
+All ten cases used distinct processes and identical PCM fingerprints. At 32
+voices, both strategies observed 32 active channels, zero API failures and 320
+expected capacity rejections (32 excess requests in each of ten bursts).
+Observed RSS growth from loaded PCM to the post-burst snapshot was 64 KiB for
+HSAMPLE and 1904 KiB for shared-WAV streams. This is a local NoSound process-memory
+comparison; allocator reuse/shared pages prevent interpreting it as exact BASS
+allocation or as proof of output latency. The reference run was made after builds,
+debugger and sanitizer tests finished.

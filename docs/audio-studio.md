@@ -250,3 +250,70 @@ is required or installed by this benchmark.
 RPC `benchmark` returns a job ID; wait for `state.busy == false`, check `error`,
 and read `state.benchmark` or the exported file. As with other exports, cancelling
 after the final write has started may still produce the report.
+
+## HSAMPLE versus shared PCM streams (Linux)
+
+Generate a one-shot effect, then use **Diagnostics → HSAMPLE vs shared PCM
+streams**. Choose a maximum voice count, burst count, trigger interval and an
+exhaustion policy. The default rejects a trigger when all voices are occupied;
+"Replace oldest" uses BASS's sample override policy and an oldest-started policy
+for streams. Each burst attempts twice the voice limit, followed by a wait until
+the voices finish. The standard sizes are 1, 5, 10, 20, 32 up to the requested
+limit; a nonstandard requested maximum is included too.
+
+The last generated processed PCM is used, including its recorded synthesis/FX
+settings. "Trim FX tail" cuts it to the raw PCM duration; it does not regenerate
+the effect and may cut off a release. Without trimming, 51 ms synthesis plus an
+80 ms tail produces approximately 131 ms PCM. Both strategies receive exactly
+the same float PCM; each child reports a PCM FNV-1a fingerprint for verification.
+The streams share one immutable memory WAV rather than keeping a copy per voice.
+
+```sh
+./build/bin/gpp_audio_studio --mode headless --device -1 \
+  --file "build/bin/data/songs/Slow Ride/guitar.ogg" --time 83.25 \
+  --set synth.duration=0.051 \
+  --compare-voices 32 --voice-bursts 10 --voice-interval-ms 0 \
+  --voice-report voices-device.json --output-dir build/audio-studio/benchmarks
+```
+
+Add `--voice-steal-oldest` to test replacement, or `--voice-trim-tail` for a
+shortened effect. Device 0 is the offline/NoSound alternative.
+These measurements are muted. API-active voices and detected capacity
+replacement do not prove audible overlap, correct output or absence of glitches.
+The actual trigger times and scheduling lateness are recorded; zero interval
+means sequential API calls, not literally simultaneous execution.
+
+`gpp_audio_voice_probe` must be next to `gpp_audio_studio`. Each strategy/count
+starts a fresh process with `posix_spawn`, without running C++/BASS code in a
+forked copy of the threaded GUI. Cancellation kills and reaps the current child;
+private temporary files are removed. The worker and UI keep their existing
+ownership model. Effects are limited to 2 seconds, voices to 32, bursts to 100
+and interval to 100 ms, with a 150-second estimated limit and 180-second timeout
+per case. No dependencies are installed. The child uses the requested device
+without silently falling back; an exclusive device already owned by the parent
+may reject a second initialization. Use a shared device or NoSound in that case.
+
+The JSON contains:
+
+- Acquisition, restart and play timings, raw events, warmup burst separately,
+  p50/p95/p99/maximum/mean, rejected triggers, API failures, replacements and
+  maximum observed active voices. Sample acquisition includes native voice
+  creation/recycling; streams are created up front and acquired from a pool.
+- RSS/PSS and peak RSS from `/proc`, after BASS initialization, PCM load,
+  preparation, bursts, resource release and PCM release. Missing metrics are
+  null. Event instrumentation is preallocated before the baseline; snapshots and
+  state queries are outside API timers. JSON serialization follows snapshots.
+- PCM size/capacity, shared WAV capacity, RSS/PSS strategy growth relative to
+  loaded PCM, and an approximate per-extra-voice RSS difference versus the
+  one-voice case. Page granularity and allocator retention make these process
+  measurements noisy; a negative difference is not "negative allocation".
+- Device, versions, build configuration, source time/settings and explicit
+  pending output-latency/glitch/gate measurements.
+
+The UI displays the last completed/imported report. Use **Open previous report**
+to reopen a JSON report, with relative paths resolved under the output directory.
+RPC methods are `voices.compare` (`voices`, `bursts`, `interval_ms`,
+`steal_oldest`, `trim_tail`, `path`) and `voices.load` (`path`). Comparison is an
+asynchronous job; wait for `state.busy` to become false and inspect `error`.
+Results are in `state.voice_comparison` and the output file. Failed imports leave
+the previous report intact.

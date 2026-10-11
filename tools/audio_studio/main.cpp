@@ -1,4 +1,5 @@
 #include "session.h"
+#include "voice_benchmark.h"
 #include <chrono>
 #include <cmath>
 #include <iostream>
@@ -9,6 +10,9 @@ using namespace AudioStudio;
 struct Options {
     std::string mode = "gui", capture, preset, file, exportFile;
     std::string benchmarkReport = "benchmark.json";
+    VoiceBenchmarkOptions voices;
+    bool compareVoices = false;
+    std::string voiceReport = "voice-comparison.json";
     fs::path output = "build/audio-studio";
     bool rpc = false, json = false, analysisOnly = false, segment = false,
          float32 = false;
@@ -55,6 +59,10 @@ Options parse(int argc, char **argv) {
                    "--analysis-only\n"
                    "  --device ID (0 = No Sound) --benchmark COUNT --json "
                    "--rpc-stdio\n"
+                   "  --compare-voices MAX --voice-bursts N "
+                   "--voice-interval-ms MS\n"
+                   "  --voice-steal-oldest --voice-trim-tail --voice-report "
+                   "NAME.json\n"
                    "  --benchmark-report NAME.json (default benchmark.json)\n"
                    "  --output-dir DIR --frames COUNT --ui-capture NAME.png\n"
                    "Default output: build/audio-studio. Exports stay inside "
@@ -82,6 +90,19 @@ Options parse(int argc, char **argv) {
             o.benchmark = integer();
         } else if (arg == "--benchmark-report") {
             o.benchmarkReport = next();
+        } else if (arg == "--compare-voices") {
+            o.compareVoices = true;
+            o.voices.voices = integer();
+        } else if (arg == "--voice-bursts") {
+            o.voices.bursts = integer();
+        } else if (arg == "--voice-interval-ms") {
+            o.voices.intervalMs = integer();
+        } else if (arg == "--voice-steal-oldest") {
+            o.voices.stealOldest = true;
+        } else if (arg == "--voice-trim-tail") {
+            o.voices.trimTail = true;
+        } else if (arg == "--voice-report") {
+            o.voiceReport = next();
         } else if (arg == "--device") {
             o.device.device = integer();
             o.explicitDevice = true;
@@ -125,6 +146,11 @@ Options parse(int argc, char **argv) {
         throw audio::Error(
             "RPC cannot be combined with one-shot JSON/export/benchmark");
     }
+    validate(o.voices);
+    if (o.compareVoices && (o.rpc || o.analysisOnly || o.file.empty())) {
+        throw audio::Error("Voice comparison requires --file and synthesis, "
+                           "without --rpc-stdio");
+    }
     return o;
 }
 } // namespace
@@ -149,8 +175,8 @@ int main(int argc, char **argv) {
             session.load(o.file);
             session.wait();
             session.seek(o.time);
-            session.setSelection(o.time,
-                std::min(session.wave->info.duration, o.time + o.length));
+            session.setSelection(o.time, std::min(session.wave->info.duration,
+                                                  o.time + o.length));
         }
         if (!o.rpc && !o.file.empty()) {
             session.generate(!o.analysisOnly);
@@ -163,6 +189,11 @@ int main(int argc, char **argv) {
             session.benchmark(o.benchmark, o.benchmarkReport);
             session.wait();
             std::cout << encode(*session.benchmarkReport) << '\n';
+        }
+        if (o.compareVoices) {
+            session.compare(o.voices, o.voiceReport);
+            session.wait();
+            std::cout << encode(*session.voiceReport) << '\n';
         }
         if (!o.exportFile.empty()) {
             session.exportAudio(o.exportFile, o.segment, false, o.float32);
@@ -183,7 +214,7 @@ int main(int argc, char **argv) {
             }
         } else if (o.json) {
             std::cout << encode(stateJson(session)) << '\n';
-        } else if (!o.benchmark) {
+        } else if (!o.benchmark && !o.compareVoices) {
             std::cout << "Audio Studio: " << session.source.string() << '\n';
             if (session.product) {
                 std::cout << "Generated "

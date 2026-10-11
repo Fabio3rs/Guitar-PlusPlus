@@ -13,6 +13,15 @@ namespace fs = std::filesystem;
 using Json = rapidjson::Document;
 using Value = rapidjson::Value;
 
+struct VoiceBenchmarkOptions {
+    int voices =
+        32; // Compare the standard sizes up to this limit, plus this size.
+    int bursts = 10;
+    int intervalMs = 0;
+    bool stealOldest = false;
+    bool trimTail = false;
+};
+
 struct Product {
     audio::AnalysisResult analysis;
     audio::PcmBuffer raw, processed;
@@ -30,6 +39,8 @@ class Session {
         audio::Settings settings;
         double time = 0, length = 0;
         bool float32 = false, raw = false;
+        VoiceBenchmarkOptions voiceOptions;
+        audio::DeviceSettings device;
         int iterations = 0;
         float bufferSeconds = 0;
         std::shared_ptr<const Product> product;
@@ -64,7 +75,7 @@ class Session {
     fs::path outputRoot, source;
     std::shared_ptr<const audio::Waveform> wave;
     std::shared_ptr<const Product> product;
-    std::shared_ptr<const Json> benchmarkReport;
+    std::shared_ptr<const Json> benchmarkReport, voiceReport;
     std::array<std::shared_ptr<const Product>, 2> slots;
     double cursor = 0, selectionStart = 0, selectionEnd = 1;
     double previewPrepareMs = 0;
@@ -86,6 +97,8 @@ class Session {
     uint64_t load(const fs::path &path);
     uint64_t generate(bool synthesis);
     uint64_t benchmark(int iterations, const fs::path &report);
+    uint64_t compare(const VoiceBenchmarkOptions &options,
+                     const fs::path &report);
     uint64_t exportAudio(const fs::path &path, bool segment, bool raw,
                          bool float32);
     void updateSettings(const audio::Settings &next);
