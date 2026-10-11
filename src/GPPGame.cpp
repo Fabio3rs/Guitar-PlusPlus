@@ -3238,266 +3238,8 @@ auto GPPGame::getWindowProportion() -> double {
     return CEngine::engine().windowWidth / CEngine::engine().windowHeight;
 }
 
-auto GPPGame::loadTexture(const std::string &path, const std::string &texture,
-                          CLuaH::luaScript *luaScript)
-    -> const GPPGame::gppTexture & {
-    {
-        std::lock_guard<std::mutex> lck(gppTextMtx);
-
-        {
-            auto &textInst = gTextures[(path + "/" + texture)];
-
-            if (luaScript != nullptr) {
-                textInst.associatedToScript[luaScript] = true;
-            }
-
-            if (textInst.getTextId() != 0u) {
-                return textInst;
-            }
-        }
-    }
-
-    {
-        if (std::this_thread::get_id() != GuitarPP().mainthread) {
-            gppTexture *pText = nullptr;
-
-            {
-                std::lock_guard<std::mutex> lck(gppTextMtx);
-                pText = std::addressof(gTextures[(path + "/" + texture)]);
-            }
-
-            if (!pText->lasync) {
-                pText->lasync = true;
-
-                // std::cout << "(std::this_thread::get_id() !=
-                // GuitarPP().mainthread) - loadTexture " << path << "/" <<
-                // texture << std::endl;
-
-                loadTextureBatch lb;
-                lb.luaScript = luaScript;
-                lb.path = path;
-                lb.texture = texture;
-                // Fire-and-forget request: no callback may retain stack data.
-
-                if (loadTextureSingleAsync(lb)) {
-                    if (pText->ft.valid()) {
-                        pText->ft.wait();
-                    }
-
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                }
-            }
-
-            return *pText;
-        }
-
-        std::lock_guard<std::mutex> lck(gppTextMtx);
-        auto &textInst = gTextures[(path + "/" + texture)];
-        // A scene may need a texture already queued by another loader. Consume
-        // its decoder on the GL owner instead of replacing the cache entry:
-        // queued batches still need its completion state and stable address.
-        if (textInst.getTextId() != 0u) {
-            return textInst;
-        }
-
-        if (textInst.ft.valid()) {
-            textInst.getTextIdUpdateAsync();
-            return textInst;
-        }
-
-        gppTexture gpptxt(path, texture);
-        gpptxt.load();
-        textInst = std::move(gpptxt);
-
-        return textInst;
-    }
-
-    return gTextures[(path + "/" + texture)];
-}
-
-void GPPGame::forceTexturesToLoad() {
-    if (futureTextureLoad.getAddedElementsNum() == 0) {
-        {
-            return;
-        }
-    }
-
-    forceTextToLoad = true;
-
-    if (std::this_thread::get_id() == mainthread) {
-        streammingProcess();
-    } else {
-        std::unique_lock<std::mutex> lock(mstreamming_block);
-        do {
-            cstreamming_block.wait(lock);
-
-            if (futureTextureLoad.getAddedElementsNum() == 0) {
-                {
-                    return;
-                }
-            }
-        } while (forceTextToLoad);
-    }
-}
-
-auto GPPGame::loadTextureSingleAsync(const loadTextureBatch &tData) -> bool {
-    if (forceTextToLoad &&
-        std::this_thread::get_id() == GuitarPP().mainthread) {
-        // Some thread is waiting the textures to load
-        // Request the upload to OpenGL now.
-        CLog::log().multiRegister("Streamming process: force textures to load");
-        textureStreammingProcess();
-    }
-
-    // Protect inspection, construction and publication with the same lock
-    // used by the consumer; pool pointers must not escape this scope.
-    std::lock_guard<std::mutex> queueLock(mtGppTextMtx);
-    if (futureTextureLoad.getAddedElementsNum() > 0) {
-        for (size_t i = 0, size = futureTextureLoad.getNumElements(); i < size;
-             i++) {
-            loadTextureBatch *a = futureTextureLoad.get(i);
-            if (a != nullptr) {
-                if (a->path == tData.path && a->texture == tData.texture) {
-                    if (!a->targetFun && !tData.targetFun &&
-                        a->userptr == tData.userptr &&
-                        a->username == tData.username) {
-                        return true;
-                    }
-
-                    // Mutex to protect the operations on loadTextureBatch -
-                    // futureTextureLoad
-                    loadTextureBatch *t = futureTextureLoad.newElement();
-                    if (t == nullptr) {
-                        // TODO
-                        std::cout << "futureTextureLoad.newElement() FAILED  "
-                                     "futureTextureLoad.getNumElements(): "
-                                  << futureTextureLoad.getNumElements()
-                                  << std::endl;
-
-                        return false;
-                    }
-
-                    loadTextureBatch b = tData;
-                    b.text = a->text;
-
-                    *t = std::move(b);
-                    return true;
-                }
-            }
-        }
-    }
-
-    {
-        // Mutex to protect the operations on loadTextureBatch -
-        // futureTextureLoad
-        loadTextureBatch *t = futureTextureLoad.newElement();
-        if (t == nullptr) {
-            // TODO
-            std::cout << "futureTextureLoad.newElement() FAILED  "
-                         "futureTextureLoad.getNumElements(): "
-                      << futureTextureLoad.getNumElements() << std::endl;
-            return false;
-        }
-
-        loadTextureBatch &b = *t;
-        b = tData;
-
-        if (!b.texture.empty()) {
-            std::lock_guard<std::mutex> lck(gppTextMtx);
-            auto &textInst = gTextures[(b.path + "/" + b.texture)];
-
-            if (b.luaScript != nullptr) {
-                textInst.associatedToScript[b.luaScript] = true;
-            }
-
-            b.text = &textInst;
-            if (textInst.getTextId() != 0u) {
-                if (b.targetFun) {
-                    CLog::log().multiRegister(
-                        "Texture loaded: calling function %0",
-                        textInst.getTextureName());
-                    b.targetFun(&b);
-                    futureTextureLoad.removeElement(t);
-                    return true;
-                }
-
-                futureTextureLoad.removeElement(t);
-                return true;
-
-            } else {
-                gppTexture gpptxt(b.path, b.texture, true);
-
-                textInst = std::move(gpptxt);
-            }
-
-            CLog::log().multiRegister("textInst.tloadAsync %0 %1", b.path,
-                                      b.texture);
-            textInst.tloadAsync(b.path, b.texture);
-            b.text = &textInst;
-        }
-    }
-
-    return true;
-}
-
 void GPPGame::textureStreammingProcess() {
-    const int elementsPerFrame = 50;
-    int elementsLoadedNow = 0;
-
-    if (futureTextureLoad.getAddedElementsNum() > 0) {
-        // Mutex to protect the operations on loadTextureBatch -
-        // futureTextureLoad
-        std::lock_guard<std::mutex> lck(mtGppTextMtx);
-
-        //
-        // std::unique_lock<std::mutex> lock(mstreamming_block);
-        bool ftload = forceTextToLoad;
-
-        for (size_t i = 0, size = futureTextureLoad.getNumElements(); i < size;
-             i++) {
-            loadTextureBatch *a = futureTextureLoad.get(i);
-            if (a != nullptr) {
-                if (a->text != nullptr) {
-                    if (a->text->asyncFl || ftload) {
-                        unsigned int tmp = a->text->getTextIdUpdateAsync();
-
-                        if (a->targetFun) {
-                            CLog::log().multiRegister(
-                                "Texture loaded: calling function %0",
-                                a->texture);
-                            a->targetFun(a);
-                        } // Completion callbacks are optional.
-
-                        futureTextureLoad.removeElement(a);
-
-                        elementsLoadedNow++;
-
-                        if (!ftload && elementsPerFrame <= elementsLoadedNow) {
-                            break;
-                        }
-                    } else if (a->text->getTextId() == ~0u) {
-                        futureTextureLoad.removeElement(a);
-                    }
-                } else {
-                    // Remove elements without a texture pointer
-                    futureTextureLoad.removeElement(a);
-                }
-            }
-        }
-
-        if (forceTextToLoad) {
-            forceTextToLoad = false;
-            cstreamming_block.notify_all();
-            CLog::log().multiRegister("cstreamming_block.notify_all()");
-        }
-    } else {
-        if (forceTextToLoad) {
-            // std::unique_lock<std::mutex> lock(mstreamming_block);
-            forceTextToLoad = false;
-            cstreamming_block.notify_all();
-            CLog::log().multiRegister("cstreamming_block.notify_all() empty");
-        }
-    }
+    textureManager->pump();
 
     if (futureModelLoad.getAddedElementsNum() > 0) {
         for (size_t i = 0, size = futureModelLoad.getNumElements(); i < size;
@@ -3511,52 +3253,6 @@ void GPPGame::textureStreammingProcess() {
 }
 
 void GPPGame::streammingProcess() { textureStreammingProcess(); }
-
-auto GPPGame::getNumTexturesToLoad() -> int {
-    return futureTextureLoad.getAddedElementsNum();
-}
-
-auto GPPGame::loadTextureBatchAsync(std::deque<loadTextureBatch> &batch)
-    -> bool {
-    for (auto &b : batch) {
-        if (!b.texture.empty()) {
-            auto &textInst = gTextures[(b.path + "/" + b.texture)];
-
-            if (b.luaScript != nullptr) {
-                textInst.associatedToScript[b.luaScript] = true;
-            }
-
-            if (textInst.getTextId() != 0u) {
-                std::cout << textInst.textName << std::endl;
-
-                if (b.targetFun) {
-                    b.targetFun(&b);
-                }
-            } else {
-                gppTexture gpptxt(b.path, b.texture, true);
-
-                textInst = std::move(gpptxt);
-            }
-
-            textInst.tloadAsync(b.path, b.texture);
-            b.text = &textInst;
-        }
-    }
-
-    for (auto &b : batch) {
-        auto &textInst = gTextures[(b.path + "/" + b.texture)];
-
-        if (textInst.getTextId() == 0) {
-            unsigned int tid = textInst.getTextIdUpdateAsync();
-
-            if (b.targetFun) {
-                b.targetFun(&b);
-            }
-        }
-    }
-
-    return true;
-}
 
 static auto singleModelLoadAsync(GPPGame::loadModelBatch *l) -> bool {
     try {
@@ -3612,20 +3308,6 @@ auto GPPGame::loadModelBatchAsync(std::deque<loadModelBatch> &batch) -> bool {
     }
 
     return true;
-}
-
-auto GPPGame::getTextureId(const std::string &name) const noexcept
-    -> unsigned int {
-    std::lock_guard<std::mutex> lck(gppTextMtx);
-    auto it = gTextures.find(name);
-
-    if (it != gTextures.end()) {
-        {
-            return (*it).second.getTextId();
-        }
-    }
-
-    return 0;
 }
 
 void GPPGame::loadBasicSprites() {
@@ -4364,11 +4046,10 @@ auto GPPGame::openMenus(CMenu *startMenu,
             }
         }
 
-        auto &texture = gTextures[menu.backgroundTexture];
+        const auto texture = getTextureInfo(menu.backgroundTexture);
 
-        if ((RenderData.Text = texture.getTextId()) != 0u) {
-            double prop =
-                (double)texture.getImgWidth() / (double)texture.getImgHeight();
+        if ((RenderData.Text = texture.id) != 0u) {
+            double prop = (double)texture.width / (double)texture.height;
 
             RenderData.x1 = -prop;
             RenderData.x2 = prop;
@@ -4567,6 +4248,7 @@ GPPGame::CTheme::CTheme() { loaded = false; }
 Lua events and creates window
 */
 auto GPPGame::createWindow() -> int {
+    initializeTextures();
     mainthread = std::this_thread::get_id();
     CLuaH::Lua().runEvent(preCreateWindowSE);
     std::string title = "Guitar++";
@@ -4700,8 +4382,8 @@ int GPPGame::firstStartFrameSE = 0, GPPGame::preCreateWindowSE = 0,
 
 GPPGame::GPPGame()
     : devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu"),
-      uiCreateProfile("uiCreateProfileMenu"), glanguage("PT-BR"),
-      gppTextureKeepBuffer(false) {
+      uiCreateProfile("uiCreateProfileMenu"), glanguage("PT-BR") {
+    initializeTextures();
     CBackgroundRenderer::inst();
     CLuaFunctions::GameVariables::gv().pushVar("backgroundScene",
                                                backgroundScene);

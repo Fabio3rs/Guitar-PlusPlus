@@ -265,35 +265,86 @@ Lua runs on the same owner at loading/session boundaries. It currently uses
 standard Lua libraries and is **trusted local game code**, not a sandbox for
 untrusted downloads; isolated Lua states do not provide a security boundary.
 
-The legacy loaders are **not fully race-free**. This change removes a texture
-callback holding a pointer to an expired stack variable, protects texture queue
-inspection/publication with the consumer's mutex, retains each queued callback,
-and waits for texture decoders before moving/destroying their objects. Decoders
-no longer write the GL texture ID; failure is consumed through their future.
-Missing optional completion callbacks no longer print `targetfun zero`.
-Synchronous texture use consumes an existing decoder without replacing its
-cache entry, so queued completion callbacks still run through the streamer.
+Texture loading now lives in `CTextureManager` / `CTextureResource`, behind
+`GPPGame`'s compatibility facade in `GPPTexture.cpp`. The core has no GL, GLFW,
+BASS, Lua or game-singleton dependency. Production decoding/upload/deletion are
+injected by the engine adapter; tests use controlled CPU/GPU substitutes.
 
-Follow-up work should keep strict synchronization at loading boundaries without
-adding a render/update-wide lock:
+The call's completion contract is preserved, not inferred from its name:
 
-- Texture cache access is not uniformly synchronized (`gTextures`, `lasync`,
-  image metadata and returned references). Some cached completion callbacks can
-  execute on the requesting thread and under loader locks. Establish one owner
-  for cache mutation/upload and dispatch callbacks outside queue locks on that
-  owner. The batch API and font/menu direct cache access need the same audit.
-- `forceTexturesToLoad` needs a predicate and notification protocol under its
-  condition-variable mutex to prevent lost wakeups, including cancellation.
-- The generic `CMultiThreadPool` is not independently safe: occupancy and object
-  lifetime require an external lock spanning lookup/use/removal. Texture queue
-  callers now use their common lock; model queue publication/teardown still
-  needs an owner-thread contract or the same protection.
+| API | Completion contract |
+| --- | --- |
+| `loadTexture()` on the main/GL owner | Ready or failed before returning, including an already pending decoder. No frame/event pumping or unrelated callback dispatch. |
+| `loadTextureBatchAsync()` on that owner | Blocking batch, including callbacks, despite the legacy name. Off-owner calls are rejected. |
+| `loadTextureSingleAsync()` | A completed cache hit calls back immediately on the owner; pending loads and off-owner callbacks are dispatched by the owner. |
+| `loadTexture()` off-owner | Requests CPU work and returns a stable view; it does not promise a GPU-ready result. |
 
-These are loading/lifetime debts, separate from the already known gameplay
-update/render sharing. Passing build/GL tests does not establish race freedom;
-concurrent loading/cancellation stress and sanitizer runs remain necessary for
-a broader loader redesign. No FPS improvement is claimed by these changes.
+`Queued`, `Decoding`, `ReadyForUpload`, `Ready`, `Failed` and `Cancelled` describe
+the resource separately from its GPU ID. Decoder futures return owned pixels;
+workers never capture movable resources or write GL IDs. Short locks protect
+cache/queue operations and coherent resource snapshots. Upload, future waits
+and callbacks run outside those locks. Synchronous use joins the same decode
+and preserves queued callbacks. Each accepted callback runs once during normal
+operation; a throwing callback is reported without abandoning the others.
+The facade alone retains legacy `0` / `~0u` failure conventions: synchronous
+failures can be retried, while asynchronous failures remain cached.
 
+The cache key remains `path + "/" + texture`. There is no eviction yet. Fonts
+request `keepPixels` per texture instead of changing a global setting; an atlas
+already uploaded without retained pixels uses the existing CPU reread fallback,
+without another GPU upload. Pixel views own their data and are read-only. Legacy
+callback batch pointers are valid only during the callback; `void*` user data
+and Lua associations remain confined to the facade.
+
+The queue still accepts at most 200 outstanding asynchronous requests and pumps
+50 completions per normal call. Saturation rejects new requests explicitly;
+synchronous loading is not subject to that queue limit. `std::async` remains
+encapsulated for this step: these limits are **not a bounded worker executor**.
+Worker-side draining waits on a predicate under the notification mutex; the GL
+owner must continue pumping. Shutdown wakes waiters, joins CPU decoders,
+discards callbacks and deletes textures while the context is still current.
+`main` uses a scope guard covering normal exit, cancelled startup and exceptions.
+The core destructor only joins CPU work: owners must call `shutdown()` before
+losing their GL context. `initializeTextures()` starts a new cache lifetime only
+at a lifecycle boundary, without concurrent callers or surviving legacy refs.
+
+Remaining work is deliberately separate:
+
+- Model loading still uses the legacy slot pool and unsynchronized `asyncend`,
+  and `singleModelLoadAsync` still discards decoder failures. Model publication,
+  queue lifetimes and cancellation require their own incremental migration.
+- `CMultiThreadPool` is not independently safe: occupancy and object lifetime
+  require external synchronization. It is no longer used by the texture queue.
+- A bounded executor, upload time/byte budgets, priorities, per-request
+  cancellation and eviction remain future work. Gameplay update/render sharing
+  is unchanged; no whole-game race-freedom or FPS improvement is claimed.
+
+### Texture loader validation
+
+`gpp_texture_tests` links only the isolated core, GoogleTest and threads. Its
+controlled decoders cover deduplication, synchronous takeover, callbacks,
+saturation, retained pixels and shutdown. Existing game-linked tests cover the
+facade, real TGA files, fonts, scenes and GL object retirement without game startup.
+
+```sh
+cmake --build build --target gpp_texture_tests tests GuitarPP --parallel
+ctest --test-dir build --output-on-failure --no-tests=error --timeout 30
+```
+
+For sanitizers use separate Debug build directories, Clang and
+`GPP_NATIVE_CPU=OFF`. Apply `-fsanitize=address,undefined
+-fno-omit-frame-pointer -O1` to both C/C++ compilation and the sanitizer flags to
+executable linking; use `-fsanitize=thread` in a separate build for TSan. Execute
+configuration, compilation (including test discovery) and tests through
+NativeLab MCP when available. The CPU/facade selection is
+`^(texture_core\.|Scenes\.(Texture|EmptyTexture)|FontCPU\.)`; GL/font/shader cases
+run through the existing Xvfb launcher with OpenGL 2.0/GLSL 1.10 for scene/shader
+cases. Keep leak detection enabled for CPU tests and distinguish external
+Mesa/GLX allocations from loader diagnostics rather than suppressing loader errors.
+On the current NativeLab host, `/opt/amdgpu` GLX reports a repeatable 108124-byte
+leak even in existing shader tests. Selecting system Mesa with
+`LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu` allows the GL tests to run with
+`ASAN_OPTIONS=detect_leaks=1:halt_on_error=1`; no sanitizer suppression is needed.
 
 ## Song boundaries, timing and results
 

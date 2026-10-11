@@ -22,6 +22,7 @@ TEST(FontMetricsGL, LuaMetricsAffectDirectBufferedAnd3DText) {
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     GPPGame::GuitarPP().mainthread = std::this_thread::get_id();
+    GPPGame::GuitarPP().initializeTextures();
 
     // Two rows of three square cells, independent of the installed theme.
     auto path =
@@ -99,6 +100,7 @@ TEST(FontMetricsGL, LuaMetricsAffectDirectBufferedAnd3DText) {
     EXPECT_FLOAT_EQ(reset[3], 70);
     EXPECT_FLOAT_EQ(reset[9], 50);
     std::filesystem::remove_all(path);
+    GPPGame::GuitarPP().shutdownTextures();
     glfwDestroyWindow(window);
     glfwTerminate();
 }
@@ -121,6 +123,7 @@ class FontAtlasGL : public ::testing::Test {
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         GPPGame::GuitarPP().mainthread = std::this_thread::get_id();
+        GPPGame::GuitarPP().initializeTextures();
         CEngine::engine().invalidateRenderBindings();
         path =
             std::filesystem::temp_directory_path() /
@@ -132,6 +135,7 @@ class FontAtlasGL : public ::testing::Test {
 
     void TearDown() override {
         std::filesystem::remove_all(path);
+        GPPGame::GuitarPP().shutdownTextures();
         if (window) {
             glfwDestroyWindow(window);
         }
@@ -197,6 +201,23 @@ TEST_F(FontAtlasGL,
     const auto revision = f.revision();
     f.getXSizeInScreen("unknown", 1, "not-registered");
     EXPECT_EQ(f.revision(), revision);
+}
+
+TEST_F(FontAtlasGL,
+       PreviouslyUploadedAtlasCanBeRegisteredWithoutAnotherUpload) {
+    atlas("late.tga");
+    auto &game = GPPGame::GuitarPP();
+    const auto &texture = game.loadTexture(path.string(), "late.tga");
+    const auto id = texture.getTextId();
+    ASSERT_TRUE(glIsTexture(id));
+    EXPECT_EQ(texture.getImageData(), nullptr);
+    auto &fonts = CFonts::fonts();
+    EXPECT_FALSE(fonts
+                     .addTextureToFont("late-atlas", path.string(), "late.tga",
+                                       "abc\n?", {3, 2})
+                     .empty());
+    EXPECT_EQ(game.getTextureId(path.string() + "/late.tga"), id);
+    EXPECT_GT(fonts.getXSizeInScreen("ab?", 1, "late-atlas"), 0);
 }
 
 TEST_F(FontAtlasGL, DirectBufferedAnd3DHaveIdenticalProportionalPositions) {

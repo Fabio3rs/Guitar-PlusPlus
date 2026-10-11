@@ -55,6 +55,7 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CText.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CVideo.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GPPGame.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/GPPTexture.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/GPPOBJ.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ObjModel.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/SceneAO.cpp"
@@ -79,6 +80,14 @@ message(${INCLUDE_DIRS})
 include_directories(SYSTEM ${INCLUDE_DIRS})
 link_directories(${INCLUDE_DIRS})
 
+find_package(Threads REQUIRED)
+add_library(gpp_textures STATIC src/CTextureManager.cpp)
+target_include_directories(gpp_textures PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(gpp_textures PUBLIC Threads::Threads)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(gpp_textures PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
 add_library("${myprojectname}_lib" STATIC ${SOURCES})
 add_executable(${myprojectname} "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
@@ -99,7 +108,7 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     target_compile_options("${myprojectname}_lib" PRIVATE -Weverything -Wno-date-time -Wno-disabled-macro-expansion -Wno-global-constructors $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>  -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-exit-time-destructors)
 endif()
 
-target_link_libraries("${myprojectname}_lib" glfw GLEW OpenGL::GL bass bass_fx)
+target_link_libraries("${myprojectname}_lib" gpp_textures glfw GLEW OpenGL::GL bass bass_fx)
 target_link_libraries(${myprojectname} "${myprojectname}_lib")
 
 

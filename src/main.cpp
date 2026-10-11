@@ -674,6 +674,13 @@ auto main(int argc, char *argv[]) -> int {
 
         auto &game = GPPGame::GuitarPP();
 
+        // Runs on normal exit, cancelled startup and exception unwinding,
+        // while the engine's window/context and callback targets still exist.
+        struct TextureShutdown {
+            GPPGame &game;
+            ~TextureShutdown() { game.shutdownTextures(); }
+        } textureShutdown{game};
+
         game.parseParameters(argc, argv);
 
         auto &lua = CLuaH::Lua();

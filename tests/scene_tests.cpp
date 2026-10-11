@@ -89,9 +89,10 @@ TEST_F(Scenes, GarageDefaultsPreserveExistingAssetPaths) {
 }
 
 TEST_F(Scenes, TextureDecoderFailureSurvivesMoveAndPublishesOnConsumer) {
+    GPPGame::GuitarPP().initializeTextures();
     GPPGame::gppTexture texture("data/models", "missing.tga", true);
     texture.tloadAsync("data/models", "missing.tga");
-    // Moving waits for decoding because the worker captures the source address.
+    // Preserve the legacy move contract; the decoder now owns its inputs.
     GPPGame::gppTexture moved(std::move(texture));
     EXPECT_EQ(texture.getTextId(), 0u);
     EXPECT_EQ(moved.getTextId(), 0u);
@@ -101,6 +102,7 @@ TEST_F(Scenes, TextureDecoderFailureSurvivesMoveAndPublishesOnConsumer) {
 }
 TEST_F(Scenes, TextureQueueKeepsDistinctFilesAndEachCompletionCallback) {
     auto &game = GPPGame::GuitarPP();
+    game.initializeTextures();
     const auto previousOwner = game.mainthread.load();
     game.mainthread = std::this_thread::get_id();
     int first = 0, second = 0, duplicate = 0;
@@ -123,10 +125,79 @@ TEST_F(Scenes, TextureQueueKeepsDistinctFilesAndEachCompletionCallback) {
     game.mainthread = previousOwner;
 }
 TEST_F(Scenes, EmptyTextureNamePublishesCompletion) {
+    GPPGame::GuitarPP().initializeTextures();
     GPPGame::gppTexture texture("data/models", "", true);
     texture.tloadAsync("data/models", "");
     EXPECT_EQ(texture.getTextIdUpdateAsync(), ~0u);
     EXPECT_FALSE(texture.isAsyncRunning());
+}
+
+TEST_F(Scenes, TextureImmediateCallbackMayDestroyOriginalRequest) {
+    auto &game = GPPGame::GuitarPP();
+    game.initializeTextures();
+    const auto path = directory.string();
+    ASSERT_TRUE(
+        game.loadTextureSingleAsync({path, "missing.tga", nullptr, nullptr}));
+    game.forceTexturesToLoad();
+
+    auto request = std::make_unique<GPPGame::loadTextureBatch>();
+    request->path = path;
+    request->texture = "missing.tga";
+    int callbacks = 0;
+    request->targetFun = [&](GPPGame::loadTextureBatch *owned) {
+        request.reset();
+        EXPECT_EQ(owned->text->getTextId(), ~0u);
+        ++callbacks;
+    };
+    EXPECT_TRUE(game.loadTextureSingleAsync(*request));
+    EXPECT_EQ(request, nullptr);
+    EXPECT_EQ(callbacks, 1);
+    game.shutdownTextures();
+}
+
+TEST_F(Scenes, TextureFacadeConcurrentRequestsAllowReentrantCacheCallbacks) {
+    auto &game = GPPGame::GuitarPP();
+    game.initializeTextures();
+    const auto owner = std::this_thread::get_id();
+    const auto path = directory.string();
+    int callbacks = 0;
+    std::vector<std::thread> producers;
+    for (int i = 0; i < 12; ++i) {
+        producers.emplace_back([&] {
+            EXPECT_TRUE(game.loadTextureSingleAsync(
+                {path, "missing.tga", nullptr,
+                 [&](GPPGame::loadTextureBatch *batch) {
+                     EXPECT_EQ(std::this_thread::get_id(), owner);
+                     EXPECT_EQ(batch->text->getTextId(), ~0u);
+                     ++callbacks;
+                     EXPECT_TRUE(game.loadTextureSingleAsync(
+                         {path, "missing.tga", nullptr,
+                          [&](GPPGame::loadTextureBatch *cached) {
+                              EXPECT_EQ(cached->text->getTextId(), ~0u);
+                              ++callbacks;
+                          }}));
+                     EXPECT_TRUE(game.loadTextureSingleAsync(
+                         {path, "other.tga", nullptr, nullptr}));
+                 }}));
+        });
+    }
+    for (auto &producer : producers) {
+        producer.join();
+    }
+    std::atomic<bool> finished{false};
+    std::thread reader([&] {
+        while (!finished) {
+            const auto id = game.getTextureId(path + "/missing.tga");
+            EXPECT_TRUE(id == 0u || id == ~0u);
+            game.getTextureInfo(path + "/missing.tga");
+        }
+    });
+    game.forceTexturesToLoad();
+    finished = true;
+    reader.join();
+    EXPECT_EQ(callbacks, 24);
+    EXPECT_EQ(game.getNumTexturesToLoad(), 0);
+    game.shutdownTextures();
 }
 
 class SceneGL : public Scenes {
@@ -141,10 +212,12 @@ class SceneGL : public Scenes {
         ASSERT_NE(window, nullptr);
         glfwMakeContextCurrent(window);
         ASSERT_EQ(glewInit(), GLEW_OK);
+        GPPGame::GuitarPP().initializeTextures();
         ShaderProject::CShader::inst().prepareEffects();
     }
     void TearDown() override {
         CGuitars::inst().unload();
+        GPPGame::GuitarPP().shutdownTextures();
         CBackgroundRenderer::shutdown();
         ShaderProject::CShader::shutdown();
         if (window) { glfwDestroyWindow(window); }
@@ -182,6 +255,172 @@ TEST_F(SceneGL, SynchronousTextureUsePreservesQueuedCompletions) {
     }
     game.mainthread = previousOwner;
 }
+
+TEST_F(SceneGL, ColdSynchronousTextureIsUsableWithoutProcessingAnotherFrame) {
+    auto &game = GPPGame::GuitarPP();
+    const auto previousOwner = game.mainthread.load();
+    game.mainthread = std::this_thread::get_id();
+    std::string pixels(21, '\0');
+    pixels[2] = 2;
+    pixels[12] = 1;
+    pixels[14] = 1;
+    pixels[16] = 24;
+    write("sync.tga", pixels);
+
+    const auto &texture = game.loadTexture(directory.string(), "sync.tga");
+    EXPECT_TRUE(glIsTexture(texture.getTextId()));
+    EXPECT_EQ(&texture, &game.loadTexture(directory.string(), "sync.tga"));
+
+    int completions = 0;
+    ASSERT_TRUE(game.loadTextureSingleAsync(
+        {directory.string(), "sync.tga", nullptr,
+         [&](GPPGame::loadTextureBatch *batch) {
+             ASSERT_NE(batch->text, nullptr);
+             EXPECT_EQ(batch->text->getTextId(), texture.getTextId());
+             ++completions;
+         }}));
+    EXPECT_EQ(completions, 1); // Cache-hit completion precedes the return.
+    game.mainthread = previousOwner;
+}
+
+TEST_F(SceneGL, TextureBatchCompletesBeforeReturningDespiteAsyncName) {
+    auto &game = GPPGame::GuitarPP();
+    const auto previousOwner = game.mainthread.load();
+    game.mainthread = std::this_thread::get_id();
+    std::string pixels(21, '\0');
+    pixels[2] = 2;
+    pixels[12] = 1;
+    pixels[14] = 1;
+    pixels[16] = 24;
+    write("batch.tga", pixels);
+    int completions = 0;
+    std::deque<GPPGame::loadTextureBatch> batch;
+    batch.emplace_back(directory.string(), "batch.tga", nullptr,
+                       [&](GPPGame::loadTextureBatch *result) {
+                           ASSERT_NE(result->text, nullptr);
+                           EXPECT_TRUE(glIsTexture(result->text->getTextId()));
+                           ++completions;
+                       });
+
+    EXPECT_TRUE(game.loadTextureBatchAsync(batch));
+    EXPECT_EQ(completions, 1);
+    ASSERT_NE(batch.front().text, nullptr);
+    EXPECT_TRUE(glIsTexture(batch.front().text->getTextId()));
+    game.mainthread = previousOwner;
+}
+
+TEST_F(SceneGL, TextureBatchPreservesDuplicateAndCachedCompletions) {
+    auto &game = GPPGame::GuitarPP();
+    std::string pixels(21, '\0');
+    pixels[2] = 2;
+    pixels[12] = 1;
+    pixels[14] = 1;
+    pixels[16] = 24;
+    write("batch.tga", pixels);
+    const auto id =
+        game.loadTexture(directory.string(), "batch.tga").getTextId();
+    int callbacks = 0;
+    std::deque<GPPGame::loadTextureBatch> batch;
+    for (int i = 0; i < 3; ++i) {
+        batch.emplace_back(directory.string(), "batch.tga", nullptr,
+                           [&](GPPGame::loadTextureBatch *result) {
+                               ASSERT_NE(result->text, nullptr);
+                               EXPECT_EQ(result->text->getTextId(), id);
+                               ++callbacks;
+                           });
+    }
+    EXPECT_TRUE(game.loadTextureBatchAsync(batch));
+    EXPECT_EQ(callbacks, 3);
+    EXPECT_EQ(game.getNumTexturesToLoad(), 0);
+    game.textureStreammingProcess();
+    EXPECT_EQ(callbacks, 3);
+}
+
+TEST_F(SceneGL, TextureShutdownDeletesGpuObjectsBeforeContextDestruction) {
+    auto &game = GPPGame::GuitarPP();
+    std::string pixels(21, '\0');
+    pixels[2] = 2;
+    pixels[12] = 1;
+    pixels[14] = 1;
+    pixels[16] = 24;
+    write("shutdown.tga", pixels);
+    const auto &texture = game.loadTexture(directory.string(), "shutdown.tga");
+    const auto id = texture.getTextId();
+    ASSERT_TRUE(glIsTexture(id));
+    int callbacks = 0;
+    std::thread worker([&] {
+        EXPECT_TRUE(game.loadTextureSingleAsync(
+            {directory.string(), "shutdown.tga", nullptr,
+             [&](GPPGame::loadTextureBatch *) { ++callbacks; }}));
+    });
+    worker.join();
+    game.shutdownTextures();
+    EXPECT_FALSE(glIsTexture(id));
+    EXPECT_EQ(texture.getTextId(), 0u);
+    EXPECT_EQ(callbacks, 0);
+    EXPECT_EQ(game.getNumTexturesToLoad(), 0);
+    EXPECT_FALSE(game.loadTextureSingleAsync(
+        {directory.string(), "late.tga", nullptr, nullptr}));
+}
+
+TEST_F(SceneGL, TextureUploadPreservesParametersOfPreviouslyBoundTexture) {
+    GLuint previous = 0;
+    glGenTextures(1, &previous);
+    glBindTexture(GL_TEXTURE_2D, previous);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    std::string pixels(21, '\0');
+    pixels[2] = 2;
+    pixels[12] = 1;
+    pixels[14] = 1;
+    pixels[16] = 24;
+    write("parameters.tga", pixels);
+    const auto id = GPPGame::GuitarPP()
+                        .loadTexture(directory.string(), "parameters.tga")
+                        .getTextId();
+    EXPECT_TRUE(glIsTexture(id));
+    GLint filter = 0, wrap = 0;
+    glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, &filter);
+    EXPECT_EQ(filter, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, previous);
+    glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, &filter);
+    glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, &wrap);
+    EXPECT_EQ(filter, GL_NEAREST);
+    EXPECT_EQ(wrap, GL_CLAMP_TO_EDGE);
+    glDeleteTextures(1, &previous);
+}
+
+TEST_F(SceneGL, TextureExceedingGpuLimitPublishesFailureInsteadOfReady) {
+    GLint maximum = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximum);
+    if (maximum >= 65535) {
+        GTEST_SKIP() << "All TGA widths fit this GPU's dimension limit";
+    }
+    const auto width = maximum + 1;
+    std::string pixels(18 + static_cast<size_t>(width) * 3, '\0');
+    pixels[2] = 2;
+    pixels[12] = static_cast<char>(width & 255);
+    pixels[13] = static_cast<char>((width >> 8) & 255);
+    pixels[14] = 1;
+    pixels[16] = 24;
+    write("oversized.tga", pixels);
+    auto &game = GPPGame::GuitarPP();
+    EXPECT_EQ(game.loadTexture(directory.string(), "oversized.tga").getTextId(),
+              0u);
+    auto result = game.getTextureInfo(directory.string() + "/oversized.tga");
+    EXPECT_EQ(result.state, CTextureResource::State::Failed);
+    EXPECT_FALSE(result.error.empty());
+    int callbacks = 0;
+    EXPECT_TRUE(game.loadTextureSingleAsync(
+        {directory.string(), "oversized.tga", nullptr,
+         [&](GPPGame::loadTextureBatch *batch) {
+             EXPECT_EQ(batch->text->getTextId(), ~0u);
+             ++callbacks;
+         }}));
+    game.forceTexturesToLoad();
+    EXPECT_EQ(callbacks, 1);
+}
+
 TEST_F(SceneGL, HookLookupDoesNotInvokeMetamethods) {
     model();
     write("data/scenes/meta.lua", R"(

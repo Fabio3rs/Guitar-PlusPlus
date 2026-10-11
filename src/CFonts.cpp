@@ -170,14 +170,7 @@ bool CFonts::Font::registerTexture(const std::string &path,
         return false;
     }
 
-    struct KeepPixels {
-        bool &value;
-        bool previous;
-        explicit KeepPixels(bool &v) : value(v), previous(v) { v = true; }
-
-        ~KeepPixels() { value = previous; }
-    } keep(game.gppTextureKeepBuffer);
-    const auto &loaded = game.loadTexture(path, texture);
+    const auto &loaded = game.loadTexture(path, texture, nullptr, true);
     const unsigned id = loaded.getTextId();
 
     if (!id || id == ~0u) {
@@ -229,23 +222,15 @@ bool CFonts::Font::registerTexture(const std::string &path,
         }
     }
 
-    auto found = game.gTextures.find(path + "/" + texture);
-
-    if (found == game.gTextures.end()) {
-        return false;
-    }
-
-    auto &image = found->second.getImageData();
-    // An atlas may already have been uploaded without retaining pixels.
+    const auto retained = loaded.getImageData();
+    // A previously uploaded atlas may no longer retain CPU pixels.
     CEngine::GLFWimage decoded;
-    const CEngine::GLFWimage *pixels = &image;
-
-    if (!image.Data) {
+    const CEngine::GLFWimage *pixels = retained.get();
+    if (!pixels || !pixels->Data) {
         if (!CEngine::engine().readImage((path + "/" + texture).c_str(),
                                          &decoded, 0)) {
             return false;
         }
-
         pixels = &decoded;
     }
 

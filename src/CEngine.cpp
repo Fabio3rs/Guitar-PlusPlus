@@ -918,20 +918,41 @@ auto CEngine::loadTextureAsync(const char *textureFileName, GLFWimage *eimg)
 }
 
 auto CEngine::uploadTextureToOGL(GLFWimage *eimg) -> unsigned int {
-    GLuint Text;
+    if (!eimg || !eimg->Data || eimg->Width <= 0 || eimg->Height <= 0) {
+        return 0u;
+    }
 
+    GLint maximum = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximum);
+    if (eimg->Width > maximum || eimg->Height > maximum) {
+        return 0u;
+    }
+
+    GLuint Text = 0;
+
+    invalidateRenderBindings();
+    glGenTextures(1, &Text);
+    if (Text == 0) {
+        return 0u;
+    }
+    glBindTexture(GL_TEXTURE_2D, Text);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    invalidateRenderBindings();
-    glGenTextures(1, &Text);
-    glBindTexture(GL_TEXTURE_2D, Text);
-
-    if ((loadTextureImage2DFinish(eimg, 0) != 0) && (glIsTexture(Text) != 0u)) {
-        return Text;
+    if (loadTextureImage2DFinish(eimg, 0) != 0) {
+        // A generated/bound name is a texture even when glTexImage2D failed.
+        // Inspect the new level without consuming unrelated GL error flags.
+        GLint width = 0, height = 0;
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+        if (width == eimg->Width && height == eimg->Height) {
+            return Text;
+        }
     }
 
+    glDeleteTextures(1, &Text);
+    invalidateRenderBindings();
     return 0u;
 }
 

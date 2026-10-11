@@ -204,22 +204,22 @@ static bool ReadTGA_RLE(unsigned char *buf, int size, int bpp, _GLFWstream *s) {
 
 auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
     -> int {
-    _tga_header_t h;
-    unsigned char tmp;
-    unsigned char *src;
-    unsigned char *dst;
+    _tga_header_t h{};
+    unsigned char tmp{};
+    unsigned char *src{};
+    unsigned char *dst{};
     std::unique_ptr<unsigned char[]> cmap;
     std::unique_ptr<unsigned char[]> pix;
-    int cmapsize;
-    int pixsize;
-    int pixsize2;
-    int bpp;
-    int bpp2;
-    int k;
-    int m;
-    int n;
-    int swapx;
-    int swapy;
+    int cmapsize{};
+    int pixsize{};
+    int pixsize2{};
+    int bpp{};
+    int bpp2{};
+    int k{};
+    int m{};
+    int n{};
+    int swapx{};
+    int swapy{};
 
     // Read TGA header
     if (ReadTGAHeader(s, &h) == 0) {
@@ -255,7 +255,7 @@ auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
         }
 
         // Read colormap from file
-        if (CEngine::engine().readStream(s, cmap.get(), cmapsize) != cmapsize) {
+        if (CEngine::readStream(s, cmap.get(), cmapsize) != cmapsize) {
             return 0;
         }
     }
@@ -294,7 +294,7 @@ auto _glfwReadTGA(CEngine::GLFWstream *s, CEngine::GLFWimage *img, int flags)
             return 0;
         }
     } else {
-        if (CEngine::engine().readStream(s, pix.get(), pixsize) != pixsize) {
+        if (CEngine::readStream(s, pix.get(), pixsize) != pixsize) {
             return 0;
         }
     }

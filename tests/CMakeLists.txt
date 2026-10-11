@@ -2,6 +2,15 @@ find_package(GTest REQUIRED)
 include(GoogleTest)
 
 file(GLOB TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+list(FILTER TEST_SOURCES EXCLUDE REGEX "/texture_manager_tests\\.cpp$")
+
+# This executable never links the game, GL, GLFW, BASS or Lua.
+add_executable(gpp_texture_tests texture_manager_tests.cpp)
+target_link_libraries(gpp_texture_tests PRIVATE gpp_textures GTest::GTest GTest::Main)
+gtest_discover_tests(gpp_texture_tests
+    TEST_PREFIX "texture_core."
+    PROPERTIES LABELS cpu TIMEOUT 30
+    DISCOVERY_TIMEOUT 30)
 
 add_executable(tests ${TEST_SOURCES})
 target_link_libraries(tests GuitarPP_lib GTest::GTest GTest::Main)

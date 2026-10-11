@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include "CTextureImage.h"
 #ifndef GUITARPP_CENGINE_H_
 #define GUITARPP_CENGINE_H_
 // brmodstudio.forumeiros.com
@@ -231,22 +232,7 @@ class CEngine {
 
     customwcallback getWindowCallbackFunction() const { return wcallfunc; }
 
-    struct GLFWimageC {
-        int Width = 0, Height = 0;
-        int Format = 0;
-        int BytesPerPixel = 0;
-        size_t DataBytes = 0;
-        std::unique_ptr<unsigned char[]> Data;
-        std::unique_ptr<unsigned char[]> tmpData;
-        bool bRevPixels;
-        bool keepData;
-
-        GLFWimageC() {
-            keepData = false;
-            bRevPixels = false;
-        }
-    };
-
+    using GLFWimageC = CTextureImage;
     typedef GLFWimageC GLFWimage;
 
     typedef struct {
