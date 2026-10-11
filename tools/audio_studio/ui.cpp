@@ -1,0 +1,988 @@
+#include "session.h"
+#include <GLFW/glfw3.h>
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_internal.h>
+#include <png.h>
+#include <type_traits>
+
+namespace AudioStudio {
+namespace {
+constexpr ImU32 amber = IM_COL32(233, 161, 70, 255);
+constexpr ImU32 blue = IM_COL32(93, 163, 223, 255);
+
+struct Window {
+    GLFWwindow *window = nullptr;
+    bool imgui = false, glfwBackend = false, glBackend = false;
+    std::string ini;
+    explicit Window(const fs::path &output)
+        : ini((output / "layout.ini").string()) {
+        if (!glfwInit()) {
+            throw audio::Error(
+                "GLFW initialization failed; use Xvfb or --mode headless");
+        }
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+        window = glfwCreateWindow(1440, 960, "Guitar++ Audio Studio", nullptr,
+                                  nullptr);
+        if (!window) {
+            glfwTerminate();
+            throw audio::Error("Cannot create Audio Studio window");
+        }
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        imgui = true;
+        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        ImGui::GetIO().IniFilename = ini.c_str();
+        // Optional system font improves readability without adding an asset
+        // dependency. ImGui's bundled font remains the portable fallback.
+        const fs::path systemFont =
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+        if (fs::exists(systemFont)) {
+            ImGui::GetIO().Fonts->AddFontFromFileTTF(
+                systemFont.string().c_str(), 16);
+        }
+        glfwBackend = ImGui_ImplGlfw_InitForOpenGL(window, true);
+        glBackend = glfwBackend && ImGui_ImplOpenGL3_Init("#version 110");
+        if (!glBackend || !ImGui_ImplOpenGL3_CreateDeviceObjects()) {
+            close();
+            throw audio::Error("Cannot initialize ImGui OpenGL 2.0 backend");
+        }
+        ImGui::StyleColorsDark();
+        auto &style = ImGui::GetStyle();
+        style.WindowRounding = 5;
+        style.FrameRounding = 4;
+        style.GrabRounding = 4;
+        style.WindowPadding = {12, 12};
+        style.FramePadding = {8, 5};
+        style.ItemSpacing = {8, 7};
+        style.Colors[ImGuiCol_WindowBg] = {.075f, .087f, .11f, 1};
+        style.Colors[ImGuiCol_ChildBg] = {.09f, .10f, .13f, 1};
+        style.Colors[ImGuiCol_FrameBg] = {.15f, .17f, .21f, 1};
+        style.Colors[ImGuiCol_Button] = {.21f, .25f, .31f, 1};
+        style.Colors[ImGuiCol_ButtonHovered] = {.45f, .32f, .18f, 1};
+        style.Colors[ImGuiCol_SliderGrab] = {.92f, .63f, .27f, 1};
+        style.Colors[ImGuiCol_CheckMark] = {.92f, .63f, .27f, 1};
+    }
+    void close() {
+        if (glBackend) {
+            ImGui_ImplOpenGL3_Shutdown();
+            glBackend = false;
+        }
+        if (glfwBackend) {
+            ImGui_ImplGlfw_Shutdown();
+            glfwBackend = false;
+        }
+        if (imgui) {
+            ImGui::DestroyContext();
+            imgui = false;
+        }
+        if (window) {
+            glfwDestroyWindow(window);
+            window = nullptr;
+        }
+        glfwTerminate();
+    }
+    ~Window() { close(); }
+};
+
+void screenshot(const fs::path &path, GLFWwindow *window) {
+    int w = 0, h = 0;
+    glfwGetFramebufferSize(window, &w, &h);
+    if (w <= 0 || h <= 0) {
+        throw audio::Error("Cannot capture minimized window");
+    }
+    std::vector<unsigned char> pixels(size_t(w) * size_t(h) * 4),
+        flipped(pixels.size());
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    for (int y = 0; y < h; ++y) {
+        std::memcpy(flipped.data() + size_t(y) * size_t(w) * 4,
+                    pixels.data() + size_t(h - y - 1) * size_t(w) * 4,
+                    size_t(w) * 4);
+    }
+    png_image image{};
+    image.version = PNG_IMAGE_VERSION;
+    image.width = png_uint_32(w);
+    image.height = png_uint_32(h);
+    image.format = PNG_FORMAT_RGBA;
+    if (!png_image_write_to_file(&image, path.string().c_str(), 0,
+                                 flipped.data(), 0, nullptr)) {
+        const std::string message = image.message;
+        png_image_free(&image);
+        throw audio::Error(message);
+    }
+    png_image_free(&image);
+}
+
+bool begins(const std::string &s, const std::string &prefix) {
+    return s.rfind(prefix, 0) == 0;
+}
+
+std::string labelFor(const std::string &name) {
+    const auto dot = name.rfind('.');
+    std::string label = name.substr(dot == std::string::npos ? 0 : dot + 1);
+    std::string pretty;
+    for (char c : label) {
+        if (c >= 'A' && c <= 'Z') {
+            pretty += ' ';
+        }
+        pretty += c;
+    }
+    if (!pretty.empty() && pretty[0] >= 'a' && pretty[0] <= 'z') {
+        pretty[0] = char(pretty[0] - 'a' + 'A');
+    }
+    if (label == "frequency" || label == "rate") {
+        pretty += " (Hz)";
+    } else if (label == "gain") {
+        pretty += " (dB)";
+    } else if (label == "cents" || label == "detune") {
+        pretty += " (cents)";
+    } else if (label == "bandwidth") {
+        pretty += " (octaves)";
+    } else if (label == "window" || label == "hop" || label == "duration" ||
+               label == "attack" || label == "decay" || label == "fadeStart" ||
+               label == "loopStart" || label == "loopBody" ||
+               label == "release" || label == "crossfade" ||
+               label == "preRoll" || label == "tail" || label == "fade") {
+        pretty += " (s)";
+    }
+    return pretty;
+}
+
+bool parameters(audio::Settings &settings,
+                const std::function<bool(const std::string &)> &filter) {
+    bool changed = false;
+    ImGui::PushItemWidth(-150);
+    audio::visitSettings(settings, [&](const std::string &name, auto &value,
+                                       double low, double high) {
+        if (!filter(name)) {
+            return;
+        }
+        const auto label = labelFor(name) + "##" + name;
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, bool>) {
+            changed |= ImGui::Checkbox(label.c_str(), &value);
+        } else if constexpr (std::is_integral_v<T>) {
+            if (name == "analysis.fft") {
+                int index = 0;
+                for (int n = 512; n < value; n *= 2) {
+                    ++index;
+                }
+                if (ImGui::Combo(
+                        label.c_str(), &index,
+                        "512\0 1024\0 2048\0 4096\0 8192\0 16384\0 32768\0")) {
+                    value = 512 << index;
+                    changed = true;
+                }
+            } else {
+                changed |= ImGui::DragInt(label.c_str(), &value, 1, int(low),
+                                          int(high));
+            }
+        } else {
+            const ImGuiSliderFlags flags = low > 0 && high / low > 100
+                                               ? ImGuiSliderFlags_Logarithmic
+                                               : ImGuiSliderFlags_None;
+            changed |= ImGui::SliderScalar(label.c_str(), ImGuiDataType_Double,
+                                           &value, &low, &high, "%.4f", flags);
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip(
+                "%s\nRange: %.4g .. %.4g\nDrag or Ctrl+click to enter a value.",
+                name.c_str(), low, high);
+        }
+    });
+    ImGui::PopItemWidth();
+    return changed;
+}
+
+struct UI {
+    Session &s;
+    char file[4096] = {}, root[4096] = {}, preset[1024] = "preset.json",
+         exportFile[1024] = "preview.wav";
+    std::vector<fs::path> files;
+    int fxTarget = 1, previewType = 3;
+    bool float32 = false, segment = false, rawExport = false, first = true,
+         focusSynth = false;
+    double zoom = 1, viewStart = 0;
+    audio::DeviceSettings deviceDraft;
+    std::string localError;
+    explicit UI(Session &session) : s(session), deviceDraft(s.deviceSettings) {
+        std::snprintf(root, sizeof(root), "%s",
+                      (fs::path(GPP_AUDIO_WORKSPACE) / "build/bin/data/songs")
+                          .string()
+                          .c_str());
+        std::snprintf(file, sizeof(file), "%s", s.source.string().c_str());
+        attempt([&] { scan(); });
+    }
+    template <class F> void attempt(F fn) {
+        try {
+            fn();
+            localError.clear();
+        } catch (const std::exception &e) {
+            localError = e.what();
+        }
+    }
+    void scan() {
+        files.clear();
+        std::error_code error;
+        fs::recursive_directory_iterator iterator(
+            root, fs::directory_options::skip_permission_denied, error),
+            end;
+        if (error) {
+            throw audio::Error(
+                "Song folder unavailable; enter another folder or open a file");
+        }
+        while (iterator != end) {
+            if (iterator->is_regular_file(error)) {
+                auto ext = iterator->path().extension().string();
+                std::transform(
+                    ext.begin(), ext.end(), ext.begin(),
+                    [](unsigned char c) { return char(std::tolower(c)); });
+                if (ext == ".ogg" || ext == ".mp3" || ext == ".wav" ||
+                    ext == ".aiff" || ext == ".mp2") {
+                    files.push_back(iterator->path());
+                }
+            }
+            iterator.increment(error);
+            if (error) {
+                break;
+            }
+        }
+        std::sort(files.begin(), files.end());
+    }
+    void layout() {
+        const auto dock =
+            ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+        if (first && !fs::exists(s.outputRoot / "layout.ini")) {
+            focusSynth = true;
+            ImGui::DockBuilderRemoveNode(dock);
+            ImGui::DockBuilderAddNode(dock, ImGuiDockNodeFlags_DockSpace);
+            ImGui::DockBuilderSetNodeSize(dock,
+                                          ImGui::GetMainViewport()->WorkSize);
+            ImGuiID center = dock;
+            const auto left = ImGui::DockBuilderSplitNode(
+                center, ImGuiDir_Left, .20f, nullptr, &center);
+            const auto right = ImGui::DockBuilderSplitNode(
+                center, ImGuiDir_Right, .39f, nullptr, &center);
+            const auto bottom = ImGui::DockBuilderSplitNode(
+                center, ImGuiDir_Down, .32f, nullptr, &center);
+            const auto spectrum = ImGui::DockBuilderSplitNode(
+                center, ImGuiDir_Down, .44f, nullptr, &center);
+            ImGui::DockBuilderDockWindow("Sources", left);
+            ImGui::DockBuilderDockWindow("Timeline / Waveform", center);
+            ImGui::DockBuilderDockWindow("FFT Analysis", spectrum);
+            ImGui::DockBuilderDockWindow("Frets / Preview", bottom);
+            ImGui::DockBuilderDockWindow("Fail Synth", right);
+            ImGui::DockBuilderDockWindow("BASS FX", right);
+            ImGui::DockBuilderDockWindow("Audio Device", right);
+            ImGui::DockBuilderDockWindow("Diagnostics", right);
+            ImGui::DockBuilderFinish(dock);
+        }
+        first = false;
+    }
+    void explorer() {
+        if (ImGui::Begin("Sources")) {
+            ImGui::TextColored({.94f, .67f, .32f, 1}, "GUITAR++ AUDIO STUDIO");
+            ImGui::TextDisabled("Analysis & synthesis workbench");
+            ImGui::Separator();
+            ImGui::SetNextItemWidth(-1);
+            ImGui::InputTextWithHint("##file", "Audio file path", file,
+                                     sizeof(file));
+            if (ImGui::Button("Open audio", {-1, 0})) {
+                attempt([&] { s.load(file); });
+            }
+            ImGui::TextDisabled("Drop an audio file into this window");
+            ImGui::Spacing();
+            ImGui::TextUnformatted("Song folder");
+            ImGui::SetNextItemWidth(-1);
+            ImGui::InputText("##root", root, sizeof(root));
+            if (ImGui::Button("Refresh files")) {
+                attempt([&] { scan(); });
+            }
+            ImGui::SameLine();
+            ImGui::TextDisabled("%zu files", files.size());
+            ImGui::BeginChild(
+                "files",
+                {0, std::max(80.f, ImGui::GetContentRegionAvail().y - 205)},
+                ImGuiChildFlags_Borders);
+            for (const auto &path : files) {
+                const auto label =
+                    path.lexically_relative(fs::path(root)).string();
+                if (ImGui::Selectable(label.c_str(), path == s.source)) {
+                    std::snprintf(file, sizeof(file), "%s",
+                                  path.string().c_str());
+                    attempt([&] { s.load(path); });
+                }
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("%s", path.string().c_str());
+                }
+            }
+            ImGui::EndChild();
+            ImGui::SeparatorText("Presets");
+            ImGui::SetNextItemWidth(-1);
+            ImGui::InputText("##preset", preset, sizeof(preset));
+            if (ImGui::Button("Save preset")) {
+                attempt([&] { savePreset(s.artifact(preset), s.settings); });
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Load preset")) {
+                attempt([&] {
+                    s.updateSettings(loadPreset(fs::path(preset).is_absolute()
+                                                    ? fs::path(preset)
+                                                    : s.outputRoot / preset));
+                });
+            }
+            if (ImGui::Button("Reset parameters")) {
+                attempt([&] { s.updateSettings({}); });
+            }
+            ImGui::TextWrapped("Output: %s", s.outputRoot.string().c_str());
+        }
+        ImGui::End();
+    }
+    void timeline() {
+        if (ImGui::Begin("Timeline / Waveform")) {
+            if (!s.wave) {
+                ImGui::TextWrapped("Open a song or stem to inspect its "
+                                   "waveform and generate a fail sound.");
+            } else {
+                ImGui::TextUnformatted(s.source.filename().string().c_str());
+                ImGui::TextDisabled("%u Hz  |  %u channels  |  %.3f s",
+                                    s.wave->info.rate, s.wave->info.channels,
+                                    s.wave->info.duration);
+                ImGui::SameLine();
+                ImGui::TextColored({.43f, .82f, .61f, 1}, "%s",
+                                   s.busy() ? "Processing" : "Ready");
+                const double duration = s.wave->info.duration;
+                const double span = duration / zoom;
+                viewStart =
+                    std::clamp(viewStart, 0., std::max(0., duration - span));
+                const ImVec2 origin = ImGui::GetCursorScreenPos();
+                const ImVec2 size{
+                    std::max(1.f, ImGui::GetContentRegionAvail().x),
+                    std::max(100.f, ImGui::GetContentRegionAvail().y - 165)};
+                ImGui::InvisibleButton("waveform", size);
+                auto *draw = ImGui::GetWindowDrawList();
+                draw->AddRectFilled(origin,
+                                    {origin.x + size.x, origin.y + size.y},
+                                    IM_COL32(14, 19, 26, 255), 5);
+                const float mid = origin.y + size.y * .5f;
+                const auto timeX = [&](double t) {
+                    return origin.x + float((t - viewStart) / span) * size.x;
+                };
+                const float selL = std::clamp(timeX(s.selectionStart), origin.x,
+                                              origin.x + size.x);
+                const float selR = std::clamp(timeX(s.selectionEnd), origin.x,
+                                              origin.x + size.x);
+                draw->AddRectFilled({selL, origin.y}, {selR, origin.y + size.y},
+                                    IM_COL32(200, 145, 70, 35));
+                for (int pixel = 0; pixel < int(size.x); ++pixel) {
+                    size_t lo = size_t((viewStart + span * pixel / size.x) /
+                                       duration * s.wave->low.size());
+                    size_t hi =
+                        size_t((viewStart + span * (pixel + 1) / size.x) /
+                               duration * s.wave->low.size()) +
+                        1;
+                    hi = std::min(hi, s.wave->low.size());
+                    float low = 0, high = 0;
+                    for (size_t bin = lo; bin < hi; ++bin) {
+                        low = std::min(low, s.wave->low[bin]);
+                        high = std::max(high, s.wave->high[bin]);
+                    }
+                    draw->AddLine(
+                        {origin.x + pixel, mid - high * size.y * .42f},
+                        {origin.x + pixel, mid - low * size.y * .42f}, amber);
+                }
+                for (int tick = 0; tick < 5; ++tick) {
+                    char label[64];
+                    std::snprintf(label, sizeof(label), "%.2f s",
+                                  viewStart + span * tick / 4);
+                    draw->AddText({origin.x + float(tick) * (size.x - 65) / 4,
+                                   origin.y + size.y - 20},
+                                  blue, label);
+                }
+                const float cursorX = timeX(s.cursor);
+                if (cursorX >= origin.x && cursorX <= origin.x + size.x) {
+                    draw->AddLine({cursorX, origin.y},
+                                  {cursorX, origin.y + size.y},
+                                  IM_COL32(245, 246, 249, 255), 2);
+                }
+                const float playX = timeX(s.music.position());
+                if (playX >= origin.x && playX <= origin.x + size.x) {
+                    draw->AddLine({playX, origin.y}, {playX, origin.y + size.y},
+                                  blue);
+                }
+                if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0, 0)) {
+                    s.cursor = std::clamp(
+                        viewStart +
+                            double(ImGui::GetIO().MousePos.x - origin.x) /
+                                size.x * span,
+                        0., std::max(0., duration - .0001));
+                }
+                if (ImGui::IsItemDeactivated() ||
+                    (ImGui::IsItemClicked() && !ImGui::IsMouseDragging(0))) {
+                    const double time = std::clamp(
+                        viewStart +
+                            double(ImGui::GetIO().MousePos.x - origin.x) /
+                                size.x * span,
+                        0., std::max(0., duration - .0001));
+                    attempt([&] {
+                        s.seek(time);
+                        s.generate(false);
+                    });
+                }
+                ImGui::PushItemWidth(95);
+                double cursor = s.cursor;
+                if (ImGui::InputDouble("Cursor (s)", &cursor, 0, 0, "%.3f",
+                                       ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    attempt([&] {
+                        s.seek(cursor);
+                        s.generate(false);
+                    });
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Play")) {
+                    attempt([&] { s.music.play(); });
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Pause")) {
+                    attempt([&] { s.music.pause(); });
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Stop")) {
+                    attempt([&] { s.music.stop(); });
+                }
+                double selectionStart = s.selectionStart;
+                double selectionEnd = s.selectionEnd;
+                bool selectionChanged = ImGui::InputDouble(
+                    "Start (s)", &selectionStart, 0, 0, "%.3f",
+                    ImGuiInputTextFlags_EnterReturnsTrue);
+                ImGui::SameLine();
+                selectionChanged |= ImGui::InputDouble(
+                    "End (s)", &selectionEnd, 0, 0, "%.3f",
+                    ImGuiInputTextFlags_EnterReturnsTrue);
+                if (selectionChanged) {
+                    attempt([&] { s.setSelection(selectionStart, selectionEnd); });
+                }
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Press Enter to apply selection bounds");
+                }
+                bool loop = s.musicLoop;
+                if (ImGui::Checkbox("Repeat selection", &loop)) {
+                    attempt([&] {
+                        s.setMusicLoop(s.selectionStart, s.selectionEnd, loop);
+                    });
+                }
+                ImGui::SameLine();
+                const double minZoom = 1, maxZoom = 100;
+                ImGui::SliderScalar("Zoom", ImGuiDataType_Double, &zoom,
+                                    &minZoom, &maxZoom, "%.1fx");
+                const double zero = 0, last = std::max(0., duration - span);
+                ImGui::SetNextItemWidth(-1);
+                ImGui::SliderScalar("##scroll", ImGuiDataType_Double,
+                                    &viewStart, &zero, &last,
+                                    "View starts at %.3f s");
+                ImGui::PopItemWidth();
+            }
+            if (s.busy()) {
+                ImGui::ProgressBar(float(s.progress()), {-90, 0},
+                                   s.jobKind.c_str());
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel")) {
+                    s.cancel();
+                }
+            }
+        }
+        ImGui::End();
+    }
+    void spectrum() {
+        if (ImGui::Begin("FFT Analysis")) {
+            if (s.product && !s.product->analysis.spectrum.empty()) {
+                const auto &values = s.product->analysis.spectrum;
+                const auto pos = ImGui::GetCursorScreenPos();
+                const ImVec2 size{
+                    std::max(1.f, ImGui::GetContentRegionAvail().x), 85};
+                ImGui::InvisibleButton("spectrum", size);
+                auto *draw = ImGui::GetWindowDrawList();
+                const float maximum = std::max(
+                    1e-9f, *std::max_element(values.begin(), values.end()));
+                const int bins = 96;
+                for (int i = 0; i < bins; ++i) {
+                    size_t lo = size_t(
+                        std::pow(double(values.size()), double(i) / bins));
+                    size_t hi = std::min(
+                        values.size(), size_t(std::pow(double(values.size()),
+                                                       double(i + 1) / bins)) +
+                                           1);
+                    lo = std::min(lo, values.size() - 1);
+                    const float value = *std::max_element(values.begin() + lo,
+                                                          values.begin() + hi);
+                    draw->AddRectFilled(
+                        {pos.x + i * size.x / bins,
+                         pos.y + size.y * (1 - value / maximum)},
+                        {pos.x + (i + 1) * size.x / bins - 1, pos.y + size.y},
+                        blue);
+                }
+                ImGui::TextDisabled(
+                    "Log frequency | %.3f s | %.2f Hz/bin | %.2f ms analysis",
+                    s.product->time,
+                    double(s.product->analysis.rate) /
+                        s.product->settings.analysis.fft,
+                    s.product->analysis.milliseconds);
+                if (ImGui::BeginTable("notes", 4,
+                                      ImGuiTableFlags_RowBg |
+                                          ImGuiTableFlags_BordersInnerH)) {
+                    for (const char *name : {"Note", "MIDI", "Hz", "Score"}) {
+                        ImGui::TableSetupColumn(name);
+                    }
+                    ImGui::TableHeadersRow();
+                    for (const auto &note : s.product->analysis.notes) {
+                        ImGui::TableNextRow();
+                        ImGui::TableNextColumn();
+                        ImGui::TextUnformatted(note.name.c_str());
+                        ImGui::TableNextColumn();
+                        ImGui::Text("%d", note.midi);
+                        ImGui::TableNextColumn();
+                        ImGui::Text("%.2f", note.frequency);
+                        ImGui::TableNextColumn();
+                        ImGui::Text("%.5f", note.score);
+                    }
+                    ImGui::EndTable();
+                }
+            }
+            if (ImGui::CollapsingHeader("Analysis parameters")) {
+                auto next = s.settings;
+                if (parameters(next, [](const std::string &name) {
+                        return begins(name, "analysis.");
+                    })) {
+                    attempt([&] { s.updateSettings(next); });
+                }
+            }
+            if (ImGui::Button("Analyze cursor")) {
+                attempt([&] { s.generate(false); });
+            }
+        }
+        ImGui::End();
+    }
+    void synth() {
+        if (ImGui::Begin("Fail Synth")) {
+            ImGui::TextWrapped(
+                "Generate reusable PCM from the selected harmonic context.");
+            auto next = s.settings;
+            bool changed = false;
+            if (ImGui::Button("51 ms")) {
+                next.synth.duration = .051;
+                changed = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("100 ms")) {
+                next.synth.duration = .1;
+                changed = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("850 ms")) {
+                next.synth.duration = .85;
+                changed = true;
+            }
+            if (ImGui::CollapsingHeader("Timing / envelope",
+                                        ImGuiTreeNodeFlags_DefaultOpen)) {
+                changed |= parameters(next, [](const std::string &n) {
+                    return begins(n, "synth.") &&
+                           (n == "synth.duration" || n == "synth.attack" ||
+                            n == "synth.decay" || n == "synth.fadeStart" ||
+                            n == "synth.sustain" || n == "synth.release" ||
+                            n == "synth.rate");
+                });
+            }
+            if (ImGui::CollapsingHeader("Loop / crossfade",
+                                        ImGuiTreeNodeFlags_DefaultOpen)) {
+                changed |= parameters(next, [](const std::string &n) {
+                    return begins(n, "synth.loop") || n == "synth.crossfade";
+                });
+                ImGui::TextDisabled(
+                    "Baked loop excludes release; Stop ends immediately.");
+            }
+            if (ImGui::CollapsingHeader("Oscillator / pick / voicing")) {
+                changed |= parameters(next, [](const std::string &n) {
+                    return begins(n, "synth.") &&
+                           (n == "synth.voices" ||
+                            begins(n, "synth.harmonic") ||
+                            begins(n, "synth.transient") ||
+                            begins(n, "synth.bend") ||
+                            n == "synth.saturation" || n == "synth.detune" ||
+                            n == "synth.spread");
+                });
+            }
+            if (ImGui::CollapsingHeader(
+                    "Frets: semitone shifts / linear gains")) {
+                changed |= parameters(next, [](const std::string &n) {
+                    return begins(n, "synth.shift") || begins(n, "synth.gain");
+                });
+            }
+            if (ImGui::CollapsingHeader("Output normalization")) {
+                changed |= parameters(next, [](const std::string &n) {
+                    return n == "synth.normalize" || n == "synth.rms" ||
+                           n == "synth.peak";
+                });
+            }
+            if (changed) {
+                attempt([&] { s.updateSettings(next); });
+            }
+            ImGui::Separator();
+            if (ImGui::Button("Generate preview", {-1, 34})) {
+                attempt([&] { s.generate(true); });
+            }
+            ImGui::TextWrapped(
+                "Content duration and FX tail are independent. Changed "
+                "synthesis parameters require regeneration.");
+        }
+        ImGui::End();
+    }
+    void fx() {
+        if (ImGui::Begin("BASS FX")) {
+            ImGui::Combo("Target", &fxTarget, "Music / stem\0Synth preview\0");
+            ImGui::TextDisabled("Pre EQ  >  Distortion  >  Post EQ");
+            auto next = s.settings;
+            if (fxTarget == 0) {
+                next.fx = s.musicFx;
+            }
+            bool changed = parameters(
+                next, [](const std::string &n) { return n == "fx.enabled"; });
+            if (ImGui::CollapsingHeader("Pre EQ",
+                                        ImGuiTreeNodeFlags_DefaultOpen)) {
+                changed |= parameters(next, [](const std::string &n) {
+                    return begins(n, "fx.pre.");
+                });
+            }
+            if (ImGui::CollapsingHeader("Distortion",
+                                        ImGuiTreeNodeFlags_DefaultOpen)) {
+                changed |= parameters(next, [](const std::string &n) {
+                    return n == "fx.distortion" || n == "fx.drive" ||
+                           n == "fx.dry" || n == "fx.wet" ||
+                           n == "fx.feedback" || n == "fx.volume";
+                });
+            }
+            if (ImGui::CollapsingHeader("Post EQ",
+                                        ImGuiTreeNodeFlags_DefaultOpen)) {
+                changed |= parameters(next, [](const std::string &n) {
+                    return begins(n, "fx.post.");
+                });
+            }
+            if (ImGui::CollapsingHeader("Offline padding / normalization")) {
+                changed |= parameters(next, [](const std::string &n) {
+                    return n == "fx.preRoll" || n == "fx.tail" ||
+                           n == "fx.fade" || n == "fx.normalize" ||
+                           n == "fx.rms" || n == "fx.peak";
+                });
+            }
+            ImGui::TextWrapped(
+                "Normalization/padding apply only when rendering PCM. Live FX "
+                "updates may be delayed by playback buffers.");
+            if (changed) {
+                attempt([&] {
+                    if (fxTarget == 0) {
+                        s.applyMusicFx(next.fx);
+                    } else {
+                        s.updateSettings(next);
+                    }
+                });
+            }
+        }
+        ImGui::End();
+    }
+    void preview() {
+        if (ImGui::Begin("Frets / Preview")) {
+            const ImVec4 colors[] = {{.22f, .72f, .40f, 1},
+                                     {.87f, .31f, .34f, 1},
+                                     {.94f, .79f, .29f, 1},
+                                     {.32f, .60f, .88f, 1},
+                                     {.95f, .58f, .23f, 1}};
+            const char *names[] = {"G", "R", "Y", "B", "O"};
+            const float width =
+                std::max(30.f, (ImGui::GetContentRegionAvail().x - 32) / 5);
+            for (int i = 0; i < 5; ++i) {
+                if (i) {
+                    ImGui::SameLine();
+                }
+                ImVec4 color = colors[i];
+                if (!(s.settings.synth.fretMask & (1 << i))) {
+                    color.w = .45f;
+                }
+                ImGui::PushStyleColor(ImGuiCol_Button, color);
+                ImGui::PushStyleColor(ImGuiCol_Text, {0, 0, 0, 1});
+                if (ImGui::Button(names[i], {width, 34})) {
+                    auto next = s.settings;
+                    next.synth.fretMask ^= 1 << i;
+                    attempt([&] { s.updateSettings(next); });
+                }
+                ImGui::PopStyleColor(2);
+            }
+            ImGui::SetNextItemWidth(160);
+            ImGui::Combo("##preview", &previewType,
+                         "Original region\0Raw synth\0Live FX\0Rendered PCM\0");
+            ImGui::SameLine();
+            if (ImGui::Button("Trigger")) {
+                static const char *modes[] = {"original", "raw", "live",
+                                              "processed"};
+                attempt([&] { s.playPreview(modes[previewType]); });
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Stop preview")) {
+                attempt([&] { s.preview.stop(); });
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Generate")) {
+                attempt([&] { s.generate(true); });
+            }
+            if (s.product && encode(settingsJson(s.product->settings)) !=
+                                 encode(settingsJson(s.settings))) {
+                ImGui::TextColored(
+                    {1, .7f, .3f, 1},
+                    "Edited parameters: generate to refresh rendered PCM.");
+            }
+            ImGui::PushItemWidth(100);
+            bool musicChanged =
+                ImGui::SliderFloat("Music", &s.musicVolume, 0, 1, "%.2f");
+            ImGui::SameLine();
+            bool previewChanged =
+                ImGui::SliderFloat("Preview", &s.previewVolume, 0, 1, "%.2f");
+            musicChanged |=
+                ImGui::SliderFloat("Music pan", &s.musicPan, -1, 1, "%.2f");
+            ImGui::SameLine();
+            previewChanged |=
+                ImGui::SliderFloat("Preview pan", &s.previewPan, -1, 1, "%.2f");
+            ImGui::PopItemWidth();
+            if (musicChanged && s.music.handle()) {
+                attempt([&] {
+                    s.music.controls(s.musicVolume, s.musicPan, s.streamBuffer);
+                });
+            }
+            if (previewChanged && s.preview.handle()) {
+                attempt([&] {
+                    s.preview.controls(s.previewVolume, s.previewPan,
+                                       s.streamBuffer);
+                });
+            }
+            for (int slot = 0; slot < 2; ++slot) {
+                const std::string label = slot == 0 ? "A" : "B";
+                if (ImGui::Button(("Store " + label).c_str())) {
+                    attempt([&] { s.storeSlot(slot); });
+                }
+                ImGui::SameLine();
+                if (ImGui::Button(("Hear " + label).c_str())) {
+                    attempt([&] {
+                        s.recallSlot(slot);
+                        s.playPreview("processed");
+                    });
+                }
+                if (slot == 0) {
+                    ImGui::SameLine();
+                }
+            }
+            if (ImGui::CollapsingHeader("Export WAV")) {
+                ImGui::SetNextItemWidth(-1);
+                ImGui::InputText("##export", exportFile, sizeof(exportFile));
+                ImGui::Checkbox("Source selection", &segment);
+                ImGui::SameLine();
+                ImGui::Checkbox("Without FX", &rawExport);
+                ImGui::Checkbox("Float32 (otherwise PCM16)", &float32);
+                if (ImGui::Button("Export")) {
+                    attempt([&] {
+                        s.exportAudio(exportFile, segment, rawExport, float32);
+                    });
+                }
+            }
+        }
+        ImGui::End();
+    }
+    void device() {
+        if (ImGui::Begin("Audio Device")) {
+            ImGui::TextWrapped(
+                "Device changes stop playback and rebuild channels. Analysis "
+                "and presets remain available without an output device.");
+            if (ImGui::BeginCombo("Device",
+                                  std::to_string(deviceDraft.device).c_str())) {
+                if (ImGui::Selectable("-1: System default",
+                                      deviceDraft.device == -1)) {
+                    deviceDraft.device = -1;
+                }
+                for (const auto &d : audio::devices()) {
+                    if (ImGui::Selectable(
+                            (std::to_string(d.id) + ": " + d.name).c_str(),
+                            deviceDraft.device == d.id)) {
+                        deviceDraft.device = d.id;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::InputInt("Requested rate (Hz)", &deviceDraft.rate);
+            ImGui::InputInt("Channel buffer (ms)", &deviceDraft.bufferMs);
+            ImGui::InputInt("Channel update (ms)", &deviceDraft.updateMs);
+            ImGui::InputInt("Device buffer (ms)", &deviceDraft.deviceBufferMs);
+            ImGui::InputInt("Device period (ms)", &deviceDraft.devicePeriodMs);
+            if (ImGui::Button("Apply device settings")) {
+                attempt([&] {
+                    s.applyDevice(deviceDraft);
+                    deviceDraft = s.deviceSettings;
+                });
+            }
+            ImGui::SeparatorText("Live channel buffering");
+            if (ImGui::SliderFloat("Buffer (s)", &s.streamBuffer, 0,
+                                   float(s.deviceSettings.bufferMs) / 1000,
+                                   "%.3f")) {
+                attempt([&] {
+                    if (s.music.handle()) {
+                        s.music.controls(s.musicVolume, s.musicPan,
+                                         s.streamBuffer);
+                    }
+                    if (s.preview.handle()) {
+                        s.preview.controls(s.previewVolume, s.previewPan,
+                                           s.streamBuffer);
+                    }
+                });
+            }
+            ImGui::TextWrapped(
+                "Zero removes channel buffering. Device and system buffering "
+                "still apply. Smaller buffers increase deadline pressure.");
+            BASS_INFO info{};
+            if (BASS_GetInfo(&info)) {
+                ImGui::Text("Actual device: %u Hz / %u speakers\nReported "
+                            "minimum buffer: %u ms",
+                            info.freq, info.speakers, info.minbuf);
+            }
+        }
+        ImGui::End();
+    }
+    void diagnostics() {
+        if (ImGui::Begin("Diagnostics")) {
+            ImGui::Text("BASS %08x | FX %08x", BASS_GetVersion(),
+                        BASS_FX_GetVersion());
+            ImGui::Text("BASS CPU %.2f%% | UI %.1f FPS", double(BASS_GetCPU()),
+                        double(ImGui::GetIO().Framerate));
+            ImGui::Text("Device %u: %s", BASS_GetDevice(),
+                        BASS_GetDevice() == 0 ? "No Sound" : "Playback output");
+            ImGui::Text("Seek API %.3f ms | Play API %.3f ms",
+                        s.music.lastSeekMs, s.preview.lastPlayMs);
+            ImGui::Text("Preview preparation %.3f ms", s.previewPrepareMs);
+            if (s.music.loopError() || s.preview.loopError()) {
+                ImGui::Text("Loop callback errors: music %d, preview %d",
+                            s.music.loopError(), s.preview.loopError());
+            }
+            ImGui::TextWrapped(
+                "Audible latency: not measured. API duration and buffer "
+                "configuration are not loopback measurements.");
+            if (s.product) {
+                const auto &p = *s.product;
+                ImGui::SeparatorText("Current result");
+                ImGui::Text("Analysis %.2f ms | Synthesis %.2f ms | FX %.2f ms",
+                            p.analysis.milliseconds, p.synthMs, p.fxMs);
+                ImGui::Text(
+                    "PCM %.2f MiB | Raw %.5f s | Processed %.5f s",
+                    double((p.raw.samples.size() + p.processed.samples.size()) *
+                           4) /
+                        1048576,
+                    p.raw.seconds(), p.processed.seconds());
+                ImGui::Text("Peak %.4f | RMS %.4f | Clipped %zu",
+                            p.processedLevels.peak, p.processedLevels.rms,
+                            p.processedLevels.clipped);
+                ImGui::Text("Loop frames [%zu, %zu)", p.processed.loop.begin,
+                            p.processed.loop.end);
+                if (encode(settingsJson(p.settings)) !=
+                    encode(settingsJson(s.settings))) {
+                    ImGui::TextColored({1, .7f, .3f, 1},
+                                       "Parameters changed: regenerate to "
+                                       "update rendered PCM.");
+                }
+            }
+            if (!s.notice.empty()) {
+                ImGui::TextWrapped("%s", s.notice.c_str());
+            }
+        }
+        ImGui::End();
+    }
+    void draw() {
+        layout();
+        explorer();
+        timeline();
+        spectrum();
+        fx();
+        device();
+        diagnostics();
+        synth();
+        preview();
+        if (focusSynth) {
+            ImGui::SetWindowFocus("Fail Synth");
+            focusSynth = false;
+        }
+        const std::string error = localError.empty() ? s.error : localError;
+        if (!error.empty()) {
+            ImGui::SetNextWindowBgAlpha(.97f);
+            ImGui::SetNextWindowPos({ImGui::GetMainViewport()->WorkPos.x + 25,
+                                     ImGui::GetMainViewport()->WorkPos.y + 55},
+                                    ImGuiCond_Appearing);
+            if (ImGui::Begin("Operation error", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+                ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 600);
+                ImGui::TextWrapped("%s", error.c_str());
+                ImGui::PopTextWrapPos();
+                if (ImGui::Button("Dismiss")) {
+                    localError.clear();
+                    s.error.clear();
+                }
+            }
+            ImGui::End();
+        }
+    }
+};
+} // namespace
+
+int runGui(Session &session, bool rpc, int frames, const std::string &capture) {
+    Window window(session.outputRoot);
+    UI ui(session);
+    glfwSetWindowUserPointer(window.window, &ui);
+    glfwSetDropCallback(
+        window.window, [](GLFWwindow *w, int count, const char **paths) {
+            auto &ui = *static_cast<UI *>(glfwGetWindowUserPointer(w));
+            if (count > 0) {
+                ui.attempt([&] { ui.s.load(fs::u8path(paths[0])); });
+            }
+        });
+    StdinPump input;
+    int frame = 0;
+    while (!glfwWindowShouldClose(window.window) && !session.shutdown) {
+        glfwPollEvents();
+        session.tick();
+        if (rpc) {
+            input.poll(session);
+        }
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        ui.draw();
+        ImGui::Render();
+        int width = 0, height = 0;
+        glfwGetFramebufferSize(window.window, &width, &height);
+        glViewport(0, 0, width, height);
+        glClearColor(.055f, .065f, .085f, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        ++frame;
+        if (frames > 0 && frame >= frames && !capture.empty()) {
+            screenshot(session.artifact(capture), window.window);
+        }
+        glfwSwapBuffers(window.window);
+        if (frames > 0 && frame >= frames) {
+            break;
+        }
+    }
+    return 0;
+}
+} // namespace AudioStudio

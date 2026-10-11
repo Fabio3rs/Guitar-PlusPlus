@@ -1,6 +1,6 @@
 set(imgui_root ${PROJECT_SOURCE_DIR}/vendor/imgui)
 if(NOT EXISTS ${imgui_root}/imgui.cpp)
-    message(FATAL_ERROR "Scene Studio requires the existing vendor/imgui submodule. Initialize it explicitly.")
+    message(FATAL_ERROR "The Studios require the existing vendor/imgui submodule. Initialize it explicitly.")
 endif()
 add_library(gpp_studio_imgui STATIC
     ${imgui_root}/imgui.cpp ${imgui_root}/imgui_draw.cpp

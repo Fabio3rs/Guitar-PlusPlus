@@ -1,5 +1,4 @@
 find_package(PNG REQUIRED)
-add_subdirectory(imgui SYSTEM)
 add_library(gpp_studio_core STATIC context.cpp studio.cpp)
 target_link_libraries(gpp_studio_core PUBLIC GuitarPP_lib PNG::PNG)
 target_include_directories(gpp_studio_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

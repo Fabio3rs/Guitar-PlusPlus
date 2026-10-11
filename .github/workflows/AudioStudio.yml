@@ -1,0 +1,78 @@
+name: Build and test Audio Studio
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audio-studio-software:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CC: clang-20
+      CXX: clang++-20
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang-20 ninja-build xorg-dev libglew-dev libgl-dev libegl1-mesa-dev libpng-dev libgtest-dev xvfb xauth xdotool libgl1-mesa-dri python3 file unzip wget
+
+      # Download and setup Bass libraries
+      - name: Setup Bass Libraries
+        run: |
+          set -euo pipefail
+          download_dir=$(mktemp -d)
+          trap 'rm -rf "$download_dir"' EXIT
+
+          wget https://www.un4seen.com/files/bass24-linux.zip -O "$download_dir/bass.zip"
+          wget https://www.un4seen.com/files/z/0/bass_fx24-linux.zip -O "$download_dir/bass_fx.zip"
+
+          # Select only the x86-64 libraries used by the ubuntu-24.04 runner.
+          # The archives also contain incompatible x86, ARM and AArch64 builds.
+          unzip -p "$download_dir/bass.zip" c/bass.h > bass/bass.h
+          unzip -p "$download_dir/bass_fx.zip" C/bass_fx.h > bass/bass_fx.h
+          unzip -p "$download_dir/bass.zip" libs/x86_64/libbass.so > bass/libbass.so
+          unzip -p "$download_dir/bass_fx.zip" libs/x86_64/libbass_fx.so > bass/libbass_fx.so
+
+          # Fail during setup if an archive contains an unexpected architecture.
+          for library in bass/libbass.so bass/libbass_fx.so; do
+            file "$library"
+            file -b "$library" | grep -q 'ELF 64-bit LSB shared object, x86-64'
+          done
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v1.8
+        with:
+          cmake-version: '3.30.x'
+
+      - name: Configure and build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGPP_NATIVE_CPU=OFF -DBUILD_TESTING=ON -DBUILD_SCENE_STUDIO=ON -DBUILD_AUDIO_STUDIO=ON
+          cmake --build build --parallel 2
+
+      - name: Test with Mesa software rendering
+        run: ctest --test-dir build --output-on-failure --parallel 2
+
+      - name: Upload captures and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-studio-software
+          path: |
+            build/audio-studio/tests/
+            build/audio-studio/ui-tests/
+            build/scene-studio/tests/
+            build/scene-studio/mouse-tests/
+            build/Testing/Temporary/
+          if-no-files-found: warn
