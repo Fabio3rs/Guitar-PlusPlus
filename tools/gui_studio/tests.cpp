@@ -123,9 +123,33 @@ TEST_F(GuiFiles, FontLuaRoundTripKeepsMappingMetricsAndPerCodepointOverrides) {
     ASSERT_EQ(result.size(), 1u);
     EXPECT_EQ(result[0].atlases[0].mapping, fonts[0].atlases[0].mapping);
     EXPECT_EQ(result[0].atlases[1].mapping, "漢\n字");
-    EXPECT_EQ(result[0].adjustments.at('g').offset,
-              fonts[0].adjustments['g'].offset);
+    EXPECT_EQ(result[0].adjustments.at('g').offset, -.12346);
     EXPECT_DOUBLE_EQ(result[0].metrics.baseline, 14.0 / 64);
+}
+
+TEST_F(GuiFiles, FontExportRoundsToFiveDecimalsWithoutTrailingZeros) {
+    auto fonts = GuiStudio::defaultFonts();
+    fonts[0].adjustments['g'] = {1.0000000000000002, .095000000000000001,
+                                 .69374999999999998, -.15312500000000001};
+    fonts[0].adjustments['A'] = {1.123456, -.000001, .123454, -.123456};
+    const auto path = directory / "Theme.lua";
+    GuiStudio::writeFonts(path, fonts);
+    std::ifstream input(path);
+    const std::string text((std::istreambuf_iterator<char>(input)),
+                           std::istreambuf_iterator<char>());
+    EXPECT_NE(
+        text.find("setFontMetrics(\"default\", 0.21875, 0.78125, 0.21875)"),
+        std::string::npos);
+    EXPECT_NE(text.find("setFontCharMetrics(\"default\", \"g\", 1, 0.095)"),
+              std::string::npos);
+    EXPECT_NE(
+        text.find("setFontCharSpacing(\"default\", \"g\", 0.69375, -0.15313)"),
+        std::string::npos);
+    EXPECT_NE(text.find("setFontCharMetrics(\"default\", \"A\", 1.12346, 0)"),
+              std::string::npos);
+    const auto loaded = GuiStudio::readFonts(path);
+    EXPECT_EQ(loaded[0].adjustments.at('A').advance, .12345);
+    EXPECT_EQ(loaded[0].adjustments.at('A').bearing, -.12346);
 }
 
 TEST_F(GuiFiles, FontScriptCannotRunGameOrFileAPIsAndErrorsRemainVisible) {

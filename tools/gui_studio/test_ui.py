@@ -142,6 +142,9 @@ with tempfile.TemporaryDirectory(prefix='gui-', dir=artifacts) as temporary:
         click(370, 95)
         exported_menu = output / 'Gui.lua'
         wait_file(exported_menu)
+        time.sleep(.2)
+        xdo('key', 'Return')  # Dismiss the export confirmation.
+        time.sleep(.12)
         definition = exported_menu.read_text()
         assert definition.index('id = "name"') < definition.index('id = "title"')
         position = re.search(r'id = "name".*?x = ([^,]+)', definition, re.S)
@@ -190,6 +193,9 @@ with tempfile.TemporaryDirectory(prefix='gui-', dir=artifacts) as temporary:
         click(418, 95)
         exported_font = output / 'Theme.lua'
         wait_file(exported_font)
+        time.sleep(.2)
+        xdo('key', 'Return')  # Dismiss the export confirmation.
+        time.sleep(.12)
         font_text = exported_font.read_text()
         assert 'setFontCharMetrics("default", "g", 1, -0.25)' in font_text
         for char, offset in [('A', '0.125'), ('!', '0.25'), ('7', '0.375')]:

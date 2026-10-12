@@ -133,7 +133,8 @@ part of this version.
 **Export** writes the existing `Theme.lua` contract: `addTextureToFont` first,
 then `setFontMetrics`, `setFontCharMetrics` and `setFontCharSpacing`, inside an
 `applyTheme` callback. Multiple atlases and codepoints beyond ASCII are retained.
-The Studio executes font scripts in a separate Lua state with the font functions
+Font metrics are exported with up to five decimal places, rounded and without
+trailing zeros. The Studio executes font scripts in a separate Lua state with the font functions
 and limited Lua helpers; game, process and file-loading APIs are unavailable.
 It reopens generated exports and the maintained font theme, not arbitrary game
 scripts. Failed imports preserve the previous font and textures.
@@ -141,7 +142,10 @@ scripts. Failed imports preserve the previous font and textures.
 ## Export, captures and validation
 
 Exports default to `build/gui-studio/Gui.lua` and `Theme.lua`. An absolute export
-path is also accepted. Nothing automatically installs exported files in the game.
+path is also accepted. Hover the export field or button to see its full destination.
+Each export opens a confirmation with the full saved path and a **Copy path**
+button; failures show the destination and error instead. Press **OK**, Enter or
+Escape to dismiss it. Nothing automatically installs exported files in the game.
 Use the theme directory under your chosen runtime to apply them deliberately.
 For maintained theme changes, update both the repository theme and its copy in
 `build/bin/data/themes`. Unexported documents prompt before opening another file

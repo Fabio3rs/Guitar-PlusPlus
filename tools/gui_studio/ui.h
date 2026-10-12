@@ -15,6 +15,9 @@ class UI {
     GLFWwindow *window;
     std::string ini, menuFile, fontFile, exportMenu = "Gui.lua",
                                          exportFont = "Theme.lua";
+    bool showExportResult = false, exportSucceeded = false;
+    std::string exportedPath, exportError;
+    void exportFile(bool font);
     std::string sample = "Guitar++ ação ÁÉÍÓÚ ç gpqy 0123456789";
     std::string newName = "new-font", newFile, newMapping = "ABC\nabc";
     int newColumns = 3, newRows = 2;

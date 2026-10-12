@@ -9,6 +9,18 @@
 
 namespace GuiStudio {
 namespace {
+std::string fontNumber(double value) {
+    std::ostringstream out;
+    out.imbue(std::locale::classic());
+    out << std::fixed << std::setprecision(5) << value;
+    auto text = out.str();
+    text.erase(text.find_last_not_of('0') + 1);
+    if (text.back() == '.') {
+        text.pop_back();
+    }
+    return text == "-0" ? "0" : text;
+}
+
 struct Import {
     FontDefinitions fonts;
     std::string error;
@@ -239,8 +251,7 @@ void writeFonts(const std::filesystem::path &path,
                 const FontDefinitions &fonts) {
     std::ostringstream out;
     out.imbue(std::locale::classic());
-    out << std::setprecision(17)
-        << "-- Guitar++ Font Studio\nlocal function applyFonts()\n";
+    out << "-- Guitar++ Font Studio\nlocal function applyFonts()\n";
     for (const auto &f : fonts) {
         for (const auto &atlas : f.atlases) {
             out << "    assert(addTextureToFont(" << ui::luaQuote(f.name)
@@ -250,19 +261,22 @@ void writeFonts(const std::filesystem::path &path,
                 << ", " << atlas.grid.rows << "))\n";
         }
         out << "    assert(setFontMetrics(" << ui::luaQuote(f.name) << ", "
-            << f.metrics.baseline << ", " << f.metrics.ascent << ", "
-            << f.metrics.descent << "))\n";
+            << fontNumber(f.metrics.baseline) << ", "
+            << fontNumber(f.metrics.ascent) << ", "
+            << fontNumber(f.metrics.descent) << "))\n";
         for (const auto &entry : f.adjustments) {
             const auto prefix = ui::luaQuote(f.name) + ", " +
                                 ui::luaQuote(character(entry.first)) + ", ";
             const auto &a = entry.second;
             if (a.height && a.offset) {
-                out << "    assert(setFontCharMetrics(" << prefix << *a.height
-                    << ", " << *a.offset << "))\n";
+                out << "    assert(setFontCharMetrics(" << prefix
+                    << fontNumber(*a.height) << ", " << fontNumber(*a.offset)
+                    << "))\n";
             }
             if (a.advance && a.bearing) {
-                out << "    assert(setFontCharSpacing(" << prefix << *a.advance
-                    << ", " << *a.bearing << "))\n";
+                out << "    assert(setFontCharSpacing(" << prefix
+                    << fontNumber(*a.advance) << ", " << fontNumber(*a.bearing)
+                    << "))\n";
             }
         }
     }

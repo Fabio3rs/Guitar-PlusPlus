@@ -253,6 +253,24 @@ void UI::attempt(std::function<void()> operation) {
     }
 }
 
+void UI::exportFile(bool font) {
+    exportedPath = (session.output / (font ? exportFont : exportMenu))
+                       .lexically_normal()
+                       .string();
+    exportSucceeded = false;
+    exportError.clear();
+    attempt([&] {
+        if (font) {
+            session.saveFonts(exportedPath);
+        } else {
+            session.saveMenus(exportedPath);
+        }
+        exportSucceeded = true;
+    });
+    exportError = session.error;
+    showExportResult = true;
+}
+
 void UI::protect(std::function<void()> operation) {
     if (session.dirtyFonts || session.dirtyMenus) {
         pending = std::move(operation);
@@ -304,9 +322,19 @@ void UI::menus() {
         protect([this] { session.loadMenus(menuFile); });
     }
     ImGui::InputText("Export Lua", &exportMenu);
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(
+            "Destination: %s",
+            (s.output / exportMenu).lexically_normal().string().c_str());
+    }
     ImGui::SameLine();
     if (ImGui::Button("Export##menus")) {
-        attempt([&] { s.saveMenus(s.output / exportMenu); });
+        exportFile(false);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(
+            "Save to: %s",
+            (s.output / exportMenu).lexically_normal().string().c_str());
     }
     if (ImGui::Button("New menu")) {
         ui::MenuDefinition menu;
@@ -604,9 +632,19 @@ void UI::fonts() {
         protect([this] { session.loadFonts(fontFile); });
     }
     ImGui::InputText("Export font Lua", &exportFont);
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(
+            "Destination: %s",
+            (s.output / exportFont).lexically_normal().string().c_str());
+    }
     ImGui::SameLine();
     if (ImGui::Button("Export##fonts")) {
-        attempt([&] { s.saveFonts(s.output / exportFont); });
+        exportFile(true);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(
+            "Save to: %s",
+            (s.output / exportFont).lexically_normal().string().c_str());
     }
     if (ImGui::Button("New font")) {
         addAtlas = false;
@@ -1037,6 +1075,30 @@ void UI::draw(int initialPanel) {
         ImGui::TextColored({1, .5f, .35f, 1}, "%s", session.error.c_str());
     } else if (!session.events.empty()) {
         ImGui::TextWrapped("Last event: %s", session.events.back().c_str());
+    }
+    if (showExportResult) {
+        ImGui::OpenPopup("Export result");
+        showExportResult = false;
+    }
+    ImGui::SetNextWindowSize({std::min(600.f, io.DisplaySize.x - 40.f), 0},
+                             ImGuiCond_Always);
+    if (ImGui::BeginPopupModal("Export result", nullptr,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::TextUnformatted(exportSucceeded ? "Export completed."
+                                               : "Export failed.");
+        ImGui::TextWrapped("File: %s", exportedPath.c_str());
+        if (!exportSucceeded) {
+            ImGui::TextWrapped("%s", exportError.c_str());
+        }
+        if (ImGui::Button("Copy path")) {
+            ImGui::SetClipboardText(exportedPath.c_str());
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("OK") || ImGui::IsKeyPressed(ImGuiKey_Enter) ||
+            ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
     }
     if (pending) {
         ImGui::OpenPopup("Unsaved changes");
