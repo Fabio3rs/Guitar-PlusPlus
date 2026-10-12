@@ -49,18 +49,11 @@ Value memoryJson(const Memory &m, Alloc &a) {
 }
 
 struct Sample {
+    std::unique_ptr<audio::PreparedSample> sample;
     HSAMPLE handle = 0;
-    Sample() = default;
-    Sample(const Sample &) = delete;
-    Sample &operator=(const Sample &) = delete;
-
-    ~Sample() { clear(); }
-
     void clear() {
-        if (handle) {
-            BASS_SampleFree(handle);
-            handle = 0;
-        }
+        sample.reset();
+        handle = 0;
     }
 };
 
@@ -160,12 +153,9 @@ int voiceProbe(const fs::path &configPath, const fs::path &pcmPath,
     Sample sample;
     const double prepare = timed([&] {
         if (strategy == "hsample") {
-            sample.handle = BASS_SampleCreate(
-                DWORD(pcmBytes), pcm.rate, pcm.channels, o.voices,
-                BASS_SAMPLE_FLOAT | (o.stealOldest ? BASS_SAMPLE_OVER_POS : 0));
-            audio::check(sample.handle != 0, "Create HSAMPLE");
-            audio::check(BASS_SampleSetData(sample.handle, pcm.samples.data()),
-                         "Upload sample PCM");
+            sample.sample = std::make_unique<audio::PreparedSample>(
+                pcm, unsigned(o.voices), o.stealOldest);
+            sample.handle = sample.sample->handle();
             BASS_SAMPLE defaults{};
             audio::check(BASS_SampleGetInfo(sample.handle, &defaults),
                          "Read sample defaults");
@@ -442,10 +432,130 @@ int voiceProbe(const fs::path &configPath, const fs::path &pcmPath,
     saveJson(reportPath, report);
     return 0;
 }
+int cacheProbe(const fs::path &configPath, const fs::path &bankPath,
+               const fs::path &reportPath) {
+    std::ifstream input(configPath);
+    auto config =
+        parseJson(std::string((std::istreambuf_iterator<char>(input)), {}));
+    if (!config.IsObject() || !config.HasMember("source") ||
+        !config["source"].IsString()) {
+        throw audio::Error("Invalid cache probe source");
+    }
+    for (const char *name :
+         {"device", "rate", "voices", "iterations", "buffer_ms", "update_ms",
+          "device_buffer_ms", "device_period_ms"}) {
+        if (!config.HasMember(name) || !config[name].IsInt()) {
+            throw audio::Error("Invalid cache probe setting");
+        }
+    }
+    if (!config.HasMember("steal_oldest") || !config["steal_oldest"].IsBool()) {
+        throw audio::Error("Invalid voice policy");
+    }
+    audio::DeviceSettings d;
+    d.device = config["device"].GetInt();
+    d.rate = config["rate"].GetInt();
+    d.bufferMs = config["buffer_ms"].GetInt();
+    d.updateMs = config["update_ms"].GetInt();
+    d.deviceBufferMs = config["device_buffer_ms"].GetInt();
+    d.devicePeriodMs = config["device_period_ms"].GetInt();
+    const int iterations = config["iterations"].GetInt(),
+              voices = config["voices"].GetInt();
+    if (iterations < 1 || iterations > 1000 || voices < 1 || voices > 256) {
+        throw audio::Error("Invalid cache probe counts");
+    }
+    struct Trial {
+        double ms = 0, time = 0;
+        unsigned mask = 0;
+        bool accepted = false;
+    };
+    std::vector<Trial> trials(size_t(iterations), Trial{});
+    audio::BassSystem system(d);
+    const auto baseline = memory();
+    const auto loadStart = Clock::now();
+    auto cache = std::make_shared<audio::SongFailCache>(
+        audio::loadFailCache(bankPath, config["source"].GetString()));
+    const double loadMs =
+        std::chrono::duration<double, std::milli>(Clock::now() - loadStart)
+            .count();
+    const auto loaded = memory();
+    const auto pcmBytes = cache->pcmBytes();
+    auto bank = std::make_unique<audio::PreparedFailBank>(
+        cache,
+        audio::BankOptions{unsigned(voices), config["steal_oldest"].GetBool()});
+    const auto prepared = memory();
+    bank->trigger(0, 1, 0);
+    const double firstMs = bank->stats().lastTriggerMs;
+    bank->stop();
+    bank->resetStatistics();
+    for (int i = 0; i < iterations; ++i) {
+        if (i % (2 * voices) == 0) {
+            bank->stop();
+        }
+        auto &trial = trials[size_t(i)];
+        trial.time = cache->song.info.duration * i / iterations;
+        trial.mask = i % 3 == 0 && voices >= 5 ? 31u : 1u << (i % 5);
+        trial.accepted = bank->trigger(trial.time, trial.mask, 0);
+        trial.ms = bank->stats().lastTriggerMs;
+    }
+    const auto playing = memory();
+    const auto stats = bank->stats();
+    bank.reset();
+    const auto released = memory();
+    cache.reset();
+    const auto freed = memory();
+    Json report(rapidjson::kObjectType);
+    auto &a = report.GetAllocator();
+    report.AddMember("pid", int(getpid()), a);
+    report.AddMember("device", BASS_GetDevice(), a);
+    report.AddMember("bass_version", BASS_GetVersion(), a);
+    report.AddMember("fx_version", BASS_FX_GetVersion(), a);
+    report.AddMember("no_sound", BASS_GetDevice() == 0, a);
+    report.AddMember("audible_latency_ms", Value(), a);
+    report.AddMember("pcm_bytes", pcmBytes, a);
+    report.AddMember("file_bytes", uint64_t(fs::file_size(bankPath)), a);
+    report.AddMember("load_validate_ms", loadMs, a);
+    report.AddMember("prepare_ms", stats.prepareMs, a);
+    report.AddMember("first_trigger_ms", firstMs, a);
+    report.AddMember("accepted", stats.accepted, a);
+    report.AddMember("rejected", stats.rejected, a);
+    report.AddMember("replaced", stats.replaced, a);
+    report.AddMember("failures", stats.failures, a);
+    report.AddMember("peak_active", stats.peakActive, a);
+    Value memoryReport(rapidjson::kObjectType);
+    memoryReport.AddMember("baseline", memoryJson(baseline, a), a);
+    memoryReport.AddMember("loaded", memoryJson(loaded, a), a);
+    memoryReport.AddMember("prepared", memoryJson(prepared, a), a);
+    memoryReport.AddMember("playing", memoryJson(playing, a), a);
+    memoryReport.AddMember("bank_released", memoryJson(released, a), a);
+    memoryReport.AddMember("pcm_released", memoryJson(freed, a), a);
+    report.AddMember("memory", memoryReport, a);
+    Value events(rapidjson::kArrayType);
+    for (const auto &trial : trials) {
+        Value event(rapidjson::kObjectType);
+        event.AddMember("song_seconds", trial.time, a);
+        event.AddMember("mask", trial.mask, a);
+        event.AddMember("accepted", trial.accepted, a);
+        event.AddMember("trigger_ms", trial.ms, a);
+        events.PushBack(event, a);
+    }
+    report.AddMember("events", events, a);
+    report.AddMember(
+        "method",
+        "Fresh exec; all PCM loaded and uploaded; muted sequential bursts of "
+        "up to 2*voice-limit requests, stopped between bursts. One separate "
+        "warmup. Memory snapshots outside API timers; allocator/page effects "
+        "are included.",
+        a);
+    saveJson(reportPath, report);
+    return 0;
+}
 } // namespace AudioStudio
 
 int main(int argc, char **argv) {
     try {
+        if (argc == 5 && std::string(argv[1]) == "--cache") {
+            return AudioStudio::cacheProbe(argv[2], argv[3], argv[4]);
+        }
         if (argc != 4) {
             throw gpp::audio::Error(
                 "Usage: gpp_audio_voice_probe CONFIG PCM REPORT");

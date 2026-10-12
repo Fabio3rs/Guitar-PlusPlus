@@ -1,4 +1,155 @@
-# Audio Studio validation — 2026-10-10
+# Audio Studio validation
+
+## Adaptive implementation review — 2026-10-12
+
+Reviewed the changed Audio Workbench/core paths and their ownership, cancellation,
+cache persistence, CLI option precedence and preview lifetimes. Gameplay/shader
+changes already present in the workspace were excluded from edits.
+
+Two reproducible CLI issues were corrected: loading a cache discarded explicit
+`--set` overrides (requesting `fx.drive=2` still generated with 3.4), and requesting
+a report after rescanning could export the old, stale bank. Artifact loading now
+precedes explicit preset/parameter overrides and processing; reports select a bank
+only when current. CLI regression tests cover bank-only regeneration and rescanning
+with a changed hop. The cache magic comparison was also made explicit (`!= 0`).
+
+All 17 changed C++/header files pass `clang-format --dry-run --Werror` using the
+repository configuration. All 12 changed translation units were checked with
+`clang-tidy -p build`, the repository's enabled checks and a header filter for
+`src/audio` and `tools/audio_studio`. No compiler errors were reported; this is
+**not a warning-free tidy result**. Most findings concern magic numbers, public
+data structures, casts and style. Bounded frame/channel/voice counts were checked
+when triaging numeric conversions.
+
+The optional-access warning in the worker is guarded by the condition-variable
+predicate and the same mutex, followed by the shutdown check. The proposed Session
+field reorder would compromise its documented resource destruction order and was
+not applied. RPC `std::endl` deliberately flushes each response. RapidJSON reports
+an alignment issue in its missing-member fallback (`static char buffer` plus
+placement new); this is a third-party diagnostic, not silently suppressed or
+fixed by editing the submodule. Imported cache field access is checked before that
+fallback; no new reachable failure from this warning was demonstrated.
+
+Logs and the file list are in `build/audio-studio/review/` (`*.tidy.log`,
+`files.json`, `summary.json`, `tests.log`, `asan-tests.log`). After the fixes,
+the build and all five audio CTest entries passed normally and with
+ASan/UBSan/LSan. No bulk tidy fixes or dependency configuration changes were applied.
+
+## Adaptive cache and sustained restart — 2026-10-12
+
+The new reusable `src/audio` scanner/cache/prepared-bank components are exercised
+through the Workbench GUI, CLI and RPC, without gameplay integration. Local external
+libraries were updated from the user-provided ZIPs to BASS **2.4.18.3**
+(`0x02041203`) and BASS_FX **2.4.12.6** (`0x02040c06`), including the runtime
+copies under `build/bin`. Previous binaries/headers are preserved under
+`build/audio-studio/adaptive-debug/original-bass`. No system library was replaced.
+
+Validation in Native Lab:
+
+- Full normal build passed. Full CTest passed **181/181** after the dependency
+  update. Subsequent focused checks passed all five audio CTest entries after
+  the final detector/test refinements.
+- Seven adaptive core cases cover deterministic scan, opposing stereo channels,
+  volume changes, transient/persistent harmonic changes, silence/fallback, short
+  input, boundaries, deduplication, invalidation, roundtrip PCM, malformed analysis,
+  processing versions, cancellation during generation, atomic-write failure,
+  voice exhaustion and Session/device lifetime.
+- The UI test now clicks the actual Whole Song Analysis tab, scans, generates,
+  prepares and selects the representative on the region strip. Xvfb uses a
+  1600x1000 screen so the 1440-wide window's tabs are reachable.
+- CLI/RPC exercises the full chain, bank-only FX regeneration, exports, comparison,
+  sustained release, stale/failed loads, simulation and seven isolated benchmark
+  subprocesses. Existing voice/CLI/UI tests pass.
+- **ASan + UBSan + LSan: 5/5 audio entries passed**, including the expanded UI and
+  malformed-file tests. System Mesa/No Sound were used, with leak checks enabled.
+- GDB ran the six adaptive cases present at that point three times; the inferior
+  exited normally. The seventh malformed-file case was subsequently checked in
+  the normal and sanitizer suites.
+
+### Fade-state correction and dependency isolation
+
+Sustained press now explicitly replaces a pending volume slide with a zero-duration
+slide; stop cancels it as well. Pan/buffer configuration occurs during preparation.
+This avoids relying on newer SetAttribute slide-cancellation behavior. Tests check
+re-press after completed fade, re-press during fade, surviving the old fade deadline,
+restored gain, loop bounds and cancelling slides on stop. Existing mixtime callbacks
+remain unchanged.
+
+The test matrix used the same Native Lab/glibc 2.39 and explicit slide cancellation:
+
+| BASS | BASS_FX | Repeated sustained test |
+|---|---|---|
+| 2.4.14.1 | 2.4.12.1 | First passed; second hung, timeout 30 s |
+| 2.4.14.1 | 2.4.12.6 | 26 passed; iteration 27 hung, timeout 55 s |
+| 2.4.18.3 | 2.4.12.1 | 100/100 passed with expanded fade assertions |
+| 2.4.18.3 | 2.4.12.6 | 100/100 passed with expanded fade assertions |
+
+Before the update, an attached GDB captured the second press blocked in
+`BASS_ChannelPlay`, through `pthread_cond_signal` and
+`__condvar_quiesce_and_switch_g1`. The improvement follows the BASS binary in this
+matrix. It does **not** establish the internal root cause, rule out a glibc
+interaction, or identify the installed glibc patch level (`dpkg-query` had no libc6
+package record). No claim that glibc BZ #25847 caused this hang is made. The default
+`BASS_CONFIG_UPDATETHREADS` was already 1; no global update-thread workaround was
+introduced. Historical TSan findings below have not been revalidated on the new
+binary; passing ASan does not replace that check.
+
+Runtime capability probing on 2.4.18.3 confirmed that `BASS_SAMCHAN_STREAM` returns
+`BASS_CTYPE_STREAM_SAMPLE` and that setting loop/end positions succeeds. The
+production sustained experiment retains the tested portable mixtime path; merely
+accepting position setters is not an audible-loop-quality test. The new FX binary
+produces GNU linker warnings about local `.dynsym` entries; linking and all audio
+checks nevertheless completed. The vendor binary was not rewritten to silence them.
+
+### Real-song measurements
+
+RelWithDebInfo, `GPP_NATIVE_CPU=OFF`, No Sound, no sanitizers/debugger. Local guitar
+stems were decoded sequentially; no third-party audio was committed. Each bank was
+loaded/prepared in a separate probe process, with 100 muted trigger calls and one
+warmup. The bounded bursts intentionally also measure rejection: 68/100 calls were
+rejected with the default 32-voice reject policy. Reported accepted-call timings
+must not be confused with the faster rejection path or physical audible latency.
+
+| Stem / profile | Regions | Unique five-sample sets | Bank bytes | Prepare ms |
+|---|---:|---:|---:|---:|
+| Slow Ride / aggressive, dedup | 5 | 2 | 483495 | 0.462 |
+| Slow Ride / balanced, no dedup | 11 | 9 | 2141238 | 2.050 |
+| Slow Ride / balanced, dedup | 11 | 6 | 1437534 | 1.136 |
+| Slow Ride / conservative, dedup | 9 | 4 | 963162 | 0.880 |
+| Slow Ride / fixed baseline | 1 | 1 | 241255 | 0.199 |
+| Raining Blood / aggressive, dedup | 4 | 3 | 715557 | 0.755 |
+| Raining Blood / balanced, dedup | 7 | 6 | 1427260 | 1.197 |
+| Raining Blood / conservative, dedup | 7 | 6 | 1427248 | 1.577 |
+| Raining Blood / fixed baseline | 1 | 1 | 241324 | 0.208 |
+
+Slow Ride: 251.147 s, 2512 observations, 700.8 ms scan, 116.5 ms synthesis,
+6.84 ms FX. The balanced deduplicated bank contains 30 samples and 1,386,720 PCM
+bytes; prepared-process RSS was 8,802,304 bytes (whole process, not bank-only RAM).
+Its accepted trigger-call p95 was 0.00524 ms. Raining Blood: 259.320 s, 708.6 ms
+scan; balanced accepted-call p95 0.00488 ms. These are individual local runs,
+not hardware-independent performance guarantees.
+
+Sensitivity profiles are not monotonically ordered by final region count: early
+boundaries, reference adaptation and subsequent merging interact. Silent regions
+always share the fallback even when harmonic deduplication is disabled. The
+aggressive results above illustrate why the timeline and listening comparisons
+are required. **No perceptual quality conclusion or minimum sufficient set count
+has been established by these automated runs.** Physical audio/loopback latency
+and audibility of loop seams remain unmeasured.
+
+Artifacts (ignored build outputs):
+
+- `build/audio-studio/adaptive-debug/native-attach-gdb.log`: original attached stack.
+- `build/audio-studio/adaptive-debug/slide-old.log`, `slide-new-regression.log`,
+  `new-bass-only.log`, `new-fx-only.log`: dependency matrix.
+- `build/audio-studio/adaptive-debug/gdb-new.log`: successful post-update GDB run.
+- `build/audio-studio/adaptive-debug/ctest.log`, `audio-final.log`, `asan.log`:
+  full and final focused validation.
+- `build/audio-studio/adaptive-debug/runtime-capabilities.json`: loaded versions/API probe.
+- `build/audio-studio/adaptive-real-new/` and `adaptive-raining/`: banks, reports,
+  seven benchmark cases and per-case banks for auditioning.
+
+## Original workbench validation — 2026-10-10
 
 Workspace: `/mnt/projects/Projects/Guitar-PlusPlus`. Execution used the connected
 Native Lab MCP with structured argv. No Native Lab permissions, audio-device

@@ -597,8 +597,8 @@ void AudioTransport::loop(double begin, double end, bool enabled) {
         begin >= end || end > info_.duration + .0001) {
         throw Error("Invalid playback loop");
     }
-    // Local BASS 2.4.14 does not implement POS_END/POS_LOOP despite the newer
-    // installed header. Mixtime syncs work on both that baseline and new BASS.
+    // BASS 2.4.14 does not implement POS_END/POS_LOOP despite newer headers.
+    // Keep mixtime syncs for compatibility with both older and current BASS.
     // Lock only while replacing syncs and flushing existing buffered data.
     const DWORD channel = stream_.get();
     check(BASS_ChannelLock(channel, TRUE), "Lock channel for loop change");

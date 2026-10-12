@@ -213,6 +213,12 @@ struct UI {
     int fxTarget = 1, previewType = 3;
     VoiceBenchmarkOptions voiceOptions;
     char voiceFile[1024] = "voice-comparison.json";
+    size_t selectedRegion = 0;
+    char cachePath[1024] = "bank.gppfc", analysisPath[1024] = "analysis.json";
+    char cacheExport[1024] = "adaptive-fail",
+         genericPath[4096] = "build/bin/data/sounds";
+    int adaptiveMode = 0, releaseMs = 20, adaptiveTrials = 30;
+    bool held[5] = {};
     int benchmarkIterations = 30;
     char benchmarkFile[1024] = "benchmark.json";
     bool float32 = false, segment = false, rawExport = false, first = true,
@@ -290,6 +296,7 @@ struct UI {
             ImGui::DockBuilderDockWindow("BASS FX", right);
             ImGui::DockBuilderDockWindow("Audio Device", right);
             ImGui::DockBuilderDockWindow("Diagnostics", right);
+            ImGui::DockBuilderDockWindow("Whole Song Analysis", right);
             ImGui::DockBuilderFinish(dock);
         }
         first = false;
@@ -414,6 +421,59 @@ struct UI {
                                    origin.y + size.y - 20},
                                   blue, label);
                 }
+                const auto *song = s.songAnalysis ? s.songAnalysis.get()
+                                   : s.failCache  ? &s.failCache->song
+                                                  : nullptr;
+                if (song) {
+                    for (size_t i = 0; i < song->regions.size(); ++i) {
+                        const auto &region = song->regions[i];
+                        const float l = timeX(double(region.begin) /
+                                              song->info.rate),
+                                    r = timeX(double(region.end) /
+                                              song->info.rate);
+                        if (r < origin.x || l > origin.x + size.x) {
+                            continue;
+                        }
+                        ImVec4 color;
+                        ImGui::ColorConvertHSVtoRGB(
+                            float((region.setId * 0.61803398875)), .5f, .8f,
+                            color.x, color.y, color.z);
+                        color.w = .65f;
+                        if (region.silent) {
+                            color = {.35f, .35f, .35f, .8f};
+                        }
+                        const float left = std::clamp(l, origin.x,
+                                                      origin.x + size.x),
+                                    right = std::clamp(r, origin.x,
+                                                       origin.x + size.x);
+                        draw->AddRectFilled(
+                            {left, origin.y}, {right, origin.y + 26},
+                            ImGui::ColorConvertFloat4ToU32(color));
+                        draw->AddLine({left, origin.y},
+                                      {left, origin.y + size.y},
+                                      IM_COL32(180, 190, 210, 100));
+                        const float representative = timeX(
+                            double(region.representative) / song->info.rate);
+                        if (representative >= origin.x &&
+                            representative <= origin.x + size.x) {
+                            draw->AddLine({representative, origin.y + 28},
+                                          {representative, origin.y + 42},
+                                          IM_COL32(255, 235, 150, 255), 2);
+                        }
+                        if (right - left > 40) {
+                            char text[48];
+                            std::snprintf(text, sizeof(text), "%zu/S%u", i,
+                                          region.setId);
+                            draw->AddText({left + 3, origin.y + 4},
+                                          IM_COL32(255, 255, 255, 255), text);
+                        }
+                        if (i == selectedRegion) {
+                            draw->AddRect({left, origin.y},
+                                          {right, origin.y + 26},
+                                          IM_COL32(255, 255, 255, 255));
+                        }
+                    }
+                }
                 const float cursorX = timeX(s.cursor);
                 if (cursorX >= origin.x && cursorX <= origin.x + size.x) {
                     draw->AddLine({cursorX, origin.y},
@@ -440,8 +500,25 @@ struct UI {
                                 size.x * span,
                         0., std::max(0., duration - .0001));
                     attempt([&] {
-                        s.seek(time);
-                        s.generate(false);
+                        if (song && ImGui::GetIO().MousePos.y < origin.y + 28) {
+                            const uint64_t frame =
+                                uint64_t(time * song->info.rate);
+                            for (size_t i = 0; i < song->regions.size(); ++i) {
+                                if (frame >= song->regions[i].begin &&
+                                    frame < song->regions[i].end) {
+                                    selectedRegion = i;
+                                    break;
+                                }
+                            }
+                            s.seek(double(song->regions[selectedRegion]
+                                              .representative) /
+                                   song->info.rate);
+                        } else {
+                            s.seek(time);
+                            if (!s.busy()) {
+                                s.generate(false);
+                            }
+                        }
                     });
                 }
                 ImGui::PushItemWidth(95);
@@ -450,7 +527,9 @@ struct UI {
                                        ImGuiInputTextFlags_EnterReturnsTrue)) {
                     attempt([&] {
                         s.seek(cursor);
-                        s.generate(false);
+                        if (!s.busy()) {
+                            s.generate(false);
+                        }
                     });
                 }
                 ImGui::SameLine();
@@ -1027,6 +1106,343 @@ struct UI {
         }
         ImGui::End();
     }
+    void adaptive() {
+        if (ImGui::Begin("Whole Song Analysis")) {
+            auto job = [&](const char *kind, const fs::path &path = {}) {
+                attempt([&] { s.adaptiveJob(kind, path, adaptiveTrials); });
+            };
+            ImGui::TextWrapped(
+                "Analyze the loaded song or stem. Cache synthesis uses its own "
+                "settings (51 ms content by default).");
+            if (ImGui::Button("Scan whole song")) {
+                job("song.scan");
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel##song")) {
+                s.cancel();
+            }
+            if (s.busy()) {
+                ImGui::ProgressBar(float(s.progress()), {-1, 0},
+                                   s.jobKind.c_str());
+            }
+            if (ImGui::CollapsingHeader("Detection parameters")) {
+                auto settings = s.songSettings;
+                bool changed = false;
+                audio::visitSongSettings(settings, [&](const std::string &name,
+                                                       auto &v, double low,
+                                                       double high) {
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, bool>) {
+                        changed |= ImGui::Checkbox(name.c_str(), &v);
+                    } else if constexpr (std::is_integral_v<T>) {
+                        int index = 0;
+                        for (int n = 512; n < v; n *= 2) {
+                            ++index;
+                        }
+                        if (ImGui::Combo(name.c_str(), &index,
+                                         "512\0 1024\0 2048\0 4096\0 8192\0 "
+                                         "16384\0 32768\0")) {
+                            v = 512 << index;
+                            changed = true;
+                        }
+                    } else {
+                        changed |= ImGui::SliderScalar(name.c_str(),
+                                                       ImGuiDataType_Double, &v,
+                                                       &low, &high, "%.3f");
+                    }
+                });
+                if (changed) {
+                    attempt(
+                        [&] { s.updateAdaptive(settings, s.cacheSettings); });
+                }
+            }
+            if (ImGui::Button("Resegment stored observations")) {
+                job("song.segment");
+            }
+            if (ImGui::CollapsingHeader("Cache synthesis / FX")) {
+                auto settings = s.cacheSettings;
+                if (parameters(settings,
+                               [](const std::string &) { return true; })) {
+                    attempt(
+                        [&] { s.updateAdaptive(s.songSettings, settings); });
+                }
+                if (ImGui::Button("Copy manual synth settings")) {
+                    attempt(
+                        [&] { s.updateAdaptive(s.songSettings, s.settings); });
+                }
+            }
+            if (ImGui::Button("Generate five per set")) {
+                job("cache.generate");
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Prepare BASS bank")) {
+                job("cache.prepare");
+            }
+            int voices = int(s.bankOptions.voices);
+            if (ImGui::SliderInt("Maximum voices", &voices, 1, 256)) {
+                s.bankOptions.voices = unsigned(voices);
+                s.failBank.reset();
+                s.simulating = false;
+            }
+            if (ImGui::Checkbox("Replace oldest at capacity",
+                                &s.bankOptions.stealOldest)) {
+                s.failBank.reset();
+                s.simulating = false;
+            }
+            ImGui::TextUnformatted(s.cacheCurrent()
+                                       ? "Cache matches current parameters"
+                                       : "Cache missing or outdated");
+            if (ImGui::CollapsingHeader("Save / load / export")) {
+                ImGui::InputText("Analysis file", analysisPath,
+                                 sizeof(analysisPath));
+                if (ImGui::Button("Save analysis")) {
+                    job("song.save", analysisPath);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Load analysis")) {
+                    job("song.load", fs::path(analysisPath).is_absolute()
+                                         ? fs::path(analysisPath)
+                                         : s.outputRoot / analysisPath);
+                }
+                ImGui::InputText("Bank file", cachePath, sizeof(cachePath));
+                if (ImGui::Button("Save cache")) {
+                    job("cache.save", cachePath);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Load cache")) {
+                    job("cache.load", fs::path(cachePath).is_absolute()
+                                          ? fs::path(cachePath)
+                                          : s.outputRoot / cachePath);
+                }
+                ImGui::InputText("WAV export prefix", cacheExport,
+                                 sizeof(cacheExport));
+                if (ImGui::Button("Export samples + index")) {
+                    job("cache.export", cacheExport);
+                }
+            }
+            const auto *song = s.songAnalysis ? s.songAnalysis.get()
+                               : s.failCache  ? &s.failCache->song
+                                              : nullptr;
+            if (song && !song->regions.empty()) {
+                selectedRegion =
+                    std::min(selectedRegion, song->regions.size() - 1);
+                int selected = int(selectedRegion);
+                if (ImGui::SliderInt("Region", &selected, 0,
+                                     int(song->regions.size() - 1))) {
+                    selectedRegion = size_t(selected);
+                }
+                const auto &r = song->regions[selectedRegion];
+                ImGui::Text("[%0.2f, %0.2f) s | Set %u%s",
+                            double(r.begin) / song->info.rate,
+                            double(r.end) / song->info.rate, r.setId,
+                            r.silent ? " | silence" : "");
+                ImGui::Text("Representative %.3f s | change %.3f",
+                            double(r.representative) / song->info.rate,
+                            r.change);
+                if (ImGui::Button("Seek representative")) {
+                    attempt([&] {
+                        s.seek(double(r.representative) / song->info.rate);
+                    });
+                }
+                ImGui::Text("%.2f s | %zu observations | regions %zu -> %zu",
+                            song->info.duration, song->observations.size(),
+                            song->detectedRegions, song->regions.size());
+                ImGui::Text("Scan %.2f ms | segment %.2f ms", song->scanMs,
+                            song->segmentMs);
+            }
+            if (s.failCache) {
+                ImGui::Text("%zu unique sets | %zu samples | PCM %.3f MiB",
+                            s.failCache->sets.size(),
+                            s.failCache->samples.size(),
+                            double(s.failCache->pcmBytes()) / 1048576);
+                ImGui::Text("Synth %.2f ms | FX %.2f ms | disk %.3f MiB",
+                            s.failCache->synthMs, s.failCache->fxMs,
+                            double(s.cacheFileBytes) / 1048576);
+                if (!s.failCache->samples.empty()) {
+                    const auto &sample = s.failCache->samples.front();
+                    ImGui::Text("Content %.4f s | final PCM %.4f s",
+                                sample.contentSeconds, sample.pcm.seconds());
+                }
+            }
+            ImGui::Separator();
+            ImGui::TextUnformatted("Prepared preview / error simulation");
+            const char *names[] = {"G", "R", "Y", "B", "O"};
+            for (unsigned fret = 0; fret < 5; ++fret) {
+                if (fret) {
+                    ImGui::SameLine();
+                }
+                bool selected = (s.cacheMask & (1u << fret)) != 0;
+                if (ImGui::Checkbox(names[fret], &selected)) {
+                    s.cacheMask ^= 1u << fret;
+                }
+            }
+            ImGui::Combo("Preview source", &adaptiveMode,
+                         "Adaptive cache\0Direct chord at cursor\0Individual "
+                         "samples at cursor\0Original generic sounds\0");
+            const char *modes[] = {"cache", "direct", "individual", "generic"};
+            if (ImGui::Button("Trigger selected frets")) {
+                attempt([&] {
+                    s.adaptivePreview(modes[adaptiveMode], s.music.position(),
+                                      s.cacheMask);
+                });
+            }
+            for (unsigned fret = 0; fret < 5; ++fret) {
+                if (fret) {
+                    ImGui::SameLine();
+                }
+                const auto label = std::string("Hit ") + names[fret];
+                if (ImGui::Button(label.c_str())) {
+                    attempt([&] {
+                        s.adaptivePreview("cache", s.music.position(),
+                                          1u << fret);
+                    });
+                }
+            }
+            if (ImGui::Button(
+                    "Prepare direct + individual comparison at cursor")) {
+                job("cache.compare");
+            }
+            if (s.directProduct) {
+                ImGui::Text("Comparison fixed at %.3f s, mask %d",
+                            s.directProduct->time,
+                            s.directProduct->settings.synth.fretMask);
+            }
+            ImGui::TextWrapped("Individual mixing uses 1/N gain. This "
+                               "comparison holds the analysis point constant; "
+                               "cache playback follows the music position.");
+            ImGui::InputText("Generic sounds directory", genericPath,
+                             sizeof(genericPath));
+            if (ImGui::Button("Prepare original sounds")) {
+                s.genericDirectory = genericPath;
+                job("cache.generic");
+            }
+            ImGui::InputDouble("Error interval (s)", &s.simulationInterval);
+            if (ImGui::Button(s.simulating ? "Stop error simulation"
+                                           : "Start error simulation")) {
+                attempt([&] {
+                    if (s.simulating) {
+                        s.stopAdaptive();
+                        return;
+                    }
+                    if (!s.failBank || !s.cacheCurrent() ||
+                        s.simulationInterval < .01 ||
+                        s.simulationInterval > 60 ||
+                        !std::isfinite(s.simulationInterval) || !s.cacheMask) {
+                        throw audio::Error("Prepare bank and choose valid "
+                                           "simulation interval/frets");
+                    }
+                    s.music.play();
+                    s.simulationNext = s.simulationPrevious =
+                        s.music.position();
+                    s.simulating = true;
+                });
+            }
+            if (ImGui::Button("Stop all fail previews")) {
+                attempt([&] { s.stopAdaptive(); });
+            }
+            if (s.failBank) {
+                const auto stats = s.failBank->stats();
+                ImGui::Text("Prepare %.3f ms | trigger API %.5f ms",
+                            stats.prepareMs, stats.lastTriggerMs);
+                ImGui::Text(
+                    "Active %u | peak %u | rejected %llu | replaced %llu",
+                    stats.active, stats.peakActive,
+                    (unsigned long long)stats.rejected,
+                    (unsigned long long)stats.replaced);
+                ImGui::TextDisabled("API timing is not audible latency. PCM "
+                                    "upload adds a BASS copy.");
+            }
+            if (ImGui::CollapsingHeader("Sustained region experiment")) {
+                if (ImGui::Button("Prepare five loops at cursor region")) {
+                    job("cache.sustain");
+                }
+                ImGui::SliderInt("Release fade (ms)", &releaseMs, 0, 1000);
+                for (unsigned fret = 0; fret < 5; ++fret) {
+                    if (fret) {
+                        ImGui::SameLine();
+                    }
+                    const auto label = std::string("Hold ") + names[fret];
+                    if (ImGui::Checkbox(label.c_str(), &held[fret])) {
+                        attempt([&] {
+                            if (!s.sustained) {
+                                held[fret] = false;
+                                throw audio::Error(
+                                    "Prepare sustained preview first");
+                            }
+                            if (held[fret]) {
+                                s.sustained->press(fret, s.previewVolume / 5);
+                            } else {
+                                s.sustained->release(fret, unsigned(releaseMs));
+                            }
+                        });
+                    }
+                }
+            }
+            if (ImGui::CollapsingHeader("Sensitivity experiment")) {
+                ImGui::SliderInt("Measured triggers", &adaptiveTrials, 1, 1000);
+                if (ImGui::Button("Compare four profiles / export JSON")) {
+                    job("cache.benchmark", "adaptive-benchmark.json");
+                }
+                ImGui::TextWrapped(
+                    "Runs use identical observations and synthesis settings. "
+                    "Evaluate exported banks by listening; more regions are "
+                    "not a quality score.");
+                if (s.cacheBenchmarkReport &&
+                    ImGui::BeginTable("Adaptive profiles", 6,
+                                      ImGuiTableFlags_Borders |
+                                          ImGuiTableFlags_ScrollX)) {
+                    for (const char *label :
+                         {"Profile", "Regions / sets", "Disk MiB", "Prepare ms",
+                          "Accepted p95 ms", "RSS growth KiB"}) {
+                        ImGui::TableSetupColumn(label);
+                    }
+                    ImGui::TableHeadersRow();
+                    for (const auto &c :
+                         (*s.cacheBenchmarkReport)["cases"].GetArray()) {
+                        ImGui::TableNextRow();
+                        ImGui::TableNextColumn();
+                        ImGui::Text("%s%s", c["profile"].GetString(),
+                                    c["deduplicate"].GetBool() ? " + dedup"
+                                                               : "");
+                        ImGui::TableNextColumn();
+                        ImGui::Text(
+                            "%llu / %llu",
+                            (unsigned long long)c["regions"].GetUint64(),
+                            (unsigned long long)c["sets"].GetUint64());
+                        ImGui::TableNextColumn();
+                        ImGui::Text("%.3f",
+                                    c["file_bytes"].GetUint64() / 1048576.);
+                        ImGui::TableNextColumn();
+                        ImGui::Text("%.3f", c["prepare_ms"].GetDouble());
+                        ImGui::TableNextColumn();
+                        if (c.HasMember("accepted_trigger_api")) {
+                            ImGui::Text("%.5f",
+                                        c["accepted_trigger_api"]["p95_ms"]
+                                            .GetDouble());
+                        }
+                        ImGui::TableNextColumn();
+                        const auto &memory = c["playback"]["memory"];
+                        if (memory["prepared"]["rss_bytes"].IsNumber() &&
+                            memory["loaded"]["rss_bytes"].IsNumber()) {
+                            ImGui::Text(
+                                "%.1f",
+                                (memory["prepared"]["rss_bytes"].GetDouble() -
+                                 memory["loaded"]["rss_bytes"].GetDouble()) /
+                                    1024);
+                        } else {
+                            ImGui::TextUnformatted("unavailable");
+                        }
+                    }
+                    ImGui::EndTable();
+                    ImGui::TextWrapped(
+                        "RSS includes allocator/page effects. Load a bank_path "
+                        "from adaptive-benchmark.json to audition that exact "
+                        "result.");
+                }
+            }
+        }
+        ImGui::End();
+    }
     void draw() {
         layout();
         explorer();
@@ -1035,6 +1451,7 @@ struct UI {
         fx();
         device();
         diagnostics();
+        adaptive();
         synth();
         preview();
         if (focusSynth) {

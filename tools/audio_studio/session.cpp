@@ -38,6 +38,12 @@ Session::Session(audio::DeviceSettings device, fs::path output)
 
 Session::~Session() {
     joinWorker();
+    stopAdaptive();
+    failBank.reset();
+    individualBank.reset();
+    genericBank.reset();
+    sustained.reset();
+    directPreview.close();
     preview.close();
     music.close();
 }
@@ -99,7 +105,10 @@ void Session::worker(int device) {
         try {
             audio::check(deviceReady, "Select worker BASS device");
             checkpoint(0);
-            if (job.kind == "compare_voices") {
+            if (job.kind.rfind("song.", 0) == 0 ||
+                job.kind.rfind("cache.", 0) == 0) {
+                processAdaptive(job, done, checkpoint);
+            } else if (job.kind == "compare_voices") {
                 auto pcm = job.product->processed;
                 pcm.loop = {};
                 if (job.voiceOptions.trimTail) {
@@ -190,6 +199,7 @@ void Session::worker(int device) {
 }
 
 void Session::tick() {
+    tickSimulation();
     std::optional<Completion> done;
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -210,6 +220,17 @@ void Session::tick() {
         if (done->wave) {
             // Open validates a replacement before freeing the previous channel.
             music.open(done->job.source, &musicFx);
+            stopAdaptive();
+            failBank.reset();
+            individualBank.reset();
+            genericBank.reset();
+            sustained.reset();
+            directPreview.close();
+            directProduct.reset();
+            songAnalysis.reset();
+            failCache.reset();
+            cacheFileBytes = 0;
+            cacheStale = true;
             source = done->job.source;
             wave = std::move(done->wave);
             product.reset();
@@ -219,11 +240,14 @@ void Session::tick() {
             musicLoop = false;
             music.controls(musicVolume, musicPan, streamBuffer);
         }
+        publishAdaptive(*done);
         if (done->product) {
             product = std::move(done->product);
         }
         if (done->report) {
-            if (done->job.kind == "compare_voices") {
+            if (done->job.kind == "cache.benchmark") {
+                cacheBenchmarkReport = std::move(done->report);
+            } else if (done->job.kind == "compare_voices") {
                 voiceReport = std::move(done->report);
             } else {
                 benchmarkReport = std::move(done->report);
@@ -373,8 +397,19 @@ void Session::applyDevice(const audio::DeviceSettings &next) {
     audio::validate(next);
     const double position = music.position();
     joinWorker();
+    stopAdaptive();
+    failBank.reset();
+    individualBank.reset();
+    genericBank.reset();
+    sustained.reset();
+    directPreview.close();
     preview.close();
     music.close();
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        pending_.reset();
+        complete_.reset();
+    }
     bass_.reset();
     const auto setupStart = Clock::now();
     std::string failure;
@@ -421,6 +456,7 @@ void Session::seek(double time) {
         time >= wave->info.duration) {
         throw audio::Error("Cursor must be inside the source duration");
     }
+    stopAdaptive();
     music.position(time);
     cursor = time;
 }

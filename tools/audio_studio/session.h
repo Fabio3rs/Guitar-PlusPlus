@@ -1,5 +1,6 @@
 #pragma once
 #include "audio/audio.h"
+#include "audio/sample_bank.h"
 #include <atomic>
 #include <cereal/external/rapidjson/document.h>
 #include <condition_variable>
@@ -44,6 +45,10 @@ class Session {
         int iterations = 0;
         float bufferSeconds = 0;
         std::shared_ptr<const Product> product;
+        audio::SongSettings songSettings;
+        audio::BankOptions bankOptions;
+        std::shared_ptr<const audio::SongAnalysis> song;
+        std::shared_ptr<const audio::SongFailCache> cache;
     };
     struct Completion {
         Job job;
@@ -51,6 +56,13 @@ class Session {
         std::shared_ptr<Product> product;
         std::shared_ptr<Json> report;
         std::string error;
+        std::shared_ptr<audio::SongAnalysis> song;
+        std::shared_ptr<audio::SongFailCache> cache;
+        std::unique_ptr<audio::PreparedFailBank> bank;
+        std::unique_ptr<audio::SustainedFailPreview> sustained;
+        std::shared_ptr<Product> direct;
+        double ioMs = 0;
+        uint64_t fileBytes = 0;
     };
     // BASS must outlive transports and the joined worker.
     std::unique_ptr<audio::BassSystem> bass_;
@@ -66,9 +78,30 @@ class Session {
     uint64_t enqueue(Job job);
     void worker(int device);
     void joinWorker();
+    void processAdaptive(const Job &job, Completion &done,
+                         const audio::Checkpoint &checkpoint);
+    void publishAdaptive(Completion &done);
 
   public:
     audio::AudioTransport music, preview;
+    audio::AudioTransport directPreview;
+    audio::SongSettings songSettings;
+    audio::Settings cacheSettings = audio::shortFailSettings();
+    audio::BankOptions bankOptions;
+    std::shared_ptr<const audio::SongAnalysis> songAnalysis;
+    std::shared_ptr<const audio::SongFailCache> failCache;
+    std::shared_ptr<const Product> directProduct;
+    std::unique_ptr<audio::PreparedFailBank> failBank, individualBank,
+        genericBank;
+    std::unique_ptr<audio::SustainedFailPreview> sustained;
+    std::shared_ptr<const Json> cacheBenchmarkReport;
+    fs::path genericDirectory = "build/bin/data/sounds";
+    double cacheIoMs = 0;
+    uint64_t cacheFileBytes = 0;
+    bool simulating = false, cacheStale = true;
+    double simulationInterval = .25, simulationNext = 0, simulationPrevious = 0;
+    uint64_t simulationSkipped = 0;
+    unsigned cacheMask = 4;
     audio::DeviceSettings deviceSettings;
     audio::Settings settings;
     audio::FxSettings musicFx;
@@ -96,6 +129,14 @@ class Session {
     uint64_t revision() const { return revision_.load(); }
     uint64_t load(const fs::path &path);
     uint64_t generate(bool synthesis);
+    uint64_t adaptiveJob(const std::string &kind, const fs::path &path = {},
+                         int iterations = 30);
+    void updateAdaptive(const audio::SongSettings &song,
+                        const audio::Settings &synth);
+    bool cacheCurrent() const;
+    void adaptivePreview(const std::string &mode, double time, unsigned mask);
+    void stopAdaptive();
+    void tickSimulation();
     uint64_t benchmark(int iterations, const fs::path &report);
     uint64_t compare(const VoiceBenchmarkOptions &options,
                      const fs::path &report);
@@ -116,6 +157,9 @@ class Session {
 Json settingsJson(const audio::Settings &settings);
 audio::Settings parseSettings(const Value &json, audio::Settings base = {});
 Json stateJson(Session &session);
+Json adaptiveState(Session &session, size_t offset = 0, size_t limit = 0);
+Json adaptiveSettings(const Session &session);
+void parseAdaptiveSettings(Session &session, const Value &parameters);
 Json parseJson(const std::string &text);
 std::string encode(const Value &value);
 std::string dispatch(Session &session, const std::string &line);

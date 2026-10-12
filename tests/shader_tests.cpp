@@ -210,6 +210,14 @@ TEST_F(ShaderGL, FireProgramProducesTransparentEdgesAndAnimatedFlame) {
     EXPECT_GT(first[center + 1], first[center + 2]);
     EXPECT_GT(first[center + 3], 150);
     EXPECT_LT(first[edge + 3], 5);
+    // The reference has a pale core and a broad body, not a thin orange cone.
+    EXPECT_GT(first[center + 1], 210);
+    EXPECT_GT(first[center + 2], 120);
+    const size_t shoulder = (12 * 32 + 9) * 4;
+    EXPECT_GT(first[shoulder + 3], 150);
+    for (size_t column = 0; column < 32; ++column) {
+        EXPECT_LT(first[(31 * 32 + column) * 4 + 3], 5);
+    }
     EXPECT_NE(first, draw(0.4f, 1.0f));
     const auto faded = draw(0.0f, 0.25f);
     EXPECT_LT(faded[center + 3], first[center + 3] / 2);

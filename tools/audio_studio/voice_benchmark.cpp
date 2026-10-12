@@ -13,6 +13,62 @@ extern char **environ;
 #endif
 
 namespace AudioStudio {
+void runAudioProbe(std::vector<std::string> args,
+                   const audio::Checkpoint &checkpoint) {
+#ifndef __linux__
+    (void)args;
+    (void)checkpoint;
+    throw audio::Error("Isolated audio probes currently require Linux");
+#else
+    std::vector<char *> argv;
+    for (auto &arg : args) {
+        argv.push_back(arg.data());
+    }
+    argv.push_back(nullptr);
+    pid_t pid = 0;
+    const int error = posix_spawn(&pid, args.front().c_str(), nullptr, nullptr,
+                                  argv.data(), environ);
+    if (error) {
+        throw audio::Error("Cannot start voice probe: " +
+                           std::to_string(error));
+    }
+    int status = 0;
+    try {
+        const auto start = std::chrono::steady_clock::now();
+        for (;;) {
+            const auto result = waitpid(pid, &status, WNOHANG);
+            if (result == pid) {
+                break;
+            }
+            if (result < 0 && errno != EINTR) {
+                if (errno == ECHILD) {
+                    pid = -1;
+                }
+                throw audio::Error("Cannot wait for voice probe");
+            }
+            checkpoint(0);
+            if (std::chrono::steady_clock::now() - start >
+                std::chrono::seconds(180)) {
+                throw audio::Error(
+                    "Voice probe timed out (180 seconds per case)");
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    } catch (...) {
+        if (pid > 0) {
+            kill(pid, SIGKILL);
+            while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {
+            }
+        }
+        throw;
+    }
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        throw audio::Error("Voice probe failed; see stderr. Requested "
+                           "device is not replaced by NoSound.");
+    }
+#endif
+}
+
 void validate(const VoiceBenchmarkOptions &o) {
     if (o.voices < 1 || o.voices > 32 || o.bursts < 1 || o.bursts > 100 ||
         o.intervalMs < 0 || o.intervalMs > 100) {
@@ -172,52 +228,9 @@ Json compareVoices(const audio::PcmBuffer &pcm,
                                           (scratch / "config.json").string(),
                                           (scratch / "pcm.wav").string(),
                                           (scratch / "result.json").string()};
-            std::vector<char *> argv;
-            for (auto &arg : args) {
-                argv.push_back(arg.data());
-            }
-            argv.push_back(nullptr);
-            pid_t pid = 0;
-            const int error = posix_spawn(&pid, executable.c_str(), nullptr,
-                                          nullptr, argv.data(), environ);
-            if (error) {
-                throw audio::Error("Cannot start voice probe: " +
-                                   std::to_string(error));
-            }
-            int status = 0;
-            try {
-                const auto start = std::chrono::steady_clock::now();
-                for (;;) {
-                    const auto result = waitpid(pid, &status, WNOHANG);
-                    if (result == pid) {
-                        break;
-                    }
-                    if (result < 0 && errno != EINTR) {
-                        if (errno == ECHILD) {
-                            pid = -1;
-                        }
-                        throw audio::Error("Cannot wait for voice probe");
-                    }
-                    checkpoint(double(completed) / (2 * sizes.size()));
-                    if (std::chrono::steady_clock::now() - start >
-                        std::chrono::seconds(180)) {
-                        throw audio::Error(
-                            "Voice probe timed out (180 seconds per case)");
-                    }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                }
-            } catch (...) {
-                if (pid > 0) {
-                    kill(pid, SIGKILL);
-                    while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {
-                    }
-                }
-                throw;
-            }
-            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-                throw audio::Error("Voice probe failed; see stderr. Requested "
-                                   "device is not replaced by NoSound.");
-            }
+            runAudioProbe(args, [&](double) {
+                checkpoint(double(completed) / (2 * sizes.size()));
+            });
             std::ifstream file(scratch / "result.json");
             std::string content((std::istreambuf_iterator<char>(file)), {});
             Json child;

@@ -235,6 +235,8 @@ audio::Settings loadPreset(const fs::path &file) {
 Json stateJson(Session &s) {
     Json json(rapidjson::kObjectType);
     auto &a = json.GetAllocator();
+    auto adaptive = adaptiveState(s);
+    json.AddMember("adaptive", Value(adaptive, a), a);
     put(json, "source", s.source.string(), a);
     put(json, "busy", s.busy(), a);
     put(json, "job_id", s.revision(), a);
@@ -352,6 +354,89 @@ std::string dispatch(Session &s, const std::string &line) {
         if (method == "state") {
             auto state = stateJson(s);
             result.CopyFrom(state, a);
+        } else if (method == "cache.set") {
+            parseAdaptiveSettings(s, p);
+        } else if (method == "cache.stats" || method == "song.regions") {
+            const int offset = integer(p, "offset", 0),
+                      limit = integer(p, "limit",
+                                      method == "song.regions" ? 1000 : 0);
+            if (offset < 0 || limit < 0 || limit > 10000) {
+                throw audio::Error("Invalid region pagination");
+            }
+            auto state = adaptiveState(s, size_t(offset), size_t(limit));
+            result.CopyFrom(state, a);
+        } else if (method == "cache.preview") {
+            const auto mode = stringField(p, "mode", "cache");
+            const int mask = integer(p, "mask", int(s.cacheMask));
+            if (mask < 0 || mask > 31) {
+                throw audio::Error("Invalid fret mask");
+            }
+            if (mode == "sustain") {
+                if (!s.sustained) {
+                    throw audio::Error("Prepare sustained preview first");
+                }
+                for (unsigned fret = 0; fret < 5; ++fret) {
+                    if (mask & (1 << fret)) {
+                        s.sustained->press(fret, s.previewVolume / 5);
+                    }
+                }
+            } else {
+                s.adaptivePreview(mode, number(p, "time", s.music.position()),
+                                  unsigned(mask));
+            }
+        } else if (method == "cache.release") {
+            const int fret = integer(p, "fret", -1),
+                      fade = integer(p, "fade_ms", 20);
+            if (fret < -1 || fret > 4 || fade < 0 || fade > 10000) {
+                throw audio::Error("Invalid release");
+            }
+            if (fret == -1) {
+                s.stopAdaptive();
+            } else if (s.sustained) {
+                s.sustained->release(unsigned(fret), unsigned(fade));
+            }
+        } else if (method == "cache.simulate") {
+            const bool enabled = boolean(p, "enabled", true);
+            const double interval = number(p, "interval", .25);
+            const int mask = integer(p, "mask", 4);
+            if (interval < .01 || interval > 60 || mask < 1 || mask > 31) {
+                throw audio::Error("Invalid simulation interval/mask");
+            }
+            if (enabled && (!s.failBank || !s.cacheCurrent() ||
+                            BASS_ChannelIsActive(s.music.handle()) !=
+                                BASS_ACTIVE_PLAYING)) {
+                throw audio::Error("Prepare bank and play music first");
+            }
+            s.simulationInterval = interval;
+            s.cacheMask = unsigned(mask);
+            s.simulating = enabled;
+            s.simulationNext = s.simulationPrevious = s.music.position();
+        } else if (method == "song.scan" || method == "song.segment" ||
+                   method == "song.save" || method == "song.load" ||
+                   method == "cache.generate" || method == "cache.load" ||
+                   method == "cache.save" || method == "cache.prepare" ||
+                   method == "cache.compare" || method == "cache.export" ||
+                   method == "cache.sustain" || method == "cache.generic" ||
+                   method == "cache.benchmark") {
+            const int voices = integer(p, "voices", int(s.bankOptions.voices)),
+                      mask = integer(p, "mask", int(s.cacheMask));
+            if (voices < 1 || voices > 256 || mask < 0 || mask > 31) {
+                throw audio::Error("Invalid voice limit or mask");
+            }
+            s.bankOptions = {
+                unsigned(voices),
+                boolean(p, "steal_oldest", s.bankOptions.stealOldest)};
+            s.cacheMask = unsigned(mask);
+            if (method == "cache.generic") {
+                s.genericDirectory =
+                    stringField(p, "directory", s.genericDirectory.string());
+            }
+            job = s.adaptiveJob(method,
+                                stringField(p, "path",
+                                            method == "cache.benchmark"
+                                                ? "adaptive-benchmark.json"
+                                                : ""),
+                                integer(p, "iterations", 30));
         } else if (method == "load") {
             job = s.load(stringField(p, "path"));
         } else if (method == "set") {
@@ -406,8 +491,14 @@ std::string dispatch(Session &s, const std::string &line) {
                 channel.play();
             } else if (action == "pause") {
                 channel.pause();
+                if (target == "music") {
+                    s.stopAdaptive();
+                }
             } else if (action == "stop") {
                 channel.stop();
+                if (target == "music") {
+                    s.stopAdaptive();
+                }
             } else if (action == "controls") {
                 const float volume = float(number(
                     p, "volume",

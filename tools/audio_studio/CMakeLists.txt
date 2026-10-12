@@ -1,5 +1,5 @@
 find_package(PNG REQUIRED)
-add_library(gpp_audio_studio_session STATIC session.cpp protocol.cpp benchmark.cpp voice_benchmark.cpp)
+add_library(gpp_audio_studio_session STATIC session.cpp protocol.cpp benchmark.cpp voice_benchmark.cpp adaptive.cpp)
 target_link_libraries(gpp_audio_studio_session PUBLIC gpp_audio)
 target_compile_definitions(gpp_audio_studio_session PRIVATE
     GPP_AUDIO_BUILD_TYPE="$<CONFIG>"
@@ -26,13 +26,16 @@ endif()
 if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     find_package(Python3 COMPONENTS Interpreter REQUIRED)
-    add_executable(gpp_audio_tests tests.cpp)
+    add_executable(gpp_audio_tests tests.cpp adaptive_tests.cpp)
     target_link_libraries(gpp_audio_tests PRIVATE gpp_audio_studio_session GTest::GTest GTest::Main)
     add_test(NAME audio_core COMMAND gpp_audio_tests)
     add_test(NAME audio_cli COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_cli.py
         $<TARGET_FILE:gpp_audio_studio> ${CMAKE_BINARY_DIR}/audio-studio/tests)
     set_tests_properties(audio_core audio_cli PROPERTIES LABELS "audio" TIMEOUT 120)
     if(TARGET gpp_audio_voice_probe)
+        add_test(NAME audio_adaptive COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_adaptive.py
+            $<TARGET_FILE:gpp_audio_studio> ${CMAKE_BINARY_DIR}/audio-studio/adaptive-tests)
+        set_tests_properties(audio_adaptive PROPERTIES LABELS "audio" TIMEOUT 120)
         add_test(NAME audio_voices COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_voices.py
             $<TARGET_FILE:gpp_audio_studio> ${CMAKE_BINARY_DIR}/audio-studio/voice-tests)
         set_tests_properties(audio_voices PROPERTIES LABELS "audio" TIMEOUT 120)
@@ -40,7 +43,7 @@ if(BUILD_TESTING)
     find_program(AUDIO_XVFB xvfb-run)
     find_program(AUDIO_XDOTOOL xdotool)
     if(AUDIO_XVFB AND AUDIO_XDOTOOL)
-        add_test(NAME audio_ui COMMAND ${AUDIO_XVFB} -a ${Python3_EXECUTABLE}
+        add_test(NAME audio_ui COMMAND ${AUDIO_XVFB} -a -s "-screen 0 1600x1000x24" ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/test_ui.py $<TARGET_FILE:gpp_audio_studio>
             ${CMAKE_BINARY_DIR}/audio-studio/ui-tests)
         set_tests_properties(audio_ui PROPERTIES LABELS "audio;gpu" TIMEOUT 90 RESOURCE_LOCK gpp_graphics)

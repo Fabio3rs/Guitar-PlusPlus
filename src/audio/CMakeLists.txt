@@ -1,5 +1,5 @@
 find_package(Threads REQUIRED)
-add_library(gpp_audio STATIC audio.cpp processing.cpp)
+add_library(gpp_audio STATIC audio.cpp processing.cpp song_analysis.cpp fail_cache.cpp sample_bank.cpp)
 target_include_directories(gpp_audio PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/bass)
 target_link_libraries(gpp_audio PUBLIC bass bass_fx Threads::Threads)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

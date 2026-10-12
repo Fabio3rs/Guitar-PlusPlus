@@ -36,6 +36,111 @@ copied into version control.
 
 ## Workbench workflow
 
+### Adaptive whole-song fail cache
+
+Open a song or stem and select the **Whole Song Analysis** tab. Use **Scan whole
+song**, **Generate five per set**, then **Prepare BASS bank**. These are cancellable
+worker jobs. The waveform's upper strip shows half-open regions, shared set colors,
+silence, change strength and representative markers. Click a region to seek its
+representative. The ordinary point analyzer and its synthesizer remain available.
+
+The initial detector observes every 100 ms with an 8192-point FFT. It combines
+normalized 12-bin chroma and 24 logarithmic spectral bands (harmonic weight 0.6),
+600 ms smoothing, persistent change confirmation (800 ms), four-second minimum
+regions, hysteresis, explicit silence thresholds (-60/-54 dB), then short/similar
+region merging. Deduplication compares region signatures against earlier sets
+(default tolerance 0.1). A stable, sufficiently energetic observation near the
+region's mean signature becomes its representative. This is a perceptual heuristic,
+not chord recognition. The defaults require listening on real music.
+
+The scan decodes sequentially, reuses overlapping PCM/FFT buffers, and stores
+descriptors rather than the entire song's PCM. **Resegment stored observations**
+changes detector parameters without another decode; changing FFT or hop requires
+a new scan. **Fixed** provides one five-sample set for the whole track.
+
+Each unique set calls the existing point analyzer, synthesizer and offline FX
+pipeline. Cache defaults use 51 ms of synthesized content plus the existing 80 ms
+FX tail: 131 ms of final PCM. Silent regions use the existing muted E2/B2 fallback.
+Cache synthesis controls are separate from manual synthesis; **Copy manual synth
+settings** transfers them explicitly. No synthesis algorithm was replaced.
+
+Play the music and use the five fret buttons or selected chord mask to trigger
+the current region's prepared samples. Preview modes compare the cache, a direct
+multi-fret synthesis and a mixture of independent samples, or the original five
+generic WAVs. Prepare comparisons again after changing their time/mask/settings.
+The error simulation follows BASS music position and skips missed intervals rather
+than producing catch-up bursts. Pause/stop stops the simulation.
+
+The complete bank is loaded as HSAMPLE objects; trigger only acquires/starts bounded
+voices. No FFT, synthesis, FX, file reads or JSON processing occurs in that path.
+Choose reject or oldest-voice replacement; a chord requires capacity for its whole
+mask. Diagnostics distinguish API-call time from audible latency. There is no LRU
+or paging. **Sustained preview** separately prepares five streams at the selected
+region, using existing baked loop bodies and mixtime callbacks. Press restarts the
+attack; release fades and stops. Explicit zero-duration slides cancel prior fades,
+including on old BASS revisions. Use BASS 2.4.18.3 for the tested Linux setup:
+2.4.14.1 hung in repeated lifecycle tests. No pre-rendered release bank is included.
+
+Save analysis separately from the audio bank. Analysis JSON includes observations,
+source identity, detector settings and processing versions. The `.gppfc` schema-1
+bank contains `GPPFAIL1`, an eight-byte little-endian JSON manifest length, the
+manifest and little-endian float32 PCM with per-sample checksums. The manifest
+records source content hash/size, BASS/BASS_FX and analyzer/synthesizer versions,
+settings, frame-based regions, representatives, set/sample IDs, PCM formats and
+content durations. Banks omit scan observations and representative FFT spectra.
+Loading validates coverage, IDs, payload, source identity and runtime versions;
+changed input or processing versions require regeneration. Hashes detect accidental
+staleness/corruption, not malicious tampering. Files are replaceable build artifacts.
+Writes stage a sibling temporary file and atomically rename after completion;
+cancellation/failure preserves the prior cache. Music/chart files are not modified.
+
+Regions cover `[0, songFrames)` without gaps; lookup clamps finite negative/end
+times to first/last region and rejects non-finite times. A loaded bank can regenerate
+its five-sample sets with changed synthesis/FX settings without rescanning; changing
+segmentation needs saved observations. All reusable APIs live in `src/audio/`:
+`song_analysis`, `fail_cache`, and `sample_bank`; Session owns worker publication
+and the ImGui/CLI/RPC consumers.
+
+Headless example (No Sound device, no commercial audio required by tests):
+
+```sh
+./build/bin/gpp_audio_studio --mode headless --device 0 --file /path/song.ogg \
+  --whole-song --set song.threshold=0.25 --cache-generate --cache-prepare \
+  --analysis-save analysis.json --cache-save bank.gppfc \
+  --cache-export fail --song-report song.json --output-dir build/audio-studio/demo --json
+```
+
+`--analysis-load`, `--cache-load` restore artifacts. Loaded settings are defaults:
+an explicit `--preset` and then `--set` override them before scanning/generation,
+regardless of the order of CLI flags. A fresh scan report never exports a stale
+audio bank. `--cache-benchmark 100` compares
+aggressive/balanced/conservative detection with deduplication off/on and a fixed
+baseline, using the same observations. Seven bank artifacts and an
+`adaptive-benchmark.json` report include settings, regions, bytes, stage times,
+isolated-process memory snapshots, voice outcomes and trigger distributions.
+The subprocess benchmark currently requires Linux. Evaluate musical quality by
+listening, not by maximizing region count. Exported WAVs permit external comparison.
+
+RPC operations return the existing job IDs; poll `state.busy` for completion and
+use `cancel` to interrupt work:
+
+| Operation | Parameters / purpose |
+|---|---|
+| `cache.set` | Flat `song.*`, `analysis.*`, `synth.*`, `fx.*` settings |
+| `song.scan`, `song.segment` | Decode or resegment |
+| `song.save`, `song.load` | `path`: descriptor JSON |
+| `song.regions`, `cache.stats` | `offset`, `limit`: paginated regions / metrics |
+| `cache.generate`, `cache.prepare` | Render / prepare; `voices`, `steal_oldest` |
+| `cache.save`, `cache.load`, `cache.export` | `path`: bank or WAV prefix |
+| `cache.compare`, `cache.sustain` | Prepare at cursor region; `mask` for comparison |
+| `cache.generic` | `directory`: original five `erro-*.wav` files |
+| `cache.preview` | `mode` (`cache`, `direct`, `individual`, `generic`, `sustain`), `time`, `mask` |
+| `cache.release` | `fret`, `fade_ms`; fret -1 stops all adaptive previews |
+| `cache.simulate` | `enabled`, `interval`, `mask`; requires playing music/prepared bank |
+| `cache.benchmark` | `path`, `iterations`, `voices`, `steal_oldest` |
+
+### Point analysis
+
 1. Select a point on the waveform. White marks the analysis cursor; blue marks
    the BASS playback position. Drag to move the cursor; release requests analysis.
    Zoom and view offset navigate long tracks. Start/end fields select an export

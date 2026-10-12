@@ -2287,15 +2287,16 @@ void CGamePlay::renderPlayer(CPlayer &player) {
                 pd.emitterHeight = pd.y;
 
                 pd.ax = 0.0;
-                pd.ay = 0.3;
+                pd.ay = 0.12;
                 pd.az = 0.0;
 
                 pd.sx = (rand() % 21 - 10) / 200.0;
-                pd.sy = 0.2;
+                pd.sy = 0.08;
                 pd.sz = 0.0;
 
-                pd.sizex = 0.07;
-                pd.sizey = 0.16;
+                // Compact, broad bursts; the crossed planes narrow in projection.
+                pd.sizex = 0.13;
+                pd.sizey = 0.11;
                 pd.sizez = 0.00;
 
                 pd.desac = 0.0;

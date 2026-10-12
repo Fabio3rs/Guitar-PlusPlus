@@ -2,6 +2,8 @@
 #include "session.h"
 
 namespace AudioStudio {
+void runAudioProbe(std::vector<std::string> args,
+                   const audio::Checkpoint &checkpoint);
 void validate(const VoiceBenchmarkOptions &options);
 Json compareVoices(const audio::PcmBuffer &pcm,
                    const VoiceBenchmarkOptions &options,
