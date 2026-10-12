@@ -97,7 +97,16 @@ instances keep their bindings and are replaced on the next opening.
 ## Font editing
 
 The existing `default` font loads automatically, including its theme adjustments.
-Select an atlas and codepoint in the list or by clicking a cell. The atlas shows
+Select an atlas and codepoint in the list or by clicking a cell. After clicking
+the atlas, typing selects the produced Unicode character in the current font
+(and switches atlas if needed). Shift and AltGr follow the OS keyboard layout;
+dead-key accents work when the OS delivers the composed character. Missing
+glyphs leave the selection unchanged and add a diagnostic to the event log.
+Escape, clicking outside the atlas, switching tabs or losing window focus ends
+keyboard selection. Text/numeric fields and popups keep their normal input;
+Ctrl-only, Alt-only and Super shortcuts do not select glyphs. Ctrl+Alt is treated
+as AltGr, so any printable character emitted by that combination selects a glyph.
+This is character selection, not physical-key binding or Unicode normalization. The atlas shows
 its loading grid, raw detected ink bounds and selected cell. **Fit atlas** fits
 the image; wheel zooms and middle drag pans. Green boxes are the original ink
 bounds; vertical adjustments change the text preview, not the source pixels.
@@ -106,6 +115,11 @@ Edit vertical offset (positive moves upward), height, advance and bearing.
 Offsets/heights use the same units as `setFontCharMetrics`; face metrics use
 `setFontMetrics`. Guides show baseline, ascent and descent. Only the selected
 codepoint changes. **Reset glyph metrics** restores that glyph's detected defaults.
+The text preview starts at 48 logical pixels. **Preview size** adjusts it from
+16 to 128 pixels independently of panel height; **Fit text** fits the sample to
+the available width within that range. Drag the horizontal divider above these
+controls to resize the atlas/preview areas. These settings affect only the editor,
+not exported glyph metrics.
 Text previews and menus immediately use the selected font and revised metrics.
 The runtime's menus continue to use the font named `default`.
 

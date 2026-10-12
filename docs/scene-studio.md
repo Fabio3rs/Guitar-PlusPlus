@@ -27,14 +27,55 @@ for the garage. If absent, the original synthetic fixture is used. An explicitly
 requested invalid source fails rather than silently substituting a scene.
 `--scene synthetic` always selects the fixture. `--asset-root build/bin --scene
 garage` selects the local garage explicitly. Garage assets are not redistributed.
-The default garage camera looks inside; Frame object fits its complete bounds.
+The default garage camera looks inside; Frame visible fits the visible bounds.
 
-Mouse gestures begin over the viewport: left drag orbits, middle drag pans and
-wheel zooms. Panels handle their own input. Frame object and Reset camera are
-available above the viewport. Scene Explorer accepts an ID, Lua file or OBJ;
-Inspector shows read-only parts/materials. Lighting and Shadows/AO use the same
-controller operations as CLI/RPC. Docking uses one native window; multi-viewport
-windows are disabled. The layout is saved to the output directory's `layout.ini`.
+Mouse gestures begin over the viewport; other panels retain their input. The
+Camera panel switches between Orbit (default) and Free navigation:
+
+- Orbit: left drag rotates, middle drag pans in screen pixels, wheel zooms toward
+  the point under the cursor. On empty space it uses the plane through the pivot.
+  Distance limits scale with the hovered/selected part (otherwise the model)
+  and coordinate precision; orbit does not cross its pivot. Use Free to travel
+  through interiors.
+- Free: hold right mouse to capture/look; WASD moves, Q/E moves down/up in the
+  camera frame, Shift accelerates 4x. Wheel advances/retreats with camera and target
+  together. Speed is in model units/second, initially half the model diagonal.
+  Release right mouse, Escape or focus loss releases capture. Text entry never
+  moves the camera. Movement uses elapsed time, capped at 100 ms after a stall.
+- Click selects the nearest visible geometric part; double-click places the
+  pivot on that surface without moving the eye. Picking is two-sided and ignores
+  texture alpha cutouts. `F` focuses the selection while hovering the viewport.
+- Frame visible fits visible bounds with a 15% screen margin and the actual
+  aspect ratio. Focus selection also reveals a hidden selected part. Reset camera
+  restores the loaded scene camera without changing lighting or visibility.
+- Perspective/orthographic switching preserves apparent size at the pivot.
+  Orthographic selects Orbit; Free selects perspective. Front/back/left/right/
+  top/bottom views preserve the pivot and distance. Front looks along -Z, top
+  along -Y with -Z as image up.
+
+Scene Explorer accepts an ID, Lua file or OBJ, filters part labels and provides
+visibility checkboxes, Hide, Isolate and Show all. IDs are indices in the current
+loaded model, not persistent asset identifiers; duplicate labels remain distinct.
+A successful load/reload clears selection and visibility changes. Reload keeps
+camera and display/light adjustments; failed operations retain the previous state.
+Reset settings restores all scene defaults, shows all parts and clears selection.
+
+Inspector shows read-only parts/materials, bounds dimensions in model units,
+triangle counts, expanded vertex counts (not unique OBJ positions), resolved
+texture paths, upload status and dimensions. Asset warnings appear in Diagnostics.
+Texture decoding currently follows the game loader and accepts TGA files; PNG/JPEG
+textures are not supported. Unlit inspection honors MTL UV scale/offset and clamp.
+Visualization offers Game renderer, Unlit materials, Wireframe and Game + wireframe.
+Optional grid, axes and bounds are initially off; axes are centered on visible
+geometry and drawn as an orientation overlay. The selected part has a
+depth-tested wire highlight and bounding box.
+Hidden parts also stop casting dynamic shadows. Baked AO is **not** recomputed:
+remaining surfaces may retain the hidden part's baked occlusion. Game lighting
+and its fixed shadow volume remain unchanged; use Unlit for neutral inspection.
+
+Docking uses one native window; multi-viewport windows are disabled. The layout
+is saved to the output directory's `layout.ini`. Camera and Visualization panels
+also appear when opening an existing layout and can be docked manually.
 
 The repository's pre-release GLFW identifies as 3.4 but lacks `glfwGetPlatform`.
 A tool-local translation unit selects ImGui's supported GLFW 3.3 feature set;
@@ -69,7 +110,12 @@ vendor/renderer/version and hardware/software/unknown classification. A requeste
 but unavailable effect is identified by `ao_reason`/`shadow_reason`; it is not
 reported as active. Inspect shader/asset messages on stderr as well.
 
-Captures are clean viewport images and can differ in resolution from the GUI.
+Captures respect visibility, projection and display mode, and can differ in
+resolution from the GUI without moving the interactive camera. Grid, axes, bounds
+and selection highlights are excluded by default; enable Include helpers in the
+Capture panel, `--capture-helpers` or RPC `capture.helpers` to include them.
+Metadata retains the requested display settings plus `helpers_included` and
+`image_kind` (`clean_viewport` or `viewport_with_helpers`) to distinguish them.
 `--mode gui --frames 30 --ui-capture editor.png --json` captures the complete UI
 and exits. Its metadata identifies `image_kind=full_ui`. Normal rendering does
 not read back pixels or wait for GPU completion. Capture readback synchronizes
@@ -153,11 +199,43 @@ Methods:
 | `state`, `capabilities`, `inspect` | Current state, capabilities, parts and material descriptions |
 | `load` | `kind`: `scene`, `file`, `model`; `source`: ID/path |
 | `set` | Any of `eye`, `target`, `up`, `fov`, `light`, `quality`, `ao`, `shadow_bias`, `time` |
-| `frame`, `reset`, `reload` | Fit camera, restore scene defaults, or reload files preserving current adjustments |
+| `frame` | `scope`: `visible` (default) or `selection`; optional `width`, `height` for framing aspect |
+| `reset`, `reload` | Restore scene defaults, or reload preserving camera/display/light adjustments; both clear part selection/visibility |
+| `view` | `name`: `front`, `back`, `left`, `right`, `top`, `bottom` |
+| `select` | `part`: current part ID, or -1 to clear |
+| `visibility` | `action`: `hide`, `show`, `isolate`, `show_all`; optional `part` defaults to selection |
+| `pick` | `x`, `y`, optional dimensions; `action`: `query` (default), `select`, `pivot`; query returns `part` (-1 on miss), `point`, `distance` |
+| `navigate` | Optional pixel deltas `orbit_x/y`, `pan_x/y`, `wheel`, cursor `x/y`, dimensions; missing cursor zooms about the target |
+| `fly` | Optional `look_x/y`, `local`: [right, up, forward], `delta` seconds, `fast`; requires Free navigation |
 | `render` | Optional `width`, `height`; return updated state |
-| `capture` | `path`, optional `width`, `height`, `metadata`; return artifact metadata |
+| `capture` | `path`, optional `width`, `height`, `metadata`, `helpers` (false); return artifact metadata |
 | `benchmark` | Optional `frames` (100), `warmup` (10), dimensions, `timeout` (30 seconds, max 300) |
 | `shutdown` | Acknowledge then exit |
+
+Viewer settings are additive to `set`/`state`: `projection` (`perspective` or
+`orthographic`), `navigation` (`orbit` or `free`), `ortho_height`, `speed`,
+`view_mode` (`game`, `unlit`, `wireframe`, `game_wire`), and boolean `grid`, `axes`,
+`bounds`. Setting Free and orthographic together is rejected. `inspect`/`state`
+include `selected`, per-part `id`, `triangles`, bounds and `visible`, plus material
+texture metadata. `visibility_revision` changes only when the mask changes or a
+new model loads; camera/selection do not invalidate the shadow cache.
+
+Picking/navigation coordinates are viewport-local pixels with top-left origin;
+dimensions default to the CLI width/height. `frame` defaults to the current
+viewport dimensions. No GUI window is needed for these operations.
+
+CLI example for an isolated orthographic inspection (use a valid current part ID):
+
+```sh
+./build/bin/gpp_scene_studio --mode headless --scene synthetic \
+  --select 1 --hide 0 --hide 2 --projection orthographic --view top \
+  --frame selection --view-mode game_wire --axes on \
+  --capture inspection.png --capture-helpers --json
+```
+
+CLI applies settings, selection/hidden IDs, preset view, then framing, regardless
+of argument order. `--hide` is repeatable. Camera coordinates supplied explicitly
+are applied after projection conversion. Invalid IDs/options fail before capture.
 
 Input buffering is limited to 64 KiB and one command is consumed per loop; send
 one request and await its response before the next. Oversized input is rejected
@@ -242,3 +320,19 @@ No saves, chart formats, gameplay threads or Plus behavior are changed.
 
 Material editing, scene export, animation, shader editing, remote control, a
 specialized MCP and host-to-NativeLab bridges remain outside this version.
+
+## Viewer implementation and cost
+
+Camera math is in the tool-only `camera.cpp`; selection/display orchestration is
+in `viewer.cpp`. CPU camera tests need no display or game initialization. Model
+inspection lazily caches per-part bounds under the existing model mutex. Picking
+uses those bounds before triangle intersection, only on explicit mouse/RPC actions;
+it performs no GPU readback, per-pick geometry copy or per-frame picking. It is
+linear in triangles of intersected parts; no BVH or extra model VBOs are created.
+
+The shared drawing API accepts an optional visibility mask and revision. Without
+one, existing game calls retain all geometry. The mask is applied to color,
+shadow and fallback passes; its revision participates in shadow-cache invalidation.
+All Studio state remains on the GL/event owner thread. Overlay line counts are
+bounded; wireframe adds at most one model pass and selection one selected-part
+pass. Baked AO, material data and source assets are never rewritten.

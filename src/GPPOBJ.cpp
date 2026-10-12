@@ -5,6 +5,7 @@
 #include <GL/glew.h>
 #include <filesystem>
 #include <fstream>
+#include <glm/glm.hpp>
 #include <limits>
 #include <mutex>
 #include <stdexcept>
@@ -154,6 +155,30 @@ struct GPPOBJ::Impl {
     std::vector<std::unique_ptr<Buffer>> buffers;
     std::string explicitLibrary;
     size_t version = 0, uploadedVersion = 0, generation = 0;
+    // Lazily populated only by inspection/picking, not the game's draw loop.
+    mutable size_t boundsVersion = ~size_t(0);
+    mutable std::vector<std::pair<ObjModel::Vec3, ObjModel::Vec3>> partBounds;
+
+    void inspectBounds() const {
+        if (boundsVersion == version) {
+            return;
+        }
+        partBounds.clear();
+        for (const auto &part : model.parts) {
+            ObjModel::Vec3 low{}, high{};
+            if (!part.positions.empty()) {
+                low = high = part.positions.front();
+                for (const auto &p : part.positions) {
+                    for (size_t axis = 0; axis < 3; ++axis) {
+                        low[axis] = std::min(low[axis], p[axis]);
+                        high[axis] = std::max(high[axis], p[axis]);
+                    }
+                }
+            }
+            partBounds.emplace_back(low, high);
+        }
+        boundsVersion = version;
+    }
 };
 
 GPPOBJ::GPPOBJ() : impl(std::make_shared<Impl>()) {}
@@ -162,19 +187,110 @@ GPPOBJ::GPPOBJ(TextureLoader loader) : GPPOBJ() {
     impl->textureLoader = std::move(loader);
 }
 
-GPPOBJ::Inspection GPPOBJ::inspect() const {
+GPPOBJ::Inspection GPPOBJ::inspect(bool textureSizes) const {
     std::lock_guard<std::mutex> lock(impl->mutex);
     Inspection result;
-    for (const auto &p : impl->model.parts) {
-        result.parts.push_back(
-            {p.object, p.group, p.material, p.positions.size()});
+    impl->inspectBounds();
+    for (size_t i = 0; i < impl->model.parts.size(); ++i) {
+        const auto &p = impl->model.parts[i];
+        result.parts.push_back({p.object, p.group, p.material,
+                                p.positions.size(), i, p.positions.size() / 3,
+                                impl->partBounds[i].first,
+                                impl->partBounds[i].second});
     }
     for (const auto &m : impl->materials) {
         result.materials.emplace(m.first, m.second.values);
+        const auto &resource = m.second;
+        if (!resource.values.diffuseMap.empty()) {
+            TextureInfo info;
+            info.path =
+                (fs::path(resource.directory) / resource.values.diffuseMap)
+                    .lexically_normal()
+                    .string();
+            info.loaded = resource.texture != 0;
+            if (textureSizes && info.loaded) {
+                GLint active = 0, bound = 0;
+                glGetIntegerv(GL_ACTIVE_TEXTURE, &active);
+                glActiveTexture(GL_TEXTURE0);
+                glGetIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+                glBindTexture(GL_TEXTURE_2D, resource.texture);
+                glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH,
+                                         &info.width);
+                glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT,
+                                         &info.height);
+                glBindTexture(GL_TEXTURE_2D, GLuint(bound));
+                glActiveTexture(GLenum(active));
+            }
+            result.textures.emplace(m.first, std::move(info));
+        }
     }
     result.warnings = impl->model.warnings;
     result.aoAtlas = !impl->ao.pixels.empty();
     return result;
+}
+
+GPPOBJ::Hit GPPOBJ::raycast(const ObjModel::Vec3 &origin,
+                            const ObjModel::Vec3 &direction,
+                            const Visibility *visible) const {
+    std::lock_guard<std::mutex> lock(impl->mutex);
+    impl->inspectBounds();
+    auto vec = [](const ObjModel::Vec3 &v) {
+        return glm::dvec3(v[0], v[1], v[2]);
+    };
+    const auto o = vec(origin), d = vec(direction);
+    Hit hit;
+    double closest = std::numeric_limits<double>::infinity();
+    for (size_t i = 0; i < impl->model.parts.size(); ++i) {
+        if (visible && (i >= visible->size() || !(*visible)[i])) {
+            continue;
+        }
+        double entryDistance = 0, exitDistance = closest;
+        const auto &bounds = impl->partBounds[i];
+        for (size_t axis = 0; axis < 3; ++axis) {
+            if (std::abs(direction[axis]) < 1.e-12f) {
+                if (origin[axis] < bounds.first[axis] ||
+                    origin[axis] > bounds.second[axis]) {
+                    exitDistance = -1;
+                }
+            } else {
+                double a = (double(bounds.first[axis]) - double(origin[axis])) /
+                           double(direction[axis]);
+                double b =
+                    (double(bounds.second[axis]) - double(origin[axis])) /
+                    double(direction[axis]);
+                entryDistance = std::max(entryDistance, std::min(a, b));
+                exitDistance = std::min(exitDistance, std::max(a, b));
+            }
+        }
+        if (entryDistance > exitDistance) {
+            continue;
+        }
+        const auto &positions = impl->model.parts[i].positions;
+        for (size_t j = 0; j + 2 < positions.size(); j += 3) {
+            const auto a = vec(positions[j]);
+            const auto e1 = vec(positions[j + 1]) - a;
+            const auto e2 = vec(positions[j + 2]) - a;
+            const auto p = glm::cross(d, e2);
+            const double det = glm::dot(e1, p);
+            if (std::abs(det) <= 1.e-12 * glm::length(e1) * glm::length(e2)) {
+                continue;
+            }
+            const auto t = o - a;
+            const double u = glm::dot(t, p) / det;
+            const auto q = glm::cross(t, e1);
+            const double v = glm::dot(d, q) / det;
+            const double distance = glm::dot(e2, q) / det;
+            if (u >= 0 && v >= 0 && u + v <= 1 && distance >= 0 &&
+                distance < closest) {
+                closest = distance;
+                const auto point = o + d * distance;
+                hit = {int(i),
+                       {float(point.x), float(point.y), float(point.z)},
+                       distance};
+            }
+        }
+    }
+    return hit;
 }
 
 GPPOBJ::~GPPOBJ() = default;
@@ -409,7 +525,8 @@ void GPPOBJ::prepareBuffers() {
 }
 
 void GPPOBJ::drawMaterials(const MaterialBinder &bind,
-                           unsigned int overrideTexture) {
+                           unsigned int overrideTexture,
+                           const Visibility *visible) {
     if (!impl) {
         return;
     }
@@ -425,6 +542,9 @@ void GPPOBJ::drawMaterials(const MaterialBinder &bind,
     glActiveTexture(GL_TEXTURE0);
     static const ObjModel::Material neutral;
     for (size_t i = 0; i < impl->model.parts.size(); ++i) {
+        if (visible && (i >= visible->size() || !(*visible)[i])) {
+            continue;
+        }
         const auto &part = impl->model.parts[i];
         auto it = impl->materials.find(part.material);
         const auto &material =

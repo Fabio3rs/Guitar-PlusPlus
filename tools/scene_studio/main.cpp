@@ -1,6 +1,7 @@
 #include "CLog.h"
 #include "json.h"
 #include "studio.h"
+#include <algorithm>
 #include <chrono>
 #include <csignal>
 #include <fstream>
@@ -18,13 +19,14 @@ namespace {
 using namespace Studio;
 volatile std::sig_atomic_t stopped = 0;
 
-void stop(int) {
-    stopped = 1;
-}
+void stop(int) { stopped = 1; }
 
 struct Options {
     std::string mode = "gui", backend = "glfw", kind = "auto", selection,
-                capture, metadata, uiCapture;
+                capture, metadata, uiCapture, view, frame;
+    int selected = -1;
+    std::vector<int> hidden;
+    bool captureHelpers = false;
     fs::path assets, output = "build/scene-studio";
     int width = 960, height = 540, frames = 0, benchmark = 0, warmup = 10;
     bool json = false, hardware = false, rpc = false;
@@ -36,6 +38,12 @@ void help() {
         << "Guitar++ Scene Studio\n"
            "  --mode gui|headless --backend glfw|egl --require-hardware\n"
            "  --scene ID | --scene-file FILE | --model OBJ [--asset-root DIR]\n"
+           "  --projection perspective|orthographic --navigation orbit|free\n"
+           "  --view front|back|left|right|top|bottom --frame "
+           "visible|selection\n"
+           "  --select ID --hide ID (repeatable) --speed N --ortho-height N\n"
+           "  --view-mode game|unlit|wireframe|game_wire\n"
+           "  --grid on|off --axes on|off --bounds on|off --capture-helpers\n"
            "  --eye X Y Z --target X Y Z --up X Y Z --fov DEGREES\n"
            "  --light X Y Z --quality 0|1|2|3 --ao on|off --shadow-bias N "
            "--time N\n"
@@ -88,6 +96,17 @@ Options options(int argc, char **argv) {
                      : arg == "--scene-file" ? "file"
                                              : "model";
             o.selection = next();
+        } else if (arg == "--view") {
+            o.view = next();
+        } else if (arg == "--frame") {
+            o.frame = next();
+            choice(o.frame, {"visible", "selection"});
+        } else if (arg == "--select") {
+            o.selected = integer();
+        } else if (arg == "--hide") {
+            o.hidden.push_back(integer());
+        } else if (arg == "--capture-helpers") {
+            o.captureHelpers = true;
         } else if (arg == "--asset-root") {
             o.assets = next();
         } else if (arg == "--output-dir") {
@@ -116,8 +135,9 @@ Options options(int argc, char **argv) {
             o.rpc = true;
         } else {
             std::string key = arg.substr(0, 2) == "--" ? arg.substr(2) : arg;
-            if (key == "shadow-bias") {
-                key = "shadow_bias";
+            if (key == "shadow-bias" || key == "view-mode" ||
+                key == "ortho-height") {
+                std::replace(key.begin(), key.end(), '-', '_');
             }
             if (o.changes.HasMember(key.c_str())) {
                 throw Error("arguments", "Duplicate parameter: " + arg);
@@ -130,16 +150,22 @@ Options options(int argc, char **argv) {
                     n = float(number(next()));
                 }
                 put(o.changes, key.c_str(), v, a);
-            } else if (key == "fov" || key == "shadow_bias" || key == "time") {
+            } else if (key == "fov" || key == "shadow_bias" || key == "time" ||
+                       key == "speed" || key == "ortho_height") {
                 put(o.changes, key.c_str(), number(next()), a);
             } else if (key == "quality") {
                 put(o.changes, "quality", integer(), a);
-            } else if (key == "ao") {
+            } else if (key == "projection" || key == "navigation" ||
+                       key == "view_mode") {
+                put(o.changes, key.c_str(), next(), a);
+            } else if (key == "ao" || key == "grid" || key == "axes" ||
+                       key == "bounds") {
                 const auto v = next();
                 if (v != "on" && v != "off") {
-                    throw Error("arguments", "AO must be on or off");
+                    throw Error("arguments",
+                                "Boolean options must be on or off");
                 }
-                put(o.changes, "ao", v == "on", a);
+                put(o.changes, key.c_str(), v == "on", a);
             } else {
                 throw Error("arguments", "Unknown option: " + arg);
             }
@@ -195,7 +221,60 @@ std::string rpc(Session &s, const std::string &line, int width, int height) {
             s.reset();
             result = s.state();
         } else if (method == "frame") {
-            s.frame();
+            const auto scope = stringField(p, "scope", "visible");
+            choice(scope, {"visible", "selection"});
+            const int w = intField(
+                p, "width", s.viewport.width > 0 ? s.viewport.width : width);
+            const int h =
+                intField(p, "height",
+                         s.viewport.height > 0 ? s.viewport.height : height);
+            s.frame(scope == "selection", w, h);
+            result = s.state();
+        } else if (method == "view") {
+            s.setView(stringField(p, "name"));
+            result = s.state();
+        } else if (method == "select") {
+            s.select(intField(p, "part", -1));
+            result = s.state();
+        } else if (method == "visibility") {
+            s.visibility(stringField(p, "action"),
+                         intField(p, "part", s.selection()));
+            result = s.state();
+        } else if (method == "pick") {
+            const float x = float(numberField(p, "x", -1)),
+                        y = float(numberField(p, "y", -1));
+            const int w = intField(p, "width", width),
+                      h = intField(p, "height", height);
+            const auto action = stringField(p, "action", "query");
+            choice(action, {"query", "select", "pivot"});
+            if (action != "query") {
+                s.pickSelection(x, y, w, h, action == "pivot");
+                result = s.state();
+            } else {
+                const auto hit = s.pick(x, y, w, h);
+                Json value(rapidjson::kObjectType);
+                auto &allocator = value.GetAllocator();
+                put(value, "part", hit.part, allocator);
+                put(value, "point", hit.point, allocator);
+                put(value, "distance", hit.distance, allocator);
+                result = encode(value);
+            }
+        } else if (method == "navigate") {
+            s.navigate(
+                float(numberField(p, "orbit_x", 0)),
+                float(numberField(p, "orbit_y", 0)),
+                float(numberField(p, "pan_x", 0)),
+                float(numberField(p, "pan_y", 0)),
+                float(numberField(p, "wheel", 0)),
+                float(numberField(p, "x", -1)), float(numberField(p, "y", -1)),
+                intField(p, "width", width), intField(p, "height", height));
+            result = s.state();
+        } else if (method == "fly") {
+            s.fly(float(numberField(p, "look_x", 0)),
+                  float(numberField(p, "look_y", 0)),
+                  vecField(p, "local", {0, 0, 0}),
+                  float(numberField(p, "delta", 0)),
+                  boolField(p, "fast", false));
             result = s.state();
         } else if (method == "reload") {
             s.reload();
@@ -207,7 +286,8 @@ std::string rpc(Session &s, const std::string &line, int width, int height) {
         } else if (method == "capture") {
             result = s.capture(
                 stringField(p, "path"), intField(p, "width", width),
-                intField(p, "height", height), stringField(p, "metadata"));
+                intField(p, "height", height), stringField(p, "metadata"),
+                boolField(p, "helpers", false));
         } else if (method == "benchmark") {
             result = s.benchmark(
                 intField(p, "frames", 100), intField(p, "warmup", 10),
@@ -332,6 +412,21 @@ int main(int argc, char **argv) {
         Session session(context, o.assets, o.output);
         session.load(o.kind, o.selection);
         session.apply(settingsFromJson(o.changes, session.settings));
+        session.select(o.selected);
+        for (int part : o.hidden) {
+            if (size_t(part) >= session.inspection().parts.size()) {
+                throw Error("parameters", "Invalid hidden part ID");
+            }
+        }
+        for (int part : o.hidden) {
+            session.visibility("hide", part);
+        }
+        if (!o.view.empty()) {
+            session.setView(o.view);
+        }
+        if (!o.frame.empty()) {
+            session.frame(o.frame == "selection", o.width, o.height);
+        }
         session.render(session.viewport, o.width, o.height);
         std::string result = session.state();
         if (o.benchmark) {
@@ -339,7 +434,8 @@ int main(int argc, char **argv) {
                 session.benchmark(o.benchmark, o.warmup, o.width, o.height);
         }
         if (!o.capture.empty()) {
-            result = session.capture(o.capture, o.width, o.height, o.metadata);
+            result = session.capture(o.capture, o.width, o.height, o.metadata,
+                                     o.captureHelpers);
         }
         std::unique_ptr<UI> ui;
         if (o.mode == "gui") {

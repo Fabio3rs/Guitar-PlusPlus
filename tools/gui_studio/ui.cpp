@@ -152,19 +152,24 @@ void drawPreview(const ImDrawList *, const ImDrawCmd *command) {
             s.fonts.empty()
                 ? CFonts::FaceMetrics{}
                 : s.fonts[static_cast<size_t>(s.selectedFont)].metrics;
+        // Use logical pixels so resizing the panel does not shrink the text.
+        const double scale = 2.0 * view.fontPixels / view.size.y;
+        const double originY =
+            -(metrics.baseline + (metrics.ascent - metrics.descent) / 2) *
+            scale;
         glDisable(GL_TEXTURE_2D);
         glBegin(GL_LINES);
         for (double line : {metrics.baseline, metrics.baseline + metrics.ascent,
                             metrics.baseline - metrics.descent}) {
             glColor4d(.2, .65, .7, 1);
-            glVertex2d(-aspect, line * .3);
-            glVertex2d(aspect, line * .3);
+            glVertex2d(-aspect, originY + line * scale);
+            glVertex2d(aspect, originY + line * scale);
         }
         glEnd();
         glEnable(GL_TEXTURE_2D);
         glColor4d(1, 1, 1, 1);
-        s.registry().drawTextInScreen(view.text, -aspect + .08, 0, .3,
-                                      s.context.font);
+        s.registry().drawTextInScreen(view.text, -aspect + 16.0 / view.size.y,
+                                      originY, scale, s.context.font);
     } else {
         s.render();
     }
@@ -285,6 +290,7 @@ void UI::focus(bool focused) {
         event.kind = CControls::MenuEvent::Focus;
         session.context.events.push_back(event);
         previewFocus = mouseCaptured = false;
+        atlasKeyboardFocus = false;
     }
 }
 
@@ -778,7 +784,43 @@ void UI::atlas() {
         fitAtlas = true;
     }
     ImGui::TextUnformatted(
-        "Middle drag pans; wheel zooms; click a glyph to select.");
+        "Click atlas, then type to select a glyph (Shift supported).");
+    const auto &io = ImGui::GetIO();
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        atlasKeyboardFocus = false;
+    }
+    // Consume composed Unicode characters, not physical key codes. ImGui's
+    // queue already follows the OS keyboard layout and Shift/dead keys.
+    // AltGr may be reported as Ctrl+Alt. Allow its generated characters, but
+    // leave Ctrl-only, Alt-only and Super shortcuts to the editor/OS.
+    const bool shortcutModifier = io.KeySuper || (io.KeyCtrl != io.KeyAlt);
+    if (atlasKeyboardFocus && !shortcutModifier && !io.WantTextInput &&
+        !ImGui::IsAnyItemActive() &&
+        !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId) &&
+        !s.fonts.empty() && !io.InputQueueCharacters.empty()) {
+        const auto glyphs = s.registry().inspect(s.context.font);
+        for (ImWchar code : io.InputQueueCharacters) {
+            const auto found = glyphs.glyphs.find(static_cast<unsigned>(code));
+            if (found == glyphs.glyphs.end()) {
+                s.log("No glyph for " + GuiStudio::character(code));
+                continue;
+            }
+            s.selectedGlyph = static_cast<unsigned>(code);
+            const auto &textures = s.atlasTextures[size_t(s.selectedFont)];
+            for (size_t i = 0; i < textures.size(); ++i) {
+                if (textures[i]->id == found->second.texture &&
+                    int(i) != s.selectedAtlas) {
+                    s.selectedAtlas = int(i);
+                    pan = {0, 0};
+                    fitAtlas = true;
+                    break;
+                }
+            }
+        }
+    }
+    const float remaining = ImGui::GetContentRegionAvail().y;
+    const float maxPreview = std::max(130.f, remaining - 100.f);
+    const float reserved = std::clamp(previewHeight, 130.f, maxPreview);
     if (!s.fonts.empty()) {
         const auto &font = s.fonts[size_t(s.selectedFont)];
         const auto &definition = font.atlases[size_t(s.selectedAtlas)];
@@ -787,7 +829,7 @@ void UI::atlas() {
         const auto &im = resource.image;
         const auto start = ImGui::GetCursorScreenPos();
         auto available = ImGui::GetContentRegionAvail();
-        available.y = std::max(80.f, available.y - 165);
+        available.y = std::max(60.f, available.y - reserved);
         if (fitAtlas) {
             zoom = std::min(available.x / im.Width, available.y / im.Height);
             pan = {0, 0};
@@ -797,6 +839,13 @@ void UI::atlas() {
                                ImGuiButtonFlags_MouseButtonLeft |
                                    ImGuiButtonFlags_MouseButtonMiddle);
         const bool hovered = ImGui::IsItemHovered();
+        if (ImGui::IsMouseClicked(0) || ImGui::IsMouseClicked(2)) {
+            atlasKeyboardFocus = hovered;
+        }
+        ImGui::SetItemTooltip(
+            "Type letters, numbers or symbols to select their glyph.\n"
+            "Shift and composed accents follow your keyboard layout.\n"
+            "Escape exits keyboard selection. Middle drag pans; wheel zooms.");
         if (hovered && ImGui::IsMouseDragging(2)) {
             pan.x += ImGui::GetIO().MouseDelta.x;
             pan.y += ImGui::GetIO().MouseDelta.y;
@@ -871,6 +920,34 @@ void UI::atlas() {
         }
         draw->PopClipRect();
     }
+    const auto divider = ImGui::GetCursorScreenPos();
+    ImGui::InvisibleButton("atlas-preview-divider",
+                           {ImGui::GetContentRegionAvail().x, 6.f});
+    const bool resizing = ImGui::IsItemActive();
+    if (resizing || ImGui::IsItemHovered()) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+    }
+    if (resizing) {
+        previewHeight = std::clamp(reserved - ImGui::GetIO().MouseDelta.y,
+                                   130.f, maxPreview);
+    }
+    ImGui::SetItemTooltip("Drag to resize the text preview");
+    ImGui::GetWindowDrawList()->AddRectFilled(
+        divider, {divider.x + ImGui::GetItemRectSize().x, divider.y + 6.f},
+        resizing ? IM_COL32(80, 150, 210, 255) : IM_COL32(55, 70, 85, 255));
+    const float previewWidth = ImGui::GetContentRegionAvail().x;
+    ImGui::SetNextItemWidth(180.f);
+    ImGui::SliderFloat("Preview size", &fontDraw.fontPixels, 16.f, 128.f,
+                       "%.0f px");
+    ImGui::SameLine();
+    if (ImGui::Button("Fit text")) {
+        CFonts::TextLayout layout;
+        s.registry().layoutText(sample, layout, s.context.font);
+        if (layout.right > 0) {
+            fontDraw.fontPixels = std::clamp(
+                float((previewWidth - 16.f) / layout.right), 16.f, 128.f);
+        }
+    }
     ImGui::InputText("Preview text", &sample);
     fontDraw.text = sample;
     auto size = ImGui::GetContentRegionAvail();
@@ -906,6 +983,7 @@ void UI::draw(int initialPanel) {
         if (ImGui::BeginTabItem(
                 "Menu Studio", nullptr,
                 initialPanel == 0 ? ImGuiTabItemFlags_SetSelected : 0)) {
+            atlasKeyboardFocus = false;
             if (ImGui::BeginTable("menu-layout", 2,
                                   ImGuiTableFlags_Resizable)) {
                 ImGui::TableSetupColumn("Inspector",

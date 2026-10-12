@@ -11,13 +11,9 @@ namespace Studio {
 namespace {
 using Clock = std::chrono::steady_clock;
 
-glm::vec3 vector(const Vec &v) {
-    return {v[0], v[1], v[2]};
-}
+glm::vec3 vector(const Vec &v) { return {v[0], v[1], v[2]}; }
 
-Vec array(glm::vec3 v) {
-    return {v.x, v.y, v.z};
-}
+Vec array(glm::vec3 v) { return {v.x, v.y, v.z}; }
 
 void validateSettings(const Settings &s) {
     for (const auto &v :
@@ -35,25 +31,22 @@ void validateSettings(const Settings &s) {
         throw Error("parameters", "Camera eye/target/up are degenerate");
     }
     if (!std::isfinite(s.camera.fov) || s.camera.fov < 5 ||
-        s.camera.fov > 120 || s.quality < 0 || s.quality > 3 ||
+        s.camera.fov > 120 || !std::isfinite(s.camera.orthoHeight) ||
+        s.camera.orthoHeight < .001f || s.camera.orthoHeight > 1.e6f ||
+        !std::isfinite(s.camera.speed) || s.camera.speed <= 0 ||
+        s.camera.speed > 1.e6f || (s.camera.free && s.camera.orthographic) ||
+        s.viewMode < 0 || s.viewMode > 3 || s.quality < 0 || s.quality > 3 ||
         !std::isfinite(s.bias) || s.bias < 0 || s.bias > .02 ||
         !std::isfinite(s.time) || s.time < 0 || s.time > 1.e9) {
         throw Error("parameters", "Invalid FOV, quality, bias or time");
     }
 }
 
-Settings framedSettings(const GPPOBJ &model, const Settings &settings) {
+Settings framedSettings(const GPPOBJ &model, const Settings &settings,
+                        int w = 960, int h = 540) {
     const auto bounds = model.bounds();
-    const glm::vec3 center =
-        (vector(bounds.first) + vector(bounds.second)) * .5f;
-    const float radius = std::max(
-        .1f, glm::length(vector(bounds.second) - vector(bounds.first)) * .5f);
     Settings s = settings;
-    s.camera.target = array(center);
-    s.camera.eye =
-        array(center + glm::normalize(glm::vec3(1, .65f, 1)) * radius /
-                           std::sin(glm::radians(s.camera.fov) * .5f) * 1.15f);
-    s.camera.up = {0, 1, 0};
+    CameraMath::frame(s.camera, {bounds.first, bounds.second, true}, w, h);
     return s;
 }
 
@@ -216,10 +209,18 @@ void Session::load(const std::string &kind, const std::string &value) {
     }
     candidate->definition = definition;
     candidate->source = fs::absolute(file).lexically_normal().string();
-    candidate->inspection = candidate->model.inspect();
+    candidate->inspection = candidate->model.inspect(true);
     Settings prepared;
     prepared.light = definition.light;
-    prepared = framedSettings(candidate->model, prepared);
+    prepared = framedSettings(candidate->model, prepared,
+                              viewport.width > 0 ? viewport.width : 960,
+                              viewport.height > 0 ? viewport.height : 540);
+    const auto modelBounds = candidate->model.bounds();
+    prepared.camera.speed = std::min(
+        1.e6f,
+        Bounds{modelBounds.first, modelBounds.second, true}.scale() * .5f);
+    GPPOBJ::Visibility preparedVisible(candidate->inspection.parts.size(), 1);
+    GPPOBJ::Visibility preparedHighlight(preparedVisible.size(), 0);
     if (definition.id == "garage") {
         // Match the existing background preview's useful interior viewpoint.
         prepared.camera.eye = {3, 2.5f, 2};
@@ -229,6 +230,11 @@ void Session::load(const std::string &kind, const std::string &value) {
 
     // Commit only after all fallible loading and initial-state validation.
     scene.swap(candidate);
+    visible.swap(preparedVisible);
+    highlight.swap(preparedHighlight);
+    selected = -1;
+    ++visibilityRevision;
+    updateVisibleBounds();
     CBackgroundRenderer::inst().setScene(prepared.light,
                                          definition.garageMaterials);
     apply(prepared);
@@ -260,39 +266,126 @@ void Session::apply(const Settings &s) {
 
 void Session::reset() {
     apply(initial);
+    select(-1);
+    visibility("show_all");
 }
 
-void Session::frame() {
-    if (!scene) {
-        return;
+void Session::resetCamera() {
+    auto next = settings;
+    next.camera = initial.camera;
+    apply(next);
+}
+
+void Session::frame(bool selection, int w, int h) {
+    Bounds bounds = visibleBounds;
+    if (selection) {
+        if (selected < 0) {
+            throw Error("parameters", "Select a part before framing");
+        }
+        const auto &part = inspection().parts[size_t(selected)];
+        bounds = {part.minimum, part.maximum, true};
     }
-    apply(framedSettings(scene->model, settings));
+    if (!bounds.valid) {
+        throw Error("parameters", "No visible geometry to frame");
+    }
+    if (w == 0 && h == 0) {
+        w = viewport.width > 0 ? viewport.width : 960;
+        h = viewport.height > 0 ? viewport.height : 540;
+    }
+    if (w <= 0 || h <= 0 || w > 8192 || h > 8192) {
+        throw Error("parameters", "Invalid framing dimensions");
+    }
+    Settings next = settings;
+    CameraMath::frame(next.camera, bounds, w, h);
+    apply(next);
+    if (selection) {
+        visibility("show", selected);
+    }
+}
+
+void Session::setView(const std::string &name) {
+    auto next = settings;
+    try {
+        CameraMath::preset(next.camera, name);
+    } catch (const std::invalid_argument &e) {
+        throw Error("parameters", e.what());
+    }
+    apply(next);
 }
 
 void Session::navigate(float orbitX, float orbitY, float panX, float panY,
-                       float zoom) {
-    Settings s = settings;
-    glm::vec3 target = vector(s.camera.target), eye = vector(s.camera.eye);
-    glm::vec3 offset = eye - target;
-    float distance = glm::length(offset);
-    float yaw = std::atan2(offset.x, offset.z) - orbitX * .008f;
-    float pitch = std::asin(std::clamp(offset.y / distance, -1.f, 1.f));
-    pitch = std::clamp(pitch + orbitY * .008f, -1.5f, 1.5f);
-    distance = std::clamp(distance * std::exp(-zoom * .12f), .02f, 1.e5f);
-    offset = glm::vec3(std::sin(yaw) * std::cos(pitch), std::sin(pitch),
-                       std::cos(yaw) * std::cos(pitch)) *
-             distance;
-    const glm::vec3 right =
-        glm::normalize(glm::cross(-offset, glm::vec3(0, 1, 0)));
-    const glm::vec3 up = glm::normalize(glm::cross(right, -offset));
-    target += (-right * panX + up * panY) * distance * .0015f;
-    s.camera.target = array(target);
-    s.camera.eye = array(target + offset);
-    s.camera.up = {0, 1, 0};
-    apply(s);
+                       float zoom, float mouseX, float mouseY, int w, int h) {
+    for (float value : {orbitX, orbitY, panX, panY, zoom, mouseX, mouseY}) {
+        if (!std::isfinite(value)) {
+            throw Error("parameters", "Navigation requires finite values");
+        }
+    }
+    if (w == 0 && h == 0) {
+        w = viewport.width > 0 ? viewport.width : 960;
+        h = viewport.height > 0 ? viewport.height : 540;
+    }
+    if (w <= 0 || h <= 0 || w > 8192 || h > 8192 ||
+        !((mouseX == -1 && mouseY == -1) ||
+          (mouseX >= 0 && mouseY >= 0 && mouseX < w && mouseY < h))) {
+        throw Error("parameters", "Invalid navigation viewport or cursor");
+    }
+    Settings next = settings;
+    if (orbitX || orbitY) {
+        CameraMath::orbit(next.camera, orbitX, orbitY);
+    }
+    if (panX || panY) {
+        CameraMath::pan(next.camera, panX, panY, h);
+    }
+    if (zoom) {
+        Vec anchor = next.camera.target;
+        int focusPart = selected;
+        if (!next.camera.free && mouseX >= 0 && mouseY >= 0) {
+            const auto ray = CameraMath::ray(next.camera, mouseX, mouseY, w, h);
+            const auto hit =
+                scene->model.raycast(ray.origin, ray.direction, &visible);
+            if (hit.part >= 0) {
+                anchor = hit.point;
+                focusPart = hit.part;
+            } else {
+                const auto normal = glm::normalize(vector(next.camera.target) -
+                                                   vector(next.camera.eye));
+                const float t =
+                    glm::dot(vector(next.camera.target) - vector(ray.origin),
+                             normal) /
+                    glm::dot(vector(ray.direction), normal);
+                anchor = array(vector(ray.origin) + vector(ray.direction) * t);
+            }
+        }
+        const auto bounds = scene->model.bounds();
+        Bounds focusBounds{bounds.first, bounds.second, true};
+        if (focusPart >= 0 && isVisible(size_t(focusPart))) {
+            const auto &part = inspection().parts[size_t(focusPart)];
+            focusBounds = {part.minimum, part.maximum, true};
+        }
+        CameraMath::zoom(next.camera, zoom, anchor, focusBounds.scale());
+    }
+    apply(next);
 }
 
-void Session::render(Target &target, int w, int h) {
+void Session::fly(float x, float y, const Vec &local, float delta, bool fast) {
+    if (!settings.camera.free) {
+        throw Error("parameters", "Free navigation is not active");
+    }
+    for (float value : {x, y, local[0], local[1], local[2], delta}) {
+        if (!std::isfinite(value)) {
+            throw Error("parameters", "Free navigation requires finite values");
+        }
+    }
+    if (delta < 0) {
+        throw Error("parameters", "Movement delta must be nonnegative");
+    }
+    auto next = settings;
+    CameraMath::orbit(next.camera, x, y, true);
+    CameraMath::move(next.camera, local, delta, fast);
+    apply(next);
+}
+
+void Session::render(Target &target, int w, int h, bool helpers) {
     if (!scene) {
         throw Error("scene", "No scene loaded");
     }
@@ -325,16 +418,13 @@ void Session::render(Target &target, int w, int h) {
     glColor4f(1, 1, 1, 1);
     const auto &camera = settings.camera;
     const auto bounds = scene->model.bounds();
-    const float radius = std::max(
-        .1f, glm::length(vector(bounds.second) - vector(bounds.first)));
-    const float distance =
-        glm::length(vector(camera.eye) - vector(camera.target));
     const auto projection =
-        glm::perspective(glm::radians(camera.fov), float(w) / float(h),
-                         std::max(.001f, radius * .0001f),
-                         distance + radius * 4 + 10) *
-        glm::lookAt(vector(camera.eye), vector(camera.target),
-                    vector(camera.up));
+        CameraMath::projection(camera,
+                               visibleBounds.valid
+                                   ? visibleBounds
+                                   : Bounds{bounds.first, bounds.second, true},
+                               w, h) *
+        CameraMath::view(camera);
     glMatrixMode(GL_PROJECTION);
     glLoadMatrixf(glm::value_ptr(projection));
     glMatrixMode(GL_MODELVIEW);
@@ -357,7 +447,7 @@ void Session::render(Target &target, int w, int h) {
         glEnable(GL_NORMALIZE);
         glEnable(GL_COLOR_MATERIAL);
     }
-    CBackgroundRenderer::inst().draw(scene->model);
+    drawModel(helpers);
     const auto error = glGetError();
     if (error != GL_NO_ERROR) {
         throw Error("render", "OpenGL error " + std::to_string(error));
@@ -388,7 +478,7 @@ fs::path Session::artifact(const fs::path &name) const {
 }
 
 std::string Session::capture(const fs::path &name, int w, int h,
-                             const fs::path &metadata) {
+                             const fs::path &metadata, bool helpers) {
     const auto destination = artifact(name);
     if (destination.extension() != ".png") {
         throw Error("path", "Capture filename must end in .png");
@@ -399,7 +489,7 @@ std::string Session::capture(const fs::path &name, int w, int h,
     if (meta == destination) {
         throw Error("path", "PNG and metadata paths must differ");
     }
-    render(captureTarget, w, h);
+    render(captureTarget, w, h, helpers);
     State guard;
     captureTarget.bind();
     glReadBuffer(GL_COLOR_ATTACHMENT0_EXT);
@@ -410,7 +500,9 @@ std::string Session::capture(const fs::path &name, int w, int h,
     put(result, "metadata", meta.string(), a);
     put(result, "width", w, a);
     put(result, "height", h, a);
-    put(result, "image_kind", "clean_viewport", a);
+    put(result, "image_kind",
+        helpers ? "viewport_with_helpers" : "clean_viewport", a);
+    put(result, "helpers_included", helpers, a);
     const std::string json = encode(result);
     const fs::path temporary = destination.string() + ".tmp",
                    metaTemp = meta.string() + ".tmp";
@@ -447,7 +539,7 @@ std::string Session::benchmark(int frames, int warmup, int w, int h,
             throw Error("timeout", "Benchmark deadline exceeded");
         }
         const auto frameStart = Clock::now();
-        render(captureTarget, w, h);
+        render(captureTarget, w, h, false);
         glFinish();
         if (i >= warmup) {
             timings.push_back(std::chrono::duration<double, std::milli>(
@@ -497,6 +589,18 @@ std::string Session::state() const {
     put(result, "target", settings.camera.target, a);
     put(result, "up", settings.camera.up, a);
     put(result, "fov", double(settings.camera.fov), a);
+    put(result, "projection",
+        settings.camera.orthographic ? "orthographic" : "perspective", a);
+    put(result, "navigation", settings.camera.free ? "free" : "orbit", a);
+    put(result, "ortho_height", double(settings.camera.orthoHeight), a);
+    put(result, "speed", double(settings.camera.speed), a);
+    const char *modes[] = {"game", "unlit", "wireframe", "game_wire"};
+    put(result, "view_mode", modes[settings.viewMode], a);
+    put(result, "grid", settings.grid, a);
+    put(result, "axes", settings.axes, a);
+    put(result, "bounds", settings.bounds, a);
+    put(result, "selected", selected, a);
+    put(result, "visibility_revision", visibilityRevision, a);
     put(result, "light", settings.light, a);
     put(result, "quality", settings.quality, a);
     put(result, "ao", settings.ao, a);
@@ -504,7 +608,8 @@ std::string Session::state() const {
     put(result, "time", settings.time, a);
     put(result, "animated", false, a);
     const auto d = CBackgroundRenderer::inst().diagnostics();
-    const bool lit = settings.quality > 0 && d.lighting;
+    const bool lit = (settings.viewMode == 0 || settings.viewMode == 3) &&
+                     settings.quality > 0 && d.lighting;
     const bool shadows = lit && settings.quality >= 2 && d.shadowSupported &&
                          !d.shadowFailed && d.shadowResolution > 0;
     put(result, "lighting_active", lit, a);
@@ -524,7 +629,8 @@ std::string Session::state() const {
                                                : "active",
         a);
     put(result, "shadow_reason",
-        settings.quality < 2      ? "disabled"
+        settings.viewMode == 1 || settings.viewMode == 2 ? "inspection_mode"
+        : settings.quality < 2                           ? "disabled"
         : !d.lighting             ? "lighting_unavailable"
         : !d.shadowSupported      ? "unsupported"
         : d.shadowFailed          ? "allocation_failed"
@@ -553,6 +659,11 @@ std::string Session::state() const {
             put(p, "group", part.group, a);
             put(p, "material", part.material, a);
             put(p, "vertices", part.vertices, a);
+            put(p, "id", part.id, a);
+            put(p, "triangles", part.triangles, a);
+            put(p, "bounds_min", part.minimum, a);
+            put(p, "bounds_max", part.maximum, a);
+            put(p, "visible", isVisible(part.id), a);
             parts.PushBack(p, a);
         }
         for (const auto &entry : scene->inspection.materials) {
@@ -565,6 +676,13 @@ std::string Session::state() const {
             put(m, "shininess", double(v.shininess), a);
             put(m, "opacity", double(v.opacity), a);
             put(m, "texture", v.diffuseMap, a);
+            const auto texture = scene->inspection.textures.find(entry.first);
+            if (texture != scene->inspection.textures.end()) {
+                put(m, "texture_path", texture->second.path, a);
+                put(m, "texture_loaded", texture->second.loaded, a);
+                put(m, "texture_width", texture->second.width, a);
+                put(m, "texture_height", texture->second.height, a);
+            }
             materials.AddMember(str(entry.first, a), m, a);
         }
         for (const auto &message : scene->inspection.warnings) {

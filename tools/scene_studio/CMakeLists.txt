@@ -1,5 +1,5 @@
 find_package(PNG REQUIRED)
-add_library(gpp_studio_core STATIC context.cpp studio.cpp)
+add_library(gpp_studio_core STATIC context.cpp studio.cpp camera.cpp viewer.cpp)
 target_link_libraries(gpp_studio_core PUBLIC GuitarPP_lib PNG::PNG)
 target_include_directories(gpp_studio_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(gpp_studio_core PRIVATE
@@ -47,4 +47,11 @@ if(BUILD_TESTING AND STUDIO_XVFB)
         set_tests_properties(studio_mouse PROPERTIES TIMEOUT 45 LABELS "studio;gpu"
             RESOURCE_LOCK gpp_graphics)
     endif()
+endif()
+
+if(BUILD_TESTING)
+    add_executable(gpp_studio_camera_tests camera.cpp camera_tests.cpp)
+    target_link_libraries(gpp_studio_camera_tests PRIVATE glm GTest::GTest GTest::Main)
+    add_test(NAME studio_camera COMMAND gpp_studio_camera_tests)
+    set_tests_properties(studio_camera PROPERTIES LABELS "studio;cpu" TIMEOUT 30)
 endif()

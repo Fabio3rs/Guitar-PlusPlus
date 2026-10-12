@@ -143,6 +143,8 @@ struct CBackgroundRenderer::Impl {
     int resolution = 0;
     const GPPOBJ *cachedModel = nullptr;
     size_t cachedRevision = 0, updates = 0;
+    const GPPOBJ::Visibility *cachedVisibility = nullptr;
+    size_t cachedVisibilityRevision = 0;
     bool garageMaterials = true;
     glm::vec3 light{3.5f, 2.88f, -6.05f};
     glm::mat4 lightMatrix{1.f};
@@ -271,15 +273,16 @@ void CBackgroundRenderer::prepare() {
     }
 }
 
-void CBackgroundRenderer::draw(GPPOBJ &model) {
+void CBackgroundRenderer::draw(GPPOBJ &model, const GPPOBJ::Visibility *visible,
+                               size_t visibilityRevision) {
     if (quality <= 0 || !CShader::inst().isShadersEnabled()) {
-        model.draw(0);
+        model.drawMaterials({}, 0, visible);
         return;
     }
     prepare();
     auto &r = *impl;
     if (!r.lighting.get()) {
-        model.draw(0);
+        model.drawMaterials({}, 0, visible);
         return;
     }
     model.prepareForDraw();
@@ -292,7 +295,9 @@ void CBackgroundRenderer::draw(GPPOBJ &model) {
         if (r.allocate(quality >= 3 ? 1024 : 512)) {
             shadows = true;
             if (r.cachedModel != &model ||
-                r.cachedRevision != model.revision()) {
+                r.cachedRevision != model.revision() ||
+                r.cachedVisibility != visible ||
+                r.cachedVisibilityRevision != visibilityRevision) {
                 glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, r.framebuffer);
                 glViewport(0, 0, r.resolution, r.resolution);
                 glDrawBuffer(GL_NONE);
@@ -318,19 +323,22 @@ void CBackgroundRenderer::draw(GPPOBJ &model) {
                 glUseProgram(r.depth.get());
                 glUniform1i(r.dep.texture, 0);
                 const auto renderedRevision = model.revision();
-                model.drawMaterials([&](const ObjModel::Part &part,
-                                        const ObjModel::Material &m,
-                                        bool textured) {
-                    if (m.opacity < .5f ||
-                        (r.garageMaterials &&
-                         (decal(part) || part.material == "light"))) {
-                        return false;
-                    }
-                    r.dep.material(m, textured);
-                    return true;
-                });
+                model.drawMaterials(
+                    [&](const ObjModel::Part &part, const ObjModel::Material &m,
+                        bool textured) {
+                        if (m.opacity < .5f ||
+                            (r.garageMaterials &&
+                             (decal(part) || part.material == "light"))) {
+                            return false;
+                        }
+                        r.dep.material(m, textured);
+                        return true;
+                    },
+                    0, visible);
                 r.cachedModel = &model;
                 r.cachedRevision = renderedRevision;
+                r.cachedVisibility = visible;
+                r.cachedVisibilityRevision = visibilityRevision;
                 ++r.updates;
             }
         }
@@ -370,25 +378,26 @@ void CBackgroundRenderer::draw(GPPOBJ &model) {
             glDepthMask(GL_FALSE);
         }
         glUniform1f(r.lit.cutoff, pass == 0 ? .5f : .05f);
-        model.drawMaterials([&](const ObjModel::Part &part,
-                                const ObjModel::Material &source,
-                                bool textured) {
-            const bool translucent =
-                (r.garageMaterials && decal(part)) || source.opacity < .999f;
-            if (translucent != (pass == 1)) {
-                return false;
-            }
-            const auto m = r.garageMaterials
-                               ? garageMaterial(part, source)
-                               : Surface{source.specular, source.emission,
-                                         source.shininess};
-            r.lit.material(source, textured);
-            glUniform3fv(r.lit.ambient, 1, source.ambient.data());
-            glUniform3fv(r.lit.diffuse, 1, source.diffuse.data());
-            glUniform3fv(r.lit.specular, 1, m.specular.data());
-            glUniform3fv(r.lit.emission, 1, m.emission.data());
-            glUniform1f(r.lit.shininess, m.shininess);
-            return true;
-        });
+        model.drawMaterials(
+            [&](const ObjModel::Part &part, const ObjModel::Material &source,
+                bool textured) {
+                const bool translucent = (r.garageMaterials && decal(part)) ||
+                                         source.opacity < .999f;
+                if (translucent != (pass == 1)) {
+                    return false;
+                }
+                const auto m = r.garageMaterials
+                                   ? garageMaterial(part, source)
+                                   : Surface{source.specular, source.emission,
+                                             source.shininess};
+                r.lit.material(source, textured);
+                glUniform3fv(r.lit.ambient, 1, source.ambient.data());
+                glUniform3fv(r.lit.diffuse, 1, source.diffuse.data());
+                glUniform3fv(r.lit.specular, 1, m.specular.data());
+                glUniform3fv(r.lit.emission, 1, m.emission.data());
+                glUniform1f(r.lit.shininess, m.shininess);
+                return true;
+            },
+            0, visible);
     }
 }

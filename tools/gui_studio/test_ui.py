@@ -158,6 +158,27 @@ with tempfile.TemporaryDirectory(prefix='gui-', dir=artifacts) as temporary:
         # Font Studio: edit only g's offset through the numeric editor.
         click(160, 42)
         time.sleep(.2)
+        # Character shortcuts use the produced symbol, including Shift.
+        # Editing the numeric field must not select its typed digits instead.
+        for key, offset in [('shift+a', '0.125'), ('shift+1', '0.25'), ('7', '0.375')]:
+            click(1100, 390)
+            xdo('key', key)
+            time.sleep(.12)
+            xdo('mousemove', '--window', window, 120, 443)
+            xdo('keydown', 'ctrl')
+            xdo('click', 1)
+            xdo('keyup', 'ctrl')
+            xdo('key', 'ctrl+a')
+            xdo('type', '--clearmodifiers', offset)
+            xdo('key', 'Return')
+            time.sleep(.12)
+        click(1100, 390)
+        xdo('key', 'g')
+        time.sleep(.12)
+        # Escape cancels selection: this must leave g selected.
+        xdo('key', 'Escape')
+        xdo('key', 'a')
+        time.sleep(.12)
         xdo('mousemove', '--window', window, 120, 443)
         xdo('keydown', 'ctrl')
         xdo('click', 1)
@@ -169,7 +190,12 @@ with tempfile.TemporaryDirectory(prefix='gui-', dir=artifacts) as temporary:
         click(418, 95)
         exported_font = output / 'Theme.lua'
         wait_file(exported_font)
-        assert 'setFontCharMetrics("default", "g", 1, -0.25)' in exported_font.read_text()
+        font_text = exported_font.read_text()
+        assert 'setFontCharMetrics("default", "g", 1, -0.25)' in font_text
+        for char, offset in [('A', '0.125'), ('!', '0.25'), ('7', '0.375')]:
+            assert f'setFontCharMetrics("default", "{char}", 1, {offset})' in font_text
+        assert 'setFontCharMetrics("default", "a"' not in font_text
+        assert 'setFontCharMetrics("default", "0"' not in font_text
         click(1230, 18)
         assert process.wait(timeout=5) == 0
         assert theme.read_bytes() == source_before, 'Source atlas theme was overwritten'

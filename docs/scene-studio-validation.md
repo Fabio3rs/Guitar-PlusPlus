@@ -110,3 +110,102 @@ CMake's minimum remains 3.25 to support `add_subdirectory(... SYSTEM)`.
   NativeLab MCP was used for this run; a newly restarted client was not exercised.
 - Material/scene editing and export, animation and a specialized MCP are deferred
   by design. TCP/Unix socket servers are not included; persistent control uses stdio.
+
+## Model viewer implementation — 2026-10-12
+
+Implemented cursor-anchored orbit zoom, aspect-correct framing, orthographic and
+axis views, captured free navigation, per-part geometric selection, focus,
+hide/isolate/show-all, neutral/wireframe display modes, bounded helpers and shared
+GUI/CLI/RPC operations. Inspection includes per-part bounds/triangles and texture
+paths, loaded status and dimensions. A small selected detail within a large model
+has a regression test for continued zoom and close clipping.
+
+### Checks executed
+
+- Full configured build with Scene/Audio/GUI Studios enabled: passed (Clang,
+  RelWithDebInfo, `GPP_NATIVE_CPU=OFF`). Separate Debug game build with all three
+  Studios disabled: passed (GCC, `GPP_NATIVE_CPU=OFF`).
+- All **180 CTest entries** passed, run as 176 existing non-Scene-Studio entries
+  plus four Studio entries. Studio includes **7 CPU camera cases** and **12 GL
+  cases**, CLI/RPC/PNG integration, and actual xdotool keyboard/mouse automation.
+- Mouse automation covers orbit, pan, cursor zoom, panel isolation, click
+  selection, double-click pivot, focus shortcut, captured free movement, Escape,
+  focus loss and text entry without camera movement.
+- Radeon EGL: **12/12 Studio GL cases passed**; extended CLI/RPC/visual suite also
+  passed. Real garage and isolated OBJ captures were generated and inspected.
+- Mesa OpenGL **2.0** / GLSL **1.10** override: **12/12 GL cases** and extended
+  GUI mouse/keyboard automation passed. This is software compatibility coverage,
+  not a test on a physical legacy GPU.
+- `git diff --check`: passed. Existing bundled Lua `tmpnam` and other legacy
+  build warnings remain; no new warnings in the modified shared renderer/model
+  implementation were left in the final Clang build.
+
+### Measurements
+
+Hardware: Radeon RX 7900 XTX, NativeLab EGL. Render measurements use 960x540,
+quality 2, AO, the same explicit camera before/after, 10 warmup + 100 measured
+frames. They measure CPU submission plus GPU completion, excluding swap/readback.
+The final after measurement ran without concurrent test/build work. An earlier
+sample overlapped Xvfb testing and was discarded from this comparison.
+
+| Scene | Before median / p95 (ms) | After median / p95 (ms) |
+| --- | --- | --- |
+| Synthetic | 0.09468 / 0.12498 | 0.102291 / 0.132860 |
+| Garage | 0.363541 / 0.619482 | 0.333001 / 0.587661 |
+
+These short samples are a sanity comparison, not evidence of a speedup or a
+performance guarantee for older hardware. Picking was measured separately around
+`Session::pick`, excluding RPC/JSON: 500 viewport queries after 20 warmups gave
+median/p95 **0.000090/0.000140 ms** for the synthetic fixture and
+**0.001620/0.002560 ms** for the garage. The sample rays hit geometry 86/500 and
+500/500 times, respectively; cost remains dependent on intersected triangle count.
+
+Normal rendering performs no picking, CPU geometry copies or readback. The
+optional shared visibility mask adds a per-part check; helper geometry has bounded
+line counts and existing VBOs are reused for wireframe/highlights. Default game
+calls supply no mask, and neither gameplay threading nor gameplay state was changed.
+
+Local ignored artifacts: `build/scene-studio/viewer-baseline.json`,
+`build/scene-studio/viewer/render-comparison.json`,
+`build/scene-studio/viewer/picking-benchmark.jsonl`, garage/isolated-OBJ PNGs under
+`build/scene-studio/viewer/`, EGL visual reports under `viewer-egl/`, and GL 2.0
+mouse artifacts under `viewer-gl20-ui/`. The temporary picking benchmark source
+and executable are build artifacts, not a new runtime dependency.
+
+### Deliberate limits
+
+- Static OBJ/MTL inspection; no material/transform editing, export or animation.
+- Picking is two-sided geometry-based and does not sample texture alpha holes.
+- Hidden geometry stops casting dynamic shadows but its baked AO remains in
+  other surfaces. Game shadow volume/lighting remains fixed, with Unlit available
+  for neutral inspection.
+- Part IDs belong to a loaded revision; successful reload clears selection and
+  visibility, while retaining camera/display/light settings.
+- Linux X11, software Mesa and AMD EGL were exercised. Windows/macOS/Wayland,
+  other GPU vendors, physical old GPUs and a manual gameplay session were not
+  validated in this change.
+
+### Follow-up pitfall review (2026-10-12)
+
+- Reproduced invalid projection matrices for tiny bounds viewed from 1,000,000
+  units away; depth-plane margins now account for floating-point precision.
+- Reproduced failure to load a 0.00001-unit triangle because automatic framing
+  produced a degenerate camera. Framing and projection conversion now respect
+  the camera's minimum distance/span.
+- Fixed Unlit ignoring MTL UV scale, offset and clamp. A three-part TGA fixture
+  checks rendered colors, repeated/clamped sampling of a shared texture and
+  preservation of the caller's texture matrix. Texture wrap parameters are
+  explicitly restored because the GL attribute stack does not restore them.
+- Code inspection found that orbit release depended on seeing a single release
+  event inside an active viewport. It now checks the button level and cancels
+  gestures when the viewport is inactive. Existing physical mouse, keyboard,
+  Escape and focus-loss tests pass; hiding the viewport mid-drag was not
+  separately automated.
+- Applied repository clang-format to all 14 changed/new C++ files. Full build
+  passed; all 180 CTest entries passed. Studio now contains eight camera cases
+  and 14 GL cases, plus CLI/RPC and physical UI integration scripts.
+- All four Studio CTest entries also passed with Mesa forced to OpenGL 2.0 /
+  GLSL 1.10. All 14 GL cases passed via hardware EGL on the Radeon RX 7900 XTX.
+- Documented the inherited TGA-only decoder. PNG/JPEG loading was not added.
+  No new GPU feature requirement or gameplay synchronization change was made.
+  Physical old GPUs and manual gameplay remain untested.

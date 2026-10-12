@@ -1,7 +1,7 @@
 #pragma once
 #include "GPPOBJ.h"
-#include <memory>
 #include <array>
+#include <memory>
 
 // Scene rendering shared by menus and gameplay. GL resources are
 // context-owned.
@@ -26,7 +26,9 @@ class CBackgroundRenderer {
     // Applied at scene transitions, never by the gameplay worker.
     void setScene(const std::array<float, 3> &light, bool garageMaterials);
     void prepare();
-    void draw(GPPOBJ &model);
+    // Mask/revision are optional; default game calls retain all geometry.
+    void draw(GPPOBJ &model, const GPPOBJ::Visibility *visible = nullptr,
+              size_t visibilityRevision = 0);
     size_t shadowUpdates() const;
     ~CBackgroundRenderer();
     CBackgroundRenderer(const CBackgroundRenderer &) = delete;

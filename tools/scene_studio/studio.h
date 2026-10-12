@@ -1,6 +1,7 @@
 #pragma once
 #include "CBackgroundRenderer.h"
 #include "CScene.h"
+#include "camera.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <array>
@@ -12,7 +13,6 @@
 
 namespace Studio {
 namespace fs = std::filesystem;
-using Vec = std::array<float, 3>;
 
 struct Error : std::runtime_error {
     std::string code;
@@ -21,16 +21,13 @@ struct Error : std::runtime_error {
         : std::runtime_error(message), code(std::move(c)) {}
 };
 
-struct Camera {
-    Vec eye{4, 3, 5}, target{0, .5f, 0}, up{0, 1, 0};
-    float fov = 45;
-};
-
 struct Settings {
     Camera camera;
     Vec light{2, 4, 2};
     int quality = 2;
     bool ao = true;
+    int viewMode = 0; // game, unlit, wireframe, game_wire
+    bool grid = false, axes = false, bounds = false;
     double bias = .001, time = 0;
 };
 
@@ -90,6 +87,13 @@ class Session {
     std::unique_ptr<Scene> scene;
     Settings initial;
     Target captureTarget;
+    GPPOBJ::Visibility visible, highlight;
+    size_t visibilityRevision = 0;
+    int selected = -1;
+    Bounds visibleBounds;
+    void updateVisibleBounds();
+    void drawModel(bool helpers);
+    void drawHelpers();
 
   public:
     Context &context;
@@ -103,12 +107,24 @@ class Session {
     void reload();
     void apply(const Settings &value);
     void reset();
-    void frame();
+    void frame(bool selection = false, int w = 0, int h = 0);
+    void resetCamera();
+    void setView(const std::string &name);
+    void select(int part);
+    int selection() const { return selected; }
+    bool isVisible(size_t part) const {
+        return part < visible.size() && visible[part];
+    }
+    void visibility(const std::string &action, int part = -1);
+    GPPOBJ::Hit pick(float x, float y, int w, int h) const;
+    void pickSelection(float x, float y, int w, int h, bool pivot);
+    void fly(float x, float y, const Vec &local, float delta, bool fast);
     void navigate(float orbitX, float orbitY, float panX, float panY,
-                  float zoom);
-    void render(Target &target, int w, int h);
+                  float zoom, float mouseX = -1, float mouseY = -1, int w = 0,
+                  int h = 0);
+    void render(Target &target, int w, int h, bool helpers = true);
     std::string capture(const fs::path &name, int w, int h,
-                        const fs::path &metadata = {});
+                        const fs::path &metadata = {}, bool helpers = false);
     std::string benchmark(int frames, int warmup, int w, int h,
                           double timeout = 30);
     std::string state() const;
@@ -120,7 +136,10 @@ class Session {
 class UI {
     bool initialized = false;
     std::string ini, error;
-    int selected = -1;
+    GLFWwindow *window = nullptr;
+    bool orbiting = false, panning = false, flying = false, dragged = false;
+    double lastMouseX = 0, lastMouseY = 0;
+    void releaseMouse();
 
   public:
     explicit UI(Session &session);

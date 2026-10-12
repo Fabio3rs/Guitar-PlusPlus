@@ -7,6 +7,7 @@ struct PreviewDraw {
     Session *session = nullptr;
     ImVec2 position, size;
     bool font = false;
+    float fontPixels = 48.f;
     std::string text;
 };
 class UI {
@@ -19,7 +20,9 @@ class UI {
     int newColumns = 3, newRows = 2;
     bool addAtlas = false, previewFocus = false, mouseCaptured = false;
     bool grid = true, bounds = true, fitAtlas = true;
+    bool atlasKeyboardFocus = false;
     float zoom = .65f;
+    float previewHeight = 240.f;
     ImVec2 pan{0, 0};
     PreviewDraw menuDraw, fontDraw;
     CFonts::Inspection inspection;

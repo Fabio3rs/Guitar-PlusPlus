@@ -107,6 +107,76 @@ with tempfile.TemporaryDirectory(prefix="isolation-", dir=output) as temporary:
                  ("--eye", "0", "1", "0"), ("--capture", "../escape.png")]:
         run(*args, success=False)
 
+    # Viewer CLI state and clean/helper captures.
+    for mode in ("unlit", "wireframe", "game_wire"):
+        result = run("--view-mode", mode, "--capture", mode + ".png")
+        assert result["view_mode"] == mode
+        assert png(result["capture"])[2] != reference
+        if mode != "game_wire":
+            assert not result["shadows_active"] and not result["ao_active"]
+    framed = run("--projection", "orthographic", "--view", "top", "--select", "1",
+                 "--hide", "0", "--frame", "selection", "--grid", "on", "--axes", "on",
+                 "--capture", "viewer-clean.png", "--metadata", "viewer-clean.json")
+    assert framed["selected"] == 1 and not framed["parts"][0]["visible"]
+    assert framed["projection"] == "orthographic" and not framed["helpers_included"]
+    assert pathlib.Path(framed["metadata"]).name == "viewer-clean.json"
+    helpers = run("--projection", "orthographic", "--view", "top", "--select", "1",
+                  "--hide", "0", "--frame", "selection", "--grid", "on", "--axes", "on",
+                  "--capture", "viewer-helpers.png", "--capture-helpers")
+    assert helpers["helpers_included"]
+    assert png(framed["capture"])[2] != png(helpers["capture"])[2]
+    for args in [("--view", "invalid"), ("--frame", "selection"), ("--select", "99999"),
+                 ("--hide", "99999"), ("--projection", "orthographic", "--navigation", "free")]:
+        run(*args, success=False)
+
+    # Sequential RPC exercises the same controller as the UI, including errors.
+    process = subprocess.Popen(common + ["--rpc-stdio"], cwd=cwd, text=True,
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    try:
+        def request(method, params=None, success=True):
+            process.stdin.write(json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}}) + "\n")
+            process.stdin.flush()
+            import select
+            assert select.select([process.stdout], [], [], 10)[0], "RPC timeout"
+            value = json.loads(process.stdout.readline())
+            assert ("error" not in value) == success, value
+            return value.get("result", value)
+
+        request("set", {"eye": [0, .7, 5], "target": [0, .7, 0]})
+        hit = request("pick", {"x": 160, "y": 120})
+        assert hit["part"] == 1
+        picked = request("pick", {"x": 160, "y": 120, "action": "select"})
+        assert picked["selected"] == 1
+        pivot = request("pick", {"x": 160, "y": 120, "action": "pivot"})
+        assert pivot["eye"] == picked["eye"] and pivot["target"] == hit["point"]
+        isolated = request("visibility", {"action": "isolate"})
+        assert [p["visible"] for p in isolated["parts"]] == [False, True, False]
+        request("set", {"projection": "orthographic", "view_mode": "unlit"})
+        request("view", {"name": "top"})
+        framed_rpc = request("frame", {"scope": "selection", "width": 100, "height": 500})
+        request("navigate", {"wheel": 1, "x": 75, "y": 100, "width": 100, "height": 500})
+        current = request("state")
+        assert current["ortho_height"] < framed_rpc["ortho_height"]
+        request("select", {"part": 9999}, success=False)
+        request("visibility", {"action": "isolate", "part": 9999}, success=False)
+        request("pick", {"x": -10, "y": 0}, success=False)
+        request("set", {"projection": "bad", "light": [9, 9, 9]}, success=False)
+        assert request("state") == current
+        request("reload")
+        reloaded = request("state")
+        assert reloaded["selected"] == -1 and all(p["visible"] for p in reloaded["parts"])
+        assert reloaded["eye"] == current["eye"] and reloaded["view_mode"] == "unlit"
+        request("set", {"navigation": "free", "eye": [7, 2, 4], "target": [7, 2, 3], "up": [0, 1, 0], "speed": 4})
+        for _ in range(10):
+            moved = request("fly", {"local": [0, 0, 1], "delta": .1})
+        assert moved["eye"][2] < 3 and moved["projection"] == "perspective"
+        request("shutdown")
+        assert process.wait(timeout=10) == 0
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+
     # Persistent commands share one context and retain a scene after errors.
     large_obj = output / "large-coordinate.obj"
     large_obj.write_text("v 2000000 0 0\nv 2000001 0 0\nv 2000000 1 0\nf 1 2 3\n")
@@ -140,6 +210,6 @@ with tempfile.TemporaryDirectory(prefix="isolation-", dir=output) as temporary:
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
     assert set(p for p in cwd.rglob("*") if p.is_file()) == set(protected)
     report = {"backend": backend, "renderer": base["renderer"], "acceleration": base["acceleration"],
-              "comparisons": comparisons, "isolation": "passed", "rpc": "passed", "png": "passed"}
+              "viewer": "passed", "comparisons": comparisons, "isolation": "passed", "rpc": "passed", "png": "passed"}
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report))
