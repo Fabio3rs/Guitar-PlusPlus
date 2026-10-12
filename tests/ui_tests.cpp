@@ -2,8 +2,8 @@
 #include "CMenu.h"
 #include "GPPGame.h"
 #include <climits>
-#include <limits>
 #include <gtest/gtest.h>
+#include <limits>
 
 extern int _glfwReadTGA(CEngine::GLFWstream *, CEngine::GLFWimage *, int);
 
@@ -268,11 +268,12 @@ TEST(MenuCPU, RepeatDoesNotCatchUpAfterStall) {
 
 TEST(MenuCPU, NamedMenuLookupDoesNotCreateOrReplace) {
     auto &game = GPPGame::GuitarPP();
-    EXPECT_EQ(game.findMenu("ui-missing-test"), nullptr);
-    EXPECT_THROW(game.getMenuByName("ui-missing-test"), std::out_of_range);
-    auto &menu = game.newNamedMenu("ui-existing-test");
+    EXPECT_EQ(game.menus.findMenu("ui-missing-test"), nullptr);
+    EXPECT_THROW(game.menus.getMenuByName("ui-missing-test"),
+                 std::out_of_range);
+    auto &menu = game.menus.newNamedMenu("ui-existing-test");
     menu.addOpt(button());
-    EXPECT_EQ(&game.newNamedMenu("ui-existing-test"), &menu);
+    EXPECT_EQ(&game.menus.newNamedMenu("ui-existing-test"), &menu);
     EXPECT_EQ(menu.options.size(), 1u);
 }
 
@@ -295,7 +296,7 @@ TEST(MenuCPU, LuaCallbacksCanAppendWithoutInvalidatingDispatch) {
     auto &script = lua.files["ui-tests"]["callbacks"];
     script = std::move(source);
     ASSERT_EQ(CLuaH::runScript(script), 0);
-    auto *menu = GPPGame::GuitarPP().findMenu("ui-lua-test");
+    auto *menu = GPPGame::GuitarPP().menus.findMenu("ui-lua-test");
     ASSERT_NE(menu, nullptr);
     auto &controls = CControls::controls();
     controls.menuInputActive = true;
@@ -384,15 +385,12 @@ TEST_F(MenuStyleCPU, OpenMenusAndClonesInheritPerProperty) {
     EXPECT_EQ(child.options[0].listID, 2);
     child.styleOverrides.textSize = .2;
     child.options[0].styleOverrides.textSize = .3;
-    EXPECT_DOUBLE_EQ(child.resolvedOptionStyle(child.options[0]).textSize,
-                     .3);
+    EXPECT_DOUBLE_EQ(child.resolvedOptionStyle(child.options[0]).textSize, .3);
     child.options[0].styleOverrides.textSize.reset();
-    EXPECT_DOUBLE_EQ(child.resolvedOptionStyle(child.options[0]).textSize,
-                     .2);
+    EXPECT_DOUBLE_EQ(child.resolvedOptionStyle(child.options[0]).textSize, .2);
     child.styleOverrides.textSize.reset();
     child.styleOverrides.panel.reset();
-    EXPECT_DOUBLE_EQ(child.resolvedOptionStyle(child.options[0]).textSize,
-                     .15);
+    EXPECT_DOUBLE_EQ(child.resolvedOptionStyle(child.options[0]).textSize, .15);
     EXPECT_DOUBLE_EQ(child.resolvedStyle().panel.background.r, .9);
     EXPECT_FALSE(child.options[0].styleOverrides.textSize.has_value());
 }
@@ -439,8 +437,7 @@ TEST_F(MenuStyleCPU, GeometryAndMouseCursorUseInheritedSize) {
     EXPECT_FALSE(menu.options[0].styleOverrides.textSize.has_value());
 }
 
-TEST_F(MenuStyleCPU,
-       FlowAnchorsAndControlsFollowSizeWithoutRelayoutOfGlyphs) {
+TEST_F(MenuStyleCPU, FlowAnchorsAndControlsFollowSizeWithoutRelayoutOfGlyphs) {
     CMenu menu;
     CMenu::menuOpt option;
     option.text = "Anchored";
@@ -499,16 +496,14 @@ TEST_F(MenuStyleCPU, LuaNilSizeInheritsAndNumericSizeOverrides) {
     lua.files["ui-style-tests"]["options"] = std::move(script);
     auto &registered = lua.files["ui-style-tests"]["options"];
     ASSERT_EQ(CLuaH::runScript(registered), 0);
-    auto *menu = GPPGame::GuitarPP().findMenu("ui-style-lua-test");
+    auto *menu = GPPGame::GuitarPP().menus.findMenu("ui-style-lua-test");
     ASSERT_NE(menu, nullptr);
     ASSERT_EQ(menu->options.size(), 2u);
     auto style = ui::activeStyle();
     style.typography.textSize = .2;
     ui::setActiveStyle(style);
-    EXPECT_DOUBLE_EQ(menu->resolvedOptionStyle(menu->options[0]).textSize,
-                     .2);
-    EXPECT_DOUBLE_EQ(menu->resolvedOptionStyle(menu->options[1]).textSize,
-                     .1);
+    EXPECT_DOUBLE_EQ(menu->resolvedOptionStyle(menu->options[0]).textSize, .2);
+    EXPECT_DOUBLE_EQ(menu->resolvedOptionStyle(menu->options[1]).textSize, .1);
     lua.files.erase("ui-style-tests");
 }
 

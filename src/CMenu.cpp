@@ -1,5 +1,7 @@
 #include "CMenu.h"
 #include "CLanguageManager.h"
+#include "CLog.h"
+#include "CUIOverrides.h"
 #include "GPPGame.h"
 #include "utf8.h"
 #include <GL/glew.h>
@@ -68,6 +70,15 @@ CMenu::CMenu(const std::string &name, Context *host)
 }
 
 CMenu::CMenu(const CMenu &m) : CMenu(m.menuName, m.context) {
+    nextOptionId = m.nextOptionId;
+    if (m.presentationBase) {
+        presentationBase =
+            std::make_unique<ui::MenuPresentation>(*m.presentationBase);
+    }
+    if (m.presentationPatch) {
+        presentationPatch =
+            std::make_unique<ui::MenuOverrides>(*m.presentationPatch);
+    }
     x = m.x;
     y = m.y;
     styleOverrides = m.styleOverrides;
@@ -130,12 +141,34 @@ int CMenu::addOpt(const menuOpt &opt) {
         return -1;
     }
 
+    const std::string prefix = menuName + ".";
+    std::string name = opt.optionName;
+    if (name.empty()) {
+        do {
+            name = prefix + "auto_" + std::to_string(nextOptionId++);
+        } while (findOption(name));
+    } else if (name.compare(0, prefix.size(), prefix) != 0) {
+        name = prefix + name;
+    }
+    if (findOption(name)) {
+        CLog::log() << "Duplicate menu option: " + name;
+        return -1;
+    }
     options.push_back(opt);
     auto &o = options.back();
     translate(o);
-    o.optionName =
-        menuName + "_" + std::to_string(index) + std::to_string(o.group);
+    o.optionName = std::move(name);
     o.eventID = context ? 0 : CLuaH::Lua().idForCallbackEvent(o.optionName);
+    if (presentationBase) {
+        presentationBase->options[o.optionName] = ui::captureOption(o);
+        if (presentationPatch) {
+            const auto local = o.optionName.substr(prefix.size());
+            const auto patch = presentationPatch->options.find(local);
+            if (patch != presentationPatch->options.end()) {
+                ui::applyOption(o, patch->second);
+            }
+        }
+    }
     groupInfo.try_emplace(o.group);
     return static_cast<int>(index);
 }
@@ -303,6 +336,7 @@ void CMenu::reflow(const ui::Style &style) {
     }
 
     if (flow == Flow::Manual) {
+        applyFixedPositions(style);
         refreshFocusGeometry(style);
         return;
     }
@@ -326,13 +360,13 @@ void CMenu::reflow(const ui::Style &style) {
                                (o.layout.top - o.layout.bottom + .3) *
                                    appearance.textSize);
             } else {
-                px +=
-                    o.layout.width() * appearance.textSize +
-                    (1 + style.selection.pickGap + .5) * appearance.textSize;
+                px += o.layout.width() * appearance.textSize +
+                      (1 + style.selection.pickGap + .5) * appearance.textSize;
             }
         }
     }
 
+    applyFixedPositions(style);
     refreshFocusGeometry(style);
 }
 
@@ -520,9 +554,8 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
 
             if (o.type == text_input) {
                 o.status |= 4;
-                o.strEditPoint = static_cast<int>(
-                    o.layout.cursorAt((event.x - x - o.x + o.textScroll) /
-                                      appearance.textSize));
+                o.strEditPoint = static_cast<int>(o.layout.cursorAt(
+                    (event.x - x - o.x + o.textScroll) / appearance.textSize));
             }
         } else if (event.action == GLFW_RELEASE) {
             if (captured >= 0 && captured == hit &&
@@ -770,8 +803,8 @@ void CMenu::dispatchInput() {
                 bool hit = m->modal;
 
                 for (size_t i = 0; !hit && i < m->options.size(); ++i) {
-                    hit = m->optionRect(i, childStyle)
-                              .contains(event.x, event.y);
+                    hit =
+                        m->optionRect(i, childStyle).contains(event.x, event.y);
                 }
 
                 if (hit) {
@@ -1027,6 +1060,11 @@ void CMenu::beginManualEdit(size_t index) {
         }
     }
 
+    for (auto &o : options) {
+        o.fixedX.reset();
+        o.fixedY.reset();
+        o.overrideHorizontal = false;
+    }
     options[index].centerX.reset();
     options[index].anchorRight = false;
     flow = Flow::Manual;
@@ -1253,8 +1291,8 @@ void CMenu::render() {
                         fraction * std::max(0.0, o.deslizantBarSize -
                                                      appearance.textSize);
                     color(style.selection.accent);
-                    rectangle({cursor, bar.bottom,
-                               cursor + appearance.textSize, bar.top},
+                    rectangle({cursor, bar.bottom, cursor + appearance.textSize,
+                               bar.top},
                               pickTexture);
                     engine.setColor(
                         appearance.textColor.r, appearance.textColor.g,
@@ -1405,6 +1443,80 @@ void CMenu::translate(menuOpt &option) {
         const auto text = context->translate(option.langEntryKey);
         if (!text.empty()) {
             option.text = text;
+        }
+    }
+}
+
+CMenu::menuOpt *CMenu::findOption(const std::string &id) {
+    const std::string qualified =
+        id.compare(0, menuName.size() + 1, menuName + ".") == 0
+            ? id
+            : menuName + "." + id;
+    for (auto &option : options) {
+        if (option.optionName == qualified) {
+            return &option;
+        }
+    }
+    return nullptr;
+}
+
+void CMenu::applyFixedPositions(const ui::Style &style) {
+    for (auto &o : options) {
+        if (o.fixedX) {
+            o.x = *o.fixedX;
+        }
+        if (o.fixedY) {
+            o.y = *o.fixedY;
+        }
+        if (o.overrideHorizontal) {
+            ensureLayout(o);
+            const auto typography =
+                ui::resolveTypography(style.typography, o.styleOverrides);
+            if (o.anchorRight) {
+                o.x = aspect() - .1 - o.layout.right * typography.textSize;
+            } else if (o.centerX) {
+                o.x = *o.centerX - (o.layout.left + o.layout.right) *
+                                       typography.textSize / 2;
+            }
+        }
+    }
+}
+
+void CMenu::clearOptions() {
+    if (presentationBase) {
+        ui::restorePresentation(*this, *presentationBase);
+    }
+    presentationBase.reset();
+    presentationPatch.reset();
+    closeInterfaces();
+    options.clear();
+    groupInfo.clear();
+    resetData();
+    scrollOffset = 0;
+}
+
+void CMenu::applyPresentationOverrides(const ui::MenuOverrides &patch) {
+    ui::validateOverrides({{menuName, patch}});
+    if (!presentationBase) {
+        presentationBase = std::make_unique<ui::MenuPresentation>(
+            ui::capturePresentation(*this));
+    }
+    ui::restorePresentation(*this, *presentationBase);
+    presentationPatch = std::make_unique<ui::MenuOverrides>(patch);
+    ui::applyMenu(*this, patch);
+}
+
+const ui::MenuPresentation *CMenu::originalPresentation() const {
+    return presentationBase.get();
+}
+
+void CMenu::visitInterfaces(const std::function<void(CMenu &)> &visitor) {
+    for (int id : myUiList) {
+        if (id >= 0 && static_cast<size_t>(id) < uiList.size() &&
+            uiList[static_cast<size_t>(id)].m) {
+            auto &child = *uiList[static_cast<size_t>(id)].m;
+            visitor(child);
+            child.visitInterfaces(visitor);
         }
     }
 }

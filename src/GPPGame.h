@@ -7,12 +7,12 @@
 #include "CGameSettings.h"
 #include "CLuaFunctions.hpp"
 #include "CMenu.h"
-#include "CModalManager.h"
 #include "CPlayer.h"
 #include "CScene.h"
 #include "CShader.h"
 #include "CTextureManager.h"
 #include "GPPOBJ.h"
+#include "ui/CMenuSystem.h"
 #include <atomic>
 #include <cctype>
 #include <deque>
@@ -38,21 +38,15 @@ class gameException : public std::exception {
 };
 
 class GPPGame {
-    std::map<std::string, CMenu> gameMenus;
 
     std::vector<SongResult> songResults;
-    CMenu *mainMenu;
-
-    CMenu *currentMenu{};
 
     bool devMode;
 
     // Script events
     static int firstStartFrameSE, preCreateWindowSE, posCreateWindowSE,
         preLoadSpritesSE, posClearScreenSE, preRenderFrameSE, posRenderFrameSE,
-        menusGoBackSE, menusCMMenuSE, menusNextSE, menusGameCbNextSE,
         catchedExceptionSE, joystickStateCbSE;
-
 
   public:
     std::atomic<std::thread::id> mainthread;
@@ -66,8 +60,8 @@ class GPPGame {
 
     typedef std::function<void(const std::string &name)> func_t;
 
-    CMenu devMenus;
-    CModalManager modals;
+    CMenuSystem menus;
+    void resetMainPlayer();
 
     std::string glanguage;
 
@@ -191,17 +185,8 @@ class GPPGame {
         CTheme();
     };
 
-    CMenu &newMenu();
-    CMenu &newNamedMenu(const std::string &name);
-
     void loadBasicSprites();
     void loadBasicSounds();
-
-    void setMainMenu(CMenu &m);
-    CMenu *getMainMenu();
-
-    CMenu &getMenuByName(const std::string &name);
-    CMenu *findMenu(const std::string &name);
 
     // loaded game sprites - TODO: improve it
     std::map<std::string, int> SPR;
@@ -260,15 +245,11 @@ class GPPGame {
     const std::string addGameCallbacks(const std::string &n, func_t function);
 
     std::string getCallBackRealName(const std::string &str);
-    std::string selectSong();
-    void addSongListToMenu(CMenu &selectSongMenu,
-                           std::map<int, std::string> &menuMusics);
 
     static void teste(const std::string &name);
     static void startModule(const std::string &name);
     static void startMarathonModule(const std::string &name);
     static void serverModule(const std::string &name);
-    static void continueCampaing(const std::string &name);
     static void campaingPlayModule(const std::string &name);
     static void benchmark(const std::string &name);
 
@@ -290,14 +271,6 @@ class GPPGame {
     static GPPGame &GuitarPP();
 
     static void setVSyncMode(int mode);
-
-    std::vector<CMenu *> openMenus(
-        CMenu *startMenu, const std::function<int(void)> &preFun = nullptr,
-        const std::function<int(void)> &midFun = nullptr,
-        const std::function<int(void)> &posFun = nullptr, bool dev = false,
-        std::vector<CMenu *> stackTest = std::vector<CMenu *>());
-
-    inline CMenu *getActualMenu() { return currentMenu; }
 
     static void helpMenu(const std::string &name);
 
@@ -363,8 +336,6 @@ class GPPGame {
     void initialLoad();
     void initialLoad2();
 
-    void selectPlayerMenu();
-
     GPPOBJ testobj; // Active scene model; retained for existing render callers.
     CScene scene;
     std::string backgroundScene = "garage";
@@ -410,8 +381,6 @@ class GPPGame {
     static void loadThread(CGamePlay &module, loadThreadData &l);
     static void loadMarathonThread(loadThreadData &l);
     static bool installMarathonSong(CGamePlay &module, loadThreadData &l);
-
-    void eraseGameMenusAutoCreateds();
 
     GPPGame(GPPGame &) = delete;
 

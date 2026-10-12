@@ -7,8 +7,9 @@ and modal input dispatch. It links `GuitarPP_lib` but does not instantiate
 `GPPGame`, initialize audio, start gameplay, or load personal settings/global
 game scripts.
 
-The first runtime integration is intentionally limited to the rename and create
-profile modals. Migrating the game's initial menu catalogue is a later step.
+The Studio edits complete definitions for the rename and create-profile modals.
+The game also supports presentation patches for its C++ screens, described below;
+editing those patches in the Studio is a later step.
 
 ## Build and launch
 
@@ -217,3 +218,115 @@ this keeps its explicit preview grid consistent with the imported document.
 The core now contains eleven cases. New C++ files were formatted in full with
 clang-format 21 using the repository configuration; existing runtime files were
 formatted only in changed ranges, preserving unrelated edits.
+
+## C++ screens and theme presentation
+
+`GPPGame::menus` owns a `CMenuSystem`: the menu registry, navigation loop,
+current/main menu, and theme presentation. Screen code lives under `src/ui`,
+separated into initial/settings menus, selections, campaign, pause, development
+controls and shared background rendering. `CMenu` remains the runtime widget
+implementation. Pause returns `PauseResult::Resume` or `Exit`; it no longer adds
+menu fields to `CGamePlay`. Campaign serialization and gameplay clocks are unchanged.
+
+The optional `MenuOverrides.lua` beside `Theme.lua` returns a table keyed by
+menu name and local option ID:
+
+```lua
+return {
+    mainMenu = {
+        style = { padding = 0.06 },
+        options = {
+            play = {
+                y = 0.35, centerX = 0.0,
+                style = {
+                    textSize = 0.12,
+                    textColor = { r = 1, g = 0.8, b = 0.2, a = 1 },
+                },
+            },
+        },
+    },
+}
+```
+
+Named screens include `mainMenu`, `playOptions`, `mainCampaingOptions`,
+`optionsmenu`, `audiomenu`, `extrasmenu`, `chartsmenu`, `chartCompileMenu`,
+`playerSelectMenu`, `selectSongMenu`, `continueCampaingOptions`, `campaingMenu`,
+`pauseMenu` and `devMenus`. The initial menu uses `play`, `settings`, `extras`,
+`help`, `quit` and `sampleInput`; pause uses `resume` and `exit`; audio uses
+`volume` and `back`. Selection screens use `back`, profiles use `createProfile`,
+and song rows use `song:` followed by the directory name. Use bracketed Lua keys
+for names containing spaces or punctuation. Other IDs are explicit in their
+screen builders.
+
+`menuOpt::optionName` is qualified once as `menu.option`. `addOpt` returns `-1`
+without inserting/registering an event on a duplicate. Anonymous controls get
+unique `auto_N` IDs with no stability guarantee across reconstruction. Complete
+`Gui.lua` definitions transfer their IDs to this same runtime identity. The old
+numeric event names are not aliased.
+
+Supported menu properties: `x`, `y`, `flow` (0 manual, 1 vertical, 2 horizontal),
+`flowX`, `flowY`, `flowGroup`, `anchorLeft`, `leftMargin`, `viewportEnabled`,
+`viewport`, `panel`, and `style`. Rectangles replace the complete rectangle;
+provide all four coordinates: `left`, `bottom`, `right`, `top`.
+Option properties: `x`, `y`, `fieldWidth`, `listWidth`, `centerX`, `anchorRight`,
+and `style`. Styles use the existing `CUIStyle` fields; colors use named RGBA
+components. Text, images, actions, input bindings, control types, user values and
+lists cannot be changed by this file. Unknown properties and invalid dimensions
+are errors. Missing option IDs produce a diagnostic when the menu is prepared,
+without creating controls.
+
+Omitted properties inherit. Style precedence is global, C++ menu, Lua menu,
+C++ option, then Lua option. Thus a button's explicit C++ text size still wins
+over a Lua menu size; use `options[id].style` to override that button. Fixed axes
+or explicit alignment retain the item's space in the automatic flow. Undeclared
+axes remain automatic. `x`, `centerX` and `anchorRight=true` are mutually exclusive
+in one patch and replace inherited horizontal anchors. `flowX` replaces inherited
+left anchoring; combining it with `anchorLeft=true` is invalid.
+
+The UI thread reads files only on theme application. Declarative documents are
+not registered in the runtime Lua callback dispatcher. Missing/invalid patches
+restore C++ defaults, including after a theme switch; invalid documents are
+logged and never partially applied. Existing complete modal definitions change
+on the next modal opening. Presentation patches can update existing instances
+without rebuilding callbacks, resetting focus, or replacing edited values.
+
+Builders call `clearOptions()` before reconstructing a screen, then add its
+controls. This restores original presentation before capturing a new base.
+`preparePresentation()` applies the cached theme before first layout; newly
+appended options also receive their matching patch. Do not bypass this lifecycle
+by clearing the public option container directly. Clones own independent copies
+of their presentation base. Manual developer edits are transient and do not
+replace that base.
+
+`ui::readOverrides`, `writeOverrides`, `capturePresentation`, and
+`CMenu::originalPresentation()` provide the foundation for future Studio editing.
+`CMenuSystem::replacePresentation()` applies already parsed data; a future file
+watcher should deliver an explicit request to the UI thread. No file watching,
+per-frame patch polling, or gameplay update/render hooks are installed now.
+
+Maintain both the source theme and its runtime copy under `build/bin/data/themes`.
+The default patch file is empty with a commented example, preserving the current
+appearance. Profile selection/persistence remains unimplemented; the existing
+creation modal is preserved without the former disabled background scan.
+
+### Menu refactor validation (2026-10-12)
+
+The Debug build passed. The full NativeLab run passed 195 of 196 tests; the
+remaining `gui_studio_ui` test failed GLFW initialization and passed on an
+isolated rerun. A separate ASan/UBSan run passed all 34 selected menu, Lua and
+Studio core tests, using the repository sanitizer suppression files. Fifteen
+regression cases were added for presentation/identity and Lua queue ownership.
+
+All 28 changed/new C++ files were formatted with clang-format. Clang-tidy's
+analyzer and bugprone checks covered the changed translation units. The review
+fixed a use-after-move in Lua script queue insertion and added a regression;
+existing warnings outside this refactor remain.
+
+A NativeLab graphical run used Xvfb/Mesa with OpenGL 2.0 and GLSL 1.10 and assets
+from `build/bin`, with isolated saves and test-only theme patches. It exercised
+profile/main/song/campaign/settings navigation, volume adjustment, gameplay
+entry, pause/resume and exit. Captures confirmed the main-button layout/color
+and pause-button color overrides. BASS used a test-only no-sound-device shim;
+real audio timing, physical controllers, Windows and hardware GPU performance
+were not validated. Runtime artifacts are under `build/menu-review` and are
+not source assets.

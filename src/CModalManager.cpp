@@ -51,6 +51,9 @@ bool CModalManager::load(const std::filesystem::path &path,
 
 CMenu &CModalManager::open(CMenu &owner, const std::string &id) {
     auto model = ui::instantiate(definition(id), context, textures);
+    if (presentation) {
+        presentation(*model);
+    }
     const int slot = owner.pushUserInterface(*model);
     return *CMenu::getUiAt(static_cast<size_t>(slot)).m;
 }

@@ -4,7 +4,8 @@
 #define GUITARPP_CCAMPAING_H
 #include "CGuitars.h"
 #include "CLuaFunctions.hpp"
-#include "CMenu.h"
+#include <memory>
+class CMenu;
 #include "CPlayer.h"
 #include <algorithm>
 #include <cstdint>
@@ -23,15 +24,12 @@ class CCampaing {
     const std::string campaingScriptsDirectory;
 
     size_t numCampaingSaves;
-    int menuNovaCampanhaID, menuContinuarCampanhaID;
 
     CLuaH::scriptStorage campaingScripts;
 
     bool continueInDrawScreen, keepMenuStack;
 
     int campaingFunctionGotoID;
-
-    CMenu campaingMenu;
 
   public:
     bool loadCampaingF(const std::string &filepath);
@@ -228,13 +226,12 @@ class CCampaing {
 
   private:
     static int openCampaingMenuCallback(CMenu &menu);
-    static int cotinueCampaingOptCallback(CMenu &menu, CMenu::menuOpt &opt);
     static void campaingPlayLoop(const std::string &n);
 
     CCampaingData campaingNow;
-    std::string mainMenu;
     std::deque<std::string> playSongsList;
 
+    void buildMenus();
     CCampaing();
 
     CCampaing(CCampaing &) = delete;

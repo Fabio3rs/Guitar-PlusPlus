@@ -6,7 +6,6 @@
 #define _GUITAR_PP_CGAMEPLAY_h_
 // brmodstudio.forumeiros.com
 
-#include "CMenu.h"
 #include "CParticle.h"
 #include "CPlayer.h"
 #include "GPPOBJ.h"
@@ -123,9 +122,6 @@ class CGamePlay {
     void setMusicSpeed(double s);
 
     inline double getgSpeed() const { return gSpeed; }
-
-    CMenu moduleMenu;
-    int exitModuleOpt;
 
     // fretsPosition fretsText;
     std::string fretsTextures, BPMLineText;

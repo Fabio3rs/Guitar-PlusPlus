@@ -6,6 +6,7 @@
 #include "CLog.h"
 #include "CLuaFunctions.hpp"
 #include "Lua/lstate.h"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -27,10 +28,15 @@ auto CLuaH::Lua() -> CLuaH & {
     return L;
 }
 
-auto CLuaH::loadFiles(const std::string &path) -> bool {
+auto CLuaH::loadFiles(const std::string &path,
+                      const std::vector<std::string> &excluded) -> bool {
     std::error_code error;
     const auto names = CGPPFileMGR::getDirectory(path, true, false, &error);
     for (const auto &name : names) {
+        if (std::find(excluded.begin(), excluded.end(), name) !=
+            excluded.end()) {
+            continue;
+        }
         if (std::filesystem::path(name).extension() == ".lua") {
             CLog::log() << ("Loading <<" + path + "/" + name + ">>");
             auto script = newScript(path, name);
@@ -61,8 +67,9 @@ auto CLuaH::loadFilesDequeStorage(const std::string &path,
 }
 
 auto CLuaH::newScriptInQuere(luaScript &&lua) -> CLuaH::luaScript * {
-    files[lua.filePath][lua.fileName] = std::move(lua);
-    return &files[lua.filePath][lua.fileName];
+    auto &stored = files[lua.filePath][lua.fileName];
+    stored = std::move(lua);
+    return &stored;
 }
 
 auto CLuaH::newScriptR(const std::string &memf, const std::string &name)

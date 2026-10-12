@@ -401,7 +401,8 @@ class CLuaH {
     /*
      * Load all lua scripts from a path
      */
-    bool loadFiles(const std::string &path);
+    bool loadFiles(const std::string &path,
+                   const std::vector<std::string> &excluded = {});
 
     bool loadFilesDequeStorage(const std::string &path, scriptStorage &storage);
 

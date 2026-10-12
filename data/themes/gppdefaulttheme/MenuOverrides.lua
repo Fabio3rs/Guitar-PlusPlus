@@ -1,0 +1,17 @@
+-- Optional presentation for C++ screens. Empty keeps the original appearance.
+-- IDs are local within a menu; the corresponding callback name is mainMenu.play.
+-- Enable this example to move Play without moving the remaining flow items:
+-- return {
+--     mainMenu = {
+--         options = {
+--             play = {
+--                 y = 0.35, centerX = 0.0,
+--                 style = {
+--                     textSize = 0.12,
+--                     textColor = { r = 1, g = 0.8, b = 0.2, a = 1 },
+--                 },
+--             },
+--         },
+--     },
+-- }
+return {}

@@ -4,10 +4,10 @@
 #define GUITARPP_CMENU_H
 
 #include "CControls.h"
-#include "CUIStyle.h"
 #include "CEngine.h"
 #include "CFonts.h"
 #include "CLuaH.hpp"
+#include "CUIStyle.h"
 #include <array>
 #include <cstdint>
 #include <deque>
@@ -16,9 +16,18 @@
 #include <memory>
 #include <string>
 
+namespace ui {
+struct MenuPresentation;
+struct MenuOverrides;
+} // namespace ui
+
 class CMenu {
     std::string menuName;
     static int menusCreated;
+    size_t nextOptionId = 0;
+    std::unique_ptr<ui::MenuPresentation> presentationBase;
+    std::unique_ptr<ui::MenuOverrides> presentationPatch;
+    void applyFixedPositions(const ui::Style &);
     // static std::map <std::string, CMenu*> Menus;
 
     static std::string textBuffer;
@@ -117,6 +126,7 @@ class CMenu {
     int focusedOption() const { return focused; }
 
     void closeInterfaces();
+    void visitInterfaces(const std::function<void(CMenu &)> &visitor);
     enum menusOPT {
         none = -1,
         button_ok,
@@ -163,6 +173,10 @@ class CMenu {
     struct menuOpt {
         bool disabled = false;
         bool manualPosition = false;
+        // Effective presentation only. A fixed coordinate still reserves its
+        // flow slot.
+        std::optional<double> fixedX, fixedY;
+        bool overrideHorizontal = false;
         bool anchorRight = false;
         std::optional<double> centerX;
         ui::OptionStyleOverrides styleOverrides;
@@ -274,7 +288,7 @@ class CMenu {
         }
     };
 
-    inline const std::string &getName() { return menuName; }
+    inline const std::string &getName() const { return menuName; }
 
     std::map<int, group> groupInfo;
     std::deque<menuOpt> options;
@@ -291,6 +305,10 @@ class CMenu {
 
     void render();
     int addOpt(const menuOpt &opt);
+    menuOpt *findOption(const std::string &id);
+    void clearOptions();
+    void applyPresentationOverrides(const ui::MenuOverrides &);
+    const ui::MenuPresentation *originalPresentation() const;
 
     size_t getNumOfOptions() { return options.size(); }
 

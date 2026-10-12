@@ -1054,7 +1054,8 @@ auto CLuaFunctions::newMenu(lua_State *L) -> int {
         p >> str;
 
         auto &game = GPPGame::GuitarPP();
-        auto &menu = str.empty() ? game.newMenu() : game.newNamedMenu(str);
+        auto &menu =
+            str.empty() ? game.menus.newMenu() : game.menus.newNamedMenu(str);
         p << menu.getName();
     }
 
@@ -1082,7 +1083,7 @@ auto CLuaFunctions::assingGameFunctionToMenuOption(lua_State *L) -> int {
         p >> optID;
         p >> gameFunction;
 
-        auto *foundMenu = GPPGame::GuitarPP().findMenu(menuName);
+        auto *foundMenu = GPPGame::GuitarPP().menus.findMenu(menuName);
         if (!foundMenu || !validMenuIndex(L, 2, *foundMenu)) {
             lua_pushboolean(L, false);
             return 1;
@@ -1117,7 +1118,7 @@ auto CLuaFunctions::assingMenuToOtherMenuOption(lua_State *L) -> int {
         p >> optID;
         p >> targetMenuName;
 
-        auto *foundMenu = GPPGame::GuitarPP().findMenu(menuName);
+        auto *foundMenu = GPPGame::GuitarPP().menus.findMenu(menuName);
         if (!foundMenu || !validMenuIndex(L, 2, *foundMenu)) {
             lua_pushboolean(L, false);
             return 1;
@@ -1201,8 +1202,7 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
 
     if (p.getNumParams() == 8 && (lua_isstring(L, 1) != 0) &&
         (lua_isstring(L, 2) != 0) && (lua_isnumber(L, 3) != 0) &&
-        (lua_isnumber(L, 4) != 0) &&
-        (lua_isnil(L, 5) || lua_isnumber(L, 5)) &&
+        (lua_isnumber(L, 4) != 0) && (lua_isnil(L, 5) || lua_isnumber(L, 5)) &&
         (lua_isnumber(L, 6) != 0) && (lua_isnumber(L, 7) != 0) &&
         lua_isfunction(L, 8)) {
         std::string menuName;
@@ -1210,14 +1210,13 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
 
         p >> menuName;
 
-        auto *menu = GPPGame::GuitarPP().findMenu(menuName);
-        if (!menu ||
-            !validInteger(L, 6, -1, std::numeric_limits<int>::max()) ||
+        auto *menu = GPPGame::GuitarPP().menus.findMenu(menuName);
+        if (!menu || !validInteger(L, 6, -1, std::numeric_limits<int>::max()) ||
             !validInteger(L, 7, -1, CMenu::static_text) ||
             !std::isfinite(lua_tonumber(L, 3)) ||
             !std::isfinite(lua_tonumber(L, 4)) ||
-            (!lua_isnil(L, 5) && (!std::isfinite(lua_tonumber(L, 5)) ||
-                                  lua_tonumber(L, 5) <= 0))) {
+            (!lua_isnil(L, 5) &&
+             (!std::isfinite(lua_tonumber(L, 5)) || lua_tonumber(L, 5) <= 0))) {
             lua_pushboolean(L, false);
             return 1;
         }
@@ -1241,7 +1240,12 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
             opt.goback = true;
         }
 
-        p << (optID = menu->addOpt(opt));
+        optID = menu->addOpt(opt);
+        if (optID < 0) {
+            lua_pushboolean(L, false);
+            return 1;
+        }
+        p << optID;
 
         // ************************************************************** auto
         // callback system
@@ -1251,7 +1255,8 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
         // event menuOptionName
 
         int id = CLuaH::Lua().idForCallbackEvent(
-            GPPGame::GuitarPP().getMenuByName(menuName).getNameFromOpt(optID));
+            GPPGame::GuitarPP().menus.getMenuByName(menuName).getNameFromOpt(
+                optID));
         auto &script = CLuaH::Lua().getLuaStateScript(L);
         auto previous = script.callbacks.find(id);
         if (previous != script.callbacks.end()) {
@@ -1277,7 +1282,7 @@ auto CLuaFunctions::getMenuOptionName(lua_State *L) -> int {
         int optID = 0;
 
         p >> menuName;
-        auto *menu = GPPGame::GuitarPP().findMenu(menuName);
+        auto *menu = GPPGame::GuitarPP().menus.findMenu(menuName);
         if (!menu || !validMenuIndex(L, 2, *menu)) {
             lua_pushboolean(L, false);
             return 1;
@@ -1301,7 +1306,7 @@ auto CLuaFunctions::getNumOfMenuOptions(lua_State *L) -> int {
 
         p >> menuName;
 
-        auto *menu = GPPGame::GuitarPP().findMenu(menuName);
+        auto *menu = GPPGame::GuitarPP().menus.findMenu(menuName);
         if (!menu) {
             lua_pushboolean(L, false);
             return 1;
@@ -1331,7 +1336,7 @@ auto CLuaFunctions::setMenuBackgroundTexture(lua_State *L) -> int {
         p >> texturePath;
         p >> textureName;
 
-        auto *menu = game.findMenu(menuName);
+        auto *menu = game.menus.findMenu(menuName);
         if (!menu) {
             lua_pushboolean(L, false);
             return 1;
@@ -1350,7 +1355,7 @@ auto CLuaFunctions::setMenuBackgroundTexture(lua_State *L) -> int {
 auto CLuaFunctions::getMainMenuName(lua_State *L) -> int {
     LuaParams p(L);
 
-    CMenu *main = GPPGame::GuitarPP().getMainMenu();
+    CMenu *main = GPPGame::GuitarPP().menus.getMainMenu();
 
     if (main != nullptr) {
         p << main->getName();
@@ -1413,7 +1418,7 @@ auto CLuaFunctions::addTextureToFont(lua_State *L) -> int {
 auto CLuaFunctions::getActualMenu(lua_State *L) -> int {
     LuaParams p(L);
 
-    CMenu *menu = GPPGame::GuitarPP().getActualMenu();
+    CMenu *menu = GPPGame::GuitarPP().menus.getActualMenu();
 
     if (menu != nullptr) {
         p << menu->getName();

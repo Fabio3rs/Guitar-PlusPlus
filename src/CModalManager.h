@@ -5,6 +5,7 @@
 class CModalManager {
     ui::MenuDefinitions definitions = ui::defaultModals();
     ui::TextureResolver textures;
+    std::function<void(CMenu &)> presentation;
     CMenu::Context *context = nullptr;
     const ui::MenuDefinition &definition(const std::string &) const;
 
@@ -12,6 +13,9 @@ class CModalManager {
     explicit CModalManager(CMenu::Context *host = nullptr) : context(host) {}
     void setTextures(ui::TextureResolver resolver) {
         textures = std::move(resolver);
+    }
+    void setPresentation(std::function<void(CMenu &)> apply) {
+        presentation = std::move(apply);
     }
     const ui::MenuDefinitions &inspect() const { return definitions; }
     void replace(const ui::MenuDefinitions &);

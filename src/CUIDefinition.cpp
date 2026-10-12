@@ -1,4 +1,5 @@
 #include "CUIDefinition.h"
+#include "CUIOverrides.h"
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -91,12 +92,46 @@ template <class F> void fields(MenuDefinition &v, F &f) {
     FIELD(style);
     FIELD(options);
 }
+template <class F> void fields(OptionLayoutOverrides &v, F &f) {
+    FIELD(x);
+    FIELD(y);
+    FIELD(fieldWidth);
+    FIELD(listWidth);
+    FIELD(centerX);
+    FIELD(anchorRight);
+    FIELD(style);
+}
+template <class F> void fields(MenuOverrides &v, F &f) {
+    FIELD(x);
+    FIELD(y);
+    FIELD(flowX);
+    FIELD(flowY);
+    FIELD(leftMargin);
+    FIELD(flowGroup);
+    FIELD(flow);
+    FIELD(viewportEnabled);
+    FIELD(anchorLeft);
+    FIELD(viewport);
+    FIELD(panel);
+    FIELD(style);
+    FIELD(options);
+}
 #undef FIELD
 
 template <class T> struct Optional : std::false_type {};
 template <class T> struct Optional<std::optional<T>> : std::true_type {};
 template <class T> struct Vector : std::false_type {};
 template <class T> struct Vector<std::vector<T>> : std::true_type {};
+
+template <class T> struct Map : std::false_type {};
+template <class T> struct Map<std::map<std::string, T>> : std::true_type {};
+
+struct FieldNames {
+    std::set<std::string> names;
+    template <class T> void operator()(const char *key, T &) {
+        names.insert(key);
+    }
+};
 
 template <class T> void read(lua_State *, T &);
 template <class T> void write(std::ostream &, T &);
@@ -172,20 +207,47 @@ template <class T> void read(lua_State *L, T &v) {
         if (!lua_istable(L, -1)) {
             throw std::runtime_error("Expected table");
         }
-        if constexpr (Vector<T>::value) {
+        if constexpr (Map<T>::value) {
+            lua_pushnil(L);
+            while (lua_next(L, -2)) {
+                if (lua_type(L, -2) != LUA_TSTRING || v.size() >= 4096) {
+                    throw std::runtime_error(
+                        "Expected string IDs, at most 4096 entries");
+                }
+                const std::string id = lua_tostring(L, -2);
+                typename T::mapped_type item{};
+                try {
+                    read(L, item);
+                } catch (const std::exception &e) {
+                    throw std::runtime_error(id + ": " + e.what());
+                }
+                v.emplace(id, std::move(item));
+                lua_pop(L, 1);
+            }
+        } else if constexpr (Vector<T>::value) {
             const size_t count = lua_rawlen(L, -1);
             if (count > 4096) {
                 throw std::runtime_error("Too many entries");
             }
             v.clear();
             for (size_t i = 0; i < count; ++i) {
-                lua_rawgeti(L, -1, static_cast<lua_Integer>(i + 1));
+                lua_rawgeti(L, -1, static_cast<lua_Integer>(i) + 1);
                 typename T::value_type item{};
                 read(L, item);
                 v.push_back(std::move(item));
                 lua_pop(L, 1);
             }
         } else {
+            FieldNames known;
+            fields(v, known);
+            lua_pushnil(L);
+            while (lua_next(L, -2)) {
+                if (lua_type(L, -2) != LUA_TSTRING ||
+                    !known.names.count(lua_tostring(L, -2))) {
+                    throw std::runtime_error("Unknown UI property");
+                }
+                lua_pop(L, 1);
+            }
             Reader reader{L};
             fields(v, reader);
         }
@@ -209,7 +271,14 @@ template <class T> void write(std::ostream &out, T &v) {
         }
     } else {
         out << "{ ";
-        if constexpr (Vector<T>::value) {
+        if constexpr (Map<T>::value) {
+            out << '\n';
+            for (auto &entry : v) {
+                out << '[' << luaQuote(entry.first) << "] = ";
+                write(out, entry.second);
+                out << ",\n";
+            }
+        } else if constexpr (Vector<T>::value) {
             out << '\n';
             for (auto &item : v) {
                 write(out, item);
@@ -242,6 +311,15 @@ template <class T> void check(T &value) {
     } else if constexpr (Optional<T>::value) {
         if (value) {
             check(*value);
+        }
+    } else if constexpr (Map<T>::value) {
+        if (value.size() > 4096) {
+            throw std::runtime_error("Too many UI entries");
+        }
+        for (auto &entry : value) {
+            auto key = entry.first;
+            check(key);
+            check(entry.second);
         }
     } else if constexpr (Vector<T>::value) {
         if (value.size() > 4096) {
@@ -364,7 +442,11 @@ void validate(const MenuDefinitions &definitions) {
         }
         std::set<std::string> controls;
         for (const auto &o : menu.options) {
-            require(!o.id.empty() && controls.insert(o.id).second,
+            const std::string prefix = menu.id + ".";
+            const std::string qualified =
+                o.id.compare(0, prefix.size(), prefix) == 0 ? o.id
+                                                            : prefix + o.id;
+            require(!o.id.empty() && controls.insert(qualified).second,
                     "Empty/duplicate control id");
             require(o.type >= CMenu::button_ok && o.type <= CMenu::static_text,
                     "Invalid control type");
@@ -437,6 +519,78 @@ void writeMenus(const std::filesystem::path &path,
     writeTextFile(path, out.str());
 }
 
+void validateOverrides(const MenuOverrideSet &input) {
+    auto checked = input;
+    check(checked);
+    for (const auto &entry : input) {
+        require(!entry.first.empty(), "Empty menu id");
+        const auto &m = entry.second;
+        require(!(m.flowX && m.anchorLeft.value_or(false)),
+                "Conflicting flow origin and left anchor");
+        if (m.flow) {
+            require(*m.flow >= CMenu::Flow::Manual &&
+                        *m.flow <= CMenu::Flow::Horizontal,
+                    "Invalid flow");
+        }
+        for (const auto &rect : {m.viewport, m.panel}) {
+            if (rect) {
+                require(rect->left <= rect->right && rect->bottom <= rect->top,
+                        "Invalid presentation rectangle");
+            }
+        }
+        require(!m.style.textSize || *m.style.textSize > 0,
+                "Invalid text size");
+        require(!m.style.rowStep || *m.style.rowStep > 0, "Invalid row step");
+        require(!m.style.padding || *m.style.padding >= 0, "Invalid padding");
+        require(!m.style.pickGap || *m.style.pickGap >= 0, "Invalid pick gap");
+        for (const auto &item : m.options) {
+            require(!item.first.empty(), "Empty option id");
+            const auto &o = item.second;
+            require(!o.fieldWidth || *o.fieldWidth > 0, "Invalid field width");
+            require(!o.listWidth || *o.listWidth >= 0, "Invalid list width");
+            require(!o.style.textSize || *o.style.textSize > 0,
+                    "Invalid option text size");
+            const int horizontal = int(o.x.has_value()) +
+                                   int(o.centerX.has_value()) +
+                                   int(o.anchorRight.value_or(false));
+            require(horizontal <= 1, "Conflicting horizontal presentation");
+        }
+    }
+}
+
+MenuOverrideSet readOverrides(const std::filesystem::path &path) {
+    std::unique_ptr<lua_State, decltype(&lua_close)> state(luaL_newstate(),
+                                                           lua_close);
+    auto *L = state.get();
+    if (!L) {
+        throw std::runtime_error("Cannot create Lua state");
+    }
+    lua_sethook(L, budget, LUA_MASKCOUNT, 1000000);
+    if (luaL_loadfilex(L, path.string().c_str(), "t") ||
+        lua_pcall(L, 0, 1, 0)) {
+        const char *message = lua_tostring(L, -1);
+        throw std::runtime_error(message ? message
+                                         : "Lua raised a non-string error");
+    }
+    MenuOverrideSet result;
+    read(L, result);
+    validateOverrides(result);
+    return result;
+}
+
+void writeOverrides(const std::filesystem::path &path,
+                    const MenuOverrideSet &input) {
+    validateOverrides(input);
+    auto copy = input;
+    std::ostringstream out;
+    out.imbue(std::locale::classic());
+    out << std::setprecision(17)
+        << "-- Guitar++ presentation overrides.\nreturn ";
+    write(out, copy);
+    out << '\n';
+    writeTextFile(path, out.str());
+}
+
 std::unique_ptr<CMenu> instantiate(const MenuDefinition &d,
                                    CMenu::Context *context,
                                    const TextureResolver &textures) {
@@ -462,6 +616,7 @@ std::unique_ptr<CMenu> instantiate(const MenuDefinition &d,
         textures && !d.background.empty() ? textures(d.background) : 0;
     for (const auto &o : d.options) {
         CMenu::menuOpt opt;
+        opt.optionName = o.id;
         opt.type = o.type;
         opt.text = o.text;
         opt.preText = o.value;
@@ -483,7 +638,9 @@ std::unique_ptr<CMenu> instantiate(const MenuDefinition &d,
         opt.optList.assign(o.items.begin(), o.items.end());
         opt.menusXRef.assign(o.actions.begin(), o.actions.end());
         opt.texture = textures && !o.texture.empty() ? textures(o.texture) : 0;
-        m->addOpt(opt);
+        if (m->addOpt(opt) < 0) {
+            throw std::runtime_error("Cannot add UI option: " + o.id);
+        }
     }
     return m;
 }

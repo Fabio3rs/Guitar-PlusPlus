@@ -2294,7 +2294,8 @@ void CGamePlay::renderPlayer(CPlayer &player) {
                 pd.sy = 0.08;
                 pd.sz = 0.0;
 
-                // Compact, broad bursts; the crossed planes narrow in projection.
+                // Compact, broad bursts; the crossed planes narrow in
+                // projection.
                 pd.sizex = 0.13;
                 pd.sizey = 0.11;
                 pd.sizez = 0.00;
@@ -2761,34 +2762,4 @@ CGamePlay::CGamePlay() : engine(CEngine::engine()) {
     plusNoteLight.specularLight[1] = 0.2f;
 
     hoposLight.angle = 90.0f;
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Voltar";
-        opt.y = 0.4;
-        opt.x = -0.5;
-        opt.group = 1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-        opt.goback = true;
-
-        moduleMenu.addOpt(opt);
-    }
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Sair";
-        opt.y = -0.4;
-        opt.x = -0.5;
-        opt.group = 1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-        opt.goback = true;
-
-        exitModuleOpt = moduleMenu.addOpt(opt);
-    }
-
-    moduleMenu.setFlow(CMenu::Flow::Vertical, -.5, .4);
 }

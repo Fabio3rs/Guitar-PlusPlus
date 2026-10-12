@@ -208,15 +208,6 @@ void GPPGame::benchmark(const std::string &name) {
     }
 }
 
-auto GPPGame::getMenuByName(const std::string &name) -> CMenu & {
-    return gameMenus.at(name);
-}
-
-CMenu *GPPGame::findMenu(const std::string &name) {
-    auto found = gameMenus.find(name);
-    return found == gameMenus.end() ? nullptr : &found->second;
-}
-
 void GPPGame::loadThread(CGamePlay &module, loadThreadData &l) {
     std::lock_guard<std::mutex> m(GPPGame::playersMutex);
     try {
@@ -447,304 +438,6 @@ void GPPGame::initialLoad2() {
     // Retained startup stage; model requests are owned by initialLoad().
 }
 
-void GPPGame::selectPlayerMenu() {
-    auto &game = GuitarPP();
-    static auto &selectPlayerMenu = GuitarPP().newNamedMenu("playerSelectMenu");
-    static bool selectingPlayer = false;
-    std::map<size_t, std::string> menuPlayers;
-
-    menuPlayers.clear();
-    selectPlayerMenu.options.clear();
-
-    mainPlayer = std::make_unique<CPlayer>();
-
-    auto wait = [this](double t) {
-        auto &engine = CEngine::engine();
-        double start = engine.getTime();
-
-        while (engine.windowOpened() && (engine.getTime() - start) < t) {
-            engine.clearScreen();
-
-            engine.activate3DRender(true);
-            engine.activateLighting(true);
-
-            {
-                CEngine::cameraSET usingCamera;
-                usingCamera.eye.x = 3.0;
-                usingCamera.eye.y = 1.75;
-                usingCamera.eye.z = 2.7;
-                usingCamera.center.x = 3.0;
-                usingCamera.center.y = 1.3;
-                usingCamera.center.z = 0;
-                usingCamera.up.x = 0;
-                usingCamera.up.y = 1;
-                usingCamera.up.z = 0;
-
-                engine.setCamera(usingCamera);
-            }
-
-            {
-                lightData l{};
-
-                for (auto &t : l.ambientLight) {
-                    t = 0.1f;
-                }
-
-                for (auto &t : l.direction) {
-                    t = 2.5f;
-                }
-
-                for (auto &t : l.position) {
-                    t = 0.0f;
-                }
-
-                for (auto &t : l.specularLight) {
-                    t = 1.0f;
-                }
-
-                for (auto &t : l.diffuseLight) {
-                    t = 0.2f;
-                }
-
-                l.specularLight[1] = 1.0f;
-                l.specularLight[2] = 1.0f;
-                l.diffuseLight[0] = 1.0f;
-                l.diffuseLight[1] = 1.0f;
-                l.ambientLight[3] = 0.1f;
-
-                CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
-
-                l.angle = 180.0f;
-                l.direction[0] = 3.0f;
-                l.direction[1] = -0.5f;
-                l.direction[2] = -1.5f;
-
-                l.position[0] = 3.0f;
-                l.position[1] = 2.7f;
-                l.position[2] = -1.5f;
-                l.position[3] = 1.0f;
-
-                engine.activateLight(0, false);
-                engine.activateLight(1, true);
-                engine.setLight(l, 1);
-            }
-
-            engine.activateNormals(true);
-            CBackgroundRenderer::inst().draw(testobj);
-            engine.activateNormals(false);
-
-            engine.activateLighting(false);
-            engine.activate3DRender(false);
-
-            engine.renderFrame();
-        }
-    };
-
-    size_t voltarOpt = 0;
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Voltar";
-        opt.y = 0.85;
-        opt.x = -0.8;
-        opt.styleOverrides.textSize = 0.1;
-        opt.group = -1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-        opt.goback = true;
-
-        opt.shortcutKey = GLFW_KEY_ESCAPE;
-
-        opt.styleOverrides.textColor = ui::Color{.5, .5, .5, 1};
-
-        opt.updateCppCallback = [&menuPlayers](CMenu &menu,
-                                               CMenu::menuOpt &opt) {
-            static double offset = 0.0;
-
-            if (selectingPlayer) {
-                int upkey = CEngine::engine().getKey(GLFW_KEY_UP);
-                int downkey = CEngine::engine().getKey(GLFW_KEY_DOWN);
-
-                if (((upkey != 0) || (downkey != 0)) && upkey != downkey) {
-                    static double movetime = CEngine::engine().getTime();
-
-                    if ((CEngine::engine().getTime() - movetime) > 0.1) {
-                        double loffset = 0.0;
-
-                        if ((upkey != 0) && offset > -1.0) {
-                            loffset -= 0.1;
-                            movetime = CEngine::engine().getTime();
-                        }
-
-                        if ((downkey != 0) && offset < 1.0) {
-                            loffset += 0.1;
-                            movetime = CEngine::engine().getTime();
-                        }
-
-                        offset += loffset;
-
-                        for (auto &playerOpt : menuPlayers) {
-                            if (static_cast<size_t>(playerOpt.first) <
-                                menu.options.size()) {
-                                menu.options[playerOpt.first].y += loffset;
-                            }
-                        }
-                    }
-                }
-            } else {
-                offset = 0;
-            }
-
-            return 0;
-        };
-
-        voltarOpt = selectPlayerMenu.addOpt(opt);
-    }
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Criar novo perfil";
-        opt.anchorRight = true;
-        opt.y = 0.85;
-        opt.x = 0.6;
-        opt.styleOverrides.textSize = 0.1;
-        opt.group = -1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-
-        static auto menuNewPlayer = [](const std::string &name) {
-            auto &game = GuitarPP();
-
-            if (selectPlayerMenu.getUIListSize() == 0) {
-                game.modals.openCreateProfile(selectPlayerMenu);
-            }
-        };
-
-        opt.menusXRef.push_back(
-            addGameCallbacks("menuCreateNewPlayerProfile", menuNewPlayer));
-
-        selectPlayerMenu.addOpt(opt);
-    }
-
-    {
-        std::atomic<bool> processingLoadDir{};
-        processingLoadDir = true;
-
-        std::mutex getDirLoadMutex;
-        std::thread getDirLoad([&]() {
-            std::lock_guard<std::mutex> m(getDirLoadMutex);
-            auto playersSaves =
-                game.getDirectory("./data/saves/players", false, true);
-
-            for (auto &profiles : playersSaves) {
-                if (/* DISABLES CODE */ (false)) {
-                    CMenu::menuOpt opt;
-
-                    opt.text = profiles;
-                    opt.y = 0.8 - menuPlayers.size() * 0.1;
-                    opt.x = CFonts::fonts().getCenterPos(profiles, 0.09, 0.0);
-                    opt.styleOverrides.textSize = 0.09;
-                    opt.group = 1;
-                    opt.status = 0;
-                    opt.type = CMenu::menusOPT::textbtn;
-                    opt.goback = true;
-
-                    // opt.color[1] = opt.color[2] =
-                    // (CPlayer::smartSongSearch(profiles).size() == 0) ? 0.0
-                    // : 1.0;
-
-                    menuPlayers[selectPlayerMenu.addOpt(opt)] = profiles;
-                }
-            }
-
-            processingLoadDir = false;
-        });
-
-        bool mutexLocked = false;
-
-        auto mutexTryLockTestGuard = [&]() {
-            if (!mutexLocked) {
-                return (mutexLocked = getDirLoadMutex.try_lock());
-            }
-
-            return mutexLocked;
-        };
-
-        while (processingLoadDir || !mutexTryLockTestGuard()) {
-            if (!CEngine::engine().windowOpened()) {
-                if (!mutexLocked) {
-                    std::lock_guard<std::mutex> m(getDirLoadMutex);
-
-                    if (getDirLoad.joinable()) {
-                        {
-                            getDirLoad.join();
-                        }
-                    }
-                } else {
-                    try {
-                        if (getDirLoad.joinable()) {
-                            {
-                                getDirLoad.join();
-                            }
-                        }
-                    } catch (...) {
-                    }
-
-                    getDirLoadMutex.unlock();
-                }
-
-                mutexLocked = false;
-                return;
-            }
-
-            wait(0.1);
-        }
-
-        if (mutexLocked) {
-            getDirLoadMutex.unlock();
-
-            if (getDirLoad.joinable()) {
-                {
-                    getDirLoad.join();
-                }
-            }
-        }
-    }
-
-    while (((CEngine::engine().getMouseButton(0) != 0) ||
-            (CEngine::engine().getKey(GLFW_KEY_ENTER) != 0))) {
-        if (!CEngine::engine().windowOpened()) {
-            return;
-        }
-
-        wait(0.1);
-    }
-
-    selectingPlayer = true;
-
-    openMenus(&selectPlayerMenu);
-
-    selectingPlayer = false;
-
-    auto &voltarOptInst = selectPlayerMenu.options[voltarOpt];
-    voltarOptInst.updateCppCallback(selectPlayerMenu, voltarOptInst);
-
-    if ((selectPlayerMenu.options[voltarOpt].status & 3) == 3) {
-        return;
-    }
-
-    if (selectPlayerMenu.groupInfo[1].selectedOpt != 0) {
-        for (auto &playerOpt : menuPlayers) {
-            if ((selectPlayerMenu.options[playerOpt.first].status & 3) == 3) {
-                std::cout << playerOpt.second << std::endl;
-                return;
-            }
-        }
-    }
-}
-
 void GPPGame::parseParameters(int argc, char *argv[]) {
     for (size_t i = 0; i < argc; ++i) {
         if (argv[i] != nullptr) {
@@ -949,9 +642,7 @@ void GPPGame::testClient(const std::string &name) {
 
             openMenuTime = CEngine::engine().getTime();
 
-            game.openMenus(&module.moduleMenu);
-
-            if (module.moduleMenu.options[module.exitModuleOpt].status & 1) {
+            if (game.menus.openPause() == PauseResult::Exit) {
                 module.resetModule();
                 break;
             }
@@ -1087,7 +778,7 @@ void GPPGame::serverModule(const std::string &name) {
     auto &module = game.gameModules[realname];
 
     // Menu to select the song
-    game.songToLoad = game.selectSong();
+    game.songToLoad = game.menus.selectSong();
 
     if (game.songToLoad.empty()) {
         return;
@@ -1351,10 +1042,7 @@ void GPPGame::serverModule(const std::string &name) {
             openMenuTime = engine.getTime();
 
             // Pause menu
-            game.openMenus(&module.moduleMenu);
-
-            if ((module.moduleMenu.options[module.exitModuleOpt].status & 1) !=
-                0) {
+            if (game.menus.openPause() == PauseResult::Exit) {
                 // Exit gameplay
                 return;
             }
@@ -1483,7 +1171,7 @@ void GPPGame::startModule(const std::string &name) {
     auto &module = game.gameModules[realname];
 
     // Menu to select the song
-    game.songToLoad = game.selectSong();
+    game.songToLoad = game.menus.selectSong();
 
     if (game.songToLoad.empty()) {
         return;
@@ -1867,10 +1555,7 @@ void GPPGame::startModule(const std::string &name) {
             openMenuTime = engine.getTime();
 
             // Pause menu
-            game.openMenus(&module.moduleMenu);
-
-            if ((module.moduleMenu.options[module.exitModuleOpt].status & 1) !=
-                0) {
+            if (game.menus.openPause() == PauseResult::Exit) {
                 // Exit gameplay
                 return;
             }
@@ -2093,10 +1778,7 @@ void GPPGame::startMarathonModule(const std::string &name) {
 
             openMenuTime = engine.getTime();
 
-            game.openMenus(&module.moduleMenu);
-
-            if ((module.moduleMenu.options[module.exitModuleOpt].status & 1) !=
-                0) {
+            if (game.menus.openPause() == PauseResult::Exit) {
                 break;
             }
 
@@ -2577,62 +2259,6 @@ void GPPGame::callbackJoystick(int jid, int eventId) {
     // CLuaH::Lua().runEvent(game.joystickStateCbSE);
 }
 
-void GPPGame::continueCampaing(const std::string &name) {
-    auto createMMenu = []() {
-        auto &cntCampaing =
-            GPPGame::GuitarPP().newNamedMenu("continueCampaingOptions");
-
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "Patos voadores";
-            opt.y = 0.3;
-            opt.centerX = 0.0;
-            opt.group = 1;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::textbtn;
-
-            cntCampaing.addOpt(opt);
-        }
-
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "Voltar";
-            opt.y = 0.0;
-            opt.centerX = 0.0;
-            opt.group = 1;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::textbtn;
-            opt.goback = true;
-
-            cntCampaing.addOpt(opt);
-        }
-
-        return &cntCampaing;
-    };
-
-    static auto &continueMenu = *createMMenu();
-
-    auto preFun = []() { return 0; };
-
-    auto midFun = []() {
-        CFonts::fonts().drawTextInScreenWithBuffer("Seu status", 0.7, 0.5, 0.1);
-
-        return 0;
-    };
-
-    auto posFun = []() { return 0; };
-
-    if (CEngine::engine().windowOpened()) {
-        GPPGame::GuitarPP().clearScreen();
-
-        GPPGame::GuitarPP().renderFrame();
-    }
-
-    GPPGame::GuitarPP().openMenus(&continueMenu, preFun, midFun, posFun);
-}
-
 void GPPGame::campaingPlayModule(const std::string &name) {
     loadThreadData l;
 
@@ -2812,10 +2438,7 @@ void GPPGame::campaingPlayModule(const std::string &name) {
 
             openMenuTime = engine.getTime();
 
-            game.openMenus(&module.moduleMenu);
-
-            if ((module.moduleMenu.options[module.exitModuleOpt].status & 1) !=
-                0) {
+            if (game.menus.openPause() == PauseResult::Exit) {
                 break;
             }
 
@@ -3161,27 +2784,6 @@ void GPPGame::campaingPlayModule(const std::string &name) {
     }
 }
 
-void GPPGame::eraseGameMenusAutoCreateds() {
-    for (auto it = gameMenus.begin(); it != gameMenus.end(); /******/) {
-        if ((*it).second.gameMenu) {
-            ++it;
-        } else {
-            it = gameMenus.erase(it);
-        }
-    }
-}
-
-auto GPPGame::newMenu() -> CMenu & {
-    CMenu nameSource;
-    return newNamedMenu(nameSource.getName());
-}
-
-auto GPPGame::newNamedMenu(const std::string &name) -> CMenu & {
-    auto result = gameMenus.try_emplace(name, name);
-    result.first->second.gameMenu = true;
-    return result.first->second;
-}
-
 void GPPGame::settWindowConfigs(const gameWindow &w) { windowCFGs = w; }
 
 /*
@@ -3248,7 +2850,7 @@ auto GPPGame::CTheme::load() -> bool {
 
     // main = CLuaH::Lua().newScriptInQuere(CLuaH::Lua().newScript(path,
     // "Theme.lua"));
-    CLuaH::Lua().loadFiles(path);
+    CLuaH::Lua().loadFiles(path, {"Gui.lua", "MenuOverrides.lua"});
 
     if (CLuaH::Lua().getScript(path, "Theme.lua").luaState == nullptr) {
         CLog::log() << "GPPGame::CTheme::load(): Load theme fail - Theme.lua "
@@ -3305,834 +2907,8 @@ auto GPPGame::getCallBackRealName(const std::string &str) -> std::string {
     return "";
 }
 
-auto GPPGame::selectSong() -> std::string {
-    auto &game = GuitarPP();
-    static auto &selectSongMenu = GuitarPP().newNamedMenu("selectSongMenu");
-    static bool selectingSong = false;
-    std::map<int, std::string> menuMusics;
-
-    menuMusics.clear();
-    selectSongMenu.setFlow(CMenu::Flow::Vertical, -.75, .7);
-    selectSongMenu.viewportEnabled = true;
-    selectSongMenu.viewport = {-1.0, -.8, 1.0, .8};
-    selectSongMenu.scrollOffset = 0;
-    selectSongMenu.options.clear();
-
-    auto wait = [this](double t) {
-        auto &engine = CEngine::engine();
-        double start = engine.getTime();
-
-        while (engine.windowOpened() && (engine.getTime() - start) < t) {
-            engine.clearScreen();
-
-            engine.activate3DRender(true);
-            engine.activateLighting(true);
-
-            {
-                CEngine::cameraSET usingCamera;
-                usingCamera.eye.x = 3.0;
-                usingCamera.eye.y = 1.75;
-                usingCamera.eye.z = 2.7;
-                usingCamera.center.x = 3.0;
-                usingCamera.center.y = 1.3;
-                usingCamera.center.z = 0;
-                usingCamera.up.x = 0;
-                usingCamera.up.y = 1;
-                usingCamera.up.z = 0;
-
-                engine.setCamera(usingCamera);
-            }
-
-            {
-                lightData l{};
-
-                for (auto &t : l.ambientLight) {
-                    t = 0.1f;
-                }
-
-                for (auto &t : l.direction) {
-                    t = 2.5f;
-                }
-
-                for (auto &t : l.position) {
-                    t = 0.0f;
-                }
-
-                for (auto &t : l.specularLight) {
-                    t = 1.0f;
-                }
-
-                for (auto &t : l.diffuseLight) {
-                    t = 0.2f;
-                }
-
-                l.specularLight[1] = 1.0f;
-                l.specularLight[2] = 1.0f;
-                l.diffuseLight[0] = 1.0f;
-                l.diffuseLight[1] = 1.0f;
-                l.ambientLight[3] = 0.1f;
-
-                CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
-
-                l.angle = 180.0f;
-                l.direction[0] = 3.0f;
-                l.direction[1] = -0.5f;
-                l.direction[2] = -1.5f;
-
-                l.position[0] = 3.0f;
-                l.position[1] = 2.7f;
-                l.position[2] = -1.5f;
-                l.position[3] = 1.0f;
-
-                engine.activateLight(0, false);
-                engine.activateLight(1, true);
-                engine.setLight(l, 1);
-            }
-
-            engine.activateNormals(true);
-            CBackgroundRenderer::inst().draw(testobj);
-            engine.activateNormals(false);
-
-            engine.activateLighting(false);
-            engine.activate3DRender(false);
-
-            engine.renderFrame();
-        }
-    };
-
-    int voltarOpt;
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Voltar";
-        opt.y = 0.85;
-        opt.x = -0.8;
-        opt.styleOverrides.textSize = 0.1;
-        opt.group = -1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-        opt.goback = true;
-
-        opt.shortcutKey = GLFW_KEY_ESCAPE;
-
-        opt.styleOverrides.textColor = ui::Color{.5, .5, .5, 1};
-
-        voltarOpt = selectSongMenu.addOpt(opt);
-    }
-
-    {
-        auto pending = std::async(std::launch::async, [&game]() {
-            std::vector<std::pair<std::string, bool>> songs;
-            for (const auto &song :
-                 game.getDirectory("./data/songs", false, true)) {
-                const auto chart = CPlayer::smartChartSearch(song);
-                if (!chart.empty() && CChart::validateChartHeader(
-                                          "data/songs/" + song + "/" + chart)) {
-                    songs.emplace_back(song,
-                                       !CPlayer::smartSongSearch(song).empty());
-                }
-            }
-
-            return songs;
-        });
-        while (pending.wait_for(std::chrono::milliseconds(0)) !=
-               std::future_status::ready) {
-            if (!CEngine::engine().windowOpened()) {
-                return {};
-            }
-
-            wait(.01);
-        }
-
-        for (const auto &song : pending.get()) {
-            CMenu::menuOpt opt;
-            opt.text = song.first;
-            opt.styleOverrides.textSize = .09;
-            opt.group = 1;
-            opt.type = CMenu::textbtn;
-            opt.goback = true;
-            if (!song.second) {
-                opt.styleOverrides.textColor = ui::Color{1, 0, 0, 1};
-            }
-            menuMusics[selectSongMenu.addOpt(opt)] = song.first;
-        }
-    }
-
-    while (((CEngine::engine().getMouseButton(0) != 0) ||
-            (CEngine::engine().getKey(GLFW_KEY_ENTER) != 0))) {
-        if (!CEngine::engine().windowOpened()) {
-            return std::string();
-        }
-
-        wait(0.1);
-    }
-
-    selectingSong = true;
-
-    openMenus(&selectSongMenu);
-
-    selectingSong = false;
-
-    auto &voltarOptInst = selectSongMenu.options[voltarOpt];
-    if (voltarOptInst.updateCppCallback) {
-        voltarOptInst.updateCppCallback(selectSongMenu, voltarOptInst);
-    }
-
-    if ((selectSongMenu.options[voltarOpt].status & 3) == 3) {
-        return std::string();
-    }
-
-    if (selectSongMenu.groupInfo[1].selectedOpt != 0) {
-        for (auto &musicOpt : menuMusics) {
-            if ((selectSongMenu.options[musicOpt.first].status & 3) == 3) {
-                return musicOpt.second;
-            }
-        }
-    }
-
-    return std::string();
-}
-
-void GPPGame::addSongListToMenu(CMenu &selectSongMenu,
-                                std::map<int, std::string> &menuMusics) {
-    auto &game = GuitarPP();
-    static bool selectingSong = false;
-
-    menuMusics.clear();
-    selectSongMenu.setFlow(CMenu::Flow::Vertical, -.75, .7);
-    selectSongMenu.viewportEnabled = true;
-    selectSongMenu.viewport = {-1.0, -.8, 1.0, .8};
-    selectSongMenu.scrollOffset = 0;
-    selectSongMenu.options.clear();
-
-    auto wait = [this](double t) {
-        auto &engine = CEngine::engine();
-        double start = engine.getTime();
-
-        while (engine.windowOpened() && (engine.getTime() - start) < t) {
-            engine.clearScreen();
-
-            engine.activate3DRender(true);
-            engine.activateLighting(true);
-
-            {
-                CEngine::cameraSET usingCamera;
-                usingCamera.eye.x = 3.0;
-                usingCamera.eye.y = 1.75;
-                usingCamera.eye.z = 2.7;
-                usingCamera.center.x = 3.0;
-                usingCamera.center.y = 1.3;
-                usingCamera.center.z = 0;
-                usingCamera.up.x = 0;
-                usingCamera.up.y = 1;
-                usingCamera.up.z = 0;
-
-                engine.setCamera(usingCamera);
-            }
-
-            {
-                lightData l{};
-
-                for (auto &t : l.ambientLight) {
-                    t = 0.1f;
-                }
-
-                for (auto &t : l.direction) {
-                    t = 2.5f;
-                }
-
-                for (auto &t : l.position) {
-                    t = 0.0f;
-                }
-
-                for (auto &t : l.specularLight) {
-                    t = 1.0f;
-                }
-
-                for (auto &t : l.diffuseLight) {
-                    t = 0.2f;
-                }
-
-                l.specularLight[1] = 1.0f;
-                l.specularLight[2] = 1.0f;
-                l.diffuseLight[0] = 1.0f;
-                l.diffuseLight[1] = 1.0f;
-                l.ambientLight[3] = 0.1f;
-
-                CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
-
-                l.angle = 180.0f;
-                l.direction[0] = 3.0f;
-                l.direction[1] = -0.5f;
-                l.direction[2] = -1.5f;
-
-                l.position[0] = 3.0f;
-                l.position[1] = 2.7f;
-                l.position[2] = -1.5f;
-                l.position[3] = 1.0f;
-
-                engine.activateLight(0, false);
-                engine.activateLight(1, true);
-                engine.setLight(l, 1);
-            }
-
-            engine.activateNormals(true);
-            CBackgroundRenderer::inst().draw(testobj);
-            engine.activateNormals(false);
-
-            engine.activateLighting(false);
-            engine.activate3DRender(false);
-
-            engine.renderFrame();
-        }
-    };
-
-    int voltarOpt;
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Voltar";
-        opt.y = 0.85;
-        opt.x = -0.8;
-        opt.styleOverrides.textSize = 0.1;
-        opt.group = -1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-        opt.goback = true;
-
-        opt.shortcutKey = GLFW_KEY_ESCAPE;
-
-        opt.styleOverrides.textColor = ui::Color{.5, .5, .5, 1};
-
-        voltarOpt = selectSongMenu.addOpt(opt);
-    }
-
-    {
-        auto pending = std::async(std::launch::async, [&game]() {
-            std::vector<std::pair<std::string, bool>> songs;
-            for (const auto &song :
-                 game.getDirectory("./data/songs", false, true)) {
-                const auto chart = CPlayer::smartChartSearch(song);
-                if (!chart.empty() && CChart::validateChartHeader(
-                                          "data/songs/" + song + "/" + chart)) {
-                    songs.emplace_back(song,
-                                       !CPlayer::smartSongSearch(song).empty());
-                }
-            }
-
-            return songs;
-        });
-        while (pending.wait_for(std::chrono::milliseconds(0)) !=
-               std::future_status::ready) {
-            if (!CEngine::engine().windowOpened()) {
-                return;
-            }
-
-            wait(.01);
-        }
-
-        for (const auto &song : pending.get()) {
-            CMenu::menuOpt opt;
-            opt.text = song.first;
-            opt.styleOverrides.textSize = .09;
-            opt.group = 1;
-            opt.type = CMenu::textbtn;
-            opt.goback = false;
-            if (!song.second) {
-                opt.styleOverrides.textColor = ui::Color{1, 0, 0, 1};
-            }
-            menuMusics[selectSongMenu.addOpt(opt)] = song.first;
-        }
-    }
-}
-
 auto GPPGame::getCallback(const std::string &str) -> GPPGame::func_t {
     return gameCallbacks[str];
-}
-
-auto GPPGame::openMenus(CMenu *startMenu,
-                        const std::function<int(void)> &preFun,
-                        const std::function<int(void)> &midFun,
-                        const std::function<int(void)> &posFun, bool dev,
-                        std::vector<CMenu *> stackTest)
-    -> std::vector<CMenu *> {
-    CMenu *previousMenu = currentMenu;
-    auto &menuControls = CControls::controls();
-    const bool previousInput = menuControls.menuInputActive;
-    menuControls.menuInputActive = true;
-    menuControls.resetMenuInput();
-    callOnDctor<void(void)> exitguard(
-        [this, previousMenu, previousInput, &menuControls]() {
-            currentMenu = previousMenu;
-            menuControls.menuInputActive = previousInput;
-            menuControls.resetMenuInput();
-        });
-    if (!startMenu && stackTest.empty()) {
-        return {};
-    }
-
-    auto &engine = CEngine::engine();
-    auto &lua = CLuaH::Lua();
-    double waitForTime = 0.0;
-
-    std::vector<CMenu *> menusStack = std::move(stackTest);
-    // static std::deque < CMenu* > devMenusStack;
-
-    if (menusStack.empty()) {
-        menusStack.push_back(startMenu);
-
-        currentMenu = startMenu;
-    } else {
-        currentMenu = menusStack.back();
-    }
-
-    // auto vertexbuffer = engine.vboSET(vertices.size() * sizeof(glm::vec3),
-    // &vertices[0]); auto uvbuffer = engine.vboSET(uvs.size() *
-    // sizeof(glm::vec2), &uvs[0]);
-
-    auto create_menu = [&](const std::deque<std::string> &menusXRef) {
-        auto &menu = newMenu();
-
-        menu.temp = true;
-
-        int optn = 0;
-
-        for (const auto &m : menusXRef) {
-            CMenu::menuOpt opt;
-
-            opt.text = m;
-            opt.y = 0.5 - optn * 0.2;
-            opt.x = 0.15;
-            opt.group = 1;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::textbtn;
-            opt.menusXRef.push_back(m);
-
-            menu.addOpt(opt);
-
-            ++optn;
-        }
-
-        CMenu::menuOpt opt;
-
-        opt.text = "Back/voltar";
-        opt.y = -0.75;
-        opt.x = 0.5;
-        opt.group = 1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-        opt.goback = true;
-
-        menu.addOpt(opt);
-
-        return &menu;
-    };
-
-    CEngine::RenderDoubleStruct RenderData{};
-
-    RenderData.y1 = 1.0;
-    RenderData.y2 = 1.0;
-    RenderData.y3 = -1.0;
-    RenderData.y4 = -1.0;
-
-    RenderData.z1 = 0.0;
-    RenderData.z2 = 0.0;
-    RenderData.z3 = 0.0;
-    RenderData.z4 = 0.0;
-
-    RenderData.TextureX1 = 0.0;
-    RenderData.TextureX2 = 1.0;
-    RenderData.TextureY1 = 1.0;
-    RenderData.TextureY2 = 0.0;
-
-    bool back = false;
-    bool updateRender = true;
-
-    bool menuExit = false;
-
-    bool waitReleaseKeys = false;
-
-    while (!menusStack.empty() && engine.windowOpened()) {
-        clearScreen();
-
-        if (menuExit) {
-            currentMenu = nullptr;
-            return menusStack;
-        }
-
-        if (waitReleaseKeys) {
-            if ((CEngine::engine().getMouseButton(0) == 0) &&
-                (CEngine::engine().getKey(GLFW_KEY_ENTER) == 0) &&
-                (CEngine::engine().getKey(GLFW_KEY_ESCAPE) == 0)) {
-                waitReleaseKeys = false;
-            }
-        }
-
-        updateRender =
-            ((engine.getTime() - waitForTime) >= 0.0) && (!waitReleaseKeys);
-
-        engine.activate3DRender(false);
-
-        auto &menu = *menusStack.back();
-        currentMenu = &menu;
-
-        if (dev) {
-            devMenus.devEditMenu = &menu;
-        }
-
-        if (preFun) {
-            int preFunResult = preFun();
-
-            switch (preFunResult) {
-            case 0:
-                break;
-
-            case 1:
-                menuExit = true;
-                break;
-
-            default:
-                break;
-            }
-        }
-
-        if (dev) {
-            devMenus.update();
-
-            for (auto &opt : devMenus.options) {
-                if ((opt.status & 3) == 3) {
-                    if (!opt.menusXRef.empty()) {
-                        // try
-                        {
-                            auto function = getCallback(opt.menusXRef[0]);
-                            if (function) {
-                                function(opt.menusXRef[0]);
-                            }
-                        }
-
-                        /*catch (const std::exception &e){
-                                CLog::log() << e.what();
-                        }*/
-                    }
-                }
-            }
-        }
-
-        engine.activate3DRender(true);
-        engine.activateLighting(true);
-
-        {
-            CEngine::cameraSET usingCamera;
-            usingCamera.eye.x = 3.0;
-            usingCamera.eye.y = 1.75;
-            usingCamera.eye.z = 2.7;
-            usingCamera.center.x = 3.0;
-            usingCamera.center.y = 1.3;
-            usingCamera.center.z = 0;
-            usingCamera.up.x = 0;
-            usingCamera.up.y = 1;
-            usingCamera.up.z = 0;
-
-            engine.setCamera(usingCamera);
-        }
-
-        {
-            lightData l{};
-
-            for (auto &t : l.ambientLight) {
-                t = 0.1f;
-            }
-
-            for (auto &t : l.direction) {
-                t = 2.5f;
-            }
-
-            for (auto &t : l.position) {
-                t = 0.0f;
-            }
-
-            for (auto &t : l.specularLight) {
-                t = 1.0f;
-            }
-
-            for (auto &t : l.diffuseLight) {
-                t = 0.2f;
-            }
-
-            l.specularLight[1] = 1.0f;
-            l.specularLight[2] = 1.0f;
-            l.diffuseLight[0] = 1.0f;
-            l.diffuseLight[1] = 1.0f;
-            l.ambientLight[3] = 0.1f;
-
-            CEngine::colorRGBToArrayf(0xFFF6ED, l.diffuseLight);
-
-            l.angle = 180.0f;
-            l.direction[0] = 3.0f;
-            l.direction[1] = -0.5f;
-            l.direction[2] = -1.5f;
-
-            l.position[0] = 3.0f;
-            l.position[1] = 2.7f;
-            l.position[2] = -1.5f;
-            l.position[3] = 1.0f;
-
-            engine.activateLight(0, false);
-            engine.activateLight(1, true);
-            engine.setLight(l, 1);
-        }
-
-        engine.activateNormals(true);
-        CBackgroundRenderer::inst().draw(testobj);
-        engine.activateNormals(false);
-
-        engine.activateLighting(false);
-        engine.activate3DRender(false);
-
-        /*{
-                double size = 0.4;
-
-                CEngine::RenderDoubleStruct TempStruct3D;
-
-                static auto hopoLightText =
-        GPPGame::GuitarPP().loadTexture("data/sprites",
-        "hopolight.tga").getTextId();
-
-                double flarex = 2.93, flarey = 2.15, flarez = -1.0;
-
-                TempStruct3D.Text = hopoLightText;
-                TempStruct3D.TextureX1 = 0.0;
-                TempStruct3D.TextureX2 = 1.0;
-                TempStruct3D.TextureY1 = 1.0;
-                TempStruct3D.TextureY2 = 0.0;
-
-                //CFonts::fonts().drawTextInScreen(std::to_string(hopostp.size()),
-        0.0, 0.5, 0.1);
-
-                TempStruct3D.x1 = flarex;
-                TempStruct3D.x2 = TempStruct3D.x1 + size;
-                TempStruct3D.x3 = TempStruct3D.x1 + size;
-                TempStruct3D.x4 = TempStruct3D.x1;
-
-                TempStruct3D.y1 = flarey;
-                TempStruct3D.y2 = TempStruct3D.y1;
-                TempStruct3D.y3 = flarey + 0.2;
-                TempStruct3D.y4 = TempStruct3D.y3;
-
-                TempStruct3D.z1 = flarez + size * 2.0;
-                TempStruct3D.z2 = TempStruct3D.z1;
-                TempStruct3D.z3 = flarez;
-                TempStruct3D.z4 = TempStruct3D.z3;
-
-                CEngine::engine().Render3DQuad(TempStruct3D);
-        }*/
-
-        engine.matrixReset();
-
-        {
-            CEngine::cameraSET usingCamera;
-            usingCamera.eye.x = 0.0;
-            usingCamera.eye.y = 0.0;
-            usingCamera.eye.z = 2.3;
-            usingCamera.center.x = 0;
-            usingCamera.center.y = 0;
-            usingCamera.center.z = 0.0;
-            usingCamera.up.x = 0;
-            usingCamera.up.y = 1;
-            usingCamera.up.z = 0;
-
-            engine.setCamera(usingCamera);
-        }
-
-        if (updateRender) {
-            if (dev) {
-                menu.updateDev();
-            } else {
-                {
-                    menu.update();
-                }
-            }
-        }
-
-        const auto texture = getTextureInfo(menu.backgroundTexture);
-
-        if ((RenderData.Text = texture.id) != 0u) {
-            double prop = (double)texture.width / (double)texture.height;
-
-            RenderData.x1 = -prop;
-            RenderData.x2 = prop;
-            RenderData.x3 = prop;
-            RenderData.x4 = -prop;
-
-            engine.Render2DQuad(RenderData);
-        }
-
-        if (midFun) {
-            int midFunResult = midFun();
-
-            switch (midFunResult) {
-            case 0:
-                break;
-
-            case 1:
-                menuExit = true;
-                break;
-
-            default:
-                break;
-            }
-        }
-
-        menu.render();
-
-        if (dev) {
-            devMenus.render();
-
-            // if (devMenusStack.size() > 0)
-            //	(*devMenusStack.back()).render();
-        }
-
-        CMenu::renderUiList();
-
-        for (auto &opt : menu.options) {
-            if ((opt.status & 3) == 3) {
-                if (opt.goback) {
-                    menu.closeInterfaces();
-                    // Clean a temporary menu
-
-                    if (menu.temp) {
-                        // std::cout << "size bef erase" << menusStack.size() <<
-                        // std::endl;
-                        currentMenu = nullptr;
-                        devMenus.devEditMenu = nullptr;
-                        devMenus.closeInterfaces();
-                        const std::string erasedName = menu.getName();
-                        gameMenus.erase(erasedName);
-                        // std::cout << "size aft erase" << menusStack.size() <<
-                        // std::endl;
-                    }
-
-                    menusStack.pop_back();
-                    currentMenu =
-                        menusStack.empty() ? nullptr : menusStack.back();
-
-                    if (!menusStack.empty() != 0u) {
-                        CMenu *mback = menusStack.back();
-
-                        if (mback != nullptr) {
-                            {
-                                mback->resetData();
-                            }
-                        }
-                    }
-
-                    waitForTime = engine.getTime() + 0.5;
-
-                    lua.runEvent(menusGoBackSE);
-                    break;
-                }
-
-                if (opt.menusXRef.size() > 1) {
-                    menu.closeInterfaces();
-                    menusStack.push_back(create_menu(opt.menusXRef));
-                    lua.runEvent(menusCMMenuSE);
-                    lua.runEvent(menusNextSE);
-                    waitForTime = engine.getTime() + 0.5;
-                    waitReleaseKeys = true;
-                    break;
-                }
-
-                if (opt.menusXRef.size() == 1) {
-                    menu.closeInterfaces();
-                    const std::string target = opt.menusXRef.front();
-                    if (auto *next = findMenu(target)) {
-                        menusStack.push_back(next);
-                        currentMenu = next;
-                        if (next->openCallback) {
-                            next->openCallback(*next);
-                        }
-
-                        next->resetBtns();
-                        next->resetData();
-                        waitReleaseKeys = true;
-                        lua.runEvent(menusNextSE);
-                    } else if (auto function = getCallback(target)) {
-                        lua.runEvent(menusGameCbNextSE);
-                        function(target);
-                        currentMenu =
-                            menusStack.empty() ? nullptr : menusStack.back();
-                        if (currentMenu) {
-                            currentMenu->resetBtns();
-                            currentMenu->resetData();
-                        }
-
-                        menuControls.resetMenuInput();
-                    } else {
-                        CLog::log() << "Unknown menu/callback: " + target;
-                        opt.status &= ~2;
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        currentMenu = menusStack.empty() ? nullptr : menusStack.back();
-
-        if (posFun) {
-            int posFunResult = posFun();
-
-            switch (posFunResult) {
-            case 0:
-                break;
-
-            case 1:
-                menuExit = true;
-                break;
-
-            default:
-                break;
-            }
-        }
-
-        // engine.bindTextOnSlot(0, 0);
-
-        // engine.attribVBOBuff(0, 3, vertexbuffer);
-        // engine.attribVBOBuff(1, 2, uvbuffer);
-
-        // engine.RenderCustomVericesFloat(&vertices[0], &uvs[0],
-        // vertices.size());
-
-        // engine.disableBuf(0);
-        // engine.disableBuf(1);
-
-        const char prog[] = {"Programado por Fabio Rossini Sluzala"};
-        const char brmods[] = {"http://brmodstudio.forumeiros.com/"};
-        const char oneByte[] = {"http://2nibble.forumeiros.com/"};
-
-        /*
-        CFonts::fonts().drawTextInScreen(prog,
-        CFonts::fonts().getCenterPos(strlen(prog), 0.08, 0.0), -0.8, 0.08);
-
-        CEngine::engine().setColor(0.5, 0.5, 1.0, 1.0);
-
-        CFonts::fonts().drawTextInScreen(brmods,
-        CFonts::fonts().getCenterPos(strlen(brmods), 0.05, 0.0), -0.87, 0.05);
-        CFonts::fonts().drawTextInScreen(oneByte,
-        CFonts::fonts().getCenterPos(strlen(oneByte), 0.05, 0.0), -0.93, 0.05);
-        */
-        CEngine::engine().setColor(1.0, 1.0, 1.0, 1.0);
-
-        GPPGame::GuitarPP().renderFrame();
-    }
-
-    menusStack.clear();
-
-    currentMenu = nullptr;
-
-    return std::vector<CMenu *>();
 }
 
 void GPPGame::teste(const std::string &name) { std::cout << name << std::endl; }
@@ -4144,15 +2920,7 @@ void GPPGame::CTheme::apply() {
 
     CLuaH::Lua().runInternalEvent(CLuaH::Lua().getScript(path, "Theme.lua"),
                                   applyThemeSE);
-    const auto definitions = std::filesystem::path(path) / "Gui.lua";
-    if (std::filesystem::exists(definitions)) {
-        std::string error;
-        if (!GuitarPP().modals.load(definitions, error)) {
-            CLog::log() << "GUI theme: " + error;
-        }
-    } else {
-        GuitarPP().modals.replace(ui::defaultModals());
-    }
+    GuitarPP().menus.loadThemePresentation(path);
 }
 
 GPPGame::CTheme::CTheme(const std::string &theme) {
@@ -4215,10 +2983,6 @@ auto GPPGame::createWindow() -> int {
 }
 
 void GPPGame::setVSyncMode(int mode) { CEngine::engine().setVSyncMode(mode); }
-
-void GPPGame::setMainMenu(CMenu &m) { mainMenu = &m; }
-
-auto GPPGame::getMainMenu() -> CMenu * { return mainMenu; }
 
 void GPPGame::logError(int code, const std::string &e) {
     CLog::log() << std::to_string(code) + ": " + e;
@@ -4295,12 +3059,10 @@ auto GPPGame::getGamePlayPlusState(lua_State *L) -> int {
 int GPPGame::firstStartFrameSE = 0, GPPGame::preCreateWindowSE = 0,
     GPPGame::posCreateWindowSE = 0, GPPGame::preLoadSpritesSE = 0,
     GPPGame::posClearScreenSE = 0, GPPGame::preRenderFrameSE = 0,
-    GPPGame::posRenderFrameSE = 0, GPPGame::menusGoBackSE = 0,
-    GPPGame::menusCMMenuSE = 0, GPPGame::menusNextSE = 0,
-    GPPGame::menusGameCbNextSE = 0, GPPGame::catchedExceptionSE = 0,
+    GPPGame::posRenderFrameSE = 0, GPPGame::catchedExceptionSE = 0,
     GPPGame::joystickStateCbSE = 0;
 
-GPPGame::GPPGame() : devMenus(newNamedMenu("devMenus")), glanguage("PT-BR") {
+GPPGame::GPPGame() : menus(*this), glanguage("PT-BR") {
     initializeTextures();
     initializeModels();
     CBackgroundRenderer::inst();
@@ -4331,18 +3093,13 @@ GPPGame::GPPGame() : devMenus(newNamedMenu("devMenus")), glanguage("PT-BR") {
         preRenderFrameSE = Lua.idForCallbackEvent("preRenderFrame");
         posRenderFrameSE = Lua.idForCallbackEvent("posRenderFrame");
         posClearScreenSE = Lua.idForCallbackEvent("posClearScreen");
-        menusGoBackSE = Lua.idForCallbackEvent("menusGoBack");
-        menusCMMenuSE = Lua.idForCallbackEvent("menusCustomMultiMenu");
-        menusNextSE = Lua.idForCallbackEvent("menusNext");
         posClearScreenSE = Lua.idForCallbackEvent("posClearScreen");
-        menusGameCbNextSE = Lua.idForCallbackEvent("menusGameCallbackNext");
         catchedExceptionSE = Lua.idForCallbackEvent("catchedException");
         joystickStateCbSE = Lua.idForCallbackEvent("joystickStateCallback");
     }
 
     gameplayRunningTime = 0.0;
 
-    devMenus.gameMenu = true;
     gamePlayPlusEnabled = false;
 
     hyperSpeed = 1.0;
@@ -4373,55 +3130,12 @@ GPPGame::GPPGame() : devMenus(newNamedMenu("devMenus")), glanguage("PT-BR") {
 
     devMode = false;
 
-    mainMenu = nullptr;
-
     HUDText = 0;
     fretboardText = 0;
 
-    modals.setTextures([this](const std::string &file) {
-        const std::filesystem::path path(file);
-        return loadTexture(path.parent_path().string(),
-                           path.filename().string())
-            .getTextId();
-    });
-
     CEngine::engine().errorCallbackFun = logError;
 
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Renomear";
-        // opt.langEntryKey = "devMenuRename";
-        opt.y = 0.8;
-        opt.x = -1.0;
-        opt.group = 1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-
-        static auto devMenuRename = [](const std::string &name) {
-            auto &gpp = GPPGame::GuitarPP();
-
-            if ((gpp.devMenus.devEditMenu != nullptr) &&
-                gpp.devMenus.getUIListSize() == 0) {
-                size_t op = gpp.devMenus.devEditMenu->getDevSelectedMenuOpt();
-
-                if (op != ~static_cast<size_t>(0UL)) {
-                    gpp.devMenus.devEditingOpt = op;
-
-                    gpp.modals.openRename(
-                        gpp.devMenus,
-                        gpp.devMenus.devEditMenu->options[op].text);
-
-                    gpp.devMenus.devMenuNOUpdateOthers = true;
-                }
-            }
-        };
-
-        opt.menusXRef.push_back(
-            addGameCallbacks("devMenuRename", devMenuRename));
-
-        devMenus.addOpt(opt);
-    }
+    menus.initialize();
 
     // Load lua scripts from "data" folder
     CLuaH::Lua().loadFiles("data");
@@ -4437,3 +3151,5 @@ bool GPPGame::saveSettings() {
 }
 
 GPPGame::~GPPGame() noexcept = default;
+
+void GPPGame::resetMainPlayer() { mainPlayer = std::make_shared<CPlayer>(); }

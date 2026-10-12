@@ -1,5 +1,6 @@
 #include "CCampaing.h"
 #include "CFonts.h"
+#include "CGPPFileMGR.h"
 #include "CLog.h"
 #include "GPPGame.h"
 #include <cereal/archives/binary.hpp>
@@ -8,7 +9,6 @@
 #include <cereal/types/map.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
-#include "CGPPFileMGR.h"
 #include <random>
 
 CCampaing::CCampaingData::CCampaingData() {
@@ -180,62 +180,12 @@ auto CCampaing::continueCampaing(const std::string &path) -> int {
     return 0;
 }
 
-auto CCampaing::campaingMainMenu(CMenu &menu) -> int {
-    auto &game = GPPGame::GuitarPP();
-
-    menu.openCallback = openCampaingMenuCallback;
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Nova campanha";
-        opt.y = 0.4;
-        opt.centerX = -0.5;
-        opt.group = 1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-
-        menuNovaCampanhaID = menu.addOpt(opt);
-    }
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Continuar campanha";
-        opt.y = 0.3;
-        opt.centerX = -0.5;
-        opt.group = 1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-
-        opt.menusXRef.push_back(mainMenu);
-        opt.updateCppCallback = cotinueCampaingOptCallback;
-
-        menuContinuarCampanhaID = menu.addOpt(opt);
-    }
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Voltar";
-        opt.y = -0.2;
-        opt.centerX = -0.5;
-        opt.group = 1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-        opt.goback = true;
-
-        menu.addOpt(opt);
-    }
-
-    return 0;
-}
-
 void CCampaing::loadCampaingModes() {
     auto &lua = CLuaH::Lua();
     const std::string campaingModesPath = "data/campaings";
 
-    for (const auto &name : CGPPFileMGR::getDirectory(campaingModesPath, false, true)) {
+    for (const auto &name :
+         CGPPFileMGR::getDirectory(campaingModesPath, false, true)) {
         const std::string path = campaingModesPath + "/" + name;
         const std::string infoPath = path + "/info.lua";
         CLog::log() << ("Loading <<" + infoPath + ">>");
@@ -249,7 +199,8 @@ void CCampaing::loadCampaingModes() {
             lua.runScript(infoScript);
             auto &mode = campaingModes[name];
             mode.name = CLuaH::getGlobalVarAsString(infoScript, "name");
-            mode.description = CLuaH::getGlobalVarAsString(infoScript, "description");
+            mode.description =
+                CLuaH::getGlobalVarAsString(infoScript, "description");
             mode.author = CLuaH::getGlobalVarAsString(infoScript, "author");
         }
     }
@@ -333,89 +284,11 @@ auto CCampaing::campaingLoop() -> int {
     return 0;
 }
 
-auto CCampaing::campaingDrawScreen() -> int {
-    auto &mgr = campaingMGR();
-    auto &engine = CEngine::engine();
-    auto &GuitarPP = GPPGame::GuitarPP();
-
-    callOnDctor<void(void)> exitguard([]() {
-        auto &mgr = campaingMGR();
-
-        mgr.campaingFunctionGotoID = 0;
-        mgr.continueInDrawScreen = 0;
-    });
-
-    std::vector<CMenu *> menusStack;
-
-    bool windowOpened = true;
-
-    auto preFun = [&]() {
-        CLuaH::Lua().runEventFromContainer(campaingMenuPreFunSE,
-                                           mgr.campaingScripts);
-        return 0;
-    };
-
-    auto midFun = [&]() {
-        CLuaH::Lua().runEventFromContainer(campaingMenuMidFunSE,
-                                           mgr.campaingScripts);
-        return 0;
-    };
-
-    auto posFun = [&]() {
-        CLuaH::Lua().runEventFromContainer(campaingMenuPosFunSE,
-                                           mgr.campaingScripts);
-        return 0;
-    };
-
-    while ((windowOpened = engine.windowOpened()) && mgr.continueInDrawScreen) {
-        GuitarPP.clearScreen();
-
-        if (engine.getKey(GLFW_KEY_ESCAPE) != 0) {
-            break;
-        }
-
-        CLuaH::Lua().runEventFromContainer(campaingDScreenUpdateSE,
-                                           mgr.campaingScripts);
-
-        GuitarPP.renderFrame();
-
-        switch (mgr.campaingFunctionGotoID) {
-        case 0:
-            break;
-
-        case 1:
-            menusStack =
-                GuitarPP.openMenus(&(mgr.campaingMenu), preFun, midFun, posFun,
-                                   false, std::move(menusStack));
-
-            if (!mgr.keepMenuStack) {
-                menusStack.clear();
-            }
-            break;
-
-        default:
-            break;
-        }
-    }
-
-    return 0;
-}
-
-auto CCampaing::openCampaingMenuCallback(CMenu &menu) -> int {
-    campaingMGR().numCampaingSaves = listCampaingSaves().size();
-
-    return 0;
-}
-
-auto CCampaing::cotinueCampaingOptCallback(CMenu &menu, CMenu::menuOpt &opt)
-    -> int {
-    opt.enableEnter = campaingMGR().numCampaingSaves > 0;
-    return 0;
-}
-
 void CCampaing::campaingPlayLoop(const std::string &n) {
     auto &game = GPPGame::GuitarPP();
-    { game.marathonSongsList = campaingMGR().playSongsList; }
+    {
+        game.marathonSongsList = campaingMGR().playSongsList;
+    }
 
     GPPGame::startMarathonModule(n);
 }
@@ -438,182 +311,9 @@ CCampaing::CCampaing() : campaingScriptsDirectory("./data/campaings") {
         Lua.idForCallbackEvent("campaingDrawScreenUpdate");
     campaingMainMenuOpenSE = Lua.idForCallbackEvent("campaingMainMenuOpen");
 
-    auto &contOptions =
-        GPPGame::GuitarPP().newNamedMenu("continueCampaingOptions");
-
-    contOptions.openCallback = [](CMenu &m) {
-        m.resetData();
-        m.resetBtns();
-
-        CLuaH::Lua().runEventWithParamsFromContainer(
-            campaingMainMenuOpenSE, {CLuaH::customParam((&m) != nullptr)},
-            campaingMGR().campaingScripts);
-        return 0;
-    };
-
-    {
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "Modo campanha";
-            opt.y = 0.8;
-            opt.styleOverrides.textSize = 0.1;
-            opt.centerX = 0.0;
-            // opt.group = 0;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::static_text;
-
-            contOptions.addOpt(opt);
-        }
-
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "Jogar";
-            opt.y = 0.4;
-            opt.centerX = -0.5;
-            opt.group = 1;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::textbtn;
-
-            std::string testecallback = GPPGame::GuitarPP().addGameCallbacks(
-                "campaingGameplayLoop", campaingPlayLoop);
-            opt.menusXRef.push_back(testecallback);
-
-            contOptions.addOpt(opt);
-        }
-
-        double infoPos = 0.0;
-
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "Informa\xc3\xa7ões:";
-            opt.y = 0.3;
-            opt.x = infoPos = CFonts::fonts().getCenterPos(
-                opt.text, contOptions.resolvedOptionStyle(opt).textSize,
-                -0.3);
-            // opt.group = 0;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::static_text;
-
-            contOptions.addOpt(opt);
-        }
-
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "* Show em um lugar público xyz";
-            opt.y = 0.2;
-            opt.x = infoPos;
-            // opt.group = 0;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::static_text;
-
-            contOptions.addOpt(opt);
-        }
-
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "* Várias músicas";
-            opt.y = 0.11;
-            opt.x = infoPos;
-            // opt.group = 0;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::static_text;
-
-            contOptions.addOpt(opt);
-        }
-
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "* Possibilidade de música aleatoria";
-            opt.y = 0.02;
-            opt.x = infoPos;
-            // opt.group = 0;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::static_text;
-
-            contOptions.addOpt(opt);
-        }
-
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "* Reputação máxima prevista 10000";
-            opt.y = -0.07;
-            opt.x = infoPos;
-            // opt.group = 0;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::static_text;
-
-            contOptions.addOpt(opt);
-        }
-
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "* Musicas previstas:";
-            opt.y = -0.16;
-            opt.x = infoPos;
-            // opt.group = 0;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::static_text;
-
-            contOptions.addOpt(opt);
-        }
-
-        {
-            auto songs = GPPGame::getDirectory("./data/songs", false, true);
-
-            std::shuffle(songs.begin(), songs.end(),
-                         std::mt19937(std::random_device()()));
-
-            const unsigned int songsSize = 2 + rand() % 2;
-            const unsigned int size =
-                (songs.size() > songsSize) ? songsSize : songs.size();
-
-            if (size < songs.size()) {
-                songs.resize(size);
-            }
-
-            for (size_t i = 0; i < size; i++) {
-                CMenu::menuOpt opt;
-
-                opt.text = songs[i];
-                opt.y = -0.25 - static_cast<double>(i) * 0.08;
-                opt.x = infoPos + 0.075 * 2.0;
-                // opt.group = 0;
-                opt.status = 0;
-                opt.type = CMenu::menusOPT::static_text;
-
-                contOptions.addOpt(opt);
-            }
-
-            playSongsList = std::move(songs);
-        }
-
-        {
-            CMenu::menuOpt opt;
-
-            opt.text = "Voltar";
-            opt.y = -0.8;
-            opt.centerX = -0.5;
-            opt.group = 1;
-            opt.status = 0;
-            opt.type = CMenu::menusOPT::textbtn;
-            opt.goback = true;
-
-            contOptions.addOpt(opt);
-        }
-    }
-
-    mainMenu = contOptions.getName();
+    buildMenus();
 
     numCampaingSaves = 0;
-    menuNovaCampanhaID = menuContinuarCampanhaID = 0;
     campaingFunctionGotoID = 0;
     keepMenuStack = false;
     campaingLoaded = false;
