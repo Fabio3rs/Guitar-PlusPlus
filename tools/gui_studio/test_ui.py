@@ -2,6 +2,7 @@
 """Exercise real Studio mouse/keyboard input, exports and CLI captures under Xvfb."""
 import re
 import pathlib
+import shutil
 import struct
 import subprocess
 import sys
@@ -96,28 +97,38 @@ with tempfile.TemporaryDirectory(prefix='gui-', dir=artifacts) as temporary:
     subprocess.run(base + ['--panel', 'fonts', '--frames', '5', '--ui-capture', 'before.png'], check=True, timeout=20)
     log = open(output / 'ui.log', 'w')
     process = subprocess.Popen(base, stdout=log, stderr=subprocess.STDOUT)
+    window = None
+    input_trace = []
 
     def xdo(*args):
-        return subprocess.check_output(['xdotool', *map(str, args)], text=True, timeout=5).strip()
+        # XSync only confirms delivery to X11, not consumption by a rendered
+        # ImGui frame. Keep moves/modifiers separated from the next action on
+        # software-rendered CI runners, including Ctrl+click numeric editors.
+        input_trace.append(' '.join(map(str, args)))
+        if args[0] in ('key', 'type'):
+            args = (args[0], '--delay', '80', *args[1:])
+        result = subprocess.check_output(['xdotool', *map(str, args)], text=True, timeout=5).strip()
+        time.sleep(.15)
+        return result
 
     def click(x, y):
         xdo('mousemove', '--window', window, x, y)
-        xdo('click', 1)
-        time.sleep(.12)
+        xdo('mousedown', 1)
+        xdo('mouseup', 1)
 
     def wait_file(path):
-        deadline = time.monotonic() + 5
+        deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
             if path.exists():
                 return
             if process.poll() is not None:
                 raise AssertionError('Studio exited: ' + (output / 'ui.log').read_text())
             time.sleep(.05)
-        raise AssertionError('Export missing: ' + str(path))
+        raise AssertionError('Export missing: ' + str(path) + '\n' +
+                             (output / 'ui.log').read_text())
 
     try:
         deadline = time.monotonic() + 10
-        window = None
         while time.monotonic() < deadline and process.poll() is None:
             found = subprocess.run(['xdotool', 'search', '--all', '--onlyvisible', '--pid', str(process.pid),
                                     '--name', r'^Guitar\+\+ GUI Studio$'],
@@ -213,19 +224,30 @@ with tempfile.TemporaryDirectory(prefix='gui-', dir=artifacts) as temporary:
         before = preview_pixels(png_pixels(output / 'before.png'))
         after = preview_pixels(png_pixels(output / 'after.png'))
         assert sum(min(before[i:i + 3]) > 190 for i in range(0, len(before), 4)) > 100
-        assert before != after, 'Glyph offset did not change the actual rendered preview' 
+        assert before != after, 'Glyph offset did not change the actual rendered preview'
         for name in ('before.png', 'after.png', 'Gui.lua', 'Theme.lua', 'ui.log'):
             (artifacts / name).write_bytes((output / name).read_bytes())
         # Explicit invalid inputs fail, rather than silently loading another file.
         failed = subprocess.run(base + ['--font', str(root / 'missing.lua'), '--frames', '1'],
                                 capture_output=True, timeout=20)
         assert failed.returncode != 0
+    except BaseException:
+        # Save the actual UI at failure, before terminating the process or
+        # deleting its temporary files. The workflow uploads this directory.
+        if window and process.poll() is None and shutil.which('xwd'):
+            try:
+                subprocess.run(['xwd', '-silent', '-id', window, '-out',
+                                str(artifacts / 'failure.xwd')], timeout=5, check=False)
+            except (OSError, subprocess.TimeoutExpired):
+                pass  # Diagnostics must not mask the original failure.
+        raise
     finally:
         if process.poll() is None:
             process.terminate()
             process.wait(timeout=5)
         log.close()
-        for name in ('Gui.lua', 'Theme.lua', 'ui.log'):
+        (artifacts / 'input-trace.log').write_text('\n'.join(input_trace) + '\n')
+        for name in ('before.png', 'after.png', 'Gui.lua', 'Theme.lua', 'ui.log'):
             if (output / name).exists():
                 (artifacts / name).write_bytes((output / name).read_bytes())
 print('GUI interaction, export round trips and PNG captures passed')

@@ -25,10 +25,14 @@ if(BUILD_TESTING AND GUI_XVFB)
     find_program(GUI_XDOTOOL xdotool)
     if(GUI_XDOTOOL)
         find_package(Python3 COMPONENTS Interpreter REQUIRED)
-        add_test(NAME gui_studio_ui COMMAND ${GUI_XVFB} -a ${Python3_EXECUTABLE}
+        add_test(NAME gui_studio_ui COMMAND ${GUI_XVFB} -a
+            -s "-screen 0 1280x1024x24" ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/test_ui.py $<TARGET_FILE:gpp_gui_studio>
             ${CMAKE_BINARY_DIR}/gui-studio/tests)
+        # Real mouse/keyboard input needs rendered frames between actions.
+        # Avoid CPU test contention and excessive Mesa workers on small runners.
         set_tests_properties(gui_studio_ui PROPERTIES TIMEOUT 90 LABELS "gui;gpu"
-            RESOURCE_LOCK gpp_graphics)
+            RESOURCE_LOCK gpp_graphics RUN_SERIAL TRUE
+            ENVIRONMENT "LIBGL_ALWAYS_SOFTWARE=1;LP_NUM_THREADS=2")
     endif()
 endif()
