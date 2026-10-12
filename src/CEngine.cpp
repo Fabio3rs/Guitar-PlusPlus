@@ -528,14 +528,14 @@ auto CEngine::readImage(const char *name, GLFWimage *img, int flags) -> int {
 
 static auto HalveImage(GLubyte *src, int *width, int *height, int components)
     -> int {
-    int halfwidth;
-    int halfheight;
-    int m;
-    int n;
-    int k;
-    int idx1;
-    int idx2;
-    GLubyte *dst;
+    int halfwidth{};
+    int halfheight{};
+    int m{};
+    int n{};
+    int k{};
+    int idx1{};
+    int idx2{};
+    GLubyte *dst{};
 
     // Last level?
     if (*width <= 1 && *height <= 1) {

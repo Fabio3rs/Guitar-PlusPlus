@@ -76,6 +76,18 @@ class CMenu {
     bool isThisOnTop() const;
 
   public:
+    // Owned by the host and used only on the UI/context thread. Null keeps
+    // the game's existing services. Preview never calls game/Lua callbacks.
+    struct Context {
+        CFonts *fonts = nullptr;
+        std::string font = "default", language = "PT-BR";
+        ui::Style style;
+        double aspect = 1, mouseX = 0, mouseY = 0;
+        unsigned pickTexture = 0;
+        std::vector<CControls::MenuEvent> events;
+        std::function<std::string(const std::string &)> translate;
+    };
+
     struct Rect {
         double left = 0, bottom = 0, right = 0, top = 0;
         bool contains(double px, double py) const {
@@ -225,6 +237,12 @@ class CMenu {
     ui::Typography resolvedOptionStyle(const menuOpt &option) const;
 
   private:
+    Context *context = nullptr;
+    CFonts &fontService() const;
+    double aspect() const;
+    double cursorX() const;
+    double cursorY() const;
+    void translate(menuOpt &);
     Rect optionRect(size_t index, const ui::Style &style);
     Rect controlRect(size_t index, const ui::Style &style);
     void reflow(const ui::Style &style);
@@ -287,7 +305,7 @@ class CMenu {
     int status;
 
     CMenu();
-    CMenu(const std::string &name);
+    CMenu(const std::string &name, Context *context = nullptr);
     CMenu(const CMenu &);
     CMenu &operator=(const CMenu &) = delete;
     ~CMenu();

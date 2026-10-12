@@ -618,23 +618,7 @@ void GPPGame::selectPlayerMenu() {
             auto &game = GuitarPP();
 
             if (selectPlayerMenu.getUIListSize() == 0) {
-                {
-                    int r = selectPlayerMenu.pushUserInterface(
-                        game.uiCreateProfile);
-
-                    CMenu *instM = CMenu::getUiAt(r).m.get();
-
-                    if (instM != nullptr) {
-                        instM->options[game.uiCreateUITextID]
-                            .posUpdateCppCallback = [](CMenu &m,
-                                                       CMenu::menuOpt &opt) {
-                            auto &game = GuitarPP();
-                            m.options[game.uiCreateUIPathID].text =
-                                "Path: /" + opt.preText;
-                            return 0;
-                        };
-                    }
-                }
+                game.modals.openCreateProfile(selectPlayerMenu);
             }
         };
 
@@ -4160,6 +4144,15 @@ void GPPGame::CTheme::apply() {
 
     CLuaH::Lua().runInternalEvent(CLuaH::Lua().getScript(path, "Theme.lua"),
                                   applyThemeSE);
+    const auto definitions = std::filesystem::path(path) / "Gui.lua";
+    if (std::filesystem::exists(definitions)) {
+        std::string error;
+        if (!GuitarPP().modals.load(definitions, error)) {
+            CLog::log() << "GUI theme: " + error;
+        }
+    } else {
+        GuitarPP().modals.replace(ui::defaultModals());
+    }
 }
 
 GPPGame::CTheme::CTheme(const std::string &theme) {
@@ -4307,9 +4300,7 @@ int GPPGame::firstStartFrameSE = 0, GPPGame::preCreateWindowSE = 0,
     GPPGame::menusGameCbNextSE = 0, GPPGame::catchedExceptionSE = 0,
     GPPGame::joystickStateCbSE = 0;
 
-GPPGame::GPPGame()
-    : devMenus(newNamedMenu("devMenus")), uiRenameMenu("uiRenameMenu"),
-      uiCreateProfile("uiCreateProfileMenu"), glanguage("PT-BR") {
+GPPGame::GPPGame() : devMenus(newNamedMenu("devMenus")), glanguage("PT-BR") {
     initializeTextures();
     initializeModels();
     CBackgroundRenderer::inst();
@@ -4352,8 +4343,6 @@ GPPGame::GPPGame()
     gameplayRunningTime = 0.0;
 
     devMenus.gameMenu = true;
-    uiRenameMenu.gameMenu = true;
-    uiCreateProfile.gameMenu = true;
     gamePlayPlusEnabled = false;
 
     hyperSpeed = 1.0;
@@ -4389,95 +4378,12 @@ GPPGame::GPPGame()
     HUDText = 0;
     fretboardText = 0;
 
-    static size_t uiRenameMenuText = 0;
-
-    uiRenameMenu.qbgd.alphaBottom = 1.0;
-    uiRenameMenu.qbgd.alphaTop = 1.0;
-
-    {
-        uiRenameMenu.qbgd.x1 = -0.1;
-        uiRenameMenu.qbgd.x2 = -0.1 + 1.5;
-        uiRenameMenu.qbgd.x3 = -0.1 + 1.5;
-        uiRenameMenu.qbgd.x4 = -0.1;
-
-        uiRenameMenu.qbgd.y1 = -0.6 + 0.75;
-        uiRenameMenu.qbgd.y2 = -0.6 + 0.75;
-        uiRenameMenu.qbgd.y3 = -0.6;
-        uiRenameMenu.qbgd.y4 = -0.6;
-
-        uiRenameMenu.qbgd.TextureX1 = 0.0;
-        uiRenameMenu.qbgd.TextureX2 = 1.0;
-
-        uiRenameMenu.qbgd.TextureY1 = 1.0;
-        uiRenameMenu.qbgd.TextureY2 = 0.0;
-
-        uiRenameMenu.qbgd.Text = 0;
-    }
-
-    uiCreateProfile.qbgd = uiRenameMenu.qbgd;
-    uiRenameMenu.modal = uiCreateProfile.modal = true;
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "";
-        opt.y = -0.6 + 0.75;
-        opt.x = -0.1;
-        opt.deslizantBarSize = 1.5;
-        opt.styleOverrides.textSize = 0.1;
-        opt.group = 2;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::drag_bar;
-
-        opt.styleOverrides.textColor =
-            ui::Color{63.0 / 255, 81.0 / 255, 181.0 / 255, 1};
-
-        uiRenameMenu.addOpt(opt);
-        uiCreateProfile.addOpt(opt);
-    }
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "aaaa";
-        opt.y = 0.05;
-        opt.x = 0.0;
-        opt.group = 1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::text_input;
-
-        uiRenameMenuText = uiRenameMenu.addOpt(opt);
-        uiCreateUITextID = uiCreateProfile.addOpt(opt);
-    }
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Path:";
-        opt.y = -0.05;
-        opt.x = 0.0;
-        opt.group = 1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::static_text;
-
-        uiCreateUIPathID = uiCreateProfile.addOpt(opt);
-    }
-
-    {
-        CMenu::menuOpt opt;
-
-        opt.text = "Close";
-        opt.y = -0.5;
-        opt.x = 0.0;
-        opt.group = 1;
-        opt.status = 0;
-        opt.type = CMenu::menusOPT::textbtn;
-        opt.goback = true;
-        opt.styleOverrides.textColor = ui::Color{1, 0, 0, 1};
-
-        uiRenameMenu.addOpt(opt);
-        uiCreateProfile.addOpt(opt);
-    }
+    modals.setTextures([this](const std::string &file) {
+        const std::filesystem::path path(file);
+        return loadTexture(path.parent_path().string(),
+                           path.filename().string())
+            .getTextId();
+    });
 
     CEngine::engine().errorCallbackFun = logError;
 
@@ -4502,16 +4408,9 @@ GPPGame::GPPGame()
                 if (op != ~static_cast<size_t>(0UL)) {
                     gpp.devMenus.devEditingOpt = op;
 
-                    int r = gpp.devMenus.pushUserInterface(gpp.uiRenameMenu);
-
-                    CMenu *instM = CMenu::getUiAt(r).m.get();
-
-                    if (instM != nullptr) {
-                        instM->options[uiRenameMenuText].preText =
-                            gpp.devMenus.devEditMenu->options[op].text;
-                        instM->options[uiRenameMenuText].externalPreTextRef =
-                            &(gpp.devMenus.devEditMenu->options[op].text);
-                    }
+                    gpp.modals.openRename(
+                        gpp.devMenus,
+                        gpp.devMenus.devEditMenu->options[op].text);
 
                     gpp.devMenus.devMenuNOUpdateOthers = true;
                 }

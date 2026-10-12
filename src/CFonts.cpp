@@ -50,7 +50,7 @@ size_t byteAt(const std::string &s, size_t position) {
 } // namespace
 
 CFonts &CFonts::fonts() {
-    static CFonts instance;
+    static CFonts instance(true);
     return instance;
 }
 
@@ -115,6 +115,47 @@ bool CFonts::analyzeCell(const ImageView &im, AtlasGrid grid, int col, int row,
 bool CFonts::Font::registerTexture(const std::string &path,
                                    const std::string &texture,
                                    const std::string &text, AtlasGrid grid) {
+    auto &game = GPPGame::GuitarPP();
+
+    if (std::this_thread::get_id() != game.mainthread) {
+        return false;
+    }
+
+    const auto &loaded = game.loadTexture(path, texture, nullptr, true);
+    const unsigned id = loaded.getTextId();
+
+    if (!id || id == ~0u) {
+        return false;
+    }
+
+    CEngine::GLFWimage decoded;
+    const auto retained = loaded.getImageData();
+    auto pixels = [&](ImageView &view) {
+        const CEngine::GLFWimage *image = retained.get();
+        if (!image || !image->Data) {
+            if (!CEngine::engine().readImage((path + "/" + texture).c_str(),
+                                             &decoded, 0)) {
+                return false;
+            }
+            image = &decoded;
+        }
+        view = {image->Data.get(),
+                image->DataBytes,
+                image->Width,
+                image->Height,
+                image->BytesPerPixel,
+                image->BytesPerPixel == 4
+                    ? 3
+                    : (image->Format == GL_ALPHA ? 0 : -1)};
+        return true;
+    };
+    return registerImage(path + "/" + texture, id, {}, text, grid, pixels);
+}
+
+bool CFonts::Font::registerImage(
+    const std::string &key, unsigned id, ImageView view,
+    const std::string &text, AtlasGrid grid,
+    const std::function<bool(ImageView &)> &readPixels) {
     struct Cell {
         unsigned code;
         int col, row;
@@ -164,20 +205,10 @@ bool CFonts::Font::registerTexture(const std::string &path,
         }
     }
 
-    auto &game = GPPGame::GuitarPP();
-
-    if (std::this_thread::get_id() != game.mainthread) {
-        return false;
-    }
-
-    const auto &loaded = game.loadTexture(path, texture, nullptr, true);
-    const unsigned id = loaded.getTextId();
-
     if (!id || id == ~0u) {
         return false;
     }
 
-    const std::string key = path + "/" + texture;
     auto cached = textures.find(key);
 
     if (cached != textures.end() && cached->second.texture == id &&
@@ -222,25 +253,9 @@ bool CFonts::Font::registerTexture(const std::string &path,
         }
     }
 
-    const auto retained = loaded.getImageData();
-    // A previously uploaded atlas may no longer retain CPU pixels.
-    CEngine::GLFWimage decoded;
-    const CEngine::GLFWimage *pixels = retained.get();
-    if (!pixels || !pixels->Data) {
-        if (!CEngine::engine().readImage((path + "/" + texture).c_str(),
-                                         &decoded, 0)) {
-            return false;
-        }
-        pixels = &decoded;
+    if (readPixels && !readPixels(view)) {
+        return false;
     }
-
-    ImageView view{
-        pixels->Data.get(),
-        pixels->DataBytes,
-        pixels->Width,
-        pixels->Height,
-        pixels->BytesPerPixel,
-        pixels->BytesPerPixel == 4 ? 3 : (pixels->Format == GL_ALPHA ? 0 : -1)};
     std::map<unsigned, Glyph> prepared;
     const size_t atlasID = nextAtlas + 1;
 
@@ -753,7 +768,11 @@ std::string CFonts::addTextureToFont(const std::string &f, const std::string &p,
     }
 }
 
-CFonts::CFonts() {
+CFonts::CFonts(bool loadDefault) {
+    if (!loadDefault) {
+        return;
+    }
+
     addTextureToFont(
         "default", "data/sprites", "FONT.tga",
         "0123456789ABCDEFGHIJKLMNOPQRSTUV\nWXYZabcdefghijklmnopqrstuvwxyz.,\n"
@@ -775,6 +794,37 @@ bool CFonts::setFontMetrics(const std::string &name, double baseline,
     }
 
     f->second.metrics = {baseline, ascent, descent};
+    ++metricsRevision;
+    return true;
+}
+
+CFonts::Inspection CFonts::inspect(const std::string &name) const {
+    const auto found = fontsReg.find(name);
+    if (found == fontsReg.end()) {
+        return {};
+    }
+    return {found->second.chars, found->second.metrics};
+}
+
+bool CFonts::addImageToFont(const std::string &name, const std::string &key,
+                            unsigned texture, const ImageView &image,
+                            const std::string &mapping, AtlasGrid grid) {
+    auto found = fontsReg.find(name);
+    if (found == fontsReg.end()) {
+        Font font;
+        if (!font.registerImage(key, texture, image, mapping, grid)) {
+            return false;
+        }
+        fontsReg.emplace(name, std::move(font));
+    } else {
+        const auto before = found->second.changes;
+        if (!found->second.registerImage(key, texture, image, mapping, grid)) {
+            return false;
+        }
+        if (before == found->second.changes) {
+            return true;
+        }
+    }
     ++metricsRevision;
     return true;
 }

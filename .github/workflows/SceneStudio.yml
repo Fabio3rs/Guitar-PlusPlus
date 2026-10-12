@@ -1,4 +1,4 @@
-name: Build and test Scene Studio
+name: Build and test Scene and GUI Studios
 
 on:
   push:
@@ -58,7 +58,7 @@ jobs:
 
       - name: Configure and build
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGPP_NATIVE_CPU=OFF -DBUILD_TESTING=ON -DBUILD_SCENE_STUDIO=ON
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGPP_NATIVE_CPU=OFF -DBUILD_TESTING=ON -DBUILD_SCENE_STUDIO=ON -DBUILD_GUI_STUDIO=ON
           cmake --build build --parallel 2
 
       - name: Test with Mesa software rendering
@@ -70,6 +70,7 @@ jobs:
         with:
           name: scene-studio-software
           path: |
+            build/gui-studio/tests/
             build/scene-studio/tests/
             build/scene-studio/mouse-tests/
             build/Testing/Temporary/

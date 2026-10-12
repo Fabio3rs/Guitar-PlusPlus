@@ -46,6 +46,8 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CLuaFunctions.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CLuaH.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CMenu.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CUIDefinition.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CModalManager.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CUIStyle.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CMultiplayer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CParticle.cpp"
@@ -143,7 +145,8 @@ endif()
 
 option(BUILD_SCENE_STUDIO "Build the independent Scene Studio" OFF)
 option(BUILD_AUDIO_STUDIO "Build the independent Audio Studio" OFF)
-if(BUILD_SCENE_STUDIO OR BUILD_AUDIO_STUDIO)
+option(BUILD_GUI_STUDIO "Build the independent GUI Studio" OFF)
+if(BUILD_SCENE_STUDIO OR BUILD_AUDIO_STUDIO OR BUILD_GUI_STUDIO)
     add_subdirectory(tools/scene_studio/imgui SYSTEM)
 endif()
 if(BUILD_SCENE_STUDIO)
@@ -152,4 +155,8 @@ endif()
 if(BUILD_AUDIO_STUDIO)
     add_subdirectory(src/audio)
     add_subdirectory(tools/audio_studio)
+endif()
+
+if(BUILD_GUI_STUDIO)
+    add_subdirectory(tools/gui_studio)
 endif()

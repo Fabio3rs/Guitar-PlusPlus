@@ -7,6 +7,7 @@
 #include "CGameSettings.h"
 #include "CLuaFunctions.hpp"
 #include "CMenu.h"
+#include "CModalManager.h"
 #include "CPlayer.h"
 #include "CScene.h"
 #include "CShader.h"
@@ -65,9 +66,8 @@ class GPPGame {
 
     typedef std::function<void(const std::string &name)> func_t;
 
-    CMenu devMenus, uiRenameMenu, uiCreateProfile;
-
-    int uiCreateUITextID, uiCreateUIPathID;
+    CMenu devMenus;
+    CModalManager modals;
 
     std::string glanguage;
 

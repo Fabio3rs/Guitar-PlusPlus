@@ -1,3 +1,4 @@
+-- Gui.lua in this directory supplies declarative modals after applyTheme.
 -- Same fixed-cell atlas as the built-in font. Descenders are already in the image.
 local function applyDefaultFont()
     assert(addTextureToFont("default", "data/sprites", "FONT.tga",

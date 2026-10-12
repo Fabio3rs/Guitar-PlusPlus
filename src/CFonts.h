@@ -73,6 +73,9 @@ class CFonts {
         size_t nextAtlas = 0, changes = 0;
         FaceMetrics metrics;
         friend CFonts;
+        bool registerImage(const std::string &, unsigned, ImageView,
+                           const std::string &, AtlasGrid,
+                           const std::function<bool(ImageView &)> & = {});
 
       public:
         Font() = default;
@@ -88,6 +91,18 @@ class CFonts {
         void registerTexture(const std::string &, const std::string &,
                              const std::wstring &);
     };
+
+    // Independent registries do not load assets or initialize the game.
+    explicit CFonts(bool loadDefault = false);
+    struct Inspection {
+        std::map<unsigned, Glyph> glyphs;
+        FaceMetrics metrics;
+    };
+    Inspection inspect(const std::string &name) const;
+    // Texture remains owned by the caller; pixels are consumed synchronously.
+    bool addImageToFont(const std::string &name, const std::string &key,
+                        unsigned texture, const ImageView &image,
+                        const std::string &mapping, AtlasGrid grid);
 
     struct textAlert {
         int status = 0;
@@ -158,5 +173,4 @@ class CFonts {
     void drawGlyph(const Glyph &, double, double, double, double, double,
                    double, bool, bool);
     CFonts(const CFonts &) = delete;
-    CFonts();
 };

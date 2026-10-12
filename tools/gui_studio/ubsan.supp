@@ -1,0 +1,4 @@
+# Pinned GLFW's X11 timestamp wrap check uses (1 << 31), where 1 is signed.
+# Observed by the real keyboard test at glfw/src/x11_window.c:1274.
+# Limit this exception to shift-base in that vendor file; keep game/Studio checks.
+shift-base:glfw/src/x11_window.c

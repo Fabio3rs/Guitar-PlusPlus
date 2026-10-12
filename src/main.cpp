@@ -518,11 +518,7 @@ static auto load_data() -> bool {
                 break;
 
             case 4: {
-                const auto &menu = game.loadTexture("data/sprites", "menu.tga");
-                game.uiRenameMenu.qbgd.Text =
-                    game.loadTexture("data/sprites", "interfacebg.tga")
-                        .getTextId();
-                game.uiCreateProfile.qbgd.Text = game.uiRenameMenu.qbgd.Text;
+                game.loadTexture("data/sprites", "menu.tga");
             } break;
 
             case 5: {

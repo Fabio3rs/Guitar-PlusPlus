@@ -58,15 +58,16 @@ void CMenu::menuOpt::update() {
 
 CMenu::CMenu() : CMenu("menu_main_" + std::to_string(++menusCreated)) {}
 
-CMenu::CMenu(const std::string &name)
+CMenu::CMenu(const std::string &name, Context *host)
     : menuName(name), uiMenu(false), thisUiID(-1), lastEnterOptBtn(false),
       devMenuNOUpdateOthers(false), lScript(nullptr), devEditMenu(nullptr),
       devEditingOpt(0), temp(false), gameMenu(false), mouseAX(0), mouseAY(0),
       status(0) {
+    context = host;
     x = y = 0;
 }
 
-CMenu::CMenu(const CMenu &m) : CMenu(m.menuName) {
+CMenu::CMenu(const CMenu &m) : CMenu(m.menuName, m.context) {
     x = m.x;
     y = m.y;
     styleOverrides = m.styleOverrides;
@@ -131,10 +132,10 @@ int CMenu::addOpt(const menuOpt &opt) {
 
     options.push_back(opt);
     auto &o = options.back();
-    o.update();
+    translate(o);
     o.optionName =
         menuName + "_" + std::to_string(index) + std::to_string(o.group);
-    o.eventID = CLuaH::Lua().idForCallbackEvent(o.optionName);
+    o.eventID = context ? 0 : CLuaH::Lua().idForCallbackEvent(o.optionName);
     groupInfo.try_emplace(o.group);
     return static_cast<int>(index);
 }
@@ -166,11 +167,11 @@ void CMenu::resetBtns() {
 }
 
 void CMenu::ensureLayout(menuOpt &o) {
-    auto &fonts = CFonts::fonts();
+    auto &fonts = fontService();
     const auto &text = o.type == text_input ? o.preText : o.text;
 
     if (o.cachedRevision != fonts.revision() || o.cachedText != text) {
-        fonts.layoutText(text, o.layout);
+        fonts.layoutText(text, o.layout, context ? context->font : "default");
         o.cachedText = text;
         o.cachedRevision = fonts.revision();
     }
@@ -182,7 +183,8 @@ void CMenu::ensureLayout(menuOpt &o) {
 
     if (o.type == deslizant_Select_list &&
         (o.valueRevision != fonts.revision() || o.cachedValue != value)) {
-        fonts.layoutText(value, o.valueLayout);
+        fonts.layoutText(value, o.valueLayout,
+                         context ? context->font : "default");
         o.cachedValue = value;
         o.valueRevision = fonts.revision();
     }
@@ -197,7 +199,8 @@ void CMenu::ensureLayout(menuOpt &o) {
 }
 
 ui::Style CMenu::resolvedStyle() const {
-    return ui::resolveStyle(ui::activeStyle(), styleOverrides);
+    return ui::resolveStyle(context ? context->style : ui::activeStyle(),
+                            styleOverrides);
 }
 
 ui::Typography CMenu::resolvedOptionStyle(const menuOpt &option) const {
@@ -295,8 +298,7 @@ void CMenu::reflow(const ui::Style &style) {
 
         if (o.anchorRight) {
             ensureLayout(o);
-            o.x = GPPGame::getWindowProportion() - .1 -
-                  o.layout.right * appearance.textSize;
+            o.x = aspect() - .1 - o.layout.right * appearance.textSize;
         }
     }
 
@@ -306,7 +308,7 @@ void CMenu::reflow(const ui::Style &style) {
     }
 
     if (anchorLeft) {
-        flowX = -GPPGame::getWindowProportion() + leftMargin;
+        flowX = -aspect() + leftMargin;
     }
 
     double px = flowX, py = flowY;
@@ -414,7 +416,7 @@ void CMenu::revealFocused(const ui::Style &style) {
 
 bool CMenu::isMouseOnThisMenu() {
     const auto style = resolvedStyle();
-    const double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
+    const double mx = cursorX(), my = cursorY();
 
     if (qbgd.Text &&
         Rect{qbgd.x1 + x, qbgd.y3 + y, qbgd.x2 + x, qbgd.y1 + y}.contains(mx,
@@ -722,8 +724,11 @@ void CMenu::shortcutCallback(int key, int, int action, int mods) {
 
 void CMenu::dispatchInput() {
     interfaceCalcPos();
-    auto &controls = CControls::controls();
-    controls.pollMenuDevices();
+    if (!context) {
+        CControls::controls().pollMenuDevices();
+    }
+    auto &pending =
+        context ? context->events : CControls::controls().menuEvents;
     bool valid = inputFocus == this;
 
     for (auto &slot : uiList) {
@@ -745,7 +750,7 @@ void CMenu::dispatchInput() {
     // Reuse capacity, and isolate this dispatch from callbacks appending
     // events.
     std::vector<CControls::MenuEvent> events;
-    events.swap(controls.menuEvents);
+    events.swap(pending);
 
     for (const auto &event : events) {
         CMenu *target = inputFocus;
@@ -805,8 +810,8 @@ void CMenu::dispatchInput() {
 
     events.clear();
 
-    if (controls.menuEvents.empty()) {
-        controls.menuEvents.swap(events);
+    if (pending.empty()) {
+        pending.swap(events);
     }
 }
 
@@ -832,23 +837,24 @@ void CMenu::prepareUpdate() {
         clampList(o);
     }
 
-    auto &lua = CLuaH::Lua();
+    auto *lua = context ? nullptr : &CLuaH::Lua();
 
-    if (!preEvent) {
-        preEvent = lua.idForCallbackEvent("pre" + menuName + "update");
-        postEvent = lua.idForCallbackEvent("pos" + menuName + "update");
+    if (!context && !preEvent) {
+        preEvent = lua->idForCallbackEvent("pre" + menuName + "update");
+        postEvent = lua->idForCallbackEvent("pos" + menuName + "update");
     }
 
-    if (lua.hasEvent(preEvent)) {
-        lua.runEventWithParams(preEvent, {CLuaH::customParam(menuName)});
+    if (!context && lua->hasEvent(preEvent)) {
+        lua->runEventWithParams(preEvent, {CLuaH::customParam(menuName)});
     }
 
-    const std::string language = GPPGame::GuitarPP().glanguage;
+    const std::string language =
+        context ? context->language : GPPGame::GuitarPP().glanguage;
     updateCount = options.size();
 
     for (size_t i = 0; i < updateCount && i < options.size(); ++i) {
         if (lastLanguage != language) {
-            options[i].update();
+            translate(options[i]);
         }
 
         if (options[i].externalPreTextRef) {
@@ -888,13 +894,12 @@ void CMenu::prepareUpdate() {
 
 void CMenu::finishUpdate() {
     const auto style = resolvedStyle();
-    auto &lua = CLuaH::Lua();
+    auto *lua = context ? nullptr : &CLuaH::Lua();
 
     if (dragging && captured >= 0 &&
         static_cast<size_t>(captured) < options.size()) {
         auto &o = options[static_cast<size_t>(captured)];
-        const double mx = CEngine::engine().mouseX,
-                     my = CEngine::engine().mouseY;
+        const double mx = cursorX(), my = cursorY();
 
         if (o.type == drag_bar) {
             x += mx - dragX;
@@ -914,7 +919,7 @@ void CMenu::finishUpdate() {
         dragY = my;
     }
 
-    const double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
+    const double mx = cursorX(), my = cursorY();
 
     if (!isInterfaceOver() && (mx != mouseAX || my != mouseAY)) {
         hovered = -1;
@@ -957,18 +962,18 @@ void CMenu::finishUpdate() {
 
         const auto &o = options[i];
 
-        if (o.eventID && lua.hasEvent(o.eventID)) {
+        if (!context && o.eventID && lua->hasEvent(o.eventID)) {
             CLuaH::multiCallBackParams_t params{
                 CLuaH::customParam(menuName), CLuaH::customParam(o.optionName),
                 CLuaH::customParam(o.optValue),
                 CLuaH::customParam(
                     static_cast<double>(o.status ? o.status : -1))};
-            lua.runEventWithParams(o.eventID, params);
+            lua->runEventWithParams(o.eventID, params);
         }
     }
 
-    if (lua.hasEvent(postEvent)) {
-        lua.runEventWithParams(postEvent, {CLuaH::customParam(menuName)});
+    if (!context && lua->hasEvent(postEvent)) {
+        lua->runEventWithParams(postEvent, {CLuaH::customParam(menuName)});
     }
 
     const size_t children = myUiList.size();
@@ -1030,7 +1035,7 @@ void CMenu::beginManualEdit(size_t index) {
 void CMenu::updateDev() {
     const auto style = resolvedStyle();
     const bool down = CEngine::engine().getMouseButton(0) != 0;
-    const double mx = CEngine::engine().mouseX, my = CEngine::engine().mouseY;
+    const double mx = cursorX(), my = cursorY();
 
     if (down && !lastMouseClickStatus && !isInterfaceOver()) {
         for (size_t i = 0; i < options.size(); ++i) {
@@ -1082,7 +1087,7 @@ void CMenu::render() {
     const auto style = resolvedStyle();
     reflow(style);
     auto &engine = CEngine::engine();
-    auto &fonts = CFonts::fonts();
+    auto &fonts = fontService();
     auto color = [&](const ui::Color &c) {
         engine.setColor(c.r, c.g, c.b, c.a);
     };
@@ -1146,9 +1151,12 @@ void CMenu::render() {
         glScissor(l, b, std::max(0, rr - l), std::max(0, tt - b));
     };
 
-    auto pick = GPPGame::GuitarPP().SPR.find("palheta");
-    const unsigned pickTexture =
-        pick == GPPGame::GuitarPP().SPR.end() ? 0 : pick->second;
+    unsigned pickTexture = context ? context->pickTexture : 0;
+    if (!context) {
+        const auto &sprites = GPPGame::GuitarPP().SPR;
+        auto pick = sprites.find("palheta");
+        pickTexture = pick == sprites.end() ? 0 : pick->second;
+    }
 
     for (size_t i = 0; i < options.size(); ++i) {
         auto &o = options[i];
@@ -1372,4 +1380,31 @@ size_t CMenu::getDevSelectedMenuOpt() {
     }
 
     return ~size_t(0);
+}
+
+CFonts &CMenu::fontService() const {
+    return context && context->fonts ? *context->fonts : CFonts::fonts();
+}
+
+double CMenu::aspect() const {
+    return context ? context->aspect : GPPGame::getWindowProportion();
+}
+
+double CMenu::cursorX() const {
+    return context ? context->mouseX : CEngine::engine().mouseX;
+}
+
+double CMenu::cursorY() const {
+    return context ? context->mouseY : CEngine::engine().mouseY;
+}
+
+void CMenu::translate(menuOpt &option) {
+    if (!context) {
+        option.update();
+    } else if (context->translate && !option.langEntryKey.empty()) {
+        const auto text = context->translate(option.langEntryKey);
+        if (!text.empty()) {
+            option.text = text;
+        }
+    }
 }
