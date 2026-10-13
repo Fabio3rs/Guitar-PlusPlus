@@ -82,3 +82,43 @@ TEST(MenuRendererCPU, DrawFailureStillClosesPass) {
     EXPECT_EQ(renderer.begins, 1);
     EXPECT_EQ(renderer.ends, 1);
 }
+
+TEST(MenuRendererCPU, TabSelectionDoesNotHideFixedPanelsOrOpenWindows) {
+    RecordingRenderer renderer;
+    CFonts fonts;
+    CMenu::Context context;
+    context.fonts = &fonts;
+    context.renderer = &renderer;
+    CMenu root("root", &context), model("model", &context);
+    CMenu::menuOpt image;
+    image.type = CMenu::image;
+    image.width = image.height = .5;
+    image.texture = 1;
+    root.addOpt(image);
+    model.addOpt(image);
+    auto attach = [&](unsigned texture, bool window, CMenu &owner) -> CMenu & {
+        model.options[0].texture = texture;
+        const int id =
+            window ? owner.pushUserInterface(model) : owner.pushPanel(model);
+        return *CMenu::getUiAt(static_cast<size_t>(id)).m;
+    };
+    auto &fixed = attach(2, false, root);
+    auto &first = attach(3, false, root);
+    auto &second = attach(4, false, root);
+    auto &window = attach(5, true, root);
+    model.modal = true;
+    auto &modal = attach(6, true, second);
+    EXPECT_FALSE(window.setTabSelected(false));
+    EXPECT_FALSE(modal.setTabSelected(false));
+    second.setTabSelected(false);
+    root.render();
+    CMenu::renderUiList();
+    EXPECT_EQ(renderer.textures, (std::vector<unsigned>{1, 2, 3, 5, 6}));
+    renderer.textures.clear();
+    first.setTabSelected(false);
+    second.setTabSelected(true);
+    root.render();
+    CMenu::renderUiList();
+    EXPECT_EQ(renderer.textures, (std::vector<unsigned>{1, 2, 4, 5, 6}));
+    (void)fixed;
+}

@@ -63,6 +63,8 @@ class CMenu {
     CMenu *owner = nullptr;
     CMenu *returnFocus = nullptr;
     bool permanentPanel = false;
+    bool tabSelected = true;
+    bool panelVisible() const;
 
     int focused = -1, hovered = -1, captured = -1;
     int focusGeometryOption = -1;
@@ -223,6 +225,8 @@ class CMenu {
 
         int pressingShortcutKey;
         int shortcutKey;
+        // -1 preserves legacy any-modifier shortcuts; locks are ignored.
+        int shortcutMods = -1;
 
         std::string text, preText, langEntryKey;
         std::string *externalPreTextRef;
@@ -347,6 +351,16 @@ class CMenu {
 
     void render();
     int addOpt(const menuOpt &opt);
+    // Validate IDs once for bulk population. Results match input order (-1 on
+    // duplicate).
+    std::vector<int> addOptions(const std::vector<menuOpt> &items);
+
+  private:
+    int appendOption(const menuOpt &opt, std::string name);
+
+  public:
+    // Explicit tab-content visibility only; fixed panels/windows stay visible.
+    bool setTabSelected(bool selected);
     menuOpt *findOption(const std::string &id);
     void clearOptions();
     void applyPresentationOverrides(const ui::MenuOverrides &);

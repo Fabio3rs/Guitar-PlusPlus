@@ -305,6 +305,12 @@ bool readMidiChart(const std::filesystem::path &path, MidiChart &result,
                                   event.getTempoBPM()});
             } else if (event.isMeta()) {
                 const int type = event.getMetaType();
+                if (type == 2 || type == 1) {
+                    const auto text = trim(event.getMetaContent());
+                    if (!text.empty() && text.front() != '[') {
+                        loaded.identification.push_back(text);
+                    }
+                }
                 if (type == 0x58) {
                     loaded.source.events.push_back(
                         {event.tick, event.seconds + loaded.source.offset,

@@ -9,6 +9,7 @@
 #include <limits>
 #include <stdexcept>
 #include <tuple>
+#include <unordered_set>
 
 std::deque<CMenu::uiWindowStruct> CMenu::uiList;
 std::vector<CMenu::posUiOrder> CMenu::uiOrderList;
@@ -75,6 +76,7 @@ CMenu::CMenu(const CMenu &m) : CMenu(m.menuName, m.context) {
     flow = m.flow;
     tableColumns = m.tableColumns;
     modal = m.modal;
+    tabSelected = m.tabSelected;
     viewportEnabled = m.viewportEnabled;
     viewport = m.viewport;
     fixedPanelBounds = m.fixedPanelBounds;
@@ -149,8 +151,42 @@ CMenu *CMenu::focusedInterface() {
     return rootMenu()->containsInterface(inputFocus) ? inputFocus : nullptr;
 }
 
+bool CMenu::panelVisible() const {
+    for (const auto *menu = this; menu != nullptr; menu = menu->owner) {
+        // Windows are independent surfaces, including modals opened by a tab.
+        if (menu->uiMenu && !menu->permanentPanel) {
+            return true;
+        }
+        if (menu->permanentPanel && !menu->tabSelected) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CMenu::setTabSelected(bool selected) {
+    if (!permanentPanel) {
+        return false;
+    }
+    tabSelected = selected;
+    if (mouseCapture && !mouseCapture->panelVisible()) {
+        mouseCapture->resetBtns();
+    }
+    if (inputFocus && !inputFocus->panelVisible()) {
+        if (inputFocus->focused >= 0 &&
+            static_cast<size_t>(inputFocus->focused) <
+                inputFocus->options.size()) {
+            inputFocus->options[static_cast<size_t>(inputFocus->focused)]
+                .status &= ~4;
+        }
+        inputFocus = rootMenu();
+    }
+    return true;
+}
+
 bool CMenu::focusInterface(CMenu &menu) {
-    if (!rootMenu()->containsInterface(&menu) || !menu.hasFocusableOptions()) {
+    if (!rootMenu()->containsInterface(&menu) || !menu.panelVisible() ||
+        !menu.hasFocusableOptions()) {
         return false;
     }
 
@@ -193,7 +229,7 @@ bool CMenu::focusNextPanel(bool backwards) {
 
     bool composed = false;
     scope->visitInterfaces([&](CMenu &child) {
-        if (child.permanentPanel) {
+        if (child.permanentPanel && child.panelVisible()) {
             composed = true;
             if (child.hasFocusableOptions()) {
                 regions.push_back(&child);
@@ -223,6 +259,9 @@ bool CMenu::focusNextPanel(bool backwards) {
 
 bool CMenu::hitOption(size_t index, double px, double py,
                       const ui::Style &style) {
+    if (!panelVisible()) {
+        return false;
+    }
     const auto panelBounds = getPanelBounds();
     if (permanentPanel && !Rect{panelBounds.left + x, panelBounds.bottom + y,
                                 panelBounds.right + x, panelBounds.top + y}
@@ -240,6 +279,9 @@ bool CMenu::hitOption(size_t index, double px, double py,
 }
 
 bool CMenu::hitRegion(double px, double py) {
+    if (!panelVisible()) {
+        return false;
+    }
     const auto panelBounds = getPanelBounds();
     if (permanentPanel) {
         return Rect{panelBounds.left + x, panelBounds.bottom + y,
@@ -274,7 +316,6 @@ void CMenu::closeInterfaces() {
             uiList[static_cast<size_t>(id)].pos = 0;
         }
     }
-
 }
 
 int CMenu::addOpt(const menuOpt &opt) {
@@ -297,6 +338,41 @@ int CMenu::addOpt(const menuOpt &opt) {
         CLog::log() << "Duplicate menu option: " + name;
         return -1;
     }
+    return appendOption(opt, std::move(name));
+}
+
+std::vector<int> CMenu::addOptions(const std::vector<menuOpt> &items) {
+    std::unordered_set<std::string> names;
+    names.reserve(options.size() + items.size());
+    for (const auto &option : options) {
+        names.insert(option.optionName);
+    }
+    const std::string prefix = menuName + ".";
+    std::vector<int> indices;
+    indices.reserve(items.size());
+    for (const auto &option : items) {
+        std::string name = option.optionName;
+        if (name.empty()) {
+            do {
+                name = prefix + "auto_" + std::to_string(nextOptionId++);
+            } while (names.count(name) != 0);
+        } else if (name.compare(0, prefix.size(), prefix) != 0) {
+            name = prefix + name;
+        }
+        if (options.size() >=
+                static_cast<size_t>(std::numeric_limits<int>::max()) ||
+            !names.insert(name).second) {
+            indices.push_back(-1);
+            continue;
+        }
+        indices.push_back(appendOption(option, std::move(name)));
+    }
+    return indices;
+}
+
+int CMenu::appendOption(const menuOpt &opt, std::string name) {
+    const size_t index = options.size();
+    const std::string prefix = menuName + ".";
     options.push_back(opt);
     auto &o = options.back();
     translate(o);
@@ -670,7 +746,7 @@ bool CMenu::isInterfaceOver() const {
         if (menu == this) {
             break;
         }
-        if (root->containsInterface(menu) &&
+        if (menu->panelVisible() && root->containsInterface(menu) &&
             ((menu->modal && !menu->containsInterface(this)) ||
              menu->isMouseOnThisMenu())) {
             return true;
@@ -686,7 +762,10 @@ bool CMenu::processCommand(const CControls::MenuEvent &event,
     }
     for (size_t i = 0; i < options.size(); ++i) {
         auto &o = options[i];
-        if (interactive(o) && o.shortcutKey && o.shortcutKey == event.key) {
+        const int modifiers = event.mods & (GLFW_MOD_SHIFT | GLFW_MOD_CONTROL |
+                                            GLFW_MOD_ALT | GLFW_MOD_SUPER);
+        if (interactive(o) && o.shortcutKey && o.shortcutKey == event.key &&
+            (o.shortcutMods < 0 || o.shortcutMods == modifiers)) {
             if (selectOption) {
                 select(static_cast<int>(i));
             }
@@ -710,6 +789,9 @@ bool CMenu::processCommand(const CControls::MenuEvent &event,
 }
 
 bool CMenu::processEvent(const CControls::MenuEvent &event) {
+    if (!panelVisible()) {
+        return false;
+    }
     const auto style = resolvedStyle();
     reflow(style);
     using Event = CControls::MenuEvent;
@@ -1316,6 +1398,9 @@ void CMenu::updateDev() {
 }
 
 void CMenu::render() {
+    if (!panelVisible()) {
+        return;
+    }
     const auto style = resolvedStyle();
     reflow(style);
     auto &engine = CEngine::engine();

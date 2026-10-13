@@ -50,83 +50,221 @@ void CMenuSystem::selectPlayerMenu() {
     openMenus(&menu);
 }
 
+namespace {
+std::string durationText(const songs::SongRecord &song) {
+    if (!song.duration) {
+        return "--:--";
+    }
+    const auto seconds = static_cast<uint64_t>(*song.duration);
+    return (song.durationSource == "chart-estimate" ? "~" : "") +
+           std::to_string(seconds / 60) + ":" + (seconds % 60 < 10 ? "0" : "") +
+           std::to_string(seconds % 60);
+}
+
+std::string progressText(const songs::ScanProgress &progress) {
+    std::string text = progress.running     ? "Atualizando biblioteca: "
+                       : progress.cancelled ? "Atualização interrompida: "
+                                            : "Biblioteca: ";
+    text += std::to_string(progress.examined) + " arquivos | " +
+            std::to_string(progress.added) + " novas | " +
+            std::to_string(progress.modified) + " atualizadas | " +
+            std::to_string(progress.removed) + " removidas";
+    if (!progress.warning.empty()) {
+        text += " | " + progress.warning;
+    }
+    return text;
+}
+} // namespace
+
 std::string CMenuSystem::selectSong() {
     auto &menu = newNamedMenu("selectSongMenu");
     std::map<int, std::string> songs;
     addSongListToMenu(menu, songs);
-    for (const auto &song : songs) {
-        menu.options[static_cast<size_t>(song.first)].goback = true;
-    }
-    auto &engine = CEngine::engine();
-    while (engine.getMouseButton(0) != 0 ||
-           engine.getKey(GLFW_KEY_ENTER) != 0) {
-        if (!engine.windowOpened()) {
-            return {};
+    uint64_t revision = songLibrary.snapshot()->contentRevision;
+    std::string selected;
+    songLibrary.refresh();
+    // Ensure exceptions/window close cannot leave a scan using services during
+    // shutdown. Normal exit below keeps drawing while cancellation completes.
+    struct JoinScan {
+        songs::SongLibrary &library;
+        explicit JoinScan(songs::SongLibrary &value) : library(value) {}
+        JoinScan(const JoinScan &) = delete;
+        JoinScan &operator=(const JoinScan &) = delete;
+        JoinScan(JoinScan &&) = delete;
+        JoinScan &operator=(JoinScan &&) = delete;
+        ~JoinScan() {
+            library.cancel();
+            library.wait();
         }
-        waitForScreen(.1);
-    }
-    openMenus(&menu);
-    if ((menu.findOption("back")->status & 3) == 3) {
-        return {};
-    }
-    for (const auto &song : songs) {
-        if ((menu.options[static_cast<size_t>(song.first)].status & 3) == 3) {
-            return song.second;
+    } join{songLibrary};
+    const auto applySnapshot = [&]() {
+        const auto snapshot = songLibrary.snapshot();
+        if (auto *status = menu.findOption("scanStatus")) {
+            status->text = progressText(snapshot->progress);
         }
+        if (snapshot->contentRevision == revision) {
+            return;
+        }
+        revision = snapshot->contentRevision;
+        std::string focus;
+        if (menu.focusedOption() >= 0) {
+            focus = menu.options[static_cast<size_t>(menu.focusedOption())]
+                        .optionName;
+        }
+        const auto scroll = menu.scrollOffset;
+        if (updateSongRows(menu, songs, *snapshot)) {
+            return;
+        }
+        buildSongList(menu, songs, *snapshot);
+        preparePresentation(menu);
+        menu.reflow();
+        for (size_t i = 0; i < menu.options.size(); ++i) {
+            if (menu.options[i].optionName == focus) {
+                menu.select(static_cast<int>(i));
+                break;
+            }
+        }
+        menu.scrollOffset = scroll;
+    };
+    openMenus(
+        &menu,
+        [&]() {
+            // Rebuild only before event dispatch, never while iterating options
+            // or after an activation which refers to the previous snapshot.
+            applySnapshot();
+            return 0;
+        },
+        [&]() {
+            if ((menu.findOption("refresh")->status & 3) == 3) {
+                songLibrary.refresh(songs::ScanMode::Incremental);
+            }
+            if ((menu.findOption("verify")->status & 3) == 3) {
+                songLibrary.refresh(songs::ScanMode::Full);
+            }
+            for (const auto &entry : songs) {
+                if ((menu.options[static_cast<size_t>(entry.first)].status &
+                     3) == 3) {
+                    selected = entry.second;
+                    return 1;
+                }
+            }
+            return 0;
+        });
+    songLibrary.cancel();
+    while (songLibrary.running() && CEngine::engine().windowOpened()) {
+        waitForScreen(.01);
     }
-    return {};
+    songLibrary.wait();
+    return selected;
 }
 
 void CMenuSystem::addSongListToMenu(CMenu &menu,
                                     std::map<int, std::string> &songs) {
-    menu.clearOptions();
-    songs.clear();
-    menu.setFlow(CMenu::Flow::Vertical, -.75, .7);
-    menu.viewportEnabled = true;
-    menu.viewport = {-1.0, -.8, 1.0, .8};
-    addBack(menu);
-    populateSongs(menu, songs, false);
+    buildSongList(menu, songs, *songLibrary.snapshot());
 }
 
-void CMenuSystem::populateSongs(CMenu &selectSongMenu,
-                                std::map<int, std::string> &menuMusics,
-                                bool returnOnSelection) {
-    auto &game = host;
-    {
-        auto pending = std::async(std::launch::async, [&game]() {
-            std::vector<std::pair<std::string, bool>> songs;
-            for (const auto &song :
-                 game.getDirectory("./data/songs", false, true)) {
-                const auto chart = CPlayer::smartChartSearch(song);
-                if (!chart.empty()) {
-                    songs.emplace_back(song,
-                                       !CPlayer::smartSongSearch(song).empty());
-                }
-            }
+void CMenuSystem::buildSongList(CMenu &menu, std::map<int, std::string> &songs,
+                                const songs::LibrarySnapshot &snapshot) {
+    menu.clearOptions();
+    songs.clear();
+    menu.setFlow(CMenu::Flow::Vertical, -.85, .65);
+    menu.viewportEnabled = true;
+    menu.viewport = {-1.0, -.78, 1.0, .72};
+    menu.tableColumns = {.69, .035, .465, .035, .22, .035, .23};
+    addBack(menu);
+    for (const bool full : {false, true}) {
+        CMenu::menuOpt option;
+        option.optionName = full ? "verify" : "refresh";
+        option.text = full ? "Ctrl+F5  Verificar tudo" : "F5  Atualizar";
+        option.x = full ? .25 : -.4;
+        option.y = .85;
+        option.styleOverrides.textSize = .065;
+        option.type = CMenu::textbtn;
+        option.shortcutKey = GLFW_KEY_F5;
+        option.shortcutMods = full ? GLFW_MOD_CONTROL : 0;
+        menu.addOpt(option);
+    }
+    CMenu::menuOpt status;
+    status.optionName = "scanStatus";
+    status.type = CMenu::static_text;
+    status.x = -.9;
+    status.y = -.88;
+    status.width = 1.8;
+    status.styleOverrides.textSize = .045;
+    status.text = progressText(snapshot.progress);
+    menu.addOpt(status);
+    populateSongs(menu, songs, false, snapshot);
+}
 
-            return songs;
-        });
-        while (pending.wait_for(std::chrono::milliseconds(0)) !=
-               std::future_status::ready) {
-            if (!CEngine::engine().windowOpened()) {
-                return;
-            }
-
-            waitForScreen(.01);
-        }
-
-        for (const auto &song : pending.get()) {
-            CMenu::menuOpt opt;
-            opt.optionName = "song:" + song.first;
-            opt.text = song.first;
-            opt.styleOverrides.textSize = .09;
-            opt.group = 1;
-            opt.type = CMenu::textbtn;
-            opt.goback = returnOnSelection;
-            if (!song.second) {
-                opt.styleOverrides.textColor = ui::Color{1, 0, 0, 1};
-            }
-            menuMusics[selectSongMenu.addOpt(opt)] = song.first;
+void CMenuSystem::populateSongs(CMenu &menu, std::map<int, std::string> &songs,
+                                bool returnOnSelection,
+                                const songs::LibrarySnapshot &snapshot) {
+    std::vector<CMenu::menuOpt> rows;
+    rows.reserve(snapshot.songs.size());
+    for (const auto &song : snapshot.songs) {
+        CMenu::menuOpt option;
+        option.optionName = "song:" + song.path;
+        option.text = song.title;
+        option.cells = {song.title,
+                        "",
+                        song.artist,
+                        "",
+                        durationText(song),
+                        "",
+                        song.available ? song.format : "Indisponível"};
+        option.styleOverrides.textSize = .065;
+        option.group = 1;
+        option.type = CMenu::table_row;
+        option.goback = returnOnSelection;
+        option.disabled = !song.available;
+        rows.push_back(std::move(option));
+    }
+    const auto indices = menu.addOptions(rows);
+    for (size_t i = 0; i < indices.size(); ++i) {
+        if (indices[i] >= 0) {
+            songs[indices[i]] = snapshot.songs[i].path;
         }
     }
+    if (snapshot.songs.empty()) {
+        CMenu::menuOpt empty;
+        empty.optionName = "emptyLibrary";
+        empty.text = "Nenhuma música indexada. F5 para atualizar.";
+        empty.type = CMenu::static_text;
+        empty.group = 1;
+        empty.styleOverrides.textSize = .07;
+        menu.addOpt(empty);
+    }
+}
+
+bool CMenuSystem::updateSongRows(CMenu &menu,
+                                 const std::map<int, std::string> &rows,
+                                 const songs::LibrarySnapshot &snapshot) {
+    if (rows.size() != snapshot.songs.size()) {
+        return false;
+    }
+    size_t index = 0;
+    for (const auto &row : rows) {
+        if (row.first < 0 ||
+            static_cast<size_t>(row.first) >= menu.options.size() ||
+            row.second != snapshot.songs[index++].path) {
+            return false;
+        }
+    }
+    index = 0;
+    for (const auto &row : rows) {
+        const auto &song = snapshot.songs[index++];
+        auto &option = menu.options[static_cast<size_t>(row.first)];
+        option.text = song.title;
+        option.cells = {song.title,
+                        "",
+                        song.artist,
+                        "",
+                        durationText(song),
+                        "",
+                        song.available ? song.format : "Indisponível"};
+        option.disabled = !song.available;
+        // Preserve presentation overrides and all existing layout caches.
+        // Disabled rows already get the renderer's disabled opacity.
+    }
+    return true;
 }

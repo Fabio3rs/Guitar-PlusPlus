@@ -16,7 +16,7 @@ GLFW (included as submodule)
 ```
 sudo apt update
 sudo apt install xorg-dev
-sudo apt install extra-cmake-modules cmake build-essential gcc g++ libgl-dev libglew-dev
+sudo apt install extra-cmake-modules cmake build-essential gcc g++ libgl-dev libglew-dev libsqlite3-dev
 
 git clone  --recurse-submodules https://github.com/Fabio3rs/Guitar-PlusPlus/
 cd Guitar-PlusPlus/
@@ -30,6 +30,40 @@ Binary output directory: Guitar-PlusPlus/build/bin
 Place the binary with the assets (not updated yet...) https://brmodstudio.forumeiros.com/t1590-guitar-topico-oficial
 
 Put your song assets in the data/songs directory
+
+## Quick Play library index
+
+Quick Play recursively discovers songs under `data/songs` and caches metadata in
+`data/cache/songlibrary.db`. It displays cached entries before scanning. **F5**
+checks additions, modifications and removals; **Ctrl+F5** hashes and parses charts
+again and measures main audio durations again. Use the latter if file contents
+changed without changing their size or modification timestamp. Directory symlinks
+are not followed during recursive discovery.
+
+The index stores `.chart`/`.gpp`/MIDI metadata, extra `song.ini` fields, playable
+parts, stems, artwork paths and BASS audio durations. Embedded explicit fields
+precede INI fields; a MIDI sequence name is only a title fallback after the INI.
+Audio stems and declared difficulty ratings do not imply playable chart parts.
+Unavailable songs remain visible. Duration falls back to declared metadata or a
+chart estimate (`~`) when audio inspection fails. Songs, settings and saves are
+never rewritten by indexing. The cache can be rebuilt; it holds no personal data.
+
+SQLite is a system dependency (`libsqlite3-dev` on Debian/Ubuntu). On Windows,
+provide matching headers/libraries through `SQLite3_INCLUDE_DIR` and
+`SQLite3_LIBRARY`, or a package-manager CMake toolchain. The adapted SQLite RAII
+wrapper retains its MIT notice in `src/sqlite3/LICENSE`; xxHash 0.8.3 retains its
+BSD notice in `vendor/xxhash/LICENSE`.
+
+An optional inspection command is built with `-DBUILD_CHART_TOOLS=ON`:
+
+```sh
+build/bin/gpp_scan_library build/bin/data/songs /tmp/songlibrary.db > /tmp/songs.json
+build/bin/gpp_scan_library build/bin/data/songs /tmp/songlibrary.db --full > /tmp/songs.json
+```
+
+It exports the indexed records to stdout and scan counters/timing to stderr.
+The current menu remains a simple list; the full grouped Quick Play design is a
+separate UI step.
 
 ## Configuration and preferences
 

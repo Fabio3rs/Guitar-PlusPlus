@@ -381,6 +381,20 @@ restores the original bounds/mode before applying the new patch. The older `pane
 field still describes the background quad; it is not the outer clipping region.
 
 
+Tab content visibility is explicit: call `setTabSelected(false/true)` on the
+attached tab panel. The host chooses which panels form each tab group; ordinary
+fixed panels remain visible by default. Hidden tab content keeps receiving update
+callbacks, but does not draw, accept input or participate in Tab navigation.
+Switching tabs preserves each panel's local selection and scroll. Open windows,
+including modals opened from a hidden tab, remain independent visible surfaces.
+The setter rejects ordinary windows and root menus. Focus/modality alone never
+hides a window, a fixed panel or the background menu.
+
+`addOptions(items)` bulk-populates options with one hash-based ID validation pass
+and returns their indices in input order (`-1` for duplicates). It preserves
+`addOpt` naming/presentation behavior without retaining an index that could become
+stale when legacy callers change the public option container.
+
 `focusedInterface()` queries the focused region in the caller's root tree.
 `focusInterface(menu)` rejects foreign trees, regions with no enabled controls,
 and destinations blocked by a modal. `focusNextPanel(backwards)` implements the

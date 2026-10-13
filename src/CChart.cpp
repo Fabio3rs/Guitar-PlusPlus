@@ -5,6 +5,7 @@
 #include "CText.h"
 #include "ChartHopo.h"
 #include "GPPGame.h"
+#include "SongFiles.h"
 #include <algorithm>
 #include <cctype>
 #include <cereal/archives/binary.hpp>
@@ -801,107 +802,22 @@ void CChart::instrumentNotes::deducePlusLastNotes() {
 }
 
 // Runtime loaders moved from CPlayer without changing parsing rules.
-std::vector<std::string>
-CChart::availableInstruments(const std::string &file) try {
-    std::string extension = std::filesystem::path(file).extension().string();
-    std::transform(
-        extension.begin(), extension.end(), extension.begin(),
-        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    std::vector<std::string> candidates, available;
-    if (extension == ".mid") {
-        MidiChart midi;
-        std::string error;
-        if (readMidiChart(file, midi, error)) {
-            for (const auto &part : midi.instruments) {
-                available.push_back(part.first);
-            }
-        } else {
-            CLog::log() << "Cannot inspect MIDI " + file + ": " + error;
-        }
-        return available;
-    }
-    if (!validateChartHeader(file)) {
-        return {};
-    }
-    if (extension == ".chart") {
-        std::ifstream input(file);
-        std::string line;
-        while (std::getline(input, line)) {
-            const auto first = line.find_first_not_of(" \t\r");
-            const auto last = line.find_last_not_of(" \t\r");
-            if (first == std::string::npos) {
-                continue;
-            }
-            line = line.substr(first, last - first + 1);
-            if (line.back() == ']' && (line.compare(0, 5, "[Easy") == 0 ||
-                                       line.compare(0, 7, "[Medium") == 0 ||
-                                       line.compare(0, 5, "[Hard") == 0 ||
-                                       line.compare(0, 7, "[Expert") == 0)) {
-                candidates.push_back(line);
-            }
-        }
-    } else if (hasLegacyTextHeader(file)) {
-        candidates.push_back("[ExpertSingle]");
-    } else {
-        CChart compiled;
-        std::ifstream input(file, std::ios::binary);
-        cereal::BinaryInputArchive archive(input);
-        archive(compiled);
-        for (const auto &part : compiled.instruments) {
-            candidates.push_back(part.first);
-        }
-    }
-    std::sort(candidates.begin(), candidates.end());
-    candidates.erase(std::unique(candidates.begin(), candidates.end()),
-                     candidates.end());
-    // Use the actual runtime loader for validity, not the older compiler
-    // parser. Inspection owns a temporary player and never opens audio or a GL
-    // context.
-    CPlayer inspection("chart inspection");
-    for (const auto &instrument : candidates) {
-        inspection.instrument = instrument;
-        const bool valid =
-            extension == ".chart"
-                ? inspection.Notes.loadFeedbackChart(file, inspection)
-                : inspection.Notes.loadChart(file, inspection);
-        if (valid) {
-            available.push_back(instrument);
-        }
-    }
-    return available;
-} catch (const std::exception &e) {
-    CLog::log() << "Cannot inspect chart " + file + ": " + e.what();
-    return {};
+std::vector<std::string> CChart::availableInstruments(const std::string &file) {
+    return inspect(file).instruments;
 }
 
 auto CChart::smartChartSearch(const std::string &path) -> std::string {
-    const std::filesystem::path directory =
-        std::filesystem::path("data/songs") / path;
-    const std::string formats[] = {
-        path + ".gpp", path + ".chart", "Chart.gpp", "Notes.gpp",
-        "Chart.chart", "notes.chart",   "notes.mid"};
-    auto lowercase = [](std::string value) {
-        std::transform(
-            value.begin(), value.end(), value.begin(),
-            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        return value;
-    };
-    std::vector<std::string> files;
-    std::error_code error;
-    for (std::filesystem::directory_iterator it(directory, error), last;
-         !error && it != last; it.increment(error)) {
-        if (it->is_regular_file(error)) {
-            files.push_back(it->path().filename().string());
-        }
-    }
-    std::sort(files.begin(), files.end());
-    for (const auto &candidate : formats) {
-        for (const auto &file : files) {
-            if (lowercase(file) == lowercase(candidate) &&
-                !availableInstruments((directory / file).string()).empty()) {
-                return file;
+    const auto directory =
+        std::filesystem::path("data/songs") / std::filesystem::u8path(path);
+    try {
+        for (const auto &file :
+             songfiles::charts(directory, songfiles::list(directory))) {
+            if (!availableInstruments(file.u8string()).empty()) {
+                return file.filename().u8string();
             }
         }
+    } catch (const std::filesystem::filesystem_error &error) {
+        CLog::log() << error.what();
     }
     return {};
 }
@@ -925,21 +841,134 @@ static auto trimRuntimeChart(const std::string &str) -> std::string {
     return str.substr(first, last - first + 1);
 }
 
-auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
-                                          CPlayer &player) -> bool try {
+CChart::FeedbackDocument
+CChart::readFeedbackDocument(std::string_view chartFile) {
+    FeedbackDocument data;
+    std::ifstream chart((std::string(chartFile)));
+    if (!chart) {
+        throw std::runtime_error("Cannot open chart");
+    }
+    char temp[1024];
+
+    std::string myScope = "nothing";
+    bool scopeOpen = false;
+    bool awaitingBrace = false;
+
+    while (chart.getline(temp, sizeof(temp))) {
+        {
+            char *tln = strchr(temp, '\n');
+            if (tln != nullptr) {
+                {
+                    *tln = '\0';
+                }
+            }
+            tln = strchr(temp, '\r');
+            if (tln != nullptr) {
+                {
+                    *tln = '\0';
+                }
+            }
+        }
+
+        std::string str = temp;
+
+        str = trimRuntimeChart(str);
+
+        if (str.empty() || str.compare(0, 2, "//") == 0) {
+            continue;
+        }
+        if (str == "{") {
+            if (!awaitingBrace) {
+                throw std::runtime_error("Unexpected chart section");
+            }
+            awaitingBrace = false;
+            scopeOpen = true;
+            continue;
+        }
+        if (str == "}") {
+            if (!scopeOpen) {
+                throw std::runtime_error("Unexpected chart section end");
+            }
+            scopeOpen = false;
+            continue;
+        }
+        if (str.front() == '[') {
+            if (scopeOpen || awaitingBrace || str.back() != ']') {
+                throw std::runtime_error("Invalid chart section");
+            }
+            myScope = str;
+            awaitingBrace = true;
+        } else {
+            if (!scopeOpen) {
+                throw std::runtime_error("Missing chart section");
+            }
+            size_t s = str.find_first_of('=');
+            size_t sB;
+            size_t sC;
+            size_t d = str.find_first_not_of('	');
+
+            d = (d == std::string::npos) ? str.find_first_not_of(' ') : d;
+            d = (d == std::string::npos) ? 0uL : d;
+
+            if (s == std::string::npos) {
+                {
+                    continue;
+                }
+            }
+
+            sB = str.find_first_of(' ', d);
+            sB = (sB == std::string::npos || sB >= s) ? (s - 1) : (sB);
+
+            std::string name;
+
+            if (isblank(str[0]) == 0) {
+                d = 0;
+            }
+
+            name.insert(0, str, d, sB);
+
+            name = trimRuntimeChart(name);
+
+            sC = str.find_first_not_of(' ', ++s);
+            sC = sC == std::string::npos ? s : sC;
+
+            std::string contents;
+            contents.insert(0, str, sC, std::string::npos);
+
+            data[myScope][name].push_back(contents);
+        }
+    }
+    if (!chart.eof() || scopeOpen || awaitingBrace) {
+        throw std::runtime_error("Cannot read complete chart");
+    }
+    return data;
+}
+
+bool CChart::NotesData::loadFeedbackChart(std::string_view file,
+                                          CPlayer &player) {
+    Metadata metadata;
+    const bool valid = loadFeedbackChartCPU(file, player.instrument, metadata);
+    player.songName = std::move(metadata.name);
+    player.songArtist = std::move(metadata.artist);
+    player.songCharter = std::move(metadata.charter);
+    return valid;
+}
+
+bool CChart::NotesData::loadFeedbackChartCPU(
+    std::string_view chartFile, const std::string &instrument,
+    Metadata &metadata, const FeedbackDocument *document) try {
     unloadChart();
-    if (!CChart::validateChartHeader(std::string(chartFile))) {
+    if (!document && !CChart::validateChartHeader(std::string(chartFile))) {
         CLog::log() << "Invalid chart header: " + std::string(chartFile);
         return false;
     }
-    typedef std::map<std::string,
-                     std::map<std::string, std::deque<std::string>>>
-        parsedChart;
+    using parsedChart = FeedbackDocument;
     chartEnd = 0;
     plusPos = 0;
     double chartOffset = 0.0;
 
-    parsedChart feedBackChartMap;
+    parsedChart feedBackChartMap =
+        document ? *document : CChart::readFeedbackDocument(chartFile);
 
     struct SyncTrackBPM {
         double BPM, offset;
@@ -958,106 +987,6 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
     BPMContainer BPMsdata;
 
     BPMsdata.reserve(64);
-
-    auto parseFeedBackChart = [chartFile](parsedChart &data) {
-        std::ifstream chart((std::string(chartFile)));
-        if (!chart) {
-            throw std::runtime_error("Cannot open chart");
-        }
-        char temp[1024];
-
-        std::string myScope = "nothing";
-        bool scopeOpen = false;
-        bool awaitingBrace = false;
-
-        while (chart.getline(temp, sizeof(temp))) {
-            {
-                char *tln = strchr(temp, '\n');
-                if (tln != nullptr) {
-                    {
-                        *tln = '\0';
-                    }
-                }
-                tln = strchr(temp, '\r');
-                if (tln != nullptr) {
-                    {
-                        *tln = '\0';
-                    }
-                }
-            }
-
-            std::string str = temp;
-
-            str = trimRuntimeChart(str);
-
-            if (str.empty() || str.compare(0, 2, "//") == 0) {
-                continue;
-            }
-            if (str == "{") {
-                if (!awaitingBrace) {
-                    throw std::runtime_error("Unexpected chart section");
-                }
-                awaitingBrace = false;
-                scopeOpen = true;
-                continue;
-            }
-            if (str == "}") {
-                if (!scopeOpen) {
-                    throw std::runtime_error("Unexpected chart section end");
-                }
-                scopeOpen = false;
-                continue;
-            }
-            if (str.front() == '[') {
-                if (scopeOpen || awaitingBrace || str.back() != ']') {
-                    throw std::runtime_error("Invalid chart section");
-                }
-                myScope = str;
-                awaitingBrace = true;
-            } else {
-                if (!scopeOpen) {
-                    throw std::runtime_error("Missing chart section");
-                }
-                size_t s = str.find_first_of('=');
-                size_t sB;
-                size_t sC;
-                size_t d = str.find_first_not_of('	');
-
-                d = (d == std::string::npos) ? str.find_first_not_of(' ') : d;
-                d = (d == std::string::npos) ? 0uL : d;
-
-                if (s == std::string::npos) {
-                    {
-                        continue;
-                    }
-                }
-
-                sB = str.find_first_of(' ', d);
-                sB = (sB == std::string::npos || sB >= s) ? (s - 1) : (sB);
-
-                std::string name;
-
-                if (isblank(str[0]) == 0) {
-                    d = 0;
-                }
-
-                name.insert(0, str, d, sB);
-
-                name = trimRuntimeChart(name);
-
-                sC = str.find_first_not_of(' ', ++s);
-                sC = sC == std::string::npos ? s : sC;
-
-                std::string contents;
-                contents.insert(0, str, sC, std::string::npos);
-
-                data[myScope][name].push_back(contents);
-            }
-        }
-        if (!chart.eof() || scopeOpen || awaitingBrace) {
-            throw std::runtime_error("Cannot read complete chart");
-        }
-    };
 
     auto BPMRead = [](BPMContainer &BPMs, parsedChart &chartMap) {
         for (auto &SyncTrack : chartMap["[SyncTrack]"]) {
@@ -1333,6 +1262,12 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
         };
 
         auto &Song = chartMap["[Song]"];
+        for (const auto &entry : Song) {
+            if (!entry.second.empty()) {
+                metadata.fields[entry.first] =
+                    CChart::unquoteSongMetadata(entry.second.front());
+            }
+        }
 
         try {
             chartResolutionProp = std::stod(chk(Song["Resolution"], 0)) / 192.0;
@@ -1341,10 +1276,9 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
             CLog::log().multiRegister(__FILE__ " exception: %0 LINE %1", e,
                                       static_cast<int>(__LINE__));
         }
-        player.songName = CChart::unquoteSongMetadata(chk(Song["Name"], 0u));
-        player.songArtist =
-            CChart::unquoteSongMetadata(chk(Song["Artist"], 0u));
-        player.songCharter =
+        metadata.name = CChart::unquoteSongMetadata(chk(Song["Name"], 0u));
+        metadata.artist = CChart::unquoteSongMetadata(chk(Song["Artist"], 0u));
+        metadata.charter =
             CChart::unquoteSongMetadata(chk(Song["Charter"], 0u));
         try {
             chartOffset = std::stod(chk(Song["Offset"], 0));
@@ -1353,11 +1287,9 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
         }
     };
 
-    parseFeedBackChart(feedBackChartMap);
-
     fillChartInfo(feedBackChartMap);
 
-    Ntsdata.reserve(notesCountToReserve(feedBackChartMap, player.instrument));
+    Ntsdata.reserve(notesCountToReserve(feedBackChartMap, instrument));
 
     BPMRead(BPMsdata, feedBackChartMap);
     if (!std::isfinite(chartResolutionProp) || chartResolutionProp <= 0.0 ||
@@ -1388,7 +1320,7 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
                                  tempo.BPM / 1000.0});
     }
     for (const auto &scope : feedBackChartMap) {
-        if (scope.first != "[Events]" && scope.first != player.instrument) {
+        if (scope.first != "[Events]" && scope.first != instrument) {
             continue;
         }
         for (const auto &record : scope.second) {
@@ -1430,7 +1362,7 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
         source.gems.begin(), source.gems.end(),
         [](const auto &a, const auto &b) { return a.tick < b.tick; });
     noteRead(Ntsdata, BPMsdata, feedBackChartMap,
-             player.instrument); // Default: "[ExpertSingle]"
+             instrument); // Default: "[ExpertSingle]"
 
     /*
     int bpdqpos = 0;
@@ -1571,8 +1503,18 @@ auto CChart::NotesData::getChartEnd(double offset) -> double {
     return 2.0;
 }
 
-auto CChart::NotesData::loadChart(std::string_view chartFile, CPlayer &player)
-    -> bool try {
+bool CChart::NotesData::loadChart(std::string_view file, CPlayer &player) {
+    Metadata metadata;
+    const bool valid = loadChartCPU(file, player.instrument, metadata);
+    player.songName = std::move(metadata.name);
+    player.songArtist = std::move(metadata.artist);
+    player.songCharter = std::move(metadata.charter);
+    return valid;
+}
+
+bool CChart::NotesData::loadChartCPU(std::string_view chartFile,
+                                     const std::string &instrument,
+                                     Metadata &metadata) try {
     unloadChart();
 
     std::string lowerPath(chartFile);
@@ -1596,9 +1538,17 @@ auto CChart::NotesData::loadChart(std::string_view chartFile, CPlayer &player)
 
             oarchive(chart);
 
-            if (!chart.loadToNotesData(player, player.instrument)) {
+            const auto part = chart.instruments.find(instrument);
+            if (part == chart.instruments.end()) {
                 return false;
             }
+            BPM = chart.BPM;
+            gNotes = part->second.gNotes;
+            gPlus = part->second.gPlus;
+            chartResolutionProp = chart.chartData.chartResolutionProp;
+            metadata.name = chart.chartData.songName;
+            metadata.artist = chart.chartData.songArtist;
+            metadata.charter = chart.chartData.songCharter;
             return validateLoadedChart();
         } catch (const std::exception &e) {
             CLog::log().multiRegister("Exception %0", e);
@@ -1815,3 +1765,94 @@ CChart::NotesData::NotesData() {
 }
 
 CChart::NotesData::~NotesData() { unloadChart(); }
+
+CChart::Inspection CChart::inspect(const std::string &file) {
+    Inspection result;
+    try {
+        auto extension = std::filesystem::path(file).extension().string();
+        std::transform(
+            extension.begin(), extension.end(), extension.begin(),
+            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (extension == ".mid") {
+            MidiChart midi;
+            if (!readMidiChart(file, midi, result.error)) {
+                return result;
+            }
+            // These strings are INI-derived, not embedded MIDI metadata.
+            result.trackNames = std::move(midi.trackNames);
+            result.identification = std::move(midi.identification);
+            result.bpm = std::move(midi.bpm);
+            for (const auto &part : midi.instruments) {
+                result.instruments.push_back(part.first);
+                for (const auto &note : part.second.notes) {
+                    result.lastNoteEnd =
+                        std::max(result.lastNoteEnd, note.time + note.lTime);
+                }
+            }
+        } else {
+            NotesData notes;
+            auto collect = [&](const std::string &instrument) {
+                result.instruments.push_back(instrument);
+                result.lastNoteEnd =
+                    std::max(result.lastNoteEnd, notes.lastNoteEnd);
+                result.bpm = notes.BPM;
+            };
+            if (extension == ".chart") {
+                if (!validateChartHeader(file)) {
+                    throw std::runtime_error("Invalid chart header");
+                }
+                const auto document = readFeedbackDocument(file);
+                for (const auto &section : document) {
+                    const auto &name = section.first;
+                    if (name.compare(0, 5, "[Easy") != 0 &&
+                        name.compare(0, 7, "[Medium") != 0 &&
+                        name.compare(0, 5, "[Hard") != 0 &&
+                        name.compare(0, 7, "[Expert") != 0) {
+                        continue;
+                    }
+                    if (notes.loadFeedbackChartCPU(file, name, result.metadata,
+                                                   &document)) {
+                        collect(name);
+                    }
+                }
+            } else if (extension == ".gpp" && hasLegacyTextHeader(file)) {
+                if (notes.loadChartCPU(file, "[ExpertSingle]",
+                                       result.metadata)) {
+                    collect("[ExpertSingle]");
+                }
+            } else if (extension == ".gpp") {
+                CChart compiled;
+                std::ifstream input(file, std::ios::binary);
+                if (!hasBinaryChartPrefix(input)) {
+                    throw std::runtime_error("Invalid compiled chart prefix");
+                }
+                cereal::BinaryInputArchive archive(input);
+                archive(compiled);
+                if (!std::isfinite(compiled.chartData.chartOffset)) {
+                    throw std::runtime_error("Invalid compiled chart offset");
+                }
+                result.metadata.name = compiled.chartData.songName;
+                result.metadata.artist = compiled.chartData.songArtist;
+                result.metadata.charter = compiled.chartData.songCharter;
+                for (const auto &part : compiled.instruments) {
+                    notes.unloadChart();
+                    notes.BPM = compiled.BPM;
+                    notes.gNotes = part.second.gNotes;
+                    notes.gPlus = part.second.gPlus;
+                    notes.chartResolutionProp =
+                        compiled.chartData.chartResolutionProp;
+                    if (notes.validateLoadedChart()) {
+                        collect(part.first);
+                    }
+                }
+            }
+        }
+        if (result.instruments.empty() && result.error.empty()) {
+            result.error = "No playable chart parts";
+        }
+    } catch (const std::exception &error) {
+        result.instruments.clear();
+        result.error = error.what();
+    }
+    return result;
+}

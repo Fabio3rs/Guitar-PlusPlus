@@ -15,7 +15,7 @@ struct MidiChart {
     std::string name, artist, charter;
     std::vector<CChart::Note> bpm;
     ChartSourceInfo source;
-    std::vector<std::string> trackNames;
+    std::vector<std::string> trackNames, identification;
     std::map<std::string, Instrument> instruments;
 };
 

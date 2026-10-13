@@ -34,6 +34,10 @@ install(FILES vendor/midifile/LICENSE.txt DESTINATION share/GuitarPP/licenses RE
 find_package(PkgConfig)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
+# Linux: install libsqlite3-dev. Windows: provide SQLite3_INCLUDE_DIR and
+# SQLite3_LIBRARY (matching the build architecture), or use a package-manager
+# toolchain such as vcpkg. SQLite is a system dependency, not downloaded here.
+find_package(SQLite3 REQUIRED)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/glfw SYSTEM)
 
@@ -42,6 +46,10 @@ file(
     GLOB SOURCES 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CCampaing.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CChart.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SongLibrary.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SongLibraryAudio.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SongFiles.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/sqlite3/sqlite3raii.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CCharter.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CControls.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CEngine.cpp"
@@ -121,6 +129,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 add_library("${myprojectname}_lib" STATIC ${SOURCES})
+target_include_directories("${myprojectname}_lib" SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor/xxhash")
 add_executable(${myprojectname} "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
 option(GPP_NATIVE_CPU "Optimize for the build machine (not for distribution)" OFF)
@@ -140,7 +149,7 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     target_compile_options("${myprojectname}_lib" PRIVATE -Weverything -Wno-date-time -Wno-disabled-macro-expansion -Wno-global-constructors $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>  -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-exit-time-destructors)
 endif()
 
-target_link_libraries("${myprojectname}_lib" gpp_midi gpp_textures gpp_models glfw GLEW OpenGL::GL bass bass_fx)
+target_link_libraries("${myprojectname}_lib" gpp_midi gpp_textures gpp_models SQLite::SQLite3 glfw GLEW OpenGL::GL bass bass_fx)
 target_link_libraries(${myprojectname} "${myprojectname}_lib")
 
 
@@ -166,6 +175,8 @@ endif()
 
 option(BUILD_CHART_TOOLS "Build the CPU-only runtime chart dump tool" OFF)
 if(BUILD_CHART_TOOLS)
+    add_executable(gpp_scan_library tools/scan_library.cpp)
+    target_link_libraries(gpp_scan_library GuitarPP_lib)
     add_executable(gpp_dump_chart tools/dump_chart.cpp)
     target_link_libraries(gpp_dump_chart GuitarPP_lib)
 endif()
@@ -187,3 +198,8 @@ endif()
 if(BUILD_GUI_STUDIO)
     add_subdirectory(tools/gui_studio)
 endif()
+
+install(FILES src/sqlite3/LICENSE DESTINATION share/GuitarPP/licenses RENAME sqlite3raii-LICENSE.txt)
+install(FILES vendor/xxhash/LICENSE DESTINATION share/GuitarPP/licenses RENAME xxhash-LICENSE.txt)
+configure_file(src/sqlite3/LICENSE bin/licenses/sqlite3raii-LICENSE.txt COPYONLY)
+configure_file(vendor/xxhash/LICENSE bin/licenses/xxhash-LICENSE.txt COPYONLY)

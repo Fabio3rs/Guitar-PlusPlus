@@ -504,3 +504,47 @@ TEST_F(MenuCompositionCPU,
     EXPECT_EQ(root.options[0].status & 3, 3);
     EXPECT_EQ(root.focusedInterface(), &child);
 }
+
+TEST_F(MenuCompositionCPU, BulkOptionsKeepUniqueIdsWithoutAStaleIndex) {
+    CMenu menu("bulk", &context);
+    auto option = button();
+    option.optionName = "existing";
+    menu.addOpt(option);
+    std::vector<CMenu::menuOpt> batch;
+    for (const auto *name : {"first", "first", "bulk.existing", "", "last"}) {
+        option.optionName = name;
+        batch.push_back(option);
+    }
+    EXPECT_EQ(menu.addOptions(batch), (std::vector<int>{1, -1, -1, 2, 3}));
+    EXPECT_NE(menu.findOption("first"), nullptr);
+    // The public option container can still be changed by legacy callers.
+    menu.options[0].optionName = "bulk.renamed";
+    option.optionName = "existing";
+    EXPECT_EQ(menu.addOptions({option}), (std::vector<int>{4}));
+    CMenu copy(menu);
+    EXPECT_EQ(copy.addOptions({option}), (std::vector<int>{-1}));
+    copy.clearOptions();
+    EXPECT_EQ(copy.addOptions({option}), (std::vector<int>{0}));
+}
+
+TEST_F(MenuCompositionCPU, HiddenTabsKeepUpdatingButCannotCaptureInput) {
+    auto &first = addPanel(-1, 1);
+    auto &second = addPanel(.1, 1);
+    int updates = 0;
+    first.options[0].updateCppCallback = [&](CMenu &, CMenu::menuOpt &) {
+        ++updates;
+        return 0;
+    };
+    root.focusInterface(first);
+    ASSERT_TRUE(first.setTabSelected(false));
+    EXPECT_FALSE(root.focusInterface(first));
+    const int before = updates;
+    key(GLFW_KEY_TAB);
+    EXPECT_EQ(root.focusedInterface(), &second);
+    EXPECT_GT(updates, before);
+    mouse(-.8, .25, GLFW_PRESS);
+    mouse(-.8, .25, GLFW_RELEASE);
+    EXPECT_EQ(first.options[0].status & 2, 0);
+    first.setTabSelected(true);
+    EXPECT_TRUE(root.focusInterface(first));
+}

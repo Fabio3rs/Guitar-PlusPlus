@@ -5,6 +5,7 @@
 #include "CLog.h"
 #include "CMultiplayer.h"
 #include "GPPGame.h"
+#include "SongFiles.h"
 #include <algorithm>
 #include <cctype>
 #include <cfloat>
@@ -212,29 +213,15 @@ void CPlayer::update() {
 }
 
 auto CPlayer::smartSongSearch(const std::string &path) -> std::string {
-    auto file_exists = [](const std::string &fileName) {
-        return std::fstream(fileName).is_open();
-    };
-
-    const std::string fullPath = std::string("data/songs/") + path;
-
-    const std::string songsFormats[] = {path + ".ogg", path + ".mp3",
-                                        "song.ogg", "song.mp3"};
-
-    std::string tmp;
-
-    for (const auto &str : songsFormats) {
-        tmp = GPPGame::caseInsensitiveSearchDir(fullPath.c_str(), true, false,
-                                                str);
-
-        if (!tmp.empty()) {
-            {
-                return tmp;
-            }
-        }
+    const auto directory =
+        std::filesystem::path("data/songs") / std::filesystem::u8path(path);
+    try {
+        return songfiles::audio(directory, songfiles::list(directory))
+            .filename()
+            .u8string();
+    } catch (const std::filesystem::filesystem_error &) {
+        return {};
     }
-
-    return "";
 }
 
 auto CPlayer::loadSongOnlyChart(const std::string &path) -> bool {

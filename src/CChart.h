@@ -40,9 +40,18 @@ enum notesFlags {
 
 class CChart {
   public:
+    // CPU-owned inspection data. Never part of historical .gpp archives.
+    struct Metadata {
+        std::string name, artist, charter;
+        std::map<std::string, std::string> fields;
+    };
+    using FeedbackDocument =
+        std::map<std::string, std::map<std::string, std::deque<std::string>>>;
+
     // Each player owns its own mutable buffers and playback cursors.
     class NotesData {
         friend CCharter;
+        friend CChart;
         void deducePlusLastNotes();
         bool validateLoadedChart();
 
@@ -163,6 +172,12 @@ class CChart {
         bool loadChart(std::string_view chartFile, CPlayer &player);
         bool loadFeedbackChart(std::string_view chartFile, CPlayer &player);
         bool loadMidiChart(std::string_view chartFile, CPlayer &player);
+        bool loadFeedbackChartCPU(std::string_view file,
+                                  const std::string &instrument,
+                                  Metadata &metadata,
+                                  const FeedbackDocument *document = nullptr);
+        bool loadChartCPU(std::string_view file, const std::string &instrument,
+                          Metadata &metadata);
         void unloadChart();
 
         NotesData();
@@ -182,6 +197,14 @@ class CChart {
     using NoteInt = NotesData::NoteInt;
     using plusNote = NotesData::plusNote;
     using BPM_t = std::vector<Note>;
+    struct Inspection {
+        Metadata metadata;
+        std::vector<std::string> instruments, trackNames, identification;
+        BPM_t bpm;
+        double lastNoteEnd = 0;
+        std::string error;
+    };
+    static Inspection inspect(const std::string &file);
 
   private:
     friend class cereal::access;
@@ -230,6 +253,7 @@ class CChart {
     BPM_t BPM;
 
     bool parseFeebackChart(std::istream &chartStream);
+    static FeedbackDocument readFeedbackDocument(std::string_view file);
 
     template <class Archive> void load(Archive &archive) {
         archive(instruments, BPM, chartData);

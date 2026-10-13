@@ -2,6 +2,7 @@
 #include "CMenu.h"
 #include "CModalManager.h"
 #include "CUIOverrides.h"
+#include "SongLibrary.h"
 
 class GPPGame;
 enum class PauseResult { Resume, Exit };
@@ -10,12 +11,19 @@ enum class PauseResult { Resume, Exit };
 // explicit screen transitions; there is no per-frame gameplay integration.
 class CMenuSystem {
     GPPGame &host;
+    songs::SongLibrary songLibrary;
     ui::MenuOverrideSet presentation;
     std::map<std::string, CMenu> gameMenus;
     CMenu *mainMenu = nullptr, *currentMenu = nullptr;
+    friend struct SongListTestAccess;
+    static bool updateSongRows(CMenu &, const std::map<int, std::string> &,
+                               const songs::LibrarySnapshot &);
     void drawBackground();
     void waitForScreen(double duration);
-    void populateSongs(CMenu &, std::map<int, std::string> &, bool);
+    void populateSongs(CMenu &, std::map<int, std::string> &, bool,
+                       const songs::LibrarySnapshot &);
+    void buildSongList(CMenu &, std::map<int, std::string> &,
+                       const songs::LibrarySnapshot &);
     int menusGoBackSE = 0, menusCMMenuSE = 0, menusNextSE = 0,
         menusGameCbNextSE = 0;
 
