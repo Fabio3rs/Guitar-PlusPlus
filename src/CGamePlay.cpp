@@ -2485,6 +2485,16 @@ void CGamePlay::renderPlayer(CPlayer &player) {
     }
 }
 
+void CGamePlay::playSongAudio() {
+    std::vector<std::string> activeStems;
+    for (const auto &player : players) {
+        if (!player->instrumentAudioName.empty()) {
+            activeStems.push_back(player->instrumentAudioName);
+        }
+    }
+    getBPlayer().playSongAudio(activeStems);
+}
+
 bool CGamePlay::update() {
     std::lock_guard<std::mutex> l(GPPGame::playersMutex);
 
@@ -2498,8 +2508,7 @@ bool CGamePlay::update() {
         iFPSCount = 0;
         lastiFPSUpdated = now;
 
-        CEngine::engine().setSoundTime(getBPlayer().songAudioID,
-                                       getRunningMusicTime(getBPlayer()));
+        getBPlayer().seekSongAudio(getRunningMusicTime(getBPlayer()));
     }
 
     for (auto &pp : players) {

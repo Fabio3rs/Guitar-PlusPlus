@@ -130,8 +130,7 @@ void GPPGame::charterModule(const std::string &name) {
                 gp.update();
 
                 if (playSound) {
-                    CEngine::engine().setSoundTime(
-                        gp.getBPlayer().songAudioID,
+                    gp.getBPlayer().seekSongAudio(
                         gp.getBPlayer().musicRunningTime);
 
                     for (auto &pp : gp.players) {
@@ -140,16 +139,14 @@ void GPPGame::charterModule(const std::string &name) {
                                                        p.musicRunningTime);
                     }
 
-                    CEngine::engine().playSoundStream(
-                        gp.getBPlayer().songAudioID);
+                    gp.playSongAudio();
 
                     for (auto &pp : gp.players) {
                         auto &p = *pp;
                         CEngine::engine().playSoundStream(p.instrumentSound);
                     }
 
-                    CEngine::engine().setSoundVolume(
-                        gp.getBPlayer().songAudioID, game.songVolume);
+                    gp.getBPlayer().setSongVolume(game.songVolume);
 
                     playSound = false;
                 }
@@ -159,7 +156,7 @@ void GPPGame::charterModule(const std::string &name) {
                 GPPGame::GuitarPP().renderFrame();
             }
 
-            CEngine::engine().pauseSoundStream(gp.getBPlayer().songAudioID);
+            gp.getBPlayer().pauseSongAudio();
 
             for (auto &pp : gp.players) {
                 auto &p = *pp;
@@ -633,8 +630,7 @@ void GPPGame::testClient(const std::string &name) {
                     p.instrumentPause();
                 }
 
-                CEngine::engine().pauseSoundStream(
-                    module.getBPlayer().songAudioID);
+                module.getBPlayer().pauseSongAudio();
                 musicstartedg = 0;
             }
 
@@ -669,8 +665,7 @@ void GPPGame::testClient(const std::string &name) {
             module.update();
 
             if (!songTimeFixed && module.getBPlayer().musicRunningTime > 0.5) {
-                CEngine::engine().setSoundTime(
-                    module.getBPlayer().songAudioID,
+                module.getBPlayer().seekSongAudio(
                     module.getBPlayer().musicRunningTime);
 
                 for (auto &pp : module.players) {
@@ -734,10 +729,8 @@ void GPPGame::testClient(const std::string &name) {
 
             if (musicstartedg == 1 &&
                 module.getBPlayer().musicRunningTime >= 0.0) {
-                CEngine::engine().setSoundVolume(
-                    module.getBPlayer().songAudioID, game.songVolume);
-                CEngine::engine().playSoundStream(
-                    module.getBPlayer().songAudioID);
+                module.getBPlayer().setSongVolume(game.songVolume);
+                module.playSongAudio();
 
                 for (auto &pp : module.players) {
                     auto &p = *pp;
@@ -937,8 +930,7 @@ void GPPGame::serverModule(const std::string &name) {
 
             // Countdown
             if (!songTimeFixed && (engine.getTime() - startTime) > 0.5) {
-                engine.setSoundTime(module.getBPlayer().songAudioID,
-                                    playerb.musicRunningTime);
+                module.getBPlayer().seekSongAudio(playerb.musicRunningTime);
 
                 for (auto &pp : module.players) {
                     auto &p = *pp;
@@ -1005,9 +997,8 @@ void GPPGame::serverModule(const std::string &name) {
 
             // Music states: play
             if (musicstartedg == 1) {
-                CEngine::engine().setSoundVolume(
-                    module.getBPlayer().songAudioID, game.songVolume);
-                engine.playSoundStream(module.getBPlayer().songAudioID);
+                module.getBPlayer().setSongVolume(game.songVolume);
+                module.playSongAudio();
 
                 for (auto &pp : module.players) {
                     auto &p = *pp;
@@ -1032,7 +1023,7 @@ void GPPGame::serverModule(const std::string &name) {
                     p.instrumentPause();
                 }
 
-                engine.pauseSoundStream(module.getBPlayer().songAudioID);
+                module.getBPlayer().pauseSongAudio();
                 musicstartedg = 0;
             }
 
@@ -1416,8 +1407,7 @@ void GPPGame::startModule(const std::string &name) {
 
             // Countdown
             if (!songTimeFixed && (engine.getTime() - startTime) > 0.5) {
-                engine.setSoundTime(module.getBPlayer().songAudioID,
-                                    playerb.musicRunningTime);
+                module.getBPlayer().seekSongAudio(playerb.musicRunningTime);
 
                 for (auto &pp : module.players) {
                     auto &p = *pp;
@@ -1502,9 +1492,8 @@ void GPPGame::startModule(const std::string &name) {
 
             // Music states: play
             if (musicstartedg == 1) {
-                CEngine::engine().setSoundVolume(
-                    module.getBPlayer().songAudioID, game.songVolume);
-                engine.playSoundStream(module.getBPlayer().songAudioID);
+                module.getBPlayer().setSongVolume(game.songVolume);
+                module.playSongAudio();
 
                 for (auto &pp : module.players) {
                     auto &p = *pp;
@@ -1545,7 +1534,7 @@ void GPPGame::startModule(const std::string &name) {
                     p.instrumentPause();
                 }
 
-                engine.pauseSoundStream(module.getBPlayer().songAudioID);
+                module.getBPlayer().pauseSongAudio();
                 musicstartedg = 0;
             }
 
@@ -1563,7 +1552,7 @@ void GPPGame::startModule(const std::string &name) {
             // Resume audio before releasing the worker and before rendering
             // again.
             if (resumeAudio) {
-                engine.playSoundStream(module.getBPlayer().songAudioID);
+                module.playSongAudio();
                 for (auto &p : module.players) {
                     p->instrumentPlay();
                 }
@@ -1770,7 +1759,7 @@ void GPPGame::startMarathonModule(const std::string &name) {
                     p.instrumentPause();
                 }
 
-                engine.pauseSoundStream(module.getBPlayer().songAudioID);
+                module.getBPlayer().pauseSongAudio();
                 musicstartedg = 0;
             }
 
@@ -1941,8 +1930,8 @@ void GPPGame::startMarathonModule(const std::string &name) {
                 }
             } else {
                 if (!songTimeFixed && (engine.getTime() - startTime) > 0.5) {
-                    engine.setSoundTime(module.getBPlayer().songAudioID,
-                                        module.getBPlayer().musicRunningTime);
+                    module.getBPlayer().seekSongAudio(
+                        module.getBPlayer().musicRunningTime);
 
                     for (auto &pp : module.players) {
                         auto &p = *pp;
@@ -2230,9 +2219,8 @@ void GPPGame::startMarathonModule(const std::string &name) {
             }*/
 
             if (musicstartedg == 1) {
-                CEngine::engine().setSoundVolume(
-                    module.getBPlayer().songAudioID, game.songVolume);
-                engine.playSoundStream(module.getBPlayer().songAudioID);
+                module.getBPlayer().setSongVolume(game.songVolume);
+                module.playSongAudio();
 
                 for (auto &pp : module.players) {
                     auto &p = *pp;
@@ -2430,7 +2418,7 @@ void GPPGame::campaingPlayModule(const std::string &name) {
                     p.instrumentPause();
                 }
 
-                engine.pauseSoundStream(module.getBPlayer().songAudioID);
+                module.getBPlayer().pauseSongAudio();
                 musicstartedg = 0;
             }
 
@@ -2599,8 +2587,8 @@ void GPPGame::campaingPlayModule(const std::string &name) {
                 }
             } else {
                 if (!songTimeFixed && (engine.getTime() - startTime) > 0.5) {
-                    engine.setSoundTime(module.getBPlayer().songAudioID,
-                                        module.getBPlayer().musicRunningTime);
+                    module.getBPlayer().seekSongAudio(
+                        module.getBPlayer().musicRunningTime);
 
                     for (auto &pp : module.players) {
                         auto &p = *pp;
@@ -2767,9 +2755,8 @@ void GPPGame::campaingPlayModule(const std::string &name) {
             }
 
             if (musicstartedg == 1) {
-                CEngine::engine().setSoundVolume(
-                    module.getBPlayer().songAudioID, game.songVolume);
-                engine.playSoundStream(module.getBPlayer().songAudioID);
+                module.getBPlayer().setSongVolume(game.songVolume);
+                module.playSongAudio();
 
                 for (auto &pp : module.players) {
                     auto &p = *pp;

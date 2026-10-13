@@ -128,6 +128,8 @@ class CGamePlay {
 
     inline CPlayer &getPlayer(size_t id = 0) { return *players[id]; }
 
+    void playSongAudio();
+
     inline CPlayer &getBPlayer() { return *players.back(); }
 
     std::string backgroundTexture;

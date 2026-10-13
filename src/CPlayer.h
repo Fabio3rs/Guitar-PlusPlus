@@ -164,6 +164,15 @@ class CPlayer {
 
     int songAudioID;
     int instrumentSound;
+    std::string instrumentAudioName;
+    std::map<std::string, int> backingStems;
+    std::vector<std::string> activeAudioStems;
+    float backingVolume = 1.0f;
+
+    void playSongAudio(const std::vector<std::string> &activeStems);
+    void pauseSongAudio() const;
+    void seekSongAudio(double seconds) const;
+    void setSongVolume(float volume);
 
     double playerHudOffsetX, playerHudOffsetY;
 

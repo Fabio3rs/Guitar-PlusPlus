@@ -285,17 +285,49 @@ bool CPlayer::loadSongAudio(const std::string &path) {
         return false;
     }
 
-    const char *stem = instrument == "[ExpertSingle]"       ? "guitar.ogg"
-                       : instrument == "[ExpertDoubleBass]" ? "rhythm.ogg"
-                                                            : nullptr;
-    if (stem != nullptr) {
-        const auto stemName = GPPGame::caseInsensitiveSearchDir(
-            fullPath.c_str(), true, false, stem);
-        if (!stemName.empty() &&
-            !engine.loadSoundStream((fullPath + "/" + stemName).c_str(),
-                                    instrumentSound)) {
-            engine.unloadSoundStream(instrumentSound);
-            CLog::log() << "Cannot load optional instrument audio: " + stemName;
+    const auto findStem = [&](const std::string &name) {
+        for (const char *extension : {".ogg", ".mp3"}) {
+            auto file = GPPGame::caseInsensitiveSearchDir(
+                fullPath.c_str(), true, false, name + extension);
+            if (!file.empty()) {
+                return file;
+            }
+        }
+        return std::string{};
+    };
+    // Difficulty does not change the audio arrangement.
+    const bool bass = instrument.find("DoubleBass]") != std::string::npos;
+    const std::string selected =
+        bass ? (findStem("bass").empty() ? "rhythm" : "bass")
+        : instrument.find("Single]") != std::string::npos ? "guitar"
+                                                          : "";
+    const bool splitDrums =
+        !findStem("drums_1").empty() || !findStem("drums_2").empty() ||
+        !findStem("drums_3").empty() || !findStem("drums_4").empty();
+    const bool splitVocals =
+        !findStem("vocals_1").empty() || !findStem("vocals_2").empty();
+    for (const char *name :
+         {"guitar", "rhythm", "bass", "keys", "drums", "drums_1", "drums_2",
+          "drums_3", "drums_4", "vocals", "vocals_1", "vocals_2", "crowd"}) {
+        if ((splitDrums && std::string(name) == "drums") ||
+            (splitVocals && std::string(name) == "vocals")) {
+            continue;
+        }
+        const auto file = findStem(name);
+        if (file.empty() || file == audioName) {
+            continue;
+        }
+        int handle = 0;
+        if (!engine.loadSoundStream((fullPath + "/" + file).c_str(), handle)) {
+            engine.unloadSoundStream(handle);
+            CLog::log() << "Cannot load optional instrument audio: " + file;
+            continue;
+        }
+        if (selected == name) {
+            instrumentSound = handle;
+            instrumentAudioName = name;
+        } else {
+            backingStems.emplace(name, handle);
         }
     }
     return true;
@@ -378,6 +410,12 @@ void CPlayer::releaseSong() {
         CEngine::engine().unloadSoundStream(instrumentSound);
     }
 
+    for (auto &stem : backingStems) {
+        CEngine::engine().unloadSoundStream(stem.second);
+    }
+    backingStems.clear();
+    activeAudioStems.clear();
+    instrumentAudioName.clear();
     songAudioID = -1;
     instrumentSound = 0;
 
@@ -396,6 +434,11 @@ void CPlayer::takeLoadedSong(CPlayer &source) {
     Notes = std::move(source.Notes);
     songAudioID = std::exchange(source.songAudioID, -1);
     instrumentSound = std::exchange(source.instrumentSound, -1);
+    backingStems = std::move(source.backingStems);
+    source.backingStems.clear();
+    activeAudioStems = std::move(source.activeAudioStems);
+    instrumentAudioName = std::move(source.instrumentAudioName);
+    backingVolume = source.backingVolume;
     songName = std::move(source.songName);
     songArtist = std::move(source.songArtist);
     songCharter = std::move(source.songCharter);
@@ -485,6 +528,40 @@ void CPlayer::doNote(size_t i) {
     }
 }
 
+void CPlayer::playSongAudio(const std::vector<std::string> &activeStems) {
+    activeAudioStems = activeStems;
+    setSongVolume(backingVolume);
+    CEngine::engine().playSoundStream(songAudioID);
+    for (const auto &stem : backingStems) {
+        CEngine::engine().playSoundStream(stem.second);
+    }
+}
+
+void CPlayer::pauseSongAudio() const {
+    CEngine::engine().pauseSoundStream(songAudioID);
+    for (const auto &stem : backingStems) {
+        CEngine::engine().pauseSoundStream(stem.second);
+    }
+}
+
+void CPlayer::seekSongAudio(double seconds) const {
+    CEngine::engine().setSoundTime(songAudioID, seconds);
+    for (const auto &stem : backingStems) {
+        CEngine::engine().setSoundTime(stem.second, seconds);
+    }
+}
+
+void CPlayer::setSongVolume(float volume) {
+    backingVolume = volume;
+    CEngine::engine().setSoundVolume(songAudioID, volume);
+    for (const auto &stem : backingStems) {
+        const bool played =
+            std::find(activeAudioStems.begin(), activeAudioStems.end(),
+                      stem.first) != activeAudioStems.end();
+        CEngine::engine().setSoundVolume(stem.second, played ? 0.0f : volume);
+    }
+}
+
 void CPlayer::instrumentPlay() const {
     CEngine::engine().playSoundStream(instrumentSound);
 }
@@ -557,14 +634,10 @@ CPlayer::CPlayer(const char *name) {
     instrument = "[ExpertSingle]";
 }
 
-CPlayer::~CPlayer() noexcept {
-    CEngine::engine().unloadSoundStream(instrumentSound);
-    CEngine::engine().unloadSoundStream(songAudioID);
-}
+CPlayer::~CPlayer() noexcept { releaseSong(); }
 
 void CPlayer::resetSongThings() {
-    CEngine::engine().unloadSoundStream(instrumentSound);
-    CEngine::engine().unloadSoundStream(songAudioID);
+    releaseSong();
     // buffer.clear();
     Notes.unloadChart();
 

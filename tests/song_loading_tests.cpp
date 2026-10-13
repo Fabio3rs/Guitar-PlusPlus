@@ -580,3 +580,83 @@ TEST_F(SongLoading, LegacyLoaderHonorsStringViewPathLength) {
     ASSERT_EQ(player.Notes.gNotes.size(), 1u);
     EXPECT_DOUBLE_EQ(player.Notes.gNotes[0].time, 1.0);
 }
+
+TEST_F(SongLoading, OptionalStemsFollowPlaybackAndTransferOwnership) {
+    struct SilentAudio {
+        bool initialized = BASS_Init(0, 44100, 0, nullptr, nullptr) != 0;
+        ~SilentAudio() {
+            if (initialized) {
+                BASS_Free();
+            }
+        }
+    } audio;
+    ASSERT_TRUE(audio.initialized);
+    const auto writeAudio = [&](const char *name) {
+        std::ofstream out(directory / "data/songs/test" / name,
+                          std::ios::binary);
+        const auto le = [&](unsigned value, unsigned bytes) {
+            for (unsigned i = 0; i < bytes; ++i) {
+                out.put(static_cast<char>((value >> (8 * i)) & 255));
+            }
+        };
+        out.write("RIFF", 4);
+        le(88236, 4);
+        out.write("WAVEfmt ", 8);
+        le(16, 4);
+        le(1, 2);
+        le(1, 2);
+        le(44100, 4);
+        le(88200, 4);
+        le(2, 2);
+        le(16, 2);
+        out.write("data", 4);
+        le(88200, 4);
+        const std::string silence(88200, '\0');
+        out.write(silence.data(), silence.size());
+    };
+    for (const auto *name :
+         {"song.ogg", "guitar.mp3", "rhythm.mp3", "drums.ogg", "drums_1.ogg",
+          "vocals.ogg", "preview.mp3"}) {
+        writeAudio(name);
+    }
+    {
+        std::ofstream bad(directory / "data/songs/test/keys.ogg");
+        bad << "invalid";
+    }
+    CPlayer prepared("prepared");
+    prepared.instrument = "[EasySingle]";
+    auto easyChart = chart();
+    easyChart.replace(easyChart.find("ExpertSingle"), 12, "EasySingle");
+    writeChart(easyChart);
+    ASSERT_TRUE(prepared.loadSong("test"));
+    EXPECT_EQ(prepared.instrumentAudioName, "guitar");
+    ASSERT_EQ(prepared.backingStems.size(), 3u);
+    EXPECT_EQ(prepared.backingStems.count("drums"), 0u);
+    EXPECT_EQ(prepared.backingStems.count("preview"), 0u);
+    EXPECT_EQ(prepared.backingStems.count("keys"), 0u);
+    prepared.seekSongAudio(0.25);
+    prepared.playSongAudio({"guitar", "rhythm"});
+    prepared.pauseSongAudio();
+    prepared.setSongVolume(0.4f);
+    for (const auto &stem : prepared.backingStems) {
+        EXPECT_NEAR(CEngine::getSoundTime(stem.second), 0.25, 0.05);
+        EXPECT_EQ(BASS_ChannelIsActive(stem.second), BASS_ACTIVE_PAUSED);
+        EXPECT_NEAR(CEngine::getSoundVolume(stem.second),
+                    stem.first == "rhythm" ? 0.0 : 0.4, 0.001);
+    }
+    const auto handles = prepared.backingStems;
+    const auto instrumentHandle = prepared.instrumentSound;
+    CPlayer target("target");
+    target.takeLoadedSong(prepared);
+    prepared.releaseSong();
+    BASS_CHANNELINFO info{};
+    for (const auto &stem : handles) {
+        EXPECT_TRUE(BASS_ChannelGetInfo(stem.second, &info));
+    }
+    EXPECT_EQ(target.instrumentSound, instrumentHandle);
+    target.resetSongThings();
+    for (const auto &stem : handles) {
+        EXPECT_FALSE(BASS_ChannelGetInfo(stem.second, &info));
+    }
+    EXPECT_FALSE(BASS_ChannelGetInfo(instrumentHandle, &info));
+}
