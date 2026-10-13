@@ -15,6 +15,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace ui {
 struct MenuPresentation;
@@ -58,13 +59,21 @@ class CMenu {
 
     bool uiMenu;
     int thisUiID;
+    CMenu *owner = nullptr;
+    CMenu *returnFocus = nullptr;
+    bool permanentPanel = false;
 
     int focused = -1, hovered = -1, captured = -1;
     int focusGeometryOption = -1;
-    std::array<double, 5> focusGeometry{};
+    std::array<double, 7> focusGeometry{};
     bool dragging = false;
     double dragX = 0, dragY = 0;
     static CMenu *inputFocus;
+    static CMenu *mouseCapture;
+    CMenu *rootMenu();
+    bool containsInterface(const CMenu *menu) const;
+    CMenu *blockingModal();
+    [[nodiscard]] bool hasFocusableOptions() const;
     std::string lastLanguage;
     int preEvent = 0, postEvent = 0;
     void dispatchInput();
@@ -109,6 +118,18 @@ class CMenu {
         }
     };
 
+  private:
+    std::optional<Rect> fixedPanelBounds;
+    bool processCommand(const CControls::MenuEvent &, bool selectOption);
+    bool hitRegion(double px, double py);
+    bool hitOption(size_t index, double px, double py, const ui::Style &style);
+    int attachInterface(const CMenu &m, bool asPanel,
+                        std::optional<Rect> bounds);
+
+  public:
+    // One set of fixed column widths per menu. Rows contain text only.
+    std::vector<double> tableColumns;
+
     ui::StyleOverrides styleOverrides;
     ui::Style resolvedStyle() const;
     enum class Flow { Manual, Vertical, Horizontal };
@@ -122,7 +143,8 @@ class CMenu {
     double leftMargin = .2;
     void setFlow(Flow direction, double originX, double originY, int group = 1);
     void reflow();
-    void processEvent(const CControls::MenuEvent &);
+    // Returns true when the event was consumed locally.
+    bool processEvent(const CControls::MenuEvent &);
     int focusedOption() const { return focused; }
 
     void closeInterfaces();
@@ -137,7 +159,10 @@ class CMenu {
         deslizant_Select_list,
         button_ui,
         drag_bar,
-        static_text
+        static_text,
+        table_row,
+        image,
+        panel
     };
 
     static CMenu *getUiMenuOnTop();
@@ -172,6 +197,16 @@ class CMenu {
 
     struct menuOpt {
         bool disabled = false;
+        bool active = false;
+        // Zero selects automatic sizing (images/panels require both axes).
+        double width = 0, height = 0;
+        std::vector<std::string> cells;
+        struct CellLayout {
+            CFonts::TextLayout layout;
+            std::string text, font;
+            size_t revision = ~size_t(0);
+        };
+        std::vector<CellLayout> cellLayouts;
         bool manualPosition = false;
         // Effective presentation only. A fixed coordinate still reserves its
         // flow slot.
@@ -259,6 +294,9 @@ class CMenu {
     void translate(menuOpt &);
     Rect optionRect(size_t index, const ui::Style &style);
     Rect controlRect(size_t index, const ui::Style &style);
+    Rect localRect(menuOpt &o, const ui::Style &style);
+    Rect layoutRect(menuOpt &o, const ui::Style &style);
+    void clampScroll(const ui::Style &style);
     void reflow(const ui::Style &style);
     void refreshFocusGeometry(const ui::Style &style);
     void revealFocused(const ui::Style &style);
@@ -296,6 +334,18 @@ class CMenu {
     std::function<int(CMenu &)> openCallback;
 
     int pushUserInterface(const CMenu &m);
+    // Bounds are menu-local, translated by the child's x/y, like viewport.
+    // A panel is cloned, does not steal focus and never raises on click.
+    int pushPanel(const CMenu &m, Rect bounds);
+    // Without explicit bounds the panel follows its current viewport.
+    int pushPanel(const CMenu &m);
+    Rect getPanelBounds() const;
+    std::optional<Rect> getFixedPanelBounds() const;
+    // nullopt follows the viewport; explicit bounds remain independent.
+    void setPanelBounds(std::optional<Rect> bounds);
+    CMenu *focusedInterface();
+    bool focusInterface(CMenu &menu);
+    bool focusNextPanel(bool backwards = false);
 
     size_t getDevSelectedMenuOpt();
 

@@ -31,6 +31,8 @@ struct ControlStyle {
 
 struct PanelStyle {
     Color background{.07, .08, .10, .95};
+    Color border{.3, .32, .36, 1};
+    double borderWidth = 0;
 };
 
 struct Style {
@@ -46,11 +48,15 @@ struct StyleOverrides {
     std::optional<double> textSize, rowStep, padding, pickGap;
     std::optional<Color> textColor, accent, selection, field, control, panel;
     std::optional<bool> animateSelection;
+    std::optional<Color> panelBorder;
+    std::optional<double> panelBorderWidth;
 };
 
 struct OptionStyleOverrides {
     std::optional<double> textSize;
     std::optional<Color> textColor;
+    std::optional<Color> background, border;
+    std::optional<double> borderWidth;
 };
 
 // UI/main-thread only. No GL resources or dependency on game initialization.

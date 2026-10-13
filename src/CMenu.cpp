@@ -8,14 +8,22 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
+#include <tuple>
 
 std::deque<CMenu::uiWindowStruct> CMenu::uiList;
 std::vector<CMenu::posUiOrder> CMenu::uiOrderList;
 int CMenu::menusCreated = 0;
 CMenu *CMenu::inputFocus = nullptr;
+CMenu *CMenu::mouseCapture = nullptr;
 
 namespace {
 void rectangle(const CMenu::Rect &r, unsigned texture = 0) {
+    if (texture) {
+        glEnable(GL_TEXTURE_2D);
+    } else {
+        glDisable(GL_TEXTURE_2D);
+    }
     CEngine::RenderDoubleStruct q{};
     q.x1 = q.x4 = r.left;
     q.x2 = q.x3 = r.right;
@@ -30,7 +38,9 @@ void rectangle(const CMenu::Rect &r, unsigned texture = 0) {
 }
 
 bool interactive(const CMenu::menuOpt &o) {
-    return !o.disabled && o.type != CMenu::static_text && o.type != CMenu::none;
+    return !o.disabled && o.type != CMenu::static_text &&
+           o.type != CMenu::none && o.type != CMenu::image &&
+           o.type != CMenu::panel;
 }
 
 bool keyboardFocusable(const CMenu::menuOpt &o) {
@@ -83,9 +93,11 @@ CMenu::CMenu(const CMenu &m) : CMenu(m.menuName, m.context) {
     y = m.y;
     styleOverrides = m.styleOverrides;
     flow = m.flow;
+    tableColumns = m.tableColumns;
     modal = m.modal;
     viewportEnabled = m.viewportEnabled;
     viewport = m.viewport;
+    fixedPanelBounds = m.fixedPanelBounds;
     flowX = m.flowX;
     flowY = m.flowY;
     flowGroup = m.flowGroup;
@@ -110,11 +122,165 @@ CMenu::CMenu(const CMenu &m) : CMenu(m.menuName, m.context) {
 }
 
 CMenu::~CMenu() {
+    resetBtns();
     closeInterfaces();
-
     if (inputFocus == this) {
-        inputFocus = nullptr;
+        inputFocus = returnFocus ? returnFocus : owner;
     }
+    // Saved focus must not outlive its target, including when a sibling closes.
+    for (auto &slot : uiList) {
+        if (slot.m && slot.m->returnFocus == this) {
+            slot.m->returnFocus = owner;
+        }
+    }
+}
+
+CMenu *CMenu::rootMenu() { return owner ? owner->rootMenu() : this; }
+
+bool CMenu::containsInterface(const CMenu *menu) const {
+    for (const auto *candidate = menu; candidate != nullptr;
+         candidate = candidate->owner) {
+        if (candidate == this) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool CMenu::hasFocusableOptions() const {
+    return std::any_of(options.begin(), options.end(), keyboardFocusable);
+}
+
+CMenu *CMenu::blockingModal() {
+    interfaceCalcPos();
+    CMenu *root = rootMenu();
+
+    for (auto it = uiOrderList.rbegin(); it != uiOrderList.rend(); ++it) {
+        auto *menu = uiList[static_cast<size_t>(it->id)].m.get();
+        if (menu->modal && root->containsInterface(menu)) {
+            return menu;
+        }
+    }
+
+    return root->modal ? root : nullptr;
+}
+
+CMenu *CMenu::focusedInterface() {
+    return rootMenu()->containsInterface(inputFocus) ? inputFocus : nullptr;
+}
+
+bool CMenu::focusInterface(CMenu &menu) {
+    if (!rootMenu()->containsInterface(&menu) || !menu.hasFocusableOptions()) {
+        return false;
+    }
+
+    auto *modalMenu = blockingModal();
+    if (modalMenu && !modalMenu->containsInterface(&menu)) {
+        return false;
+    }
+
+    if (inputFocus && inputFocus != &menu && inputFocus->focused >= 0 &&
+        static_cast<size_t>(inputFocus->focused) < inputFocus->options.size()) {
+        inputFocus->options[static_cast<size_t>(inputFocus->focused)].status &=
+            ~4;
+    }
+
+    inputFocus = &menu;
+    if (menu.focused < 0 ||
+        static_cast<size_t>(menu.focused) >= menu.options.size() ||
+        !keyboardFocusable(menu.options[static_cast<size_t>(menu.focused)])) {
+        for (size_t i = 0; i < menu.options.size(); ++i) {
+            if (keyboardFocusable(menu.options[i])) {
+                menu.select(static_cast<int>(i));
+                break;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool CMenu::focusNextPanel(bool backwards) {
+    auto *scope = blockingModal();
+    if (!scope) {
+        scope = rootMenu();
+    }
+
+    std::vector<CMenu *> regions;
+    if (scope->hasFocusableOptions()) {
+        regions.push_back(scope);
+    }
+
+    bool composed = false;
+    scope->visitInterfaces([&](CMenu &child) {
+        if (child.permanentPanel) {
+            composed = true;
+            if (child.hasFocusableOptions()) {
+                regions.push_back(&child);
+            }
+        }
+    });
+
+    if (!composed) {
+        return false;
+    }
+
+    if (!regions.empty()) {
+        const auto current =
+            std::find(regions.begin(), regions.end(), inputFocus);
+        size_t index = backwards ? regions.size() - 1 : 0;
+        if (current != regions.end()) {
+            const auto position =
+                static_cast<size_t>(current - regions.begin());
+            index = backwards ? (position + regions.size() - 1) % regions.size()
+                              : (position + 1) % regions.size();
+        }
+        focusInterface(*regions[index]);
+    }
+
+    return true;
+}
+
+bool CMenu::hitOption(size_t index, double px, double py,
+                      const ui::Style &style) {
+    const auto panelBounds = getPanelBounds();
+    if (permanentPanel && !Rect{panelBounds.left + x, panelBounds.bottom + y,
+                                panelBounds.right + x, panelBounds.top + y}
+                               .contains(px, py)) {
+        return false;
+    }
+    if (viewportEnabled && options[index].group == flowGroup &&
+        !Rect{viewport.left + x, viewport.bottom + y, viewport.right + x,
+              viewport.top + y}
+             .contains(px, py)) {
+        return false;
+    }
+    const auto r = optionRect(index, style);
+    return r.right > r.left && r.top > r.bottom && r.contains(px, py);
+}
+
+bool CMenu::hitRegion(double px, double py) {
+    const auto panelBounds = getPanelBounds();
+    if (permanentPanel) {
+        return Rect{panelBounds.left + x, panelBounds.bottom + y,
+                    panelBounds.right + x, panelBounds.top + y}
+            .contains(px, py);
+    }
+    if ((viewportEnabled && Rect{viewport.left + x, viewport.bottom + y,
+                                 viewport.right + x, viewport.top + y}
+                                .contains(px, py)) ||
+        (qbgd.Text &&
+         Rect{qbgd.x1 + x, qbgd.y3 + y, qbgd.x2 + x, qbgd.y1 + y}.contains(
+             px, py))) {
+        return true;
+    }
+    const auto style = resolvedStyle();
+    for (size_t i = 0; i < options.size(); ++i) {
+        if (hitOption(i, px, py, style)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void CMenu::closeInterfaces() {
@@ -129,9 +295,6 @@ void CMenu::closeInterfaces() {
         }
     }
 
-    if (inputFocus == this) {
-        inputFocus = nullptr;
-    }
 }
 
 int CMenu::addOpt(const menuOpt &opt) {
@@ -174,6 +337,7 @@ int CMenu::addOpt(const menuOpt &opt) {
 }
 
 void CMenu::resetData() {
+    resetBtns();
     for (auto &o : options) {
         o.status = 0;
         o.devStatus = 0;
@@ -187,6 +351,9 @@ void CMenu::resetData() {
 }
 
 void CMenu::resetBtns() {
+    if (mouseCapture == this) {
+        mouseCapture = nullptr;
+    }
     captured = -1;
     dragging = false;
     lastEnterOptBtn = lastMouseClickStatus = false;
@@ -200,6 +367,9 @@ void CMenu::resetBtns() {
 }
 
 void CMenu::ensureLayout(menuOpt &o) {
+    if (o.type == table_row || o.type == image || o.type == panel) {
+        return;
+    }
     auto &fonts = fontService();
     const auto &text = o.type == text_input ? o.preText : o.text;
 
@@ -276,38 +446,92 @@ CMenu::Rect CMenu::controlRect(size_t i, const ui::Style &style) {
     return {xx, yy, xx + o.deslizantBarSize, yy + appearance.textSize};
 }
 
+CMenu::Rect CMenu::layoutRect(menuOpt &o, const ui::Style &style) {
+    if (o.type >= table_row ||
+        (o.type == textbtn && (o.width > 0 || o.height > 0))) {
+        return localRect(o, style);
+    }
+    ensureLayout(o);
+    const auto scale =
+        ui::resolveTypography(style.typography, o.styleOverrides).textSize;
+    return {o.layout.left * scale, o.layout.bottom * scale,
+            o.layout.right * scale, o.layout.top * scale};
+}
+
+CMenu::Rect CMenu::localRect(menuOpt &o, const ui::Style &style) {
+    auto size = [](double v) { return std::isfinite(v) && v > 0 ? v : 0.0; };
+    if (o.type == table_row) {
+        double width = 0;
+        for (double column : tableColumns) {
+            width += size(column);
+        }
+        return {0, 0, size(width),
+                size(o.height) > 0 ? size(o.height)
+                                   : size(style.layout.rowStep)};
+    }
+    if (o.type == image || o.type == panel) {
+        return {0, 0, size(o.width), size(o.height)};
+    }
+    ensureLayout(o);
+    const auto appearance =
+        ui::resolveTypography(style.typography, o.styleOverrides);
+    const double scale = appearance.textSize;
+    Rect r{o.layout.left * scale, o.layout.bottom * scale,
+           o.layout.right * scale, o.layout.top * scale};
+    if (o.type == text_input) {
+        r = {0, 0, o.fieldWidth, scale};
+    } else if (o.type == drag_bar) {
+        r = {0, 0, o.deslizantBarSize, scale};
+    } else if (o.type == deslizant_Select_list) {
+        r.right +=
+            2 * scale + o.deslizantBarSize + o.valueLayout.width() * scale;
+    }
+    // Legacy glyph bounds stay unpadded here, including for anchors/flow.
+    if (o.type == textbtn) {
+        if (size(o.width) > 0) {
+            r.left = 0;
+            r.right = size(o.width);
+        }
+        if (size(o.height) > 0) {
+            r.bottom = 0;
+            r.top = size(o.height);
+        }
+    }
+    return r;
+}
+
 CMenu::Rect CMenu::optionRect(size_t i, const ui::Style &style) {
     if (i >= options.size()) {
         return {};
     }
-
     auto &o = options[i];
-    ensureLayout(o);
-    const auto appearance =
-        ui::resolveTypography(style.typography, o.styleOverrides);
+    auto r = localRect(o, style);
     const double yy =
         o.y + y +
         ((viewportEnabled && o.group == flowGroup) ? scrollOffset : 0);
-    Rect r{o.x + x + o.layout.left * appearance.textSize,
-           yy + o.layout.bottom * appearance.textSize,
-           o.x + x + o.layout.right * appearance.textSize,
-           yy + o.layout.top * appearance.textSize};
+    const auto appearance =
+        ui::resolveTypography(style.typography, o.styleOverrides);
+    const bool box = o.type == table_row || o.type == image ||
+                     o.type == panel ||
+                     (o.type == textbtn && (o.width > 0 || o.height > 0));
+    const double pad = box ? 0 : style.layout.padding * appearance.textSize;
+    return {r.left + o.x + x - pad, r.bottom + yy - pad,
+            r.right + o.x + x + pad, r.top + yy + pad};
+}
 
-    if (o.type == text_input) {
-        r = {o.x + x, yy, o.x + x + o.fieldWidth, yy + appearance.textSize};
+void CMenu::clampScroll(const ui::Style &style) {
+    if (!viewportEnabled) {
+        return;
     }
-
-    if (o.type == drag_bar) {
-        r = controlRect(i, style);
+    double lowest = viewport.top;
+    for (size_t i = 0; i < options.size(); ++i) {
+        if (options[i].group == flowGroup) {
+            lowest = std::min(lowest,
+                              optionRect(i, style).bottom - y - scrollOffset);
+        }
     }
-
-    if (o.type == deslizant_Select_list) {
-        r.right = controlRect(i, style).right + appearance.textSize +
-                  o.valueLayout.width() * appearance.textSize;
-    }
-
-    const double pad = style.layout.padding * appearance.textSize;
-    return {r.left - pad, r.bottom - pad, r.right + pad, r.top + pad};
+    scrollOffset =
+        std::clamp(scrollOffset, 0.0, std::max(0.0, viewport.bottom - lowest));
 }
 
 void CMenu::setFlow(Flow direction, double originX, double originY, int group) {
@@ -319,25 +543,22 @@ void CMenu::setFlow(Flow direction, double originX, double originY, int group) {
 
 void CMenu::reflow(const ui::Style &style) {
     for (auto &o : options) {
-        const auto appearance =
-            ui::resolveTypography(style.typography, o.styleOverrides);
         if (o.centerX && !o.anchorRight &&
             (flow == Flow::Manual || o.group != flowGroup ||
              o.manualPosition)) {
-            ensureLayout(o);
-            o.x = *o.centerX -
-                  (o.layout.left + o.layout.right) * appearance.textSize / 2;
+            const auto r = layoutRect(o, style);
+            o.x = *o.centerX - (r.left + r.right) / 2;
         }
 
         if (o.anchorRight) {
-            ensureLayout(o);
-            o.x = aspect() - .1 - o.layout.right * appearance.textSize;
+            o.x = aspect() - .1 - layoutRect(o, style).right;
         }
     }
 
     if (flow == Flow::Manual) {
         applyFixedPositions(style);
         refreshFocusGeometry(style);
+        clampScroll(style);
         return;
     }
 
@@ -346,21 +567,28 @@ void CMenu::reflow(const ui::Style &style) {
     }
 
     double px = flowX, py = flowY;
+    std::optional<double> previousBottom;
 
     for (auto &o : options) {
         if (o.group == flowGroup && !o.manualPosition) {
-            ensureLayout(o);
+            const auto r = layoutRect(o, style);
             const auto appearance =
                 ui::resolveTypography(style.typography, o.styleOverrides);
+            if (flow == Flow::Vertical && previousBottom &&
+                (o.type >= table_row || (o.type == textbtn && o.height > 0))) {
+                py = std::min(py, *previousBottom - r.top);
+            }
             o.x = px;
             o.y = py;
+            previousBottom = py + r.bottom;
 
             if (flow == Flow::Vertical) {
-                py -= std::max(style.layout.rowStep,
-                               (o.layout.top - o.layout.bottom + .3) *
-                                   appearance.textSize);
+                py -= std::max(
+                    style.layout.rowStep,
+                    r.top - r.bottom +
+                        (o.type >= table_row ? 0 : .3 * appearance.textSize));
             } else {
-                px += o.layout.width() * appearance.textSize +
+                px += r.right - r.left +
                       (1 + style.selection.pickGap + .5) * appearance.textSize;
             }
         }
@@ -368,6 +596,7 @@ void CMenu::reflow(const ui::Style &style) {
 
     applyFixedPositions(style);
     refreshFocusGeometry(style);
+    clampScroll(style);
 }
 
 void CMenu::refreshFocusGeometry(const ui::Style &style) {
@@ -379,13 +608,13 @@ void CMenu::refreshFocusGeometry(const ui::Style &style) {
     }
 
     auto &o = options[static_cast<size_t>(focused)];
-    ensureLayout(o);
+    const auto r = localRect(o, style);
     const auto appearance =
         ui::resolveTypography(style.typography, o.styleOverrides);
     // Exclude scrollOffset: scrolling must not pull focus back into view.
-    const std::array<double, 5> geometry{o.y, appearance.textSize,
-                                         style.layout.padding, o.layout.top,
-                                         o.layout.bottom};
+    const std::array<double, 7> geometry{
+        o.y,      appearance.textSize, style.layout.padding, r.top,
+        r.bottom, viewport.top,        viewport.bottom};
     const bool changed =
         focusGeometryOption == focused && geometry != focusGeometry;
     focusGeometryOption = focused;
@@ -448,88 +677,93 @@ void CMenu::revealFocused(const ui::Style &style) {
     scrollOffset = std::max(0.0, scrollOffset);
 }
 
-bool CMenu::isMouseOnThisMenu() {
-    const auto style = resolvedStyle();
-    const double mx = cursorX(), my = cursorY();
-
-    if (qbgd.Text &&
-        Rect{qbgd.x1 + x, qbgd.y3 + y, qbgd.x2 + x, qbgd.y1 + y}.contains(mx,
-                                                                          my)) {
-        return true;
-    }
-
-    for (size_t i = 0; i < options.size(); ++i) {
-        if (optionRect(i, style).contains(mx, my)) {
-            return true;
-        }
-    }
-
-    return false;
-}
+bool CMenu::isMouseOnThisMenu() { return hitRegion(cursorX(), cursorY()); }
 
 bool CMenu::isInterfaceOver() const {
+    const auto *root = this;
+    while (root->owner != nullptr) {
+        root = root->owner;
+    }
+    interfaceCalcPos();
     for (auto it = uiOrderList.rbegin(); it != uiOrderList.rend(); ++it) {
-        auto *m = uiList[static_cast<size_t>(it->id)].m.get();
-
-        if (m == this) {
+        auto *menu = uiList[static_cast<size_t>(it->id)].m.get();
+        if (menu == this) {
             break;
         }
-
-        if (m && (m->modal || m->isMouseOnThisMenu())) {
+        if (root->containsInterface(menu) &&
+            ((menu->modal && !menu->containsInterface(this)) ||
+             menu->isMouseOnThisMenu())) {
             return true;
         }
     }
-
     return false;
 }
 
-void CMenu::processEvent(const CControls::MenuEvent &event) {
+bool CMenu::processCommand(const CControls::MenuEvent &event,
+                           bool selectOption) {
+    if (event.kind != CControls::MenuEvent::Key || event.action != GLFW_PRESS) {
+        return false;
+    }
+    for (size_t i = 0; i < options.size(); ++i) {
+        auto &o = options[i];
+        if (interactive(o) && o.shortcutKey && o.shortcutKey == event.key) {
+            if (selectOption) {
+                select(static_cast<int>(i));
+            }
+            o.status |= 3;
+            return true;
+        }
+    }
+    if (event.key == GLFW_KEY_ESCAPE) {
+        for (size_t i = 0; i < options.size(); ++i) {
+            auto &o = options[i];
+            if (interactive(o) && o.goback) {
+                if (selectOption) {
+                    select(static_cast<int>(i));
+                }
+                o.status |= 3;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool CMenu::processEvent(const CControls::MenuEvent &event) {
     const auto style = resolvedStyle();
     reflow(style);
     using Event = CControls::MenuEvent;
 
     if (event.kind == Event::Focus && !event.action) {
         resetBtns();
-        return;
+        return true;
     }
 
     if (event.kind == Event::Scroll && viewportEnabled) {
-        double lowest = viewport.top;
-
-        for (const auto &o : options) {
-            if (o.group == flowGroup) {
-                lowest = std::min(lowest, o.y);
-            }
-        }
-
-        scrollOffset =
-            std::clamp(scrollOffset - event.y * style.layout.rowStep * 3, 0.0,
-                       std::max(0.0, viewport.bottom - lowest));
-        return;
+        scrollOffset -= event.y * style.layout.rowStep * 3;
+        clampScroll(style);
+        return true;
     }
 
     if (event.kind == Event::Mouse && event.key == GLFW_MOUSE_BUTTON_LEFT) {
         int hit = -1;
 
         for (size_t i = 0; i < options.size(); ++i) {
-            if (viewportEnabled && options[i].group == flowGroup &&
-                !Rect{viewport.left + x, viewport.bottom + y,
-                      viewport.right + x, viewport.top + y}
-                     .contains(event.x, event.y)) {
-                continue;
-            }
-
             if (interactive(options[i]) &&
-                optionRect(i, style).contains(event.x, event.y)) {
+                hitOption(i, event.x, event.y, style)) {
                 hit = static_cast<int>(i);
             }
         }
 
         if (event.action == GLFW_PRESS) {
+            if (mouseCapture && mouseCapture != this) {
+                mouseCapture->resetBtns();
+            }
             captured = hit;
+            mouseCapture = hit >= 0 ? this : nullptr;
 
             if (hit < 0) {
-                return;
+                return true;
             }
 
             select(hit);
@@ -570,9 +804,12 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
 
             captured = -1;
             dragging = false;
+            if (mouseCapture == this) {
+                mouseCapture = nullptr;
+            }
         }
 
-        return;
+        return true;
     }
 
     if (focused < 0 || static_cast<size_t>(focused) >= options.size() ||
@@ -587,35 +824,19 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
         }
     }
 
-    if (event.kind == Event::Key && event.action == GLFW_PRESS) {
-        for (size_t i = 0; i < options.size(); ++i) {
-            if (interactive(options[i]) && options[i].shortcutKey &&
-                options[i].shortcutKey == event.key) {
-                select(static_cast<int>(i));
-                options[i].status |= 3;
-                return;
-            }
-        }
-
-        if (event.key == GLFW_KEY_ESCAPE) {
-            if (focused >= 0 &&
-                (options[static_cast<size_t>(focused)].status & 4)) {
-                options[static_cast<size_t>(focused)].status &= ~4;
-                return;
-            }
-
-            for (size_t i = 0; i < options.size(); ++i) {
-                if (options[i].goback && interactive(options[i])) {
-                    select(static_cast<int>(i));
-                    options[i].status |= 3;
-                    return;
-                }
-            }
-        }
+    // Escape leaves text editing before considering any command binding.
+    if (event.kind == Event::Key && event.action == GLFW_PRESS &&
+        event.key == GLFW_KEY_ESCAPE && focused >= 0 &&
+        (options[static_cast<size_t>(focused)].status & 4)) {
+        options[static_cast<size_t>(focused)].status &= ~4;
+        return true;
+    }
+    if (processCommand(event, true)) {
+        return true;
     }
 
     if (focused < 0) {
-        return;
+        return false;
     }
 
     auto &o = options[static_cast<size_t>(focused)];
@@ -627,7 +848,7 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
         try {
             utf8::append(event.codepoint, std::back_inserter(encoded));
         } catch (const std::exception &) {
-            return;
+            return true;
         }
 
         if (o.preText.size() <= o.preTextMaxSize &&
@@ -645,11 +866,11 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
             *o.externalPreTextRef = o.preText;
         }
 
-        return;
+        return true;
     }
 
     if (event.kind != Event::Key || event.action == GLFW_RELEASE) {
-        return;
+        return false;
     }
 
     const int key = event.key;
@@ -659,7 +880,7 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
 
         if (count == std::string::npos ||
             count > static_cast<size_t>(std::numeric_limits<int>::max())) {
-            return;
+            return true;
         }
 
         o.strEditPoint = std::clamp(o.strEditPoint, 0, static_cast<int>(count));
@@ -697,7 +918,7 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
             *o.externalPreTextRef = o.preText;
         }
 
-        return;
+        return true;
     }
 
     if (o.type == deslizant_Select_list &&
@@ -711,7 +932,7 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
             --o.listID;
         }
 
-        return;
+        return true;
     }
 
     if (key == GLFW_KEY_ENTER && event.action == GLFW_PRESS && o.enableEnter) {
@@ -721,7 +942,7 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
             o.status |= 3;
         }
 
-        return;
+        return true;
     }
 
     const bool previous =
@@ -745,6 +966,7 @@ void CMenu::processEvent(const CControls::MenuEvent &event) {
             }
         }
     }
+    return previous || next;
 }
 
 void CMenu::shortcutCallback(int key, int, int action, int mods) {
@@ -760,89 +982,93 @@ void CMenu::dispatchInput() {
     if (!context) {
         CControls::controls().pollMenuDevices();
     }
+
     auto &pending =
         context ? context->events : CControls::controls().menuEvents;
-    bool valid = inputFocus == this;
 
-    for (auto &slot : uiList) {
-        if (slot.m && slot.m.get() == inputFocus) {
-            valid = true;
-        }
-    }
-
-    if (!valid) {
+    if (!containsInterface(inputFocus)) {
         inputFocus = this;
     }
-
-    CMenu *top = getUiMenuOnTop();
-
-    if (top && top->modal) {
-        inputFocus = top;
+    if (mouseCapture != nullptr && !containsInterface(mouseCapture)) {
+        mouseCapture->resetBtns();
     }
 
-    // Reuse capacity, and isolate this dispatch from callbacks appending
-    // events.
     std::vector<CControls::MenuEvent> events;
     events.swap(pending);
 
     for (const auto &event : events) {
-        CMenu *target = inputFocus;
+        auto *modalMenu = blockingModal();
+        if (modalMenu && !modalMenu->containsInterface(inputFocus)) {
+            inputFocus = modalMenu;
+        }
 
-        if (event.kind == CControls::MenuEvent::Mouse) {
-            target = this;
+        if (event.kind == CControls::MenuEvent::Focus && !event.action) {
+            resetBtns();
+            visitInterfaces([](CMenu &child) { child.resetBtns(); });
+            continue;
+        }
+
+        if (event.kind == CControls::MenuEvent::Key &&
+            event.key == GLFW_KEY_TAB && event.action != GLFW_RELEASE &&
+            focusNextPanel((event.mods & GLFW_MOD_SHIFT) != 0)) {
+            continue;
+        }
+
+        CMenu *target = inputFocus;
+        const bool mouse = event.kind == CControls::MenuEvent::Mouse;
+        const bool scroll = event.kind == CControls::MenuEvent::Scroll;
+        if (mouse || scroll) {
+            const double px = mouse ? event.x : cursorX();
+            const double py = mouse ? event.y : cursorY();
+            target = modalMenu ? modalMenu : this;
 
             for (auto it = uiOrderList.rbegin(); it != uiOrderList.rend();
                  ++it) {
-                auto *m = uiList[static_cast<size_t>(it->id)].m.get();
-
-                if (!m) {
+                auto *candidate = uiList[static_cast<size_t>(it->id)].m.get();
+                if (!containsInterface(candidate) ||
+                    (modalMenu && !modalMenu->containsInterface(candidate))) {
                     continue;
                 }
-
-                const auto childStyle = m->resolvedStyle();
-                bool hit = m->modal;
-
-                for (size_t i = 0; !hit && i < m->options.size(); ++i) {
-                    hit =
-                        m->optionRect(i, childStyle).contains(event.x, event.y);
-                }
-
-                if (hit) {
-                    target = m;
+                if (candidate->hitRegion(px, py)) {
+                    target = candidate;
                     break;
                 }
             }
 
-            // Mouse release belongs to the menu that captured the press.
-            if (event.action == GLFW_RELEASE && inputFocus &&
-                inputFocus->captured >= 0) {
-                target = inputFocus;
+            if (mouse && event.action == GLFW_RELEASE && mouseCapture &&
+                containsInterface(mouseCapture)) {
+                target = mouseCapture;
             }
 
-            if (event.action == GLFW_PRESS) {
-                inputFocus = target;
-
-                if (target->uiMenu) {
+            if (mouse && event.action == GLFW_PRESS) {
+                focusInterface(*target);
+                if (target->uiMenu && !target->permanentPanel) {
                     target->putOnTop();
                 }
             }
         }
 
-        if (event.kind == CControls::MenuEvent::Focus && !event.action) {
-            resetBtns();
-
-            for (auto &slot : uiList) {
-                if (slot.m) {
-                    slot.m->resetBtns();
+        const bool navigationKey =
+            event.key == GLFW_KEY_UP || event.key == GLFW_KEY_DOWN ||
+            event.key == GLFW_KEY_LEFT || event.key == GLFW_KEY_RIGHT ||
+            event.key == GLFW_KEY_ENTER || event.key == GLFW_KEY_TAB;
+        if (target && !target->processEvent(event) &&
+            event.kind == CControls::MenuEvent::Key &&
+            event.action == GLFW_PRESS && !navigationKey) {
+            // Only permanent panels bubble commands. Stop at a modal or a
+            // legacy window; never run ancestor navigation/editing handlers.
+            auto *region = target;
+            while (region->permanentPanel && region != modalMenu &&
+                   region->owner) {
+                region = region->owner;
+                if (region->processCommand(event, false)) {
+                    break;
                 }
             }
-        } else if (target) {
-            target->processEvent(event);
         }
     }
 
     events.clear();
-
     if (pending.empty()) {
         pending.swap(events);
     }
@@ -954,22 +1180,14 @@ void CMenu::finishUpdate() {
 
     const double mx = cursorX(), my = cursorY();
 
-    if (!isInterfaceOver() && (mx != mouseAX || my != mouseAY)) {
-        hovered = -1;
+    hovered = -1;
+    if (!isInterfaceOver()) {
 
         for (size_t i = 0; i < options.size(); ++i) {
-            if (interactive(options[i]) &&
-                optionRect(i, style).contains(mx, my)) {
-                if (viewportEnabled && options[i].group == flowGroup &&
-                    !Rect{viewport.left + x, viewport.bottom + y,
-                          viewport.right + x, viewport.top + y}
-                         .contains(mx, my)) {
-                    continue;
-                }
-
+            if (interactive(options[i]) && hitOption(i, mx, my, style)) {
                 hovered = static_cast<int>(i);
 
-                if (inputFocus == this &&
+                if ((mx != mouseAX || my != mouseAY) && inputFocus == this &&
                     !(focused >= 0 &&
                       (options[static_cast<size_t>(focused)].status & 4))) {
                     select(hovered);
@@ -1030,10 +1248,6 @@ void CMenu::finishUpdate() {
         }
 
         if (close) {
-            if (inputFocus == &child) {
-                inputFocus = this;
-            }
-
             uiList[static_cast<size_t>(id)].m.reset();
             myUiList[i] = -1;
         }
@@ -1126,14 +1340,26 @@ void CMenu::render() {
     reflow(style);
     auto &engine = CEngine::engine();
     auto &fonts = fontService();
-    auto color = [&](const ui::Color &c) {
-        engine.setColor(c.r, c.g, c.b, c.a);
-    };
+    const std::string defaultFont = "default";
+    const auto &fontName = context ? context->font : defaultFont;
+    auto color = [&](const ui::Color &c) { glColor4d(c.r, c.g, c.b, c.a); };
 
     glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_CURRENT_BIT |
-                 GL_SCISSOR_BIT | GL_DEPTH_BUFFER_BIT);
+                 GL_SCISSOR_BIT | GL_DEPTH_BUFFER_BIT | GL_TEXTURE_BIT);
+    glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
+    GLint program = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &program);
+    glUseProgram(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    engine.invalidateRenderBindings();
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     GLint matrixMode, viewportPixels[4];
@@ -1151,19 +1377,20 @@ void CMenu::render() {
     glPushMatrix();
     glLoadIdentity();
 
-    if (qbgd.Text) {
-        color(style.panel.background);
-        rectangle({qbgd.x1 + x, qbgd.y3 + y, qbgd.x2 + x, qbgd.y1 + y},
-                  qbgd.Text);
-    }
-
     GLint vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
     const double aspect = vp[3] > 0 ? static_cast<double>(vp[2]) / vp[3] : 1;
     const bool hadScissor = glIsEnabled(GL_SCISSOR_TEST) != 0;
     GLint previousScissor[4];
     glGetIntegerv(GL_SCISSOR_BOX, previousScissor);
-    Rect activeClip{-aspect, -1, aspect, 1};
+    const auto panelBounds = getPanelBounds();
+    const Rect menuClip = permanentPanel
+                              ? Rect{std::max(-aspect, panelBounds.left + x),
+                                     std::max(-1.0, panelBounds.bottom + y),
+                                     std::min(aspect, panelBounds.right + x),
+                                     std::min(1.0, panelBounds.top + y)}
+                              : Rect{-aspect, -1, aspect, 1};
+    Rect activeClip = menuClip;
     auto clip = [&](Rect r) {
         r.left = std::max(r.left, activeClip.left);
         r.right = std::min(r.right, activeClip.right);
@@ -1189,6 +1416,28 @@ void CMenu::render() {
         glScissor(l, b, std::max(0, rr - l), std::max(0, tt - b));
     };
 
+    if (permanentPanel || hadScissor) {
+        clip(menuClip);
+    }
+    if (qbgd.Text) {
+        color(style.panel.background);
+        rectangle({qbgd.x1 + x, qbgd.y3 + y, qbgd.x2 + x, qbgd.y1 + y},
+                  qbgd.Text);
+    }
+
+    auto border = [&](const Rect &rect, const ui::Color &tint, double width) {
+        if (!std::isfinite(width) || width <= 0) {
+            return;
+        }
+        const double w = std::min({width, (rect.right - rect.left) / 2,
+                                   (rect.top - rect.bottom) / 2});
+        color(tint);
+        rectangle({rect.left, rect.bottom, rect.right, rect.bottom + w});
+        rectangle({rect.left, rect.top - w, rect.right, rect.top});
+        rectangle({rect.left, rect.bottom + w, rect.left + w, rect.top - w});
+        rectangle({rect.right - w, rect.bottom + w, rect.right, rect.top - w});
+    };
+
     unsigned pickTexture = context ? context->pickTexture : 0;
     if (!context) {
         const auto &sprites = GPPGame::GuitarPP().SPR;
@@ -1206,13 +1455,20 @@ void CMenu::render() {
         const Rect view{viewport.left + x, viewport.bottom + y,
                         viewport.right + x, viewport.top + y};
 
-        if (clipped && !r.intersects(view)) {
+        if (r.right <= r.left || r.top <= r.bottom || !r.intersects(menuClip) ||
+            (clipped && !r.intersects(view))) {
             continue;
         }
 
-        activeClip = clipped ? view : Rect{-aspect, -1, aspect, 1};
+        activeClip = menuClip;
+        if (clipped) {
+            activeClip = {std::max(menuClip.left, view.left),
+                          std::max(menuClip.bottom, view.bottom),
+                          std::min(menuClip.right, view.right),
+                          std::min(menuClip.top, view.top)};
+        }
 
-        if (clipped || hadScissor) {
+        if (clipped || hadScissor || permanentPanel) {
             clip(activeClip);
         } else {
             glDisable(GL_SCISSOR_TEST);
@@ -1220,7 +1476,14 @@ void CMenu::render() {
 
         const double px = o.x + x, py = o.y + y + (clipped ? scrollOffset : 0);
 
-        if (static_cast<int>(i) == focused) {
+        if (o.type == panel || o.styleOverrides.background) {
+            color(o.styleOverrides.background.value_or(style.panel.background));
+            rectangle(r);
+        }
+        const bool ownsFocus = inputFocus == this || (!inputFocus && !uiMenu);
+        const bool focusHere =
+            ownsFocus && static_cast<int>(i) == focused && interactive(o);
+        if (o.active || focusHere) {
             auto selectedColor = style.selection.background;
 
             if (style.selection.animated) {
@@ -1229,6 +1492,13 @@ void CMenu::render() {
 
             color(selectedColor);
             rectangle(r);
+        }
+        if (focusHere &&
+            (o.type == table_row ||
+             (o.type == textbtn && (o.width > 0 || o.height > 0)))) {
+            border(r, style.selection.accent,
+                   std::max(.004, 2.0 / std::max(1, vp[3])));
+        } else if (focusHere) {
             color(style.selection.accent);
             rectangle(
                 {r.left - appearance.textSize * (1 + style.selection.pickGap),
@@ -1237,11 +1507,55 @@ void CMenu::render() {
                 pickTexture);
         }
 
-        engine.setColor(appearance.textColor.r, appearance.textColor.g,
-                        appearance.textColor.b,
-                        o.disabled ? .35 : appearance.textColor.a);
+        glColor4d(appearance.textColor.r, appearance.textColor.g,
+                  appearance.textColor.b,
+                  o.disabled ? .35 : appearance.textColor.a);
 
-        if (o.type == text_input) {
+        if (o.type == panel) {
+            border(
+                r, o.styleOverrides.border.value_or(style.panel.border),
+                o.styleOverrides.borderWidth.value_or(style.panel.borderWidth));
+        } else if (o.type == image) {
+            if (o.texture) {
+                glColor4d(1, 1, 1, o.disabled ? .35 : 1);
+                rectangle(r, o.texture);
+            }
+        } else if (o.type == table_row) {
+            const size_t count = std::min(o.cells.size(), tableColumns.size());
+            o.cellLayouts.resize(count);
+            double left = r.left;
+            const double pad = style.layout.padding * appearance.textSize;
+            for (size_t cell = 0; cell < count; ++cell) {
+                const double width = tableColumns[cell];
+                if (!std::isfinite(width) || width <= 0) {
+                    continue;
+                }
+                const Rect cellRect{left, r.bottom, left + width, r.top};
+                left += width;
+                if (!cellRect.intersects(activeClip)) {
+                    continue;
+                }
+                auto &cache = o.cellLayouts[cell];
+                if (cache.revision != fonts.revision() ||
+                    cache.text != o.cells[cell] || cache.font != fontName) {
+                    fonts.layoutText(o.cells[cell], cache.layout, fontName);
+                    cache.font = fontName;
+                    cache.text = o.cells[cell];
+                    cache.revision = fonts.revision();
+                }
+                clip({cellRect.left + pad, r.bottom, cellRect.right - pad,
+                      r.top});
+                const double textY = (r.bottom + r.top -
+                                      (cache.layout.top + cache.layout.bottom) *
+                                          appearance.textSize) /
+                                     2;
+                glEnable(GL_TEXTURE_2D);
+                fonts.drawLayout(cache.layout,
+                                 cellRect.left + pad -
+                                     (cache.layout.left * appearance.textSize),
+                                 textY, appearance.textSize);
+            }
+        } else if (o.type == text_input) {
             color(style.controls.field);
             rectangle(r);
             clip({px, py, px + o.fieldWidth, py + appearance.textSize});
@@ -1258,8 +1572,9 @@ void CMenu::render() {
                            std::max(0.0, caret - o.fieldWidth +
                                              std::min(.02, o.fieldWidth * .25)),
                            std::max(0.0, caret));
-            engine.setColor(appearance.textColor.r, appearance.textColor.g,
-                            appearance.textColor.b, appearance.textColor.a);
+            glColor4d(appearance.textColor.r, appearance.textColor.g,
+                      appearance.textColor.b, appearance.textColor.a);
+            glEnable(GL_TEXTURE_2D);
             fonts.drawLayout(o.layout, px - o.textScroll, py,
                              appearance.textSize);
 
@@ -1273,6 +1588,10 @@ void CMenu::render() {
             color(style.controls.track);
             rectangle(controlRect(i, style));
         } else {
+            if (o.type == textbtn && (o.width > 0 || o.height > 0)) {
+                clip(r);
+            }
+            glEnable(GL_TEXTURE_2D);
             fonts.drawLayout(o.layout, px, py, appearance.textSize);
 
             if (o.type == deslizant_Select_list) {
@@ -1294,9 +1613,9 @@ void CMenu::render() {
                     rectangle({cursor, bar.bottom, cursor + appearance.textSize,
                                bar.top},
                               pickTexture);
-                    engine.setColor(
-                        appearance.textColor.r, appearance.textColor.g,
-                        appearance.textColor.b, appearance.textColor.a);
+                    glColor4d(appearance.textColor.r, appearance.textColor.g,
+                              appearance.textColor.b, appearance.textColor.a);
+                    glEnable(GL_TEXTURE_2D);
                     fonts.drawLayout(o.valueLayout,
                                      bar.right + appearance.textSize, py,
                                      appearance.textSize);
@@ -1310,7 +1629,9 @@ void CMenu::render() {
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(matrixMode);
+    glPopClientAttrib();
     glPopAttrib();
+    glUseProgram(static_cast<GLuint>(program));
     engine.invalidateRenderBindings();
 }
 
@@ -1330,7 +1651,28 @@ void CMenu::interfaceCalcPos() {
         }
     }
 
-    std::stable_sort(uiOrderList.begin(), uiOrderList.end());
+    // Root panels sit below windows. Panels inside a window follow that
+    // window's layer; modals and their descendants remain above other windows.
+    auto layer = [](const posUiOrder &entry) {
+        const auto *menu = uiList[static_cast<size_t>(entry.id)].m.get();
+        const CMenu *window = menu;
+        while (window && window->permanentPanel) {
+            window = window->owner;
+        }
+        const int z = window && window->uiMenu
+                          ? uiList[static_cast<size_t>(window->thisUiID)].pos
+                          : 0;
+        bool inModal = false;
+        for (const auto *ancestor = menu; ancestor != nullptr;
+             ancestor = ancestor->owner) {
+            inModal = inModal || ancestor->modal;
+        }
+        return std::make_tuple(inModal, z, entry.pos);
+    };
+    std::stable_sort(uiOrderList.begin(), uiOrderList.end(),
+                     [&](const posUiOrder &a, const posUiOrder &b) {
+                         return layer(a) < layer(b);
+                     });
 }
 
 void CMenu::refreshMenusUiPosOrder() { interfaceCalcPos(); }
@@ -1390,16 +1732,73 @@ int CMenu::allocOrGetUiFreeSpace() {
     return static_cast<int>(uiList.size() - 1);
 }
 
-int CMenu::pushUserInterface(const CMenu &m) {
+int CMenu::attachInterface(const CMenu &m, bool asPanel,
+                           std::optional<Rect> bounds) {
     const int id = allocOrGetUiFreeSpace();
     auto instance = std::make_unique<CMenu>(m);
     instance->uiMenu = true;
     instance->thisUiID = id;
+    instance->owner = this;
+    instance->permanentPanel = asPanel;
+    instance->setPanelBounds(bounds);
+    if (instance->presentationBase) {
+        instance->presentationBase->panelBounds = bounds;
+    }
+
+    instance->returnFocus = rootMenu()->focusedInterface();
+    if (asPanel) {
+        instance->modal = false;
+    }
+
     uiList[static_cast<size_t>(id)].m = std::move(instance);
     myUiList.push_back(id);
-    uiList[static_cast<size_t>(id)].m->putOnTop();
-    inputFocus = uiList[static_cast<size_t>(id)].m.get();
+
+    auto &child = *uiList[static_cast<size_t>(id)].m;
+    child.putOnTop();
+
+    if (!asPanel) {
+        if (child.modal) {
+            rootMenu()->resetBtns();
+            rootMenu()->visitInterfaces([](CMenu &menu) { menu.resetBtns(); });
+        }
+
+        auto *blocker = blockingModal();
+        if (!blocker || blocker->containsInterface(&child)) {
+            inputFocus = &child;
+        }
+    }
+
     return id;
+}
+
+int CMenu::pushUserInterface(const CMenu &m) {
+    return attachInterface(m, false, {});
+}
+
+CMenu::Rect CMenu::getPanelBounds() const {
+    return fixedPanelBounds.value_or(viewport);
+}
+
+std::optional<CMenu::Rect> CMenu::getFixedPanelBounds() const {
+    return fixedPanelBounds;
+}
+
+void CMenu::setPanelBounds(std::optional<Rect> bounds) {
+    if (bounds &&
+        (!std::isfinite(bounds->left) || !std::isfinite(bounds->right) ||
+         !std::isfinite(bounds->top) || !std::isfinite(bounds->bottom) ||
+         bounds->left >= bounds->right || bounds->bottom >= bounds->top)) {
+        throw std::invalid_argument("Invalid panel bounds");
+    }
+    fixedPanelBounds = bounds;
+}
+
+int CMenu::pushPanel(const CMenu &m, Rect bounds) {
+    return attachInterface(m, true, bounds);
+}
+
+int CMenu::pushPanel(const CMenu &m) {
+    return attachInterface(m, true, std::nullopt);
 }
 
 void CMenu::renderUiList() {
@@ -1469,14 +1868,11 @@ void CMenu::applyFixedPositions(const ui::Style &style) {
             o.y = *o.fixedY;
         }
         if (o.overrideHorizontal) {
-            ensureLayout(o);
-            const auto typography =
-                ui::resolveTypography(style.typography, o.styleOverrides);
+            const auto r = layoutRect(o, style);
             if (o.anchorRight) {
-                o.x = aspect() - .1 - o.layout.right * typography.textSize;
+                o.x = aspect() - .1 - r.right;
             } else if (o.centerX) {
-                o.x = *o.centerX - (o.layout.left + o.layout.right) *
-                                       typography.textSize / 2;
+                o.x = *o.centerX - (r.left + r.right) / 2;
             }
         }
     }
@@ -1497,10 +1893,12 @@ void CMenu::clearOptions() {
 
 void CMenu::applyPresentationOverrides(const ui::MenuOverrides &patch) {
     ui::validateOverrides({{menuName, patch}});
+
     if (!presentationBase) {
         presentationBase = std::make_unique<ui::MenuPresentation>(
             ui::capturePresentation(*this));
     }
+
     ui::restorePresentation(*this, *presentationBase);
     presentationPatch = std::make_unique<ui::MenuOverrides>(patch);
     ui::applyMenu(*this, patch);

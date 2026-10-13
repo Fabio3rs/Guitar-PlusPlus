@@ -23,8 +23,10 @@ void setActiveStyle(const Style &style) {
 
 Style resolveStyle(const Style &base, const StyleOverrides &overrides) {
     Style result = base;
-    result.typography = resolveTypography(
-        base.typography, {overrides.textSize, overrides.textColor});
+    OptionStyleOverrides typography;
+    typography.textSize = overrides.textSize;
+    typography.textColor = overrides.textColor;
+    result.typography = resolveTypography(base.typography, typography);
     result.layout.rowStep = overrides.rowStep.value_or(base.layout.rowStep);
     result.layout.padding = overrides.padding.value_or(base.layout.padding);
     result.selection.pickGap =
@@ -38,6 +40,9 @@ Style resolveStyle(const Style &base, const StyleOverrides &overrides) {
     result.controls.field = overrides.field.value_or(base.controls.field);
     result.controls.track = overrides.control.value_or(base.controls.track);
     result.panel.background = overrides.panel.value_or(base.panel.background);
+    result.panel.border = overrides.panelBorder.value_or(base.panel.border);
+    result.panel.borderWidth =
+        overrides.panelBorderWidth.value_or(base.panel.borderWidth);
     return result;
 }
 

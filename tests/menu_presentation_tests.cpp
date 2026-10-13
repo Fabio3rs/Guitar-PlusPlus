@@ -377,3 +377,187 @@ TEST(LuaCPU, QueuedScriptReturnsStoredObjectWithoutUsingMovedKeys) {
     EXPECT_EQ(stored->filePath, "queue-regression");
     lua.files.erase("queue-regression");
 }
+
+TEST_F(MenuPresentationCPU, ComposedControlsRoundTripAndResolveTexturesOnce) {
+    ui::MenuDefinition def;
+    def.id = "table";
+    def.tableColumns = {.5, .7};
+    ui::OptionDefinition row;
+    row.id = "song";
+    row.type = CMenu::table_row;
+    row.cells = {"Canção", "Artista"};
+    row.active = true;
+    row.height = .2;
+    ui::OptionDefinition image;
+    image.id = "cover";
+    image.type = CMenu::image;
+    image.texture = "cover.tga";
+    image.width = image.height = .3;
+    ui::OptionDefinition panel = image;
+    panel.id = "background";
+    panel.type = CMenu::panel;
+    panel.texture.clear();
+    panel.style.background = ui::Color{.1, .2, .3, .8};
+    panel.style.border = ui::Color{1, .5, 0, 1};
+    panel.style.borderWidth = .01;
+    def.options = {panel, row, image};
+    def.style.panelBorderWidth = .02;
+    def.style.panelBorder = ui::Color{0, 1, 0, 1};
+    auto path = directory / "Gui.lua";
+    ui::writeMenus(path, {def});
+    const auto read = ui::readMenus(path);
+    ASSERT_EQ(read.size(), 1u);
+    EXPECT_EQ(read[0].tableColumns, def.tableColumns);
+    EXPECT_EQ(read[0].options[1].cells, row.cells);
+    EXPECT_TRUE(read[0].options[1].active);
+    int resolved = 0;
+    auto menu =
+        ui::instantiate(read[0], &context, [&](const std::string &name) {
+            EXPECT_EQ(name, "cover.tga");
+            ++resolved;
+            return 42u;
+        });
+    EXPECT_EQ(resolved, 1);
+    EXPECT_EQ(menu->options[2].texture, 42u);
+    EXPECT_EQ(menu->options[0].styleOverrides.borderWidth,
+              std::optional<double>{.01});
+    menu->reflow();
+    menu->update();
+    EXPECT_EQ(resolved, 1);
+    CMenu copy(*menu);
+    EXPECT_EQ(copy.tableColumns, menu->tableColumns);
+    EXPECT_EQ(copy.options[1].cells, row.cells);
+    EXPECT_TRUE(copy.options[1].active);
+    copy.options[1].cells[0] = "Independent clone";
+    EXPECT_EQ(menu->options[1].cells, row.cells);
+}
+
+TEST_F(MenuPresentationCPU,
+       BoxAndColumnOverridesPreserveRuntimeStateAndRestoreBase) {
+    CMenu menu("table", &context);
+    menu.tableColumns = {.4, .6};
+    auto row = option("song");
+    row.type = CMenu::table_row;
+    row.cells = {"Song", "Artist"};
+    row.active = true;
+    row.height = .2;
+    row.texture = 42;
+    menu.addOpt(row);
+    menu.select(0);
+    menu.scrollOffset = .25;
+    ui::MenuOverrides patch;
+    patch.tableColumns = std::vector<double>{.6, .8};
+    patch.options["song"].height = .3;
+    patch.options["song"].style.background = ui::Color{0, 0, 1, 1};
+    patch.options["song"].style.borderWidth = .02;
+    patch.style.panelBorderWidth = .03;
+    auto path = directory / "MenuOverrides.lua";
+    ui::writeOverrides(path, {{"table", patch}});
+    auto read = ui::readOverrides(path);
+    ASSERT_EQ(read.size(), 1u);
+    menu.applyPresentationOverrides(read.at("table"));
+    EXPECT_NEAR(menu.optionRect(0).right - menu.optionRect(0).left, 1.4, 1e-12);
+    EXPECT_DOUBLE_EQ(menu.options[0].height, .3);
+    EXPECT_TRUE(menu.options[0].active);
+    EXPECT_EQ(menu.options[0].cells, row.cells);
+    EXPECT_EQ(menu.options[0].texture, 42u);
+    EXPECT_EQ(menu.focusedOption(), 0);
+    EXPECT_DOUBLE_EQ(menu.scrollOffset, .25);
+    CMenu clone(menu);
+    menu.applyPresentationOverrides({});
+    EXPECT_DOUBLE_EQ(menu.options[0].height, .2);
+    EXPECT_EQ(menu.tableColumns, (std::vector<double>{.4, .6}));
+    EXPECT_EQ(clone.tableColumns, (std::vector<double>{.6, .8}));
+    EXPECT_FALSE(menu.options[0].styleOverrides.background);
+    EXPECT_FALSE(menu.options[0].styleOverrides.borderWidth);
+}
+
+TEST_F(MenuPresentationCPU,
+       InvalidNewControlDocumentsAndPatchesDoNotMutateMenus) {
+    ui::MenuDefinition def;
+    def.id = "invalid";
+    ui::OptionDefinition row;
+    row.id = "row";
+    row.type = CMenu::table_row;
+    row.cells = {"x", "y"};
+    def.options = {row};
+    EXPECT_THROW(ui::instantiate(def, &context), std::runtime_error);
+    def.tableColumns = {.2};
+    EXPECT_THROW(ui::validate({def}), std::runtime_error);
+    def.tableColumns = {.2, -.3};
+    EXPECT_THROW(ui::validate({def}), std::runtime_error);
+    def.tableColumns = {.2, .3};
+    EXPECT_NO_THROW(ui::validate({def}));
+    def.options[0].cells[0] = "\xff";
+    EXPECT_THROW(ui::validate({def}), std::runtime_error);
+    def.options[0] = {};
+    def.options[0].id = "image";
+    def.options[0].type = CMenu::image;
+    EXPECT_THROW(ui::validate({def}), std::runtime_error);
+    CMenu menu("table", &context);
+    menu.tableColumns = {.2};
+    menu.addOpt(option("song"));
+    ui::MenuOverrides patch;
+    patch.tableColumns = std::vector<double>{-1};
+    patch.x = 3;
+    EXPECT_THROW(menu.applyPresentationOverrides(patch), std::runtime_error);
+    EXPECT_DOUBLE_EQ(menu.x, 0);
+    EXPECT_EQ(menu.tableColumns, (std::vector<double>{.2}));
+    EXPECT_EQ(menu.originalPresentation(), nullptr);
+    patch.tableColumns.reset();
+    patch.options["song"].style.borderWidth = -1;
+    EXPECT_THROW(menu.applyPresentationOverrides(patch), std::runtime_error);
+}
+
+TEST_F(MenuPresentationCPU, PanelBoundsOverridesRoundTripAndRestoreMode) {
+    CMenu root("root", &context), model("child", &context);
+    model.viewport = {0, -.5, .5, .5};
+    model.addOpt(option("song"));
+    auto &child = *CMenu::getUiAt(root.pushPanel(model)).m;
+    child.options[0].active = true;
+    child.options[0].preText = "search";
+    child.scrollOffset = .1;
+    auto patches = ui::readOverrides(script(R"(return {
+        child = {viewport={left=0,bottom=-.5,right=1,top=.5},
+                 panelBounds={left=0,bottom=-.6,right=1.2,top=.6}}
+    })"));
+    ui::writeOverrides(directory / "roundtrip.lua", patches);
+    patches = ui::readOverrides(directory / "roundtrip.lua");
+    child.applyPresentationOverrides(patches.at("child"));
+    EXPECT_EQ(child.getPanelBounds().right, 1.2);
+    EXPECT_TRUE(child.getFixedPanelBounds());
+    EXPECT_TRUE(child.options[0].active);
+    EXPECT_EQ(child.options[0].preText, "search");
+    EXPECT_EQ(child.scrollOffset, .1);
+    child.applyPresentationOverrides({});
+    EXPECT_FALSE(child.getFixedPanelBounds());
+    EXPECT_EQ(child.getPanelBounds().right, .5);
+
+    auto &fixed = *CMenu::getUiAt(root.pushPanel(model, {0, -1, 1, 1})).m;
+    patches = ui::readOverrides(script(R"(return {
+        child = {panelFollowsViewport=true,
+                 viewport={left=0,bottom=-.5,right=.8,top=.5}}
+    })"));
+    ui::writeOverrides(directory / "roundtrip.lua", patches);
+    patches = ui::readOverrides(directory / "roundtrip.lua");
+    fixed.applyPresentationOverrides(patches.at("child"));
+    EXPECT_FALSE(fixed.getFixedPanelBounds());
+    EXPECT_EQ(fixed.getPanelBounds().right, .8);
+    fixed.applyPresentationOverrides({});
+    EXPECT_TRUE(fixed.getFixedPanelBounds());
+    EXPECT_EQ(fixed.getPanelBounds().right, 1);
+    ui::MenuOverrides invalid;
+    invalid.panelBounds = CMenu::Rect{1, 0, 0, 1};
+    invalid.x = 99;
+    EXPECT_THROW(fixed.applyPresentationOverrides(invalid), std::runtime_error);
+    EXPECT_EQ(fixed.x, 0);
+    EXPECT_EQ(fixed.getPanelBounds().right, 1);
+    invalid.panelBounds = CMenu::Rect{0, 0, 1, 1};
+    invalid.panelFollowsViewport = true;
+    EXPECT_THROW(fixed.applyPresentationOverrides(invalid), std::runtime_error);
+    invalid.panelBounds.reset();
+    invalid.panelFollowsViewport = false;
+    EXPECT_THROW(fixed.applyPresentationOverrides(invalid), std::runtime_error);
+    EXPECT_EQ(fixed.x, 0);
+    EXPECT_EQ(fixed.getPanelBounds().right, 1);
+}

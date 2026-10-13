@@ -1,6 +1,7 @@
 #include "CFonts.h"
 #include "CLuaFunctions.hpp"
 #include "CMenu.h"
+#include "CUIOverrides.h"
 #include "GPPGame.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -401,5 +402,257 @@ TEST_F(FontAtlasGL, MenuStyleChangesColorsAndKeepsUnitGlyphCache) {
     EXPECT_EQ(menu.options[0].layout.glyphs.data(), glyphs);
     EXPECT_EQ(menu.options[0].cachedRevision, revision);
     EXPECT_EQ(menu.options[0].layout.carets, carets);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+namespace {
+std::array<unsigned char, 3> menuPixel(int x, int y) {
+    std::array<unsigned char, 3> pixel{};
+    glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixel.data());
+    return pixel;
+}
+} // namespace
+
+TEST_F(FontAtlasGL, MenuImagesPanelsAndBordersUseExplicitRectangles) {
+    GLuint texture = 0;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    const unsigned char blue[] = {0, 0, 255, 255};
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 blue);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    CMenu::Context context;
+    CMenu menu("visual", &context);
+    CMenu::menuOpt panel;
+    panel.type = CMenu::panel;
+    panel.x = panel.y = -.75;
+    panel.width = panel.height = 1.5;
+    panel.styleOverrides.background = ui::Color{1, 0, 0, 1};
+    panel.styleOverrides.border = ui::Color{0, 1, 0, 1};
+    panel.styleOverrides.borderWidth = .1;
+    menu.addOpt(panel);
+    CMenu::menuOpt image;
+    image.type = CMenu::image;
+    image.x = image.y = -.25;
+    image.width = image.height = .5;
+    image.texture = texture;
+    menu.addOpt(image);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    menu.render();
+    EXPECT_EQ(menuPixel(64, 64), (std::array<unsigned char, 3>{0, 0, 255}));
+    EXPECT_EQ(menuPixel(32, 32), (std::array<unsigned char, 3>{255, 0, 0}));
+    EXPECT_EQ(menuPixel(18, 64), (std::array<unsigned char, 3>{0, 255, 0}));
+    EXPECT_EQ(menuPixel(8, 64), (std::array<unsigned char, 3>{0, 0, 0}));
+    menu.options[1].texture = 0;
+    glClear(GL_COLOR_BUFFER_BIT);
+    menu.render();
+    EXPECT_EQ(menuPixel(64, 64), (std::array<unsigned char, 3>{255, 0, 0}));
+    glDeleteTextures(1, &texture);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+TEST_F(FontAtlasGL,
+       TableCellsClipAgainstColumnViewportAndCallerAndCacheLayouts) {
+    atlas("solid.tga", true);
+    auto &fonts = CFonts::fonts();
+    ASSERT_FALSE(fonts
+                     .addTextureToFont("table-test", path.string(), "solid.tga",
+                                       "aé", {2, 1})
+                     .empty());
+    CMenu::Context context;
+    context.fonts = &fonts;
+    context.font = "table-test";
+    context.style.typography.textSize = .3;
+    context.style.layout.padding = 0;
+    CMenu menu("table", &context);
+    menu.tableColumns = {.5, .5};
+    menu.viewportEnabled = true;
+    menu.viewport = {-.5, -.5, .5, .5};
+    CMenu::menuOpt row;
+    row.type = CMenu::table_row;
+    row.x = -.5;
+    row.y = -.25;
+    row.height = .5;
+    row.group = 1;
+    row.cells = {"aéaaaaaaaaaaaaaaaaa", ""};
+    menu.addOpt(row);
+    row.y = -2;
+    menu.addOpt(row);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(40, 48, 55, 32);
+    menu.render();
+    constexpr size_t pixelSide = 128;
+    std::array<unsigned char, pixelSide * pixelSide * 3> pixels{};
+    glReadPixels(0, 0, 128, 128, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    int white = 0;
+    for (size_t y = 0; y < 128; ++y) {
+        for (size_t x = 0; x < 128; ++x) {
+            const auto offset = (y * 128 + x) * 3;
+            if (pixels[offset] > 200) {
+                ++white;
+                EXPECT_GE(x, 40);
+                EXPECT_LT(x, 64); // The next, empty column must stay empty.
+                EXPECT_GE(y, 48);
+                EXPECT_LT(y, 80);
+            }
+        }
+    }
+    EXPECT_GT(white, 0);
+    ASSERT_EQ(menu.options[0].cellLayouts.size(), 2u);
+    EXPECT_TRUE(menu.options[1].cellLayouts.empty());
+    const auto *cached = menu.options[0].cellLayouts[0].layout.glyphs.data();
+    menu.render();
+    EXPECT_EQ(menu.options[0].cellLayouts[0].layout.glyphs.data(), cached);
+    menu.options[0].cells[0] = "é";
+    menu.render();
+    EXPECT_EQ(menu.options[0].cellLayouts[0].text, "é");
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+TEST_F(FontAtlasGL, PanelLayerAndPersistentSelectionDoNotFollowKeyboardFocus) {
+    CMenu::Context context;
+    context.mouseX = context.mouseY = 10;
+    context.style.selection.background = {0, 0, 1, 1};
+    context.style.selection.accent = {1, 1, 0, 1};
+    CMenu root("root", &context);
+    CMenu model("rows", &context);
+    model.tableColumns = {1};
+    CMenu::menuOpt row;
+    row.type = CMenu::table_row;
+    row.x = -.5;
+    row.y = -.5;
+    row.height = .3;
+    row.active = true;
+    model.addOpt(row);
+    row.y = .2;
+    row.active = false;
+    model.addOpt(row);
+    auto &child = *CMenu::getUiAt(static_cast<size_t>(
+                                      root.pushPanel(model, {-.4, -1, 1, 1})))
+                       .m;
+    root.update();
+    root.focusInterface(child);
+    child.select(1);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    CMenu::renderUiList();
+    EXPECT_EQ(menuPixel(64, 40), (std::array<unsigned char, 3>{0, 0, 255}));
+    EXPECT_EQ(menuPixel(64, 86), (std::array<unsigned char, 3>{0, 0, 255}));
+    EXPECT_EQ(menuPixel(33, 40), (std::array<unsigned char, 3>{
+                                     0, 0, 0})); // Panel clips its children.
+    CMenu modal("modal", &context);
+    modal.modal = true;
+    CMenu::menuOpt cover;
+    cover.type = CMenu::panel;
+    cover.x = cover.y = -.5;
+    cover.width = cover.height = 1;
+    cover.styleOverrides.background = ui::Color{1, 0, 0, 1};
+    modal.addOpt(cover);
+    root.pushUserInterface(modal);
+    root.pushPanel(model, {-1, -1, 1, 1});
+    glClear(GL_COLOR_BUFFER_BIT);
+    CMenu::renderUiList();
+    EXPECT_EQ(menuPixel(64, 40), (std::array<unsigned char, 3>{255, 0, 0}));
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+TEST_F(FontAtlasGL,
+       NewMenuControlsRestoreProgramTextureBuffersAndBlendDepthState) {
+    using namespace ShaderProject;
+    auto program = CShader::createShaderProgram();
+    auto vertex = CShader::compileShader(
+        "#version 110\nvoid main(){gl_Position=ftransform();}", VERTEX);
+    auto fragment = CShader::compileShader(
+        "#version 110\nvoid main(){gl_FragColor=vec4(1.0);}", FRAGMENT);
+    CShader::attachShaderToProgram(program, vertex);
+    CShader::attachShaderToProgram(program, fragment);
+    CShader::linkShaderProgram(program);
+    glUseProgram(program.get());
+    GLuint buffer = 0, texture = 0;
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    const float data[] = {0, 0, 0, 1, 1, 1};
+    glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
+    glVertexPointer(3, GL_FLOAT, 0, nullptr);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+    glDisable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ZERO);
+    glEnable(GL_LIGHTING);
+    glColor4d(.2, .3, .4, .5);
+    CMenu::Context context;
+    CMenu menu("state", &context);
+    CMenu::menuOpt panel;
+    panel.type = CMenu::panel;
+    panel.width = panel.height = .5;
+    panel.styleOverrides.borderWidth = .02;
+    menu.addOpt(panel);
+    menu.render();
+    GLint actual = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &actual);
+    EXPECT_EQ(static_cast<GLuint>(actual), program.get());
+    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &actual);
+    EXPECT_EQ(static_cast<GLuint>(actual), buffer);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &actual);
+    EXPECT_EQ(static_cast<GLuint>(actual), texture);
+    glGetIntegerv(GL_VERTEX_ARRAY_SIZE, &actual);
+    EXPECT_EQ(actual, 3);
+    glGetIntegerv(GL_BLEND_SRC, &actual);
+    EXPECT_EQ(actual, GL_ONE);
+    EXPECT_TRUE(glIsEnabled(GL_DEPTH_TEST));
+    EXPECT_TRUE(glIsEnabled(GL_LIGHTING));
+    EXPECT_FALSE(glIsEnabled(GL_BLEND));
+    GLboolean write = GL_TRUE;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &write);
+    EXPECT_FALSE(write);
+    GLdouble color[4];
+    glGetDoublev(GL_CURRENT_COLOR, color);
+    EXPECT_NEAR(color[3], .5, 1e-6);
+    glUseProgram(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDeleteBuffers(1, &buffer);
+    glDeleteTextures(1, &texture);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+TEST_F(FontAtlasGL, ResizingPanelBoundsUpdatesClippingAndRestoresWithTheme) {
+    CMenu::Context context;
+    CMenu root("root", &context), model("panel", &context);
+    model.viewport = {-.5, -.5, 0, .5};
+    CMenu::menuOpt box;
+    box.type = CMenu::panel;
+    box.x = box.y = -.5;
+    box.width = box.height = 1;
+    box.styleOverrides.background = ui::Color{1, 0, 0, 1};
+    model.addOpt(box);
+    auto &child = *CMenu::getUiAt(root.pushPanel(model)).m;
+    auto draw = [&] {
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        CMenu::renderUiList();
+    };
+    const std::array<unsigned char, 3> black{0, 0, 0}, red{255, 0, 0};
+    draw();
+    EXPECT_EQ(menuPixel(48, 64), red);
+    EXPECT_EQ(menuPixel(80, 64), black);
+    ui::MenuOverrides patch;
+    patch.viewport = CMenu::Rect{-.5, -.5, .5, .5};
+    child.applyPresentationOverrides(patch);
+    draw();
+    EXPECT_EQ(menuPixel(80, 64), red);
+    child.applyPresentationOverrides({});
+    draw();
+    EXPECT_EQ(menuPixel(80, 64), black);
+    patch.panelBounds = CMenu::Rect{0, -.5, .5, .5};
+    child.applyPresentationOverrides(patch);
+    draw();
+    EXPECT_EQ(menuPixel(48, 64), black);
+    EXPECT_EQ(menuPixel(80, 64), red);
     EXPECT_EQ(glGetError(), GL_NO_ERROR);
 }

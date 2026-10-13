@@ -10,6 +10,9 @@ struct OptionDefinition {
     CMenu::menusOPT type = CMenu::textbtn;
     int group = 1, shortcut = 0;
     double x = 0, y = 0, fieldWidth = .55, listWidth = .5;
+    double width = 0, height = 0;
+    bool active = false;
+    std::vector<std::string> cells;
     bool disabled = false, manual = false, anchorRight = false, back = false;
     bool enableEnter = true;
     std::optional<double> centerX;
@@ -28,6 +31,7 @@ struct MenuDefinition {
     CMenu::Rect panel{-.1, -.6, 1.4, .15};
     StyleOverrides style;
     std::vector<OptionDefinition> options;
+    std::vector<double> tableColumns;
 };
 
 using MenuDefinitions = std::vector<MenuDefinition>;

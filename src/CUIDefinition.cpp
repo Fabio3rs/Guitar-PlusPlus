@@ -41,11 +41,16 @@ template <class F> void fields(StyleOverrides &v, F &f) {
     FIELD(control);
     FIELD(panel);
     FIELD(animateSelection);
+    FIELD(panelBorder);
+    FIELD(panelBorderWidth);
 }
 
 template <class F> void fields(OptionStyleOverrides &v, F &f) {
     FIELD(textSize);
     FIELD(textColor);
+    FIELD(background);
+    FIELD(border);
+    FIELD(borderWidth);
 }
 
 template <class F> void fields(OptionDefinition &v, F &f) {
@@ -61,6 +66,8 @@ template <class F> void fields(OptionDefinition &v, F &f) {
     FIELD(y);
     FIELD(fieldWidth);
     FIELD(listWidth);
+    FIELD(width);
+    FIELD(height);
     FIELD(disabled);
     FIELD(manual);
     FIELD(anchorRight);
@@ -69,6 +76,8 @@ template <class F> void fields(OptionDefinition &v, F &f) {
     FIELD(centerX);
     FIELD(maxBytes);
     FIELD(items);
+    FIELD(cells);
+    FIELD(active);
     FIELD(actions);
     FIELD(style);
 }
@@ -91,12 +100,15 @@ template <class F> void fields(MenuDefinition &v, F &f) {
     FIELD(panel);
     FIELD(style);
     FIELD(options);
+    FIELD(tableColumns);
 }
 template <class F> void fields(OptionLayoutOverrides &v, F &f) {
     FIELD(x);
     FIELD(y);
     FIELD(fieldWidth);
     FIELD(listWidth);
+    FIELD(width);
+    FIELD(height);
     FIELD(centerX);
     FIELD(anchorRight);
     FIELD(style);
@@ -113,8 +125,11 @@ template <class F> void fields(MenuOverrides &v, F &f) {
     FIELD(anchorLeft);
     FIELD(viewport);
     FIELD(panel);
+    FIELD(panelBounds);
+    FIELD(panelFollowsViewport);
     FIELD(style);
     FIELD(options);
+    FIELD(tableColumns);
 }
 #undef FIELD
 
@@ -343,6 +358,31 @@ void require(bool condition, const std::string &message) {
         throw std::runtime_error(message);
     }
 }
+void validateColumns(const std::vector<double> &columns) {
+    double total = 0;
+
+    for (double width : columns) {
+        require(width > 0, "Invalid table column width");
+        total += width;
+    }
+
+    require(std::isfinite(total) && total <= 1000000, "Invalid table width");
+}
+
+void validateStyle(const OptionStyleOverrides &style) {
+    require(!style.textSize || *style.textSize > 0, "Invalid option text size");
+    require(!style.borderWidth || *style.borderWidth >= 0,
+            "Invalid option border width");
+}
+
+void validateStyle(const StyleOverrides &style) {
+    require(!style.textSize || *style.textSize > 0, "Invalid text size");
+    require(!style.rowStep || *style.rowStep > 0, "Invalid row step");
+    require(!style.padding || *style.padding >= 0, "Invalid padding");
+    require(!style.pickGap || *style.pickGap >= 0, "Invalid pick gap");
+    require(!style.panelBorderWidth || *style.panelBorderWidth >= 0,
+            "Invalid panel border width");
+}
 } // namespace
 
 std::string luaQuote(const std::string &text) {
@@ -359,17 +399,20 @@ std::string luaQuote(const std::string &text) {
         }
     }
     out << '"';
+
     return out.str();
 }
 
 void writeTextFile(const std::filesystem::path &path, const std::string &text) {
     static std::atomic<unsigned long long> serial{0};
+
     auto temporary = path;
     temporary +=
         ".tmp-" +
         std::to_string(
             std::chrono::steady_clock::now().time_since_epoch().count()) +
         "-" + std::to_string(serial.fetch_add(1));
+
     try {
         std::ofstream file(temporary, std::ios::binary | std::ios::trunc);
         file.exceptions(std::ios::badbit | std::ios::failbit);
@@ -388,6 +431,7 @@ MenuDefinitions defaultModals() {
     rename.id = "uiRenameMenu";
     rename.modal = true;
     rename.background = "data/sprites/interfacebg.tga";
+
     OptionDefinition bar;
     bar.id = "title";
     bar.type = CMenu::drag_bar;
@@ -397,12 +441,14 @@ MenuDefinitions defaultModals() {
     bar.group = 2;
     bar.style.textSize = .1;
     bar.style.textColor = Color{63.0 / 255, 81.0 / 255, 181.0 / 255, 1};
+
     OptionDefinition name;
     name.id = "name";
     name.type = CMenu::text_input;
     name.text = "aaaa";
     name.value = "type here";
     name.y = .05;
+
     OptionDefinition close;
     close.id = "close";
     close.text = "Close";
@@ -410,14 +456,17 @@ MenuDefinitions defaultModals() {
     close.back = true;
     close.style.textColor = Color{1, 0, 0, 1};
     rename.options = {bar, name, close};
+
     auto profile = rename;
     profile.id = "uiCreateProfileMenu";
+
     OptionDefinition path;
     path.id = "path";
     path.text = "Path:";
     path.type = CMenu::static_text;
     path.y = -.05;
     profile.options.insert(profile.options.end() - 1, path);
+
     return {rename, profile};
 }
 
@@ -437,9 +486,10 @@ void validate(const MenuDefinitions &definitions) {
         require(menu.panel.left <= menu.panel.right &&
                     menu.panel.bottom <= menu.panel.top,
                 "Invalid panel");
-        if (menu.style.textSize) {
-            require(*menu.style.textSize > 0, "Invalid text size");
-        }
+
+        validateStyle(menu.style);
+        validateColumns(menu.tableColumns);
+
         std::set<std::string> controls;
         for (const auto &o : menu.options) {
             const std::string prefix = menu.id + ".";
@@ -448,15 +498,24 @@ void validate(const MenuDefinitions &definitions) {
                                                             : prefix + o.id;
             require(!o.id.empty() && controls.insert(qualified).second,
                     "Empty/duplicate control id");
-            require(o.type >= CMenu::button_ok && o.type <= CMenu::static_text,
+            require(o.type >= CMenu::button_ok && o.type <= CMenu::panel,
                     "Invalid control type");
             require(o.fieldWidth > 0 && o.listWidth >= 0 &&
                         o.maxBytes <= 1000000,
                     "Invalid control dimensions");
-            if (o.style.textSize) {
-                require(*o.style.textSize > 0, "Invalid control text size");
+            require(o.width >= 0 && o.height >= 0, "Invalid box dimensions");
+            if (o.type == CMenu::image || o.type == CMenu::panel) {
+                require(o.width > 0 && o.height > 0,
+                        "Image/panel requires dimensions");
             }
+            if (o.type == CMenu::table_row) {
+                require(!menu.tableColumns.empty() &&
+                            o.cells.size() <= menu.tableColumns.size(),
+                        "Table row requires enough columns");
+            }
+            validateStyle(o.style);
         }
+
         if (menu.id == "uiRenameMenu" || menu.id == "uiCreateProfileMenu") {
             require(menu.modal, "Built-in dialog must remain modal");
             const auto has = [&](const std::string &id, CMenu::menusOPT type) {
@@ -522,34 +581,52 @@ void writeMenus(const std::filesystem::path &path,
 void validateOverrides(const MenuOverrideSet &input) {
     auto checked = input;
     check(checked);
+
     for (const auto &entry : input) {
         require(!entry.first.empty(), "Empty menu id");
         const auto &m = entry.second;
         require(!(m.flowX && m.anchorLeft.value_or(false)),
                 "Conflicting flow origin and left anchor");
+
         if (m.flow) {
             require(*m.flow >= CMenu::Flow::Manual &&
                         *m.flow <= CMenu::Flow::Horizontal,
                     "Invalid flow");
         }
+
         for (const auto &rect : {m.viewport, m.panel}) {
             if (rect) {
                 require(rect->left <= rect->right && rect->bottom <= rect->top,
                         "Invalid presentation rectangle");
             }
         }
-        require(!m.style.textSize || *m.style.textSize > 0,
-                "Invalid text size");
-        require(!m.style.rowStep || *m.style.rowStep > 0, "Invalid row step");
-        require(!m.style.padding || *m.style.padding >= 0, "Invalid padding");
-        require(!m.style.pickGap || *m.style.pickGap >= 0, "Invalid pick gap");
+
+        require(!(m.panelBounds && m.panelFollowsViewport.value_or(false)),
+                "Conflicting panel bounds and viewport following");
+        require(!m.panelFollowsViewport || *m.panelFollowsViewport ||
+                    m.panelBounds,
+                "Independent panel bounds must be explicit");
+        if (m.panelBounds) {
+            require(m.panelBounds->left < m.panelBounds->right &&
+                        m.panelBounds->bottom < m.panelBounds->top,
+                    "Invalid panel bounds");
+        }
+
+        validateStyle(m.style);
+        if (m.tableColumns) {
+            validateColumns(*m.tableColumns);
+        }
+
         for (const auto &item : m.options) {
             require(!item.first.empty(), "Empty option id");
             const auto &o = item.second;
             require(!o.fieldWidth || *o.fieldWidth > 0, "Invalid field width");
             require(!o.listWidth || *o.listWidth >= 0, "Invalid list width");
-            require(!o.style.textSize || *o.style.textSize > 0,
-                    "Invalid option text size");
+            validateStyle(o.style);
+            require((!o.width || *o.width >= 0) &&
+                        (!o.height || *o.height >= 0),
+                    "Invalid box dimensions");
+
             const int horizontal = int(o.x.has_value()) +
                                    int(o.centerX.has_value()) +
                                    int(o.anchorRight.value_or(false));
@@ -565,22 +642,27 @@ MenuOverrideSet readOverrides(const std::filesystem::path &path) {
     if (!L) {
         throw std::runtime_error("Cannot create Lua state");
     }
+
     lua_sethook(L, budget, LUA_MASKCOUNT, 1000000);
+
     if (luaL_loadfilex(L, path.string().c_str(), "t") ||
         lua_pcall(L, 0, 1, 0)) {
         const char *message = lua_tostring(L, -1);
         throw std::runtime_error(message ? message
                                          : "Lua raised a non-string error");
     }
+
     MenuOverrideSet result;
     read(L, result);
     validateOverrides(result);
+
     return result;
 }
 
 void writeOverrides(const std::filesystem::path &path,
                     const MenuOverrideSet &input) {
     validateOverrides(input);
+
     auto copy = input;
     std::ostringstream out;
     out.imbue(std::locale::classic());
@@ -588,6 +670,7 @@ void writeOverrides(const std::filesystem::path &path,
         << "-- Guitar++ presentation overrides.\nreturn ";
     write(out, copy);
     out << '\n';
+
     writeTextFile(path, out.str());
 }
 
@@ -595,18 +678,24 @@ std::unique_ptr<CMenu> instantiate(const MenuDefinition &d,
                                    CMenu::Context *context,
                                    const TextureResolver &textures) {
     validate({d});
+
     auto m = std::make_unique<CMenu>(d.id, context);
     m->mTitle = d.title;
     m->x = d.x;
     m->y = d.y;
     m->modal = d.modal;
     m->gameMenu = true;
+
     m->styleOverrides = d.style;
+    m->tableColumns = d.tableColumns;
+
     m->setFlow(d.flow, d.flowX, d.flowY, d.flowGroup);
     m->anchorLeft = d.anchorLeft;
     m->leftMargin = d.leftMargin;
+
     m->viewportEnabled = d.viewportEnabled;
     m->viewport = d.viewport;
+
     m->qbgd.x1 = m->qbgd.x4 = d.panel.left;
     m->qbgd.x2 = m->qbgd.x3 = d.panel.right;
     m->qbgd.y1 = m->qbgd.y2 = d.panel.top;
@@ -614,13 +703,20 @@ std::unique_ptr<CMenu> instantiate(const MenuDefinition &d,
     m->qbgd.alphaTop = m->qbgd.alphaBottom = 1;
     m->qbgd.Text =
         textures && !d.background.empty() ? textures(d.background) : 0;
+
     for (const auto &o : d.options) {
         CMenu::menuOpt opt;
         opt.optionName = o.id;
         opt.type = o.type;
+        opt.width = o.width;
+        opt.height = o.height;
+        opt.cells = o.cells;
+        opt.active = o.active;
+
         opt.text = o.text;
         opt.preText = o.value;
         opt.langEntryKey = o.languageKey;
+
         opt.x = o.x;
         opt.y = o.y;
         opt.group = o.group;
@@ -631,13 +727,16 @@ std::unique_ptr<CMenu> instantiate(const MenuDefinition &d,
         opt.manualPosition = o.manual;
         opt.anchorRight = o.anchorRight;
         opt.centerX = o.centerX;
+
         opt.goback = o.back;
         opt.enableEnter = o.enableEnter;
         opt.preTextMaxSize = o.maxBytes;
+
         opt.styleOverrides = o.style;
         opt.optList.assign(o.items.begin(), o.items.end());
         opt.menusXRef.assign(o.actions.begin(), o.actions.end());
         opt.texture = textures && !o.texture.empty() ? textures(o.texture) : 0;
+
         if (m->addOpt(opt) < 0) {
             throw std::runtime_error("Cannot add UI option: " + o.id);
         }

@@ -8,6 +8,7 @@ struct OptionLayoutOverrides {
     std::optional<double> x, y, fieldWidth, listWidth, centerX;
     std::optional<bool> anchorRight;
     OptionStyleOverrides style;
+    std::optional<double> width, height;
 };
 
 struct MenuOverrides {
@@ -16,8 +17,11 @@ struct MenuOverrides {
     std::optional<CMenu::Flow> flow;
     std::optional<bool> viewportEnabled, anchorLeft;
     std::optional<CMenu::Rect> viewport, panel;
+    std::optional<CMenu::Rect> panelBounds;
+    std::optional<bool> panelFollowsViewport;
     StyleOverrides style;
     std::map<std::string, OptionLayoutOverrides> options;
+    std::optional<std::vector<double>> tableColumns;
 };
 using MenuOverrideSet = std::map<std::string, MenuOverrides>;
 
@@ -27,6 +31,7 @@ struct OptionPresentation {
     bool anchorRight, manual;
     std::optional<double> centerX;
     OptionStyleOverrides style;
+    double width = 0, height = 0;
 };
 struct MenuPresentation {
     double x, y, flowX, flowY, leftMargin;
@@ -36,6 +41,8 @@ struct MenuPresentation {
     CMenu::Rect viewport, panel;
     StyleOverrides style;
     std::map<std::string, OptionPresentation> options;
+    std::vector<double> tableColumns;
+    std::optional<CMenu::Rect> panelBounds;
 };
 
 MenuOverrideSet readOverrides(const std::filesystem::path &);

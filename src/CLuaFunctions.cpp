@@ -1212,7 +1212,7 @@ auto CLuaFunctions::newMenuOption(lua_State *L) -> int {
 
         auto *menu = GPPGame::GuitarPP().menus.findMenu(menuName);
         if (!menu || !validInteger(L, 6, -1, std::numeric_limits<int>::max()) ||
-            !validInteger(L, 7, -1, CMenu::static_text) ||
+            !validInteger(L, 7, -1, CMenu::panel) ||
             !std::isfinite(lua_tonumber(L, 3)) ||
             !std::isfinite(lua_tonumber(L, 4)) ||
             (!lua_isnil(L, 5) &&

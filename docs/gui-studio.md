@@ -80,7 +80,7 @@ to the asset root, or absolute paths for local development.
 
 Control types retain CMenu's numeric values: 0 OK, 1 text input, 2 cancel,
 3 text button, 4 multi button, 5 list slider, 6 UI button, 7 drag bar, 8 static
-text. Control fields include `id`, `text`, `value`, `languageKey`, `texture`,
+text, 9 table row, 10 image, 11 panel. Control fields include `id`, `text`, `value`, `languageKey`, `texture`,
 `group`, `shortcut`, `x/y`, `fieldWidth`, `listWidth`, `disabled`, `manual`,
 `anchorRight`, `centerX`, `back`, `enableEnter`, `maxBytes`, `items`, `actions`,
 and `style`. `maxBytes` is the existing UTF-8 byte limit, not a glyph count.
@@ -330,3 +330,145 @@ and pause-button color overrides. BASS used a test-only no-sound-device shim;
 real audio timing, physical controllers, Windows and hardware GPU performance
 were not validated. Runtime artifacts are under `build/menu-review` and are
 not source assets.
+
+## CMenu composition and rectangular controls
+
+The runtime can compose persistent panels using the same `CMenu` renderer and
+input routing as ordinary menus. The GUI Studio inspector does not yet expose
+these new controls; the C++ and declarative readers/writers support them.
+The images used to motivate this API are a future Quick Play layout, not an
+implemented song browser.
+
+```cpp
+CMenu root("library");
+CMenu results("results");
+results.viewportEnabled = true;
+results.viewport = {-.6, -.7, .7, .6};
+results.setFlow(CMenu::Flow::Vertical, -.6, .5);
+results.tableColumns = {.7, .6};
+CMenu::menuOpt song;
+song.optionName = "demo";
+song.type = CMenu::table_row;
+song.group = 1;
+song.cells = {"Canção de exemplo", "Artista"};
+song.active = true;
+results.addOpt(song);
+const int id = root.pushPanel(results);
+auto &panel = *CMenu::getUiAt(static_cast<size_t>(id)).m;
+root.focusInterface(panel);
+```
+
+`pushPanel` clones its model, returns the existing UI slot identifier, and does
+not transfer input focus. Bounds are in the child's local UI coordinates,
+translated by its `x/y`, like its viewport. They define the outer clipping and
+mouse-routing region independently of background textures. Child coordinates do
+not implicitly inherit the parent's translation. Attach panels before applying
+runtime presentation patches; keep ownership/composition in the host.
+
+`pushPanel(model)` follows the child's current viewport for its outer bounds.
+`pushPanel(model, bounds)` keeps an independent rectangle, useful for headers
+outside the scrolling area. `getPanelBounds()` returns the effective local bounds;
+`getFixedPanelBounds()` is empty in follow mode. `setPanelBounds(rect)` resizes
+independent bounds, and `setPanelBounds(std::nullopt)` resumes following the
+viewport. Explicit bounds must be finite and have positive dimensions. These
+changes affect drawing and mouse routing without rebuilding options.
+
+Overrides accept `panelBounds` for independent bounds and `panelFollowsViewport`
+to choose following (`true`) or independent bounds (`false`, requiring
+`panelBounds`).
+Do not combine explicit bounds with `panelFollowsViewport=true`. Replacing a theme
+restores the original bounds/mode before applying the new patch. The older `panel`
+field still describes the background quad; it is not the outer clipping region.
+
+
+`focusedInterface()` queries the focused region in the caller's root tree.
+`focusInterface(menu)` rejects foreign trees, regions with no enabled controls,
+and destinations blocked by a modal. `focusNextPanel(backwards)` implements the
+same cycle as Tab/Shift+Tab and is available for future controller bindings.
+The root participates before its panels; descendants follow registration order.
+Empty/passive/disabled regions are skipped. Arrows keep their existing local
+behavior. Without panels, Tab still visits individual options. Tab leaves text
+editing; an active modal restricts navigation to its own tree.
+
+Unconsumed press commands (shortcuts and Escape) bubble from permanent panels to
+their owner, stopping at a modal or legacy window. Local commands win. Ancestor
+commands do not change keyboard focus or the ancestor's focused option. Editing
+consumes keys locally; Escape first exits editing. Navigation and character events
+do not bubble, and legacy windows retain their existing behavior.
+
+The wheel uses the current cursor position and scrolls the region under it,
+without moving keyboard focus. `MenuEvent::Scroll.x/y` remain wheel deltas.
+Mouse release goes to the captured region even after a focus change. Opening a
+modal or losing window focus cancels capture. Modals render over panels, including
+panels attached later; closing a modal restores the previous live focus target.
+Clearing/rebuilding one panel leaves its siblings intact. `clearOptions()` still
+closes that menu's own children and resets its options/presentation/scroll.
+
+New option types append to the existing enum: **9 table row, 10 image, 11 panel**.
+Their configuration is illustrated in
+[`examples/menu-panels.lua`](examples/menu-panels.lua). Instantiate definitions
+with `ui::instantiate`, then attach the resulting menu models from C++.
+
+- `tableColumns` is a menu-level array of positive widths. Every row uses its sum
+  for the hitbox. `cells` contains text, with missing trailing cells left empty;
+  definitions reject rows with more cells than columns. C++ rendering safely
+  ignores excess cells. `height = 0` uses the current `rowStep`.
+- Rows are one selectable option, including their empty space. Cell text is left
+  aligned, vertically centered and clipped, without wrapping or ellipsis.
+  Header labels can remain ordinary `static_text` outside the scrolling group.
+  There is no sorting, icon-cell support or library data model in this control.
+- `image` and `panel` require positive `width/height` in definitions and are
+  passive, including for shortcuts. An image draws its full texture into the
+  supplied rectangle; its aspect ratio is the host's responsibility. Texture
+  zero draws nothing. Texture handles are borrowed and never uploaded/deleted
+  by `CMenu`; `TextureResolver` runs on instantiation, not during rendering.
+- `panel` uses `style.background`, `style.border`, and `style.borderWidth`,
+  inheriting the menu's `panel`, `panelBorder`, and `panelBorderWidth` defaults.
+  Border width defaults to zero and is expressed in UI units. Background can
+  also be overridden on a row or button.
+- `textbtn` accepts optional `width/height`; zero retains automatic sizing on
+  that axis. Existing automatic controls retain their legacy anchor/flow rules.
+- `active` is host-owned persistent selection, copied as an initial value when
+  instantiated/cloned. Navigation and transient resets do not clear it. The
+  selection background remains visible after moving focus; only the region
+  receiving keyboard input displays the focus marker/outline. Set the flag
+  explicitly when changing tabs or the selected song.
+
+`MenuOverrides` accepts `tableColumns`, option `width/height`, and the new style
+properties. It does not accept `cells`, `active`, texture handles or callbacks.
+Omitted properties restore/follow the captured base. Zero box dimensions in a
+patch collapse an image/panel; zero button axes restore automatic sizing.
+An empty column override hides row geometry. Patches preserve content and
+interaction state; geometry changes can reveal the focused option and clamp
+scroll to the current content. Invalid documents are rejected before application.
+Theme reload uses the existing recursive `visitInterfaces` path.
+
+Rows cache glyph layouts by text/font/revision. Geometry does not shape cell
+text, and offscreen rows do not populate their cell caches. Layout still visits
+the option list: this is not a virtualized table. All UI state and GL access
+remain on the UI/context thread; gameplay ownership and synchronization are
+unchanged.
+
+### Composition validation (2026-10-13)
+
+The runtime, tests, GUI Studio and its core tests built with Clang and
+`GPP_NATIVE_CPU=OFF`. All 94 selected CTest entries passed: menu/composition,
+Lua, fonts, shaders and both Studio suites, including real mouse/keyboard
+interaction under Xvfb. The graphical run forced OpenGL 2.0 / GLSL 1.10.
+There are 31 new regression cases across composition, presentation and rendering.
+
+NativeLab MCP ran the instrumented build with ASan/UBSan and leak detection:
+64 CPU entries passed without suppressions, and 29 graphical/Studio-core entries
+passed with only the existing vendor suppressions documented above. The follow-up includes eight cases for command propagation, editable text,
+modal boundaries, resizable bounds, theme restoration and pixel clipping.
+No new application suppression was added.
+
+Clang-format was applied to changed ranges and the new test file. Clang-tidy
+reviewed all eight changed/new translation units with the repository checks,
+filtering reported diagnostics to changed ranges. Final reports have no
+analyzer, bugprone or performance findings on those ranges; style suggestions
+remain, including numeric UI/test constants and the existing public-field API
+convention. Local review logs are under `build/cmenu-validation/`.
+
+This validates synthetic rendering and menu interaction, not in-game song
+selection, Windows, physical controllers or performance on older GPUs.
