@@ -32,6 +32,8 @@ void merge(StyleOverrides &target, const StyleOverrides &source) {
     overlay(target.textColor, source.textColor);
     overlay(target.accent, source.accent);
     overlay(target.selection, source.selection);
+    overlay(target.focus, source.focus);
+    overlay(target.focusBackground, source.focusBackground);
     overlay(target.field, source.field);
     overlay(target.control, source.control);
     overlay(target.panel, source.panel);

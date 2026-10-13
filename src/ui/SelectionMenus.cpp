@@ -105,6 +105,17 @@ std::string CMenuSystem::selectSong() {
     host.loadTexture("data/sprites", "guitarpp-logo.tga");
     const auto logo = host.getTextureInfo("data/sprites/guitarpp-logo.tga");
     view.setLogo({logo.id, logo.width, logo.height});
+    const std::array<const char *, 5> iconNames{"folders.tga", "artist.tga",
+                                                "music.tga", "charter.tga",
+                                                "no-cover.tga"};
+    std::array<ui::QuickPlayView::CoverImage, 5> icons{};
+    for (size_t i = 0; i < iconNames.size(); ++i) {
+        host.loadTexture("data/sprites/quick-play", iconNames[i]);
+        const auto icon = host.getTextureInfo(
+            std::string("data/sprites/quick-play/") + iconNames[i]);
+        icons[i] = {icon.id, icon.width, icon.height};
+    }
+    view.setIcons(icons);
     songLibrary.refresh();
     // Ensure exceptions/window close cannot leave a scan using services during
     // shutdown. Normal exit below keeps drawing while cancellation completes.

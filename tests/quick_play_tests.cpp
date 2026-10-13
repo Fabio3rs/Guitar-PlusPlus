@@ -1,4 +1,5 @@
 #include "CUIDefinition.h"
+#include "CUIOverrides.h"
 #include "ui/QuickPlayView.h"
 #include <chrono>
 #include <gtest/gtest.h>
@@ -83,13 +84,17 @@ TEST_F(QuickPlayCPU, RecursiveFoldersIncludeDescendantsAndCollapse) {
     EXPECT_EQ(nav.findOption("group:Pack/A"), nullptr);
     activate(nav, "group:Pack");
     EXPECT_EQ(titles().size(), 3u);
+    EXPECT_EQ(nav.findOption("group:Pack/A"), nullptr);
+    activate(nav, "expand:Pack");
     ASSERT_NE(nav.findOption("group:Pack/A"), nullptr);
     activate(nav, "group:Pack/A");
     EXPECT_EQ(titles(), (std::vector<std::string>{"Água", "Battery"}));
+    activate(nav, "expand:Pack/A");
     ASSERT_NE(nav.findOption("group:Pack/A/deep"), nullptr);
     activate(nav, "group:Pack/A/deep");
     EXPECT_EQ(titles(), (std::vector<std::string>{"Battery"}));
     activate(nav, "group:Pack");
+    activate(nav, "expand:Pack");
     EXPECT_EQ(nav.findOption("group:Pack/A"), nullptr);
     EXPECT_EQ(titles().size(), 3u);
 }
@@ -287,17 +292,19 @@ TEST_F(QuickPlayCPU, PreviewWrapsLongNamesWithoutOverlappingRows) {
     ASSERT_NE(preview.findOption("title_line1"), nullptr);
     double previousBottom = 1;
     for (auto &option : preview.options) {
-        if (option.type != CMenu::table_row) {
+        if (option.type != CMenu::static_text ||
+            option.optionName.find("quickPlayPreview.title") != 0) {
             continue;
         }
         CMenu::menuOpt measure;
         measure.type = CMenu::static_text;
-        measure.text = option.cells[0];
+        measure.text = option.text;
         preview.ensureLayout(measure);
         EXPECT_LE(measure.layout.width() *
                       preview.resolvedOptionStyle(option).textSize,
                   preview.tableColumns[0]);
-        EXPECT_LE(option.y + option.height, previousBottom + 1e-9);
+        EXPECT_LE(option.y + preview.resolvedOptionStyle(option).textSize,
+                  previousBottom + 1e-9);
         previousBottom = option.y;
     }
 }
@@ -392,5 +399,148 @@ TEST_F(QuickPlayCPU, InitialBackgroundPublicationFocusesResultsWhenReady) {
     EXPECT_EQ(root.focusedInterface(), &panel("quickPlayResults"));
     key(GLFW_KEY_ENTER);
     EXPECT_EQ(view->interact(), "Pack/A/song");
+}
+
+TEST_F(QuickPlayCPU,
+       FolderKeyboardExpansionPreservesSongContextAndSurvivesTabs) {
+    auto &nav = panel("quickPlayNav0");
+    root.focusInterface(nav);
+    for (size_t i = 0; i < nav.options.size(); ++i) {
+        if (nav.options[i].optionName == "quickPlayNav0.group:Pack") {
+            nav.select(static_cast<int>(i));
+        }
+    }
+    const auto before = titles();
+    key(GLFW_KEY_RIGHT);
+    view->interact();
+    view->synchronize(snapshot);
+    EXPECT_EQ(titles(), before);
+    EXPECT_NE(nav.findOption("group:Pack/A"), nullptr);
+    EXPECT_TRUE(
+        panel("quickPlayResults").findOption("song:Pack/A/song")->active);
+    activate(root, "tab1");
+    activate(root, "tab0");
+    EXPECT_NE(nav.findOption("group:Pack/A"), nullptr);
+    root.focusInterface(nav);
+    key(GLFW_KEY_LEFT);
+    view->interact();
+    view->synchronize(snapshot);
+    EXPECT_EQ(nav.findOption("group:Pack/A"), nullptr);
+    EXPECT_EQ(titles(), before);
+    key(GLFW_KEY_ENTER);
+    view->interact();
+    view->synchronize(snapshot);
+    EXPECT_EQ(titles().size(), 3u);
+}
+
+TEST_F(QuickPlayCPU, PreviewHasSingleFocusStopAndMissingMetadataStaysPassive) {
+    auto next = std::make_shared<songs::LibrarySnapshot>(*snapshot);
+    ++next->contentRevision;
+    next->songs[0].artist.clear();
+    next->songs[0].charter.clear();
+    next->songs[0].album.clear();
+    next->songs[0].instruments.clear();
+    next->songs[0].path = std::string(300, 'a') + "/song";
+    snapshot = next;
+    view->synchronize(snapshot);
+    auto &preview = panel("quickPlayPreview");
+    size_t controls = 0;
+    for (const auto &o : preview.options) {
+        if (o.type != CMenu::static_text && o.type != CMenu::image &&
+            o.type != CMenu::panel) {
+            ++controls;
+        }
+    }
+    EXPECT_EQ(controls, 1u);
+    EXPECT_NE(preview.findOption("folder_line1"), nullptr);
+    EXPECT_EQ(preview.findOption("folder_line2"), nullptr);
+    EXPECT_EQ(preview.findOption("artFallback")->text, "Sem capa");
+    EXPECT_EQ(preview.findOption("album"), nullptr);
+    EXPECT_NE(preview.findOption("noParts"), nullptr);
+    ASSERT_TRUE(root.focusInterface(preview));
+    const auto focus = preview.focusedOption();
+    preview.viewport.bottom =
+        0; // Exercise scrolling even with sparse metadata.
+    key(GLFW_KEY_PAGE_DOWN);
+    EXPECT_GT(preview.scrollOffset, 0);
+    EXPECT_EQ(preview.focusedOption(), focus);
+    key(GLFW_KEY_UP);
+    EXPECT_EQ(preview.focusedOption(), focus);
+}
+
+TEST_F(QuickPlayCPU, ActiveTabAndSongRemainSelectedWithFocusElsewhere) {
+    activate(root, "tab2");
+    ASSERT_TRUE(root.findOption("tab2")->active);
+    ASSERT_TRUE(root.focusInterface(panel("quickPlayControls")));
+    key(GLFW_KEY_DOWN);
+    EXPECT_TRUE(root.findOption("tab2")->active);
+    EXPECT_FALSE(root.findOption("tab3")->active);
+    EXPECT_TRUE(
+        panel("quickPlayResults").findOption("song:Pack/A/song")->active);
+    const auto style = root.resolvedStyle();
+    ASSERT_TRUE(style.selection.focus.has_value());
+    ASSERT_TRUE(style.selection.focusBackground.has_value());
+    EXPECT_LT(style.selection.focusBackground->a, style.selection.background.a);
+    EXPECT_NE(style.selection.focus->r, style.selection.accent.r);
+}
+
+TEST_F(QuickPlayCPU, MouseDisclosureDoesNotSelectFolderAndKeyboardSkipsArrows) {
+    auto &nav = panel("quickPlayNav0");
+    auto *arrow = nav.findOption("expand:Pack");
+    ASSERT_NE(arrow, nullptr);
+    context.mouseX = arrow->x + arrow->width / 2;
+    context.mouseY = arrow->y + arrow->height / 2;
+    const auto before = titles();
+    for (int action : {GLFW_PRESS, GLFW_RELEASE}) {
+        CControls::MenuEvent event;
+        event.kind = CControls::MenuEvent::Mouse;
+        event.key = GLFW_MOUSE_BUTTON_LEFT;
+        event.action = action;
+        event.x = context.mouseX;
+        event.y = context.mouseY;
+        context.events.push_back(event);
+        root.update();
+        view->interact();
+    }
+    context.mouseX = context.mouseY = 10;
+    view->synchronize(snapshot);
+    EXPECT_EQ(titles(), before);
+    EXPECT_NE(nav.findOption("group:Pack/A"), nullptr);
+    key(GLFW_KEY_DOWN);
+    const auto &focused =
+        nav.options.at(static_cast<size_t>(nav.focusedOption()));
+    EXPECT_TRUE(focused.keyboardFocus);
+    EXPECT_EQ(focused.optionName, "quickPlayNav0.group:Pack/A");
+}
+
+TEST_F(QuickPlayCPU, IconSetupPreservesLogoAndCoverFrameDoesNotShrink) {
+    view.reset();
+    view = std::make_unique<ui::QuickPlayView>(
+        root, context.aspect,
+        [](CMenu &menu) { menu.applyPresentationOverrides({}); },
+        [](const std::string &) {
+            return ui::QuickPlayView::CoverImage{19, 200, 100};
+        },
+        &context);
+    view->setLogo({7, 1024, 372});
+    const double logoWidth = root.findOption("brand")->width;
+    std::array<ui::QuickPlayView::CoverImage, 5> icons{};
+    for (auto &icon : icons) {
+        icon = {8, 64, 64};
+    }
+    view->setIcons(icons);
+    EXPECT_DOUBLE_EQ(root.findOption("brand")->width, logoWidth);
+    snapshot->songs[0].coverPath = "cover.tga";
+    view->synchronize(snapshot);
+    auto &preview = panel("quickPlayPreview");
+    const auto *cover = preview.findOption("cover");
+    const auto *frame = preview.findOption("coverFrame");
+    ASSERT_NE(cover, nullptr);
+    ASSERT_NE(frame, nullptr);
+    EXPECT_DOUBLE_EQ(cover->width / cover->height, 2);
+    EXPECT_DOUBLE_EQ(frame->width, frame->height);
+    EXPECT_GT(cover->y, frame->y);
+    EXPECT_EQ(preview.findOption("coverPlaceholder")->texture, 0u);
+    EXPECT_EQ(preview.findOption("artFallback")->text, "");
 }
 } // namespace

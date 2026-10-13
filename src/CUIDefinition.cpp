@@ -37,6 +37,8 @@ template <class F> void fields(StyleOverrides &v, F &f) {
     FIELD(textColor);
     FIELD(accent);
     FIELD(selection);
+    FIELD(focus);
+    FIELD(focusBackground);
     FIELD(field);
     FIELD(control);
     FIELD(panel);

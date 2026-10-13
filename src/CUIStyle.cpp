@@ -35,6 +35,12 @@ Style resolveStyle(const Style &base, const StyleOverrides &overrides) {
         overrides.accent.value_or(base.selection.accent);
     result.selection.background =
         overrides.selection.value_or(base.selection.background);
+    if (overrides.focus) {
+        result.selection.focus = overrides.focus;
+    }
+    if (overrides.focusBackground) {
+        result.selection.focusBackground = overrides.focusBackground;
+    }
     result.selection.animated =
         overrides.animateSelection.value_or(base.selection.animated);
     result.controls.field = overrides.field.value_or(base.controls.field);

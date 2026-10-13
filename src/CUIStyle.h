@@ -20,6 +20,8 @@ struct LayoutStyle {
 struct SelectionStyle {
     Color accent{1, .88, .5, 1};
     Color background{.04, .04, .055, .72};
+    // Unset keeps the historical focus appearance in other menus.
+    std::optional<Color> focus, focusBackground;
     double pickGap = .2;
     bool animated = false;
 };
@@ -47,6 +49,7 @@ struct Style {
 struct StyleOverrides {
     std::optional<double> textSize, rowStep, padding, pickGap;
     std::optional<Color> textColor, accent, selection, field, control, panel;
+    std::optional<Color> focus, focusBackground;
     std::optional<bool> animateSelection;
     std::optional<Color> panelBorder;
     std::optional<double> panelBorderWidth;

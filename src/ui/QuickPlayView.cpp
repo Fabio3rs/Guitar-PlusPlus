@@ -152,8 +152,11 @@ std::vector<std::string> wrapText(CMenu &menu, const std::string &text,
     return lines;
 }
 
-std::string fitLabel(CMenu &menu, const std::string &text, double width) {
-    const double size = menu.resolvedStyle().typography.textSize;
+std::string fitLabel(CMenu &menu, const std::string &text, double width,
+                     double size = 0) {
+    if (size <= 0) {
+        size = menu.resolvedStyle().typography.textSize;
+    }
     const auto lines = wrapText(menu, text, width, size);
     if (lines.size() == 1) {
         return lines.front();
@@ -185,15 +188,18 @@ QuickPlayView::QuickPlayView(CMenu &root, double aspect,
     const double left = -aspect + .06, right = aspect - .06;
     const double width = right - left;
     contentWidth_ = width;
-    const double navRight = left + width * .22;
-    const double previewLeft = right - width * .29;
+    const double navRight = left + width * (aspect < 1.5 ? .20 : .22);
+    const double previewLeft = right - width * .28;
     const double centerLeft = navRight + .025;
     const double centerRight = previewLeft - .025;
-    root_.styleOverrides.textSize = .035;
+    root_.styleOverrides.textSize = aspect < 1.5 ? .040 : .036;
+    root_.styleOverrides.textColor = Color{.89, .92, .94, 1};
+    root_.styleOverrides.focus = Color{.60, .73, .80, 1};
+    root_.styleOverrides.focusBackground = Color{.26, .36, .42, .18};
     root_.styleOverrides.accent = Color{1, .49, .08, 1};
-    root_.styleOverrides.selection = Color{.42, .20, .04, .85};
-    root_.styleOverrides.panel = Color{.025, .035, .045, .94};
-    root_.styleOverrides.panelBorder = Color{.24, .29, .33, 1};
+    root_.styleOverrides.selection = Color{.48, .23, .045, .96};
+    root_.styleOverrides.panel = Color{.025, .035, .045, .97};
+    root_.styleOverrides.panelBorder = Color{.19, .24, .28, 1};
     root_.styleOverrides.panelBorderWidth = .002;
     auto logo = item("brand", "Guitar++", CMenu::static_text, left, .84);
     logo.styleOverrides.textSize = .12;
@@ -203,8 +209,10 @@ QuickPlayView::QuickPlayView(CMenu &root, double aspect,
         item("title", "Quick Play", CMenu::static_text, left + .83, .86);
     title.styleOverrides.textSize = .08;
     root_.addOpt(title);
-    root_.addOpt(item("subtitle", "Escolha sua próxima música",
-                      CMenu::static_text, left + .84, .78));
+    auto subtitle = item("subtitle", "Escolha sua próxima música",
+                         CMenu::static_text, left + .84, .78);
+    subtitle.styleOverrides.textColor = Color{.64, .72, .77, 1};
+    root_.addOpt(subtitle);
     auto info = item("projectInfo", "open source", CMenu::static_text,
                      right - .75, .89);
     info.styleOverrides.textSize = .035;
@@ -213,76 +221,76 @@ QuickPlayView::QuickPlayView(CMenu &root, double aspect,
     }
     for (size_t i = 0; i < tabs.size(); ++i) {
         auto option = item("tab" + std::to_string(i), tabs[i], CMenu::textbtn,
-                           left + static_cast<double>(i) * .34, .64, .32, .10);
+                           left + static_cast<double>(i) * .40, .64, .38, .10);
         option.active = i == tab_;
         option.styleOverrides.background = Color{.06, .075, .085, .95};
         root_.addOpt(option);
     }
     background(root_, {left, -.98, right, -.82});
-    auto back = item("back", "Esc  Voltar", CMenu::textbtn, left + .03, -.89,
-                     .32, .055);
-    back.goback = true;
-    back.shortcutKey = GLFW_KEY_ESCAPE;
-    root_.addOpt(back);
-    auto random = item("random", "R  Aleatória", CMenu::textbtn, left + .40,
-                       -.89, .36, .055);
-    random.shortcutKey = GLFW_KEY_R;
-    random.shortcutMods = 0;
-    root_.addOpt(random);
-    auto play = item("play", "Enter  Selecionar", CMenu::textbtn, left + .82,
-                     -.89, .43, .055);
-    root_.addOpt(play);
-    auto refresh = item("refresh", "F5  Atualizar", CMenu::textbtn, left + 1.32,
-                        -.89, .39, .055);
-    refresh.shortcutKey = GLFW_KEY_F5;
-    refresh.shortcutMods = 0;
-    root_.addOpt(refresh);
-    auto verify = item("verify", "Ctrl+F5  Verificar tudo", CMenu::textbtn,
-                       left + 1.78, -.89, .62, .055);
-    verify.shortcutKey = GLFW_KEY_F5;
-    verify.shortcutMods = GLFW_MOD_CONTROL;
-    root_.addOpt(verify);
-    root_.addOpt(item("scanStatus", "", CMenu::static_text, left + .03, -.955));
+    const std::array<const char *, 5> actionIds{"back", "random", "play",
+                                                "refresh", "verify"};
+    const std::array<const char *, 5> actionLabels{
+        "Esc  Voltar", "R  Aleatória", "Enter  Selecionar", "F5  Atualizar",
+        "Ctrl+F5  Verificar tudo"};
+    const std::array<double, 5> actionWidths{.15, .17, .23, .18, .27};
+    const double actionWidth = std::min(width - .06, 3.4);
+    double actionX = left + .03;
+    for (size_t i = 0; i < actionIds.size(); ++i) {
+        auto action = item(actionIds[i], actionLabels[i], CMenu::textbtn,
+                           actionX, -.89, actionWidth * actionWidths[i], .055);
+        action.styleOverrides.textSize = aspect < 1.5 ? .037 : .032;
+        action.goback = i == 0;
+        action.shortcutKey = i == 0   ? GLFW_KEY_ESCAPE
+                             : i == 1 ? GLFW_KEY_R
+                             : i >= 3 ? GLFW_KEY_F5
+                                      : 0;
+        action.shortcutMods = i == 4 ? GLFW_MOD_CONTROL : 0;
+        root_.addOpt(action);
+        actionX += action.width;
+    }
+    auto status = item("scanStatus", "", CMenu::static_text, left + .03, -.955);
+    status.styleOverrides.textSize = aspect < 1.5 ? .036 : .030;
+    status.styleOverrides.textColor = Color{.59, .67, .72, 1};
+    root_.addOpt(status);
 
     auto attach = [&](const std::string &name, Rect bounds, bool scroll) {
         CMenu model(name, context);
         model.styleOverrides = root_.styleOverrides;
-        model.styleOverrides.rowStep = .078;
+        model.styleOverrides.rowStep = .080;
         model.styleOverrides.padding = .12;
         model.viewportEnabled = scroll;
         model.viewport = {bounds.left + .015, bounds.bottom + .015,
-                          bounds.right - .015, bounds.top - .16};
+                          bounds.right - .015, bounds.top - .15};
         model.setFlow(CMenu::Flow::Vertical, bounds.left + .02,
-                      bounds.top - .24);
+                      bounds.top - .23);
         background(model, bounds);
         const int id = root_.pushPanel(model, bounds);
         return CMenu::getUiAt(static_cast<size_t>(id)).m.get();
     };
-    toolbar_ =
-        attach("quickPlayControls", {centerLeft, .48, right, .62}, false);
-    toolbar_->addOpt(item("searchLabel", "Buscar música, artista, charter",
-                          CMenu::static_text, centerLeft + .02, .57));
-    auto search = item("search", "", CMenu::text_input, centerLeft + .02, .50);
+    toolbar_ = attach("quickPlayControls", {left, .48, right, .62}, false);
+    auto searchLabel = item("searchLabel", "Buscar música, artista, charter",
+                            CMenu::static_text, left + .02, .578);
+    searchLabel.styleOverrides.textSize = .030;
+    searchLabel.styleOverrides.textColor = Color{.64, .72, .77, 1};
+    toolbar_->addOpt(searchLabel);
+    auto search = item("search", "", CMenu::text_input, left + .03, .505);
     search.preText.clear();
     search.preTextMaxSize = 256;
-    search.fieldWidth = (right - centerLeft) * .49;
+    search.fieldWidth = width * .55 - .04;
     toolbar_->addOpt(search);
     auto hint = item("searchHint", "Digite para buscar...", CMenu::static_text,
-                     centerLeft + .025, .50);
-    hint.styleOverrides.textSize = .032;
-    hint.styleOverrides.textColor = Color{.5, .56, .6, 1};
+                     left + .035, .505);
+    hint.styleOverrides.textColor = Color{.54, .63, .69, 1};
     toolbar_->addOpt(hint);
-    toolbar_->styleOverrides.field = Color{.08, .105, .13, 1};
-
+    toolbar_->styleOverrides.field = Color{.10, .14, .17, 1};
     toolbar_->addOpt(item("sort", "Ordem: Nome", CMenu::textbtn,
-                          centerLeft + (right - centerLeft) * .53, .50, .48,
-                          .07));
-    toolbar_->addOpt(
-        item("filter", "Todas", CMenu::textbtn, right - .32, .50, .29, .07));
-    toolbar_->findOption("sort")->styleOverrides.background =
-        Color{.08, .105, .13, 1};
-    toolbar_->findOption("filter")->styleOverrides.background =
-        Color{.08, .105, .13, 1};
+                          left + width * .57, .50, width * .23, .074));
+    toolbar_->addOpt(item("filter", "Todas", CMenu::textbtn, left + width * .82,
+                          .50, width * .18 - .025, .074));
+    for (const auto *id : {"sort", "filter"}) {
+        toolbar_->findOption(id)->styleOverrides.background =
+            Color{.08, .105, .13, 1};
+    }
     for (size_t i = 0; i < navigation_.size(); ++i) {
         navigation_[i] = attach("quickPlayNav" + std::to_string(i),
                                 {left, -.79, navRight, .46}, true);
@@ -293,12 +301,14 @@ QuickPlayView::QuickPlayView(CMenu &root, double aspect,
         attach("quickPlayResults", {centerLeft, -.79, centerRight, .46}, true);
     const double tableWidth = centerRight - centerLeft - .04;
     results_->styleOverrides.padding = .42;
-    results_->tableColumns = {tableWidth * .31, tableWidth * .22,
-                              tableWidth * .20, tableWidth * .13,
-                              tableWidth * .14};
+    const double durationWidth = std::max(.18, tableWidth * .12);
+    const double levelsWidth = std::max(.20, tableWidth * .13);
+    const double namesWidth = tableWidth - durationWidth - levelsWidth;
+    results_->tableColumns = {namesWidth * .46, namesWidth * .33,
+                              namesWidth * .21, durationWidth, levelsWidth};
     preview_ =
         attach("quickPlayPreview", {previewLeft, -.79, right, .46}, true);
-    preview_->viewport.top = .44;
+    preview_->viewport.top = .34;
     preview_->flowY = .36;
     preview_->styleOverrides.rowStep = .067;
     preview_->tableColumns = {right - previewLeft - .04};
@@ -324,6 +334,23 @@ void QuickPlayView::setLogo(CoverImage image) {
     }
     logo->y = .87 - logo->height / 2;
     logo->styleOverrides.textColor = Color{1, 1, 1, 1};
+}
+
+void QuickPlayView::setIcons(const std::array<CoverImage, 5> &icons) {
+    icons_ = icons;
+    for (size_t i = 0; i < tabs.size(); ++i) {
+        const auto *tab = root_.findOption("tab" + std::to_string(i));
+        if (icons[i].texture == 0 || !tab) {
+            continue;
+        }
+        auto icon = item("tabIcon" + std::to_string(i), "", CMenu::image,
+                         tab->x + .015, tab->y + .025, .05, .05);
+        icon.texture = icons[i].texture;
+        root_.addOpt(icon);
+        root_.findOption("tab" + std::to_string(i))->text =
+            "  " + std::string(tabs[i]);
+    }
+    root_.reflow();
 }
 
 void QuickPlayView::prepare(CMenu &menu) {
@@ -437,6 +464,25 @@ void QuickPlayView::buildNavigation(size_t tab) {
         row.ellipsizeCells = true;
         row.cells = {label};
         row.active = key == states_[tab].group;
+        if (tab == 0) {
+            row.navigationKey = [this, key](CMenu &, int command) {
+                if (command != GLFW_KEY_LEFT && command != GLFW_KEY_RIGHT) {
+                    return false;
+                }
+                const auto group = std::find_if(
+                    groups_[0].begin(), groups_[0].end(),
+                    [&](const Group &value) { return value.key == key; });
+                if (group != groups_[0].end() && group->children) {
+                    if (command == GLFW_KEY_RIGHT) {
+                        expanded_.insert(key);
+                    } else {
+                        expanded_.erase(key);
+                    }
+                    navigationDirty_ = true;
+                }
+                return true;
+            };
+        }
         rows.push_back(std::move(row));
         keys.push_back(key);
     };
@@ -455,10 +501,7 @@ void QuickPlayView::buildNavigation(size_t tab) {
         }
         if (visible) {
             const auto marker =
-                tab == 0 ? (group.children
-                                ? (expanded_.count(group.key) ? "v " : "> ")
-                                : "- ")
-                         : "";
+                tab == 0 ? (group.children ? "   " : "   ") : "";
             append(group.key,
                    std::string(std::min(group.depth, size_t(12)) * 2, ' ') +
                        marker + group.label + " (" +
@@ -474,6 +517,45 @@ void QuickPlayView::buildNavigation(size_t tab) {
         }
     }
     prepare(menu);
+    if (tab == 0) {
+        // Overlay only the disclosure area; the remaining row selects context.
+        // Place after rows so normal CMenu hit routing gives the arrow
+        // priority.
+        std::unordered_map<std::string, int> visibleRows;
+        for (size_t i = 0; i < keys.size(); ++i) {
+            visibleRows.emplace(keys[i], indices[i]);
+        }
+        std::vector<CMenu::menuOpt> arrows;
+        std::vector<std::string> arrowKeys;
+        for (const auto &group : groups_[0]) {
+            const auto foundRow = visibleRows.find(group.key);
+            if (!group.children || foundRow == visibleRows.end()) {
+                continue;
+            }
+            const auto &row =
+                menu.options[static_cast<size_t>(foundRow->second)];
+            auto arrow =
+                item("expand:" + group.key,
+                     expanded_.count(group.key) ? "v" : ">", CMenu::textbtn,
+                     row.x, row.y, .055, menu.resolvedStyle().layout.rowStep);
+            auto indent = item(
+                "", std::string(std::min(group.depth, size_t(12)) * 2, ' '),
+                CMenu::static_text, 0, 0);
+            menu.ensureLayout(indent);
+            arrow.x += indent.layout.width() *
+                       menu.resolvedStyle().typography.textSize;
+            arrow.group = 1;
+            arrow.manualPosition = true;
+            arrow.keyboardFocus = false;
+            arrows.push_back(std::move(arrow));
+            arrowKeys.push_back(group.key);
+        }
+        const auto arrowIndices = menu.addOptions(arrows);
+        for (size_t i = 0; i < arrowIndices.size(); ++i) {
+            navigationRows_[tab][arrowIndices[i]] = arrowKeys[i];
+        }
+        prepare(menu);
+    }
     menu.scrollOffset = scroll;
 }
 
@@ -541,13 +623,17 @@ void QuickPlayView::buildResults() {
         const auto style = menu.resolvedStyle();
         const double padding = style.layout.padding * style.typography.textSize;
         double x = bounds.left + .02 + padding;
-        const std::array<const char *, 5> columns{
-            "Música", "Artista", "Charter", "Duração", "Níveis"};
+        const std::array<const char *, 5> columns{"Música", "Artista", "Autor",
+                                                  "Min", "Níveis"};
         for (size_t i = 0; i < columns.size(); ++i) {
             menu.addOpt(item(
                 "column" + std::to_string(i),
                 fitLabel(menu, columns[i], menu.tableColumns[i] - 2 * padding),
-                CMenu::static_text, x, .305));
+                CMenu::static_text, x, .315));
+            menu.options.back().styleOverrides.textColor =
+                Color{.60, .69, .75, 1};
+            menu.options.back().styleOverrides.textSize =
+                menu.resolvedStyle().typography.textSize * .92;
             x += menu.tableColumns[i];
         }
     } else {
@@ -568,7 +654,7 @@ void QuickPlayView::buildResults() {
         row.disabled = !song.available;
         row.active = song.path == state.selected;
         if (rows.size() % 2 == 0) {
-            row.styleOverrides.background = Color{.075, .09, .10, .45};
+            row.styleOverrides.background = Color{.10, .125, .145, .65};
         }
         rows.push_back(std::move(row));
     }
@@ -643,63 +729,128 @@ void QuickPlayView::showPreview(const songs::SongRecord *song) {
     previewPath_ = song ? song->path : "";
     coverPath_ = song ? song->coverPath : "";
     preview_->setFlow(CMenu::Flow::Manual, 0, 0);
-    double cursor = .42;
+    auto scrollControl =
+        item("scrollPreview", "Detalhes  /  PgUp PgDn", CMenu::textbtn,
+             bounds.left + .02, .36, bounds.right - bounds.left - .04, .07);
+    scrollControl.styleOverrides.textSize = .030;
+    scrollControl.styleOverrides.textColor = Color{.60, .69, .75, 1};
+    scrollControl.enableEnter = false;
+    scrollControl.navigationKey = [](CMenu &menu, int key) {
+        if (key != GLFW_KEY_UP && key != GLFW_KEY_DOWN &&
+            key != GLFW_KEY_PAGE_UP && key != GLFW_KEY_PAGE_DOWN) {
+            return false;
+        }
+        CControls::MenuEvent scroll;
+        scroll.kind = CControls::MenuEvent::Scroll;
+        scroll.y = (key == GLFW_KEY_UP || key == GLFW_KEY_PAGE_UP) ? 1 : -1;
+        if (key == GLFW_KEY_PAGE_UP || key == GLFW_KEY_PAGE_DOWN) {
+            scroll.y *= 4;
+        }
+        menu.processEvent(scroll);
+        return true;
+    };
+    preview_->addOpt(scrollControl);
+    double cursor = .32;
+    const double textSize = preview_->resolvedStyle().typography.textSize;
+    const double textWidth = bounds.right - bounds.left - .065;
+    const Color muted{.61, .70, .76, 1};
     auto label = [&](const std::string &id, const std::string &text,
-                     double size = .035) {
-        const double height = std::max(.055, size * 1.35);
-        const auto lines =
-            wrapText(*preview_, text, bounds.right - bounds.left - .065, size);
+                     double size = 0,
+                     size_t limit = std::numeric_limits<size_t>::max(),
+                     bool secondary = false) {
+        if (size <= 0) {
+            size = textSize;
+        }
+        const double height = size * 1.48;
+        auto lines = wrapText(*preview_, text, textWidth, size);
+        if (lines.size() > limit) {
+            lines.resize(limit);
+            lines.back() =
+                fitLabel(*preview_, lines.back() + " ...", textWidth, size);
+        }
         for (size_t i = 0; i < lines.size(); ++i) {
             cursor -= height;
-            auto row = item(i == 0 ? id : id + "_line" + std::to_string(i),
-                            metadataDisplayText(text), CMenu::table_row,
-                            bounds.left + .02, cursor);
-            row.cells = {lines[i]};
-            row.height = height;
-            row.enableEnter = false;
+            auto row =
+                item(i == 0 ? id : id + "_line" + std::to_string(i), lines[i],
+                     CMenu::static_text, bounds.left + .025, cursor);
             row.group = 1;
             row.styleOverrides.textSize = size;
+            if (secondary) {
+                row.styleOverrides.textColor = muted;
+            }
             preview_->addOpt(row);
         }
+    };
+    auto section = [&](const std::string &id, const std::string &text) {
+        cursor -= .030;
+        auto line = item(id + "Divider", "", CMenu::panel, bounds.left + .025,
+                         cursor, textWidth, .002);
+        line.group = 1;
+        line.styleOverrides.background = Color{.20, .27, .31, 1};
+        line.styleOverrides.borderWidth = 0;
+        preview_->addOpt(line);
+        label(id, text, textSize, 1);
+        cursor -= .010;
     };
     if (!song) {
         label("empty", "Selecione uma música");
     } else {
-        label("title", song->title, .052);
+        label("title", song->title, textSize * 1.35);
         label("artist",
-              song->artist.empty() ? "Artista não informado" : song->artist);
-        cursor -= .30;
-        auto art = item("cover", "", CMenu::image, bounds.left + .02, cursor,
-                        .28, .28);
+              song->artist.empty() ? "Artista não informado" : song->artist,
+              textSize, std::numeric_limits<size_t>::max(), true);
+        cursor -= .245;
+        const double artSize = .22;
+        auto art = item("cover", "", CMenu::image, bounds.left + .025, cursor,
+                        artSize, artSize);
         art.group = 1;
-        art.styleOverrides.background = Color{.09, .11, .13, 1};
+        auto frame = art;
+        frame.optionName = "coverFrame";
+        frame.type = CMenu::panel;
+        frame.styleOverrides.background = Color{.07, .10, .12, 1};
+        frame.styleOverrides.borderWidth = 0;
+        preview_->addOpt(frame);
         preview_->addOpt(art);
-        // Keep the fallback next to the image so it never consumes another row.
-        auto fallback =
-            item("artFallback", coverPath_.empty() ? "Sem capa" : "Carregando",
-                 CMenu::static_text, bounds.left + .32, cursor + .12);
+        auto placeholder = item("coverPlaceholder", "", CMenu::image,
+                                art.x + .06, art.y + .075, .10, .10);
+        placeholder.group = 1;
+        placeholder.texture = icons_[4].texture;
+        preview_->addOpt(placeholder);
+        auto fallback = item("artFallback", "Sem capa", CMenu::static_text,
+                             bounds.left + .04, cursor + .018);
         fallback.group = 1;
-        fallback.styleOverrides.textSize = .029;
+        fallback.styleOverrides.textSize = .027;
+        fallback.styleOverrides.textColor = muted;
         preview_->addOpt(fallback);
-        cursor -= .015;
-        label("charter", "Charter: " + (song->charter.empty() ? "Não informado"
-                                                              : song->charter));
-        label("format", "Formato: " + song->format + "  |  " + duration(*song));
-        label("folder", "Pasta: " + song->path);
-        if (!song->origin.empty()) {
-            label("origin", "Origem: " + song->origin);
+        auto detail = [&](const std::string &id, const std::string &value,
+                          double y) {
+            auto text =
+                item(id, fitLabel(*preview_, value, textWidth - .25, textSize),
+                     CMenu::static_text, bounds.left + .275, y);
+            text.group = 1;
+            text.styleOverrides.textSize = textSize;
+            preview_->addOpt(text);
+        };
+        detail("duration", duration(*song), cursor + .15);
+        if (song->bpmInitial > 0) {
+            detail(
+                "bpm",
+                std::to_string(static_cast<int>(std::round(song->bpmInitial))) +
+                    " BPM",
+                cursor + .085);
         }
+        cursor -= .012;
+        label("charter",
+              "Charter: " +
+                  (song->charter.empty() ? "Não informado" : song->charter),
+              0, 2, true);
         if (!song->album.empty()) {
-            label("album", "Álbum: " + song->album);
+            label("album", "Álbum: " + song->album, 0, 2, true);
         }
         if (!song->year.empty() || !song->genre.empty()) {
-            label("genre", song->year + "  " + song->genre);
+            label("genre", song->year + "  " + song->genre, 0, 2, true);
         }
-        if (song->bpmInitial > 0) {
-            label("bpm", "BPM: " + std::to_string(static_cast<int>(
-                                       std::round(song->bpmInitial))));
-        }
-        label("parts", "Instrumentos / dificuldades", .038);
+        section("parts", "Instrumentos / níveis");
         const std::array<std::string, 4> difficultyNames{"Easy", "Medium",
                                                          "Hard", "Expert"};
         const std::array<std::string, 4> difficultyLabels{"F", "M", "D", "E"};
@@ -732,19 +883,41 @@ void QuickPlayView::showPreview(const songs::SongRecord *song) {
             label("noParts", "Não informados");
         }
         size_t partId = 0;
+        const std::array<Color, 4> levelColors{{{.45, .83, .51, 1},
+                                                {1, .78, .30, 1},
+                                                {1, .48, .40, 1},
+                                                {.48, .76, 1, 1}}};
         for (const auto &part : parts) {
-            std::string levels;
-            for (auto level : part.second) {
-                if (level < 4) {
-                    levels += difficultyLabels[level] + " ";
-                }
+            const auto id = "part" + std::to_string(partId++);
+            const double badgeWidth = .060;
+            const double badgeArea = badgeWidth * 4;
+            const double rowSize = textSize;
+            const double badgeX =
+                std::min(bounds.right - .035 - badgeArea, bounds.left + .49);
+            cursor -= rowSize * 1.65;
+            auto name = item(id,
+                             fitLabel(*preview_, part.first,
+                                      badgeX - bounds.left - .04, rowSize),
+                             CMenu::static_text, bounds.left + .025, cursor);
+            name.group = 1;
+            name.styleOverrides.textSize = rowSize;
+            preview_->addOpt(name);
+            for (size_t level = 0; level < 4; ++level) {
+                const bool present = part.second.count(level) != 0;
+                auto badge = item(id + "Level" + std::to_string(level),
+                                  present ? difficultyLabels[level] : "-",
+                                  CMenu::static_text,
+                                  badgeX + level * badgeWidth, cursor);
+                badge.group = 1;
+                badge.styleOverrides.textSize = rowSize;
+                badge.styleOverrides.textColor =
+                    present ? levelColors[level] : Color{.25, .31, .35, 1};
+                preview_->addOpt(badge);
             }
-            label("part" + std::to_string(partId++),
-                  part.first + (levels.empty() ? "" : ": " + levels));
         }
         label("difficultyLegend", "F Fácil / M Médio / D Difícil / E Expert",
-              .027);
-        label("stemsHeading", "Áudio disponível", .038);
+              textSize * .88, 2, true);
+        section("stemsHeading", "Áudio disponível");
         if (!song->audioPath.empty()) {
             label(
                 "mainAudio",
@@ -762,11 +935,17 @@ void QuickPlayView::showPreview(const songs::SongRecord *song) {
             stems += stem;
         }
         if (!stems.empty()) {
-            label("stems", stems);
+            label("stems", "Stems: " + stems, 0, 3, true);
         }
         if (!song->available) {
             label("unavailable", "Indisponível: " + song->error);
         }
+        section("location", "Arquivo");
+        label("format", "Formato: " + song->format, 0, 1, true);
+        if (!song->origin.empty()) {
+            label("origin", "Origem: " + song->origin, 0, 1, true);
+        }
+        label("folder", "Pasta: " + song->path, 0, 2, true);
     }
     prepare(*preview_);
     preview_->scrollOffset = scroll;
@@ -814,7 +993,9 @@ void QuickPlayView::synchronize(
     if (lastStatus_ != status) {
         lastStatus_ = status;
         root_.findOption("scanStatus")->text =
-            fitLabel(root_, status, contentWidth_ - .06);
+            fitLabel(root_, status, contentWidth_ - .06,
+                     root_.resolvedOptionStyle(*root_.findOption("scanStatus"))
+                         .textSize);
     }
     if (cover_ && !coverPath_.empty()) {
         if (auto *art = preview_->findOption("cover")) {
@@ -826,8 +1007,15 @@ void QuickPlayView::synchronize(
                                                   art->height / cover.height);
                     art->width = cover.width * scale;
                     art->height = cover.height * scale;
+                    if (const auto *frame =
+                            preview_->findOption("coverFrame")) {
+                        art->x = frame->x + (frame->width - art->width) / 2;
+                        art->y = frame->y + (frame->height - art->height) / 2;
+                    }
                 }
             }
+            preview_->findOption("coverPlaceholder")->texture =
+                art->texture ? 0 : icons_[4].texture;
             preview_->findOption("artFallback")->text =
                 art->texture ? "" : "Sem capa";
         }
@@ -880,13 +1068,19 @@ std::string QuickPlayView::interact() {
                  ->options[static_cast<size_t>(entry.first)]
                  .status &
              3) == 3) {
-            states_[tab_].group = entry.second;
-            states_[tab_].scroll = 0;
-            if (tab_ == 0 && !entry.second.empty()) {
+            const auto &option =
+                navigation_[tab_]->options[static_cast<size_t>(entry.first)];
+            if (tab_ == 0 &&
+                option.optionName ==
+                    navigation_[tab_]->getName() + ".expand:" + entry.second) {
                 if (!expanded_.erase(entry.second)) {
                     expanded_.insert(entry.second);
                 }
+                navigationDirty_ = true;
+                return {};
             }
+            states_[tab_].group = entry.second;
+            states_[tab_].scroll = 0;
             // Deferred until the next pre-dispatch phase, like result changes.
             navigationDirty_ = true;
             dirty_ = true;

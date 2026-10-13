@@ -13,6 +13,12 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# Small authored UI assets; game/music assets still come from the runtime pack.
+foreach(icon folders artist music charter no-cover)
+    configure_file(data/sprites/quick-play/${icon}.tga
+        bin/data/sprites/quick-play/${icon}.tga COPYONLY)
+endforeach()
+
 include(CPack)
 
 add_subdirectory(glm SYSTEM)

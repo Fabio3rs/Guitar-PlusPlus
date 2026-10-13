@@ -192,6 +192,10 @@ class CMenu {
     struct menuOpt {
         bool disabled = false;
         bool active = false;
+        // Host-only interaction for composite controls; not theme properties.
+        bool keyboardFocus = true;
+        std::function<bool(CMenu &, int)> navigationKey;
+
         // Zero selects automatic sizing (images/panels require both axes).
         double width = 0, height = 0;
         std::vector<std::string> cells;

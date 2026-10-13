@@ -561,3 +561,25 @@ TEST_F(MenuPresentationCPU, PanelBoundsOverridesRoundTripAndRestoreMode) {
     EXPECT_EQ(fixed.x, 0);
     EXPECT_EQ(fixed.getPanelBounds().right, 1);
 }
+
+TEST_F(MenuPresentationCPU, FocusColorsRoundTripAndRestoreLegacyInheritance) {
+    CMenu menu("focus", &context);
+    auto control = option("tab");
+    control.active = true;
+    menu.addOpt(control);
+    ui::MenuOverrides patch;
+    patch.style.focus = ui::Color{.6, .7, .8, 1};
+    patch.style.focusBackground = ui::Color{.2, .3, .4, .1};
+    const auto path = directory / "focus.lua";
+    ui::writeOverrides(path, {{"focus", patch}});
+    const auto loaded = ui::readOverrides(path);
+    menu.applyPresentationOverrides(loaded.at("focus"));
+    ASSERT_TRUE(menu.resolvedStyle().selection.focus);
+    EXPECT_DOUBLE_EQ(menu.resolvedStyle().selection.focus->r, .6);
+    EXPECT_DOUBLE_EQ(menu.resolvedStyle().selection.focusBackground->a, .1);
+    EXPECT_TRUE(menu.options[0].active);
+    menu.applyPresentationOverrides({});
+    EXPECT_FALSE(menu.resolvedStyle().selection.focus);
+    EXPECT_FALSE(menu.resolvedStyle().selection.focusBackground);
+    EXPECT_TRUE(menu.options[0].active);
+}

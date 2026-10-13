@@ -21,6 +21,7 @@ class QuickPlayView {
     QuickPlayView(const QuickPlayView &) = delete;
     QuickPlayView &operator=(const QuickPlayView &) = delete;
     void setLogo(CoverImage image);
+    void setIcons(const std::array<CoverImage, 5> &icons);
     // Before dispatch: apply publications and pending filter/layout changes.
     void synchronize(std::shared_ptr<const songs::LibrarySnapshot> snapshot);
     // After dispatch: observe controls. Returns an explicitly activated song.
@@ -49,6 +50,7 @@ class QuickPlayView {
     std::shared_ptr<const songs::LibrarySnapshot> snapshot_;
     Presentation presentation_;
     Cover cover_;
+    std::array<CoverImage, 5> icons_{};
     size_t tab_ = 0;
     int order_ = 0;
     double contentWidth_ = 0;

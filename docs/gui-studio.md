@@ -577,3 +577,12 @@ invalidation, buffered-font color restoration, CPU pixel-format translation and
 UI upload binding/alignment preservation. The actual game menu was also captured
 under Mesa/Xvfb: the cursor had normal geometry and the final projection was 2D.
 This is not a validation on the user's GPU or a gameplay performance measurement.
+
+### Optional focus colors
+
+Menu styles and `MenuOverrides.lua` now accept `focus` (outline/marker color)
+and `focusBackground` (transient fill), separately from persistent `selection`.
+Both are optional colors using the existing `{r,g,b,a}` format. When omitted,
+focus inherits `accent`/`selection` as before. Quick Play uses these fields to
+keep active tabs and selected songs orange while focus is blue-gray. Patches
+remain presentation-only; they do not change `menuOpt::active` or navigation.

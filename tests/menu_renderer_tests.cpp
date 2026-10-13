@@ -9,6 +9,8 @@ class RecordingRenderer final : public ui::Renderer {
     int begins = 0, ends = 0, texts = 0;
     bool failDraw = false;
     std::vector<unsigned> textures;
+    ui::Color currentColor;
+    std::vector<ui::Color> rectangleColors;
     std::vector<std::optional<ui::Rect>> clips;
     std::vector<ui::Rect> textBounds;
     ui::Surface begin() override {
@@ -17,12 +19,13 @@ class RecordingRenderer final : public ui::Renderer {
     }
     void end() noexcept override { ++ends; }
     void clip(std::optional<ui::Rect> rect) override { clips.push_back(rect); }
-    void color(const ui::Color &) override {}
+    void color(const ui::Color &value) override { currentColor = value; }
     void rectangle(const ui::Rect &, unsigned texture) override {
         if (failDraw) {
             throw std::runtime_error("draw failure");
         }
         textures.push_back(texture);
+        rectangleColors.push_back(currentColor);
     }
     void text(const ui::TextLayout &layout, double x, double y,
               double scale) override {
@@ -182,4 +185,37 @@ TEST(MenuRendererCPU, EllipsisKeepsFullUtf8TextAndRespondsToColumnResize) {
     menu.tableColumns = {.001};
     menu.render();
     EXPECT_TRUE(cache.elidedLayout.glyphs.empty());
+}
+
+TEST(MenuRendererCPU, FocusUsesDistinctFillWhileActiveSelectionPersists) {
+    RecordingRenderer renderer;
+    CFonts fonts;
+    CMenu::Context context;
+    context.fonts = &fonts;
+    context.renderer = &renderer;
+    CMenu menu("tabs", &context);
+    menu.styleOverrides.selection = ui::Color{1, .4, 0, 1};
+    menu.styleOverrides.focus = ui::Color{.6, .7, .8, 1};
+    menu.styleOverrides.focusBackground = ui::Color{0, 0, 1, .1};
+    CMenu::menuOpt tab;
+    tab.type = CMenu::textbtn;
+    tab.text = "Pastas";
+    tab.width = .4;
+    tab.height = .1;
+    tab.active = true;
+    menu.addOpt(tab);
+    tab.text = "Música";
+    tab.x = .5;
+    tab.active = false;
+    menu.addOpt(tab);
+    menu.select(1);
+    menu.render();
+    ASSERT_GE(renderer.rectangleColors.size(), 6u);
+    EXPECT_DOUBLE_EQ(renderer.rectangleColors[0].r, 1);
+    EXPECT_DOUBLE_EQ(renderer.rectangleColors[0].a, 1);
+    EXPECT_DOUBLE_EQ(renderer.rectangleColors[1].b, 1);
+    EXPECT_DOUBLE_EQ(renderer.rectangleColors[1].a, .1);
+    EXPECT_DOUBLE_EQ(renderer.rectangleColors[2].r, .6);
+    EXPECT_TRUE(menu.options[0].active);
+    EXPECT_FALSE(menu.options[1].active);
 }

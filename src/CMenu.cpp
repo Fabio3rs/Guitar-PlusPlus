@@ -55,7 +55,7 @@ bool interactive(const CMenu::menuOpt &o) {
 }
 
 bool keyboardFocusable(const CMenu::menuOpt &o) {
-    return interactive(o) && o.type != CMenu::drag_bar;
+    return interactive(o) && o.keyboardFocus && o.type != CMenu::drag_bar;
 }
 
 void clampList(CMenu::menuOpt &o) {
@@ -1014,6 +1014,10 @@ bool CMenu::processEvent(const CControls::MenuEvent &event) {
         return true;
     }
 
+    if (o.navigationKey && o.navigationKey(*this, key)) {
+        return true;
+    }
+
     if (o.type == deslizant_Select_list &&
         (key == GLFW_KEY_LEFT || key == GLFW_KEY_RIGHT)) {
         clampList(o);
@@ -1532,7 +1536,10 @@ void CMenu::render() {
         const bool focusHere =
             ownsFocus && static_cast<int>(i) == focused && interactive(o);
         if (o.active || focusHere) {
-            auto selectedColor = style.selection.background;
+            auto selectedColor = o.active
+                                     ? style.selection.background
+                                     : style.selection.focusBackground.value_or(
+                                           style.selection.background);
 
             if (style.selection.animated) {
                 selectedColor.a *= .9 + .1 * std::sin(engine.getTime() * 4);
@@ -1544,10 +1551,10 @@ void CMenu::render() {
         if (focusHere &&
             (o.type == table_row ||
              (o.type == textbtn && (o.width > 0 || o.height > 0)))) {
-            border(r, style.selection.accent,
+            border(r, style.selection.focus.value_or(style.selection.accent),
                    std::max(.004, 2.0 / std::max(1, surface.pixelHeight)));
         } else if (focusHere) {
-            color(style.selection.accent);
+            color(style.selection.focus.value_or(style.selection.accent));
             rectangle(
                 {r.left - appearance.textSize * (1 + style.selection.pickGap),
                  py, r.left - appearance.textSize * style.selection.pickGap,
