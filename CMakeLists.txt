@@ -70,6 +70,7 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/MenuPresentation.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/InitialMenus.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/SelectionMenus.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/QuickPlayView.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/CampaignMenus.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/DeveloperMenus.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/PauseMenu.cpp"

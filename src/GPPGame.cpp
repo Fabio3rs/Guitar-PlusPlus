@@ -9,6 +9,7 @@
 #include "CLog.h"
 #include "CLuaH.hpp"
 #include "CMultiplayer.h"
+#include "ui/MetadataText.h"
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -595,7 +596,8 @@ void GPPGame::testClient(const std::string &name) {
     auto &playerb = module.getBPlayer();
     std::string songName = playerb.Notes.songName,
                 songArtist = playerb.Notes.songArtist,
-                songCharter = playerb.Notes.songCharter;
+                songCharter =
+                    ui::metadataDisplayText(playerb.Notes.songCharter);
 
     double fadeoutdsc = CEngine::engine().getTime();
 
@@ -867,9 +869,9 @@ void GPPGame::serverModule(const std::string &name) {
                                                        0.1);
 
             auto &playerb = *pplayerb;
-            songName = playerb.songName;
-            songArtist = playerb.songArtist;
-            songCharter = playerb.songCharter;
+            songName = ui::metadataDisplayText(playerb.songName);
+            songArtist = ui::metadataDisplayText(playerb.songArtist);
+            songCharter = ui::metadataDisplayText(playerb.songCharter);
             module.getBPlayer().guitar =
                 CGuitars::inst().getGuitarIfExists(game.defaultGuitar);
 
@@ -1332,9 +1334,9 @@ void GPPGame::startModule(const std::string &name) {
                                                        0.1);
 
             auto &playerb = *pplayerb;
-            songName = playerb.songName;
-            songArtist = playerb.songArtist;
-            songCharter = playerb.songCharter;
+            songName = ui::metadataDisplayText(playerb.songName);
+            songArtist = ui::metadataDisplayText(playerb.songArtist);
+            songCharter = ui::metadataDisplayText(playerb.songCharter);
             module.getBPlayer().guitar =
                 CGuitars::inst().getGuitarIfExists(game.defaultGuitar);
 
@@ -1716,9 +1718,9 @@ void GPPGame::startMarathonModule(const std::string &name) {
     bool firstStartFrame = true;
 
     auto &playerb = module.getBPlayer();
-    std::string songName = playerb.songName;
-    std::string songArtist = playerb.songArtist;
-    std::string songCharter = playerb.songCharter;
+    std::string songName = ui::metadataDisplayText(playerb.songName);
+    std::string songArtist = ui::metadataDisplayText(playerb.songArtist);
+    std::string songCharter = ui::metadataDisplayText(playerb.songCharter);
 
     double fadeoutdsc = engine.getTime();
 
@@ -1921,9 +1923,12 @@ void GPPGame::startMarathonModule(const std::string &name) {
                             waitingIntervalLoad = false;
 
                             auto &playerb = module.getBPlayer();
-                            songName = playerb.songName;
-                            songArtist = playerb.songArtist;
-                            songCharter = playerb.songCharter;
+                            songName =
+                                ui::metadataDisplayText(playerb.songName);
+                            songArtist =
+                                ui::metadataDisplayText(playerb.songArtist);
+                            songCharter =
+                                ui::metadataDisplayText(playerb.songCharter);
                             module.showBPMLines = bOldShowBPMLines;
                         }
                     }
@@ -2379,9 +2384,9 @@ void GPPGame::campaingPlayModule(const std::string &name) {
     bool firstStartFrame = true;
 
     auto &playerb = module.getBPlayer();
-    std::string songName = playerb.songName;
-    std::string songArtist = playerb.songArtist;
-    std::string songCharter = playerb.songCharter;
+    std::string songName = ui::metadataDisplayText(playerb.songName);
+    std::string songArtist = ui::metadataDisplayText(playerb.songArtist);
+    std::string songCharter = ui::metadataDisplayText(playerb.songCharter);
 
     double fadeoutdsc = engine.getTime();
 
@@ -2579,9 +2584,12 @@ void GPPGame::campaingPlayModule(const std::string &name) {
                             waitingIntervalLoad = false;
 
                             auto &playerb = module.getBPlayer();
-                            songName = playerb.songName;
-                            songArtist = playerb.songArtist;
-                            songCharter = playerb.songCharter;
+                            songName =
+                                ui::metadataDisplayText(playerb.songName);
+                            songArtist =
+                                ui::metadataDisplayText(playerb.songArtist);
+                            songCharter =
+                                ui::metadataDisplayText(playerb.songCharter);
                         }
                     }
                 }

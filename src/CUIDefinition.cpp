@@ -78,6 +78,8 @@ template <class F> void fields(OptionDefinition &v, F &f) {
     FIELD(items);
     FIELD(cells);
     FIELD(active);
+    FIELD(ellipsizeCells);
+    FIELD(activateOnClick);
     FIELD(actions);
     FIELD(style);
 }
@@ -712,6 +714,8 @@ std::unique_ptr<CMenu> instantiate(const MenuDefinition &d,
         opt.height = o.height;
         opt.cells = o.cells;
         opt.active = o.active;
+        opt.ellipsizeCells = o.ellipsizeCells;
+        opt.activateOnClick = o.activateOnClick;
 
         opt.text = o.text;
         opt.preText = o.value;

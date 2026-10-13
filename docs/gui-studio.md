@@ -336,8 +336,8 @@ not source assets.
 The runtime can compose persistent panels using the same `CMenu` renderer and
 input routing as ordinary menus. The GUI Studio inspector does not yet expose
 these new controls; the C++ and declarative readers/writers support them.
-The images used to motivate this API are a future Quick Play layout, not an
-implemented song browser.
+The Quick Play browser now composes these controls; see
+[Quick Play UI](quick-play-ui.md) for its panel identities and behavior.
 
 ```cpp
 CMenu root("library");
@@ -428,7 +428,13 @@ with `ui::instantiate`, then attach the resulting menu models from C++.
   definitions reject rows with more cells than columns. C++ rendering safely
   ignores excess cells. `height = 0` uses the current `rowStep`.
 - Rows are one selectable option, including their empty space. Cell text is left
-  aligned, vertically centered and clipped, without wrapping or ellipsis.
+  aligned, vertically centered and clipped. `ellipsizeCells=true` optionally
+  replaces overflowing cell tails with `...`, without changing source text or
+  its full cached layout. The shortened layout is cached by available width,
+  text and font revision. Very narrow cells that cannot fit the marker stay empty.
+  `activateOnClick=false` keeps mouse highlighting while leaving activation to
+  Enter or the screen's confirmation button. Both fields round-trip through Lua
+  definitions; defaults preserve existing controls.
   Header labels can remain ordinary `static_text` outside the scrolling group.
   There is no sorting, icon-cell support or library data model in this control.
 - `image` and `panel` require positive `width/height` in definitions and are
@@ -441,7 +447,8 @@ with `ui::instantiate`, then attach the resulting menu models from C++.
   Border width defaults to zero and is expressed in UI units. Background can
   also be overridden on a row or button.
 - `textbtn` accepts optional `width/height`; zero retains automatic sizing on
-  that axis. Existing automatic controls retain their legacy anchor/flow rules.
+  that axis. The label is centered on each explicitly sized axis using its text
+  bounds. Existing automatic controls retain their legacy anchor/flow rules.
 - `active` is host-owned persistent selection, copied as an initial value when
   instantiated/cloned. Navigation and transient resets do not clear it. The
   selection background remains visible after moving focus; only the region

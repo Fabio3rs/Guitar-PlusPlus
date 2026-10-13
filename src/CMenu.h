@@ -195,8 +195,14 @@ class CMenu {
         // Zero selects automatic sizing (images/panels require both axes).
         double width = 0, height = 0;
         std::vector<std::string> cells;
+        // Opt-in for bounded library columns. Full text remains in cells.
+        bool ellipsizeCells = false;
+        // Mouse can highlight a result without launching it. Enter still uses
+        // enableEnter; existing controls keep click-to-activate by default.
+        bool activateOnClick = true;
         struct CellLayout {
-            CFonts::TextLayout layout;
+            CFonts::TextLayout layout, elidedLayout;
+            double elidedWidth = -1;
             std::string text, font;
             size_t revision = ~size_t(0);
         };

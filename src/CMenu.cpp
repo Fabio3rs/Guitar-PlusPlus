@@ -18,6 +18,36 @@ CMenu *CMenu::inputFocus = nullptr;
 CMenu *CMenu::mouseCapture = nullptr;
 
 namespace {
+// Shape a shortened copy only when a visible cell's text/geometry changes.
+// Keep UTF-8 codepoints and the full unit layout intact for later resizing.
+void elideCell(const CFonts &fonts, const std::string &text, double width,
+               const std::string &font, CFonts::TextLayout &layout) {
+    std::string valid;
+    utf8::replace_invalid(text.begin(), text.end(), std::back_inserter(valid));
+    std::vector<size_t> ends{0};
+    auto it = valid.cbegin();
+    while (it != valid.cend()) {
+        utf8::next(it, valid.cend());
+        ends.push_back(static_cast<size_t>(std::distance(valid.cbegin(), it)));
+    }
+    fonts.layoutText("...", layout, font);
+    if (layout.width() > width) {
+        fonts.layoutText("", layout, font);
+        return;
+    }
+    size_t low = 0, high = ends.size() - 1;
+    while (low < high) {
+        const size_t middle = low + (high - low + 1) / 2;
+        fonts.layoutText(valid.substr(0, ends[middle]) + "...", layout, font);
+        if (layout.width() <= width) {
+            low = middle;
+        } else {
+            high = middle - 1;
+        }
+    }
+    fonts.layoutText(valid.substr(0, ends[low]) + "...", layout, font);
+}
+
 bool interactive(const CMenu::menuOpt &o) {
     return !o.disabled && o.type != CMenu::static_text &&
            o.type != CMenu::none && o.type != CMenu::image &&
@@ -858,8 +888,9 @@ bool CMenu::processEvent(const CControls::MenuEvent &event) {
                 static_cast<size_t>(hit) < options.size()) {
                 auto &o = options[static_cast<size_t>(hit)];
 
-                if (o.enableEnter && o.type != text_input &&
-                    o.type != drag_bar && o.type != deslizant_Select_list) {
+                if (o.enableEnter && o.activateOnClick &&
+                    o.type != text_input && o.type != drag_bar &&
+                    o.type != deslizant_Select_list) {
                     o.status |= 3;
                 }
             }
@@ -1559,16 +1590,30 @@ void CMenu::render() {
                     cache.font = fontName;
                     cache.text = o.cells[cell];
                     cache.revision = fonts.revision();
+                    cache.elidedWidth = -1;
                 }
                 clip({cellRect.left + pad, r.bottom, cellRect.right - pad,
                       r.top});
-                const double textY = (r.bottom + r.top -
-                                      (cache.layout.top + cache.layout.bottom) *
-                                          appearance.textSize) /
-                                     2;
-                renderer.text(cache.layout,
+                const auto *layout = &cache.layout;
+                const double available = std::max(0.0, width - 2 * pad) /
+                                         std::max(.0001, appearance.textSize);
+                if (o.ellipsizeCells && cache.layout.width() > available) {
+                    // Exact comparison: these are layout inputs used as a cache
+                    // key.
+                    if (cache.elidedWidth != available) {
+                        elideCell(fonts, cache.text, available, fontName,
+                                  cache.elidedLayout);
+                        cache.elidedWidth = available;
+                    }
+                    layout = &cache.elidedLayout;
+                }
+                const double textY =
+                    (r.bottom + r.top -
+                     (layout->top + layout->bottom) * appearance.textSize) /
+                    2;
+                renderer.text(*layout,
                               cellRect.left + pad -
-                                  (cache.layout.left * appearance.textSize),
+                                  (layout->left * appearance.textSize),
                               textY, appearance.textSize);
             }
         } else if (o.type == text_input) {
@@ -1601,10 +1646,23 @@ void CMenu::render() {
             color(style.controls.track);
             rectangle(controlRect(i, style));
         } else {
+            double textX = px, textY = py;
             if (o.type == textbtn && (o.width > 0 || o.height > 0)) {
                 clip(r);
+                if (o.width > 0) {
+                    textX = (r.left + r.right -
+                             (o.layout.left + o.layout.right) *
+                                 appearance.textSize) /
+                            2;
+                }
+                if (o.height > 0) {
+                    textY = (r.bottom + r.top -
+                             (o.layout.bottom + o.layout.top) *
+                                 appearance.textSize) /
+                            2;
+                }
             }
-            renderer.text(o.layout, px, py, appearance.textSize);
+            renderer.text(o.layout, textX, textY, appearance.textSize);
 
             if (o.type == deslizant_Select_list) {
                 const auto bar = controlRect(i, style);

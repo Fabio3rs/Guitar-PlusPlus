@@ -10,6 +10,7 @@ class RecordingRenderer final : public ui::Renderer {
     bool failDraw = false;
     std::vector<unsigned> textures;
     std::vector<std::optional<ui::Rect>> clips;
+    std::vector<ui::Rect> textBounds;
     ui::Surface begin() override {
         ++begins;
         return {2, 480};
@@ -23,11 +24,37 @@ class RecordingRenderer final : public ui::Renderer {
         }
         textures.push_back(texture);
     }
-    void text(const ui::TextLayout &, double, double, double) override {
+    void text(const ui::TextLayout &layout, double x, double y,
+              double scale) override {
         ++texts;
+        textBounds.push_back(
+            {x + layout.left * scale, y + layout.bottom * scale,
+             x + layout.right * scale, y + layout.top * scale});
     }
 };
 } // namespace
+
+TEST(MenuRendererCPU, SizedButtonCentersLabelWithinItsBounds) {
+    RecordingRenderer renderer;
+    CFonts fonts;
+    CMenu::Context context;
+    context.fonts = &fonts;
+    context.renderer = &renderer;
+    CMenu menu("centered", &context);
+    CMenu::menuOpt button;
+    button.type = CMenu::textbtn;
+    button.text = "Ordem: Duração";
+    button.x = -.4;
+    button.y = .2;
+    button.width = .7;
+    button.height = .1;
+    menu.addOpt(button);
+    menu.render();
+    ASSERT_EQ(renderer.textBounds.size(), 1U);
+    const auto &text = renderer.textBounds.front();
+    EXPECT_NEAR((text.left + text.right) / 2, -.05, 1e-9);
+    EXPECT_NEAR((text.bottom + text.top) / 2, .25, 1e-9);
+}
 
 TEST(MenuRendererCPU, ControlsDrawThroughHostBackendWithoutGLContext) {
     RecordingRenderer renderer;
@@ -121,4 +148,38 @@ TEST(MenuRendererCPU, TabSelectionDoesNotHideFixedPanelsOrOpenWindows) {
     CMenu::renderUiList();
     EXPECT_EQ(renderer.textures, (std::vector<unsigned>{1, 2, 4, 5, 6}));
     (void)fixed;
+}
+
+TEST(MenuRendererCPU, EllipsisKeepsFullUtf8TextAndRespondsToColumnResize) {
+    RecordingRenderer renderer;
+    CFonts fonts;
+    CMenu::Context context;
+    context.fonts = &fonts;
+    context.renderer = &renderer;
+    CMenu menu("ellipsis", &context);
+    menu.tableColumns = {.3};
+    CMenu::menuOpt row;
+    row.type = CMenu::table_row;
+    row.cells = {"Canção longa com vários caracteres"};
+    row.ellipsizeCells = true;
+    menu.addOpt(row);
+    menu.render();
+    auto &cache = menu.options[0].cellLayouts[0];
+    const auto fullWidth = cache.layout.width();
+    EXPECT_EQ(cache.text, row.cells[0]);
+    EXPECT_GT(cache.elidedWidth, 0);
+    EXPECT_LE(cache.elidedLayout.width(), cache.elidedWidth);
+    EXPECT_LT(cache.elidedLayout.width(), fullWidth);
+    const double narrow = cache.elidedWidth;
+    menu.tableColumns = {.5};
+    menu.render();
+    EXPECT_GT(cache.elidedWidth, narrow);
+    EXPECT_EQ(cache.layout.width(), fullWidth);
+    menu.options[0].cells[0] = "Other long content with different width";
+    menu.render();
+    EXPECT_EQ(cache.text, menu.options[0].cells[0]);
+    EXPECT_LE(cache.elidedLayout.width(), cache.elidedWidth);
+    menu.tableColumns = {.001};
+    menu.render();
+    EXPECT_TRUE(cache.elidedLayout.glyphs.empty());
 }

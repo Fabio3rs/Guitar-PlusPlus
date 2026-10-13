@@ -62,8 +62,20 @@ build/bin/gpp_scan_library build/bin/data/songs /tmp/songlibrary.db --full > /tm
 ```
 
 It exports the indexed records to stdout and scan counters/timing to stderr.
-The current menu remains a simple list; the full grouped Quick Play design is a
-separate UI step.
+Quick Play now composes persistent navigation, result and preview panels. Its
+Pastas / Artista / Música / Charter tabs browse recursive folder contexts,
+artists, title initials and chart authors. Search matches indexed title, artist
+and charter (case/accent insensitive for Portuguese/Latin text); sorting cycles
+through title, artist, charter and duration. The availability filter hides songs
+that cannot currently be played. Click a result to inspect it, then press Enter
+or Selecionar to play. R highlights a random playable result in the current filter.
+
+Tab / Shift+Tab moves between regions, arrows navigate their rows, and the mouse
+wheel scrolls the panel under the pointer. Enter on a folder selects its recursive
+context and toggles expansion. Each tab keeps its group, selected path and scroll;
+search/sort/filter are shared. The preview shows cached metadata and asynchronously
+loaded cover art, without audio playback. See [Quick Play UI](docs/quick-play-ui.md)
+for composition, theming and current limits.
 
 ## Configuration and preferences
 

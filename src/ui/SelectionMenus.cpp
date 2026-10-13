@@ -1,7 +1,9 @@
 #include "CChart.h"
 #include "CMenuSystem.h"
 #include "GPPGame.h"
+#include "QuickPlayView.h"
 #include <chrono>
+#include <set>
 
 namespace {
 void addBack(CMenu &menu) {
@@ -78,10 +80,31 @@ std::string progressText(const songs::ScanProgress &progress) {
 
 std::string CMenuSystem::selectSong() {
     auto &menu = newNamedMenu("selectSongMenu");
-    std::map<int, std::string> songs;
-    addSongListToMenu(menu, songs);
-    uint64_t revision = songLibrary.snapshot()->contentRevision;
     std::string selected;
+    std::set<std::string> requestedCovers;
+    auto &engine = CEngine::engine();
+    ui::QuickPlayView view(
+        menu,
+        engine.windowHeight > 0 ? engine.windowWidth / engine.windowHeight
+                                : 1.6,
+        [this](CMenu &panel) { preparePresentation(panel); },
+        [this, &requestedCovers](const std::string &relative) {
+            const auto path = std::filesystem::path("data/songs") / relative;
+            if (!requestedCovers.count(relative)) {
+                if (host.loadTextureSingleAsync(GPPGame::loadTextureBatch(
+                        path.parent_path().string(), path.filename().string(),
+                        nullptr, {}))) {
+                    requestedCovers.insert(relative);
+                }
+            }
+            const auto info = host.getTextureInfo(
+                path.parent_path().string() + "/" + path.filename().string());
+            return ui::QuickPlayView::CoverImage{info.id, info.width,
+                                                 info.height};
+        });
+    host.loadTexture("data/sprites", "guitarpp-logo.tga");
+    const auto logo = host.getTextureInfo("data/sprites/guitarpp-logo.tga");
+    view.setLogo({logo.id, logo.width, logo.height});
     songLibrary.refresh();
     // Ensure exceptions/window close cannot leave a scan using services during
     // shutdown. Normal exit below keeps drawing while cancellation completes.
@@ -97,58 +120,18 @@ std::string CMenuSystem::selectSong() {
             library.wait();
         }
     } join{songLibrary};
-    const auto applySnapshot = [&]() {
-        const auto snapshot = songLibrary.snapshot();
-        if (auto *status = menu.findOption("scanStatus")) {
-            status->text = progressText(snapshot->progress);
-        }
-        if (snapshot->contentRevision == revision) {
-            return;
-        }
-        revision = snapshot->contentRevision;
-        std::string focus;
-        if (menu.focusedOption() >= 0) {
-            focus = menu.options[static_cast<size_t>(menu.focusedOption())]
-                        .optionName;
-        }
-        const auto scroll = menu.scrollOffset;
-        if (updateSongRows(menu, songs, *snapshot)) {
-            return;
-        }
-        buildSongList(menu, songs, *snapshot);
-        preparePresentation(menu);
-        menu.reflow();
-        for (size_t i = 0; i < menu.options.size(); ++i) {
-            if (menu.options[i].optionName == focus) {
-                menu.select(static_cast<int>(i));
-                break;
-            }
-        }
-        menu.scrollOffset = scroll;
-    };
     openMenus(
         &menu,
         [&]() {
-            // Rebuild only before event dispatch, never while iterating options
-            // or after an activation which refers to the previous snapshot.
-            applySnapshot();
+            view.synchronize(songLibrary.snapshot());
             return 0;
         },
         [&]() {
-            if ((menu.findOption("refresh")->status & 3) == 3) {
-                songLibrary.refresh(songs::ScanMode::Incremental);
+            selected = view.interact();
+            if (const auto mode = view.takeRefresh()) {
+                songLibrary.refresh(*mode);
             }
-            if ((menu.findOption("verify")->status & 3) == 3) {
-                songLibrary.refresh(songs::ScanMode::Full);
-            }
-            for (const auto &entry : songs) {
-                if ((menu.options[static_cast<size_t>(entry.first)].status &
-                     3) == 3) {
-                    selected = entry.second;
-                    return 1;
-                }
-            }
-            return 0;
+            return selected.empty() ? 0 : 1;
         });
     songLibrary.cancel();
     while (songLibrary.running() && CEngine::engine().windowOpened()) {

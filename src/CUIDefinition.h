@@ -12,6 +12,7 @@ struct OptionDefinition {
     double x = 0, y = 0, fieldWidth = .55, listWidth = .5;
     double width = 0, height = 0;
     bool active = false;
+    bool ellipsizeCells = false, activateOnClick = true;
     std::vector<std::string> cells;
     bool disabled = false, manual = false, anchorRight = false, back = false;
     bool enableEnter = true;
