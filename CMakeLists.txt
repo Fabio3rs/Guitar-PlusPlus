@@ -45,6 +45,8 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CCharter.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CControls.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CEngineResources.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/CUIRendererGL2.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CFonts.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CGPPFileMGR.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CGamePlay.cpp"

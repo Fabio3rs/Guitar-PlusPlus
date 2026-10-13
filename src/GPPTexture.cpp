@@ -1,7 +1,6 @@
+#include "CEngineResources.h"
 #include "CLog.h"
 #include "GPPGame.h"
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <stdexcept>
 #include <utility>
 
@@ -18,29 +17,6 @@ unsigned int legacyId(const CTextureManager::Handle &resource) {
     return status.id;
 }
 
-CTextureManager::Backend engineBackend() {
-    auto *engine =
-        &CEngine::engine(); // Initialize on the owner, before workers.
-    return {[engine](const std::string &file) {
-                CTextureImage image;
-                if (!engine->readImage(file.c_str(), &image, 0)) {
-                    throw std::runtime_error("Cannot decode texture: " + file);
-                }
-                return image;
-            },
-            [engine](CTextureImage &image) {
-                if (!glfwGetCurrentContext()) {
-                    throw std::runtime_error(
-                        "Texture upload requires a current GL context");
-                }
-                return engine->uploadTextureToOGL(&image);
-            },
-            [engine](unsigned int id) {
-                glDeleteTextures(1, &id);
-                engine->invalidateRenderBindings();
-            },
-            [](const std::string &error) { CLog::log() << error; }};
-}
 } // namespace
 
 void GPPGame::initializeTextures() {
@@ -48,7 +24,8 @@ void GPPGame::initializeTextures() {
         return;
     }
     textureViews.clear();
-    textureManager = std::make_unique<CTextureManager>(engineBackend());
+    textureManager =
+        std::make_unique<CTextureManager>(makeEngineTextureBackend());
 }
 
 void GPPGame::shutdownTextures() {

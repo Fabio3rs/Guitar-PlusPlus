@@ -121,6 +121,8 @@ class FontAtlasGL : public ::testing::Test {
         glfwMakeContextCurrent(window);
         ASSERT_EQ(glewInit(), GLEW_OK);
         glViewport(0, 0, 128, 128);
+        // Match the engine's initial fixed-function state; menus inherit it.
+        glEnable(GL_TEXTURE_2D);
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         GPPGame::GuitarPP().mainthread = std::this_thread::get_id();
@@ -560,63 +562,40 @@ TEST_F(FontAtlasGL, PanelLayerAndPersistentSelectionDoNotFollowKeyboardFocus) {
     EXPECT_EQ(glGetError(), GL_NO_ERROR);
 }
 
-TEST_F(FontAtlasGL,
-       NewMenuControlsRestoreProgramTextureBuffersAndBlendDepthState) {
-    using namespace ShaderProject;
-    auto program = CShader::createShaderProgram();
-    auto vertex = CShader::compileShader(
-        "#version 110\nvoid main(){gl_Position=ftransform();}", VERTEX);
-    auto fragment = CShader::compileShader(
-        "#version 110\nvoid main(){gl_FragColor=vec4(1.0);}", FRAGMENT);
-    CShader::attachShaderToProgram(program, vertex);
-    CShader::attachShaderToProgram(program, fragment);
-    CShader::linkShaderProgram(program);
-    glUseProgram(program.get());
-    GLuint buffer = 0, texture = 0;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    const float data[] = {0, 0, 0, 1, 1, 1};
-    glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
-    glVertexPointer(3, GL_FLOAT, 0, nullptr);
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
-    glDisable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ZERO);
-    glEnable(GL_LIGHTING);
-    glColor4d(.2, .3, .4, .5);
-    CMenu::Context context;
-    CMenu menu("state", &context);
-    CMenu::menuOpt panel;
-    panel.type = CMenu::panel;
-    panel.width = panel.height = .5;
-    panel.styleOverrides.borderWidth = .02;
-    menu.addOpt(panel);
-    menu.render();
-    GLint actual = 0;
-    glGetIntegerv(GL_CURRENT_PROGRAM, &actual);
-    EXPECT_EQ(static_cast<GLuint>(actual), program.get());
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &actual);
-    EXPECT_EQ(static_cast<GLuint>(actual), buffer);
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &actual);
-    EXPECT_EQ(static_cast<GLuint>(actual), texture);
-    glGetIntegerv(GL_VERTEX_ARRAY_SIZE, &actual);
-    EXPECT_EQ(actual, 3);
-    glGetIntegerv(GL_BLEND_SRC, &actual);
-    EXPECT_EQ(actual, GL_ONE);
-    EXPECT_TRUE(glIsEnabled(GL_DEPTH_TEST));
-    EXPECT_TRUE(glIsEnabled(GL_LIGHTING));
-    EXPECT_FALSE(glIsEnabled(GL_BLEND));
-    GLboolean write = GL_TRUE;
-    glGetBooleanv(GL_DEPTH_WRITEMASK, &write);
-    EXPECT_FALSE(write);
-    GLdouble color[4];
-    glGetDoublev(GL_CURRENT_COLOR, color);
-    EXPECT_NEAR(color[3], .5, 1e-6);
+TEST_F(FontAtlasGL, MenuKeepsLegacyClientArrayHandoffForCursor) {
+    // The host enters menus with CPU arrays and the fixed-function pipeline.
     glUseProgram(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDeleteBuffers(1, &buffer);
+    const GLfloat before[] = {0, 0, 0};
+    glVertexPointer(3, GL_FLOAT, 0, before);
+
+    GLuint texture = 0;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    const unsigned char white[] = {255, 255, 255, 255};
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 white);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    CMenu::Context context;
+    CMenu menu("legacy-handoff", &context);
+    CMenu::menuOpt panel;
+    panel.type = CMenu::image;
+    panel.texture = texture;
+    panel.width = panel.height = .5;
+    menu.addOpt(panel);
+    menu.render();
+
+    GLint size = 0, type = 0;
+    glGetIntegerv(GL_VERTEX_ARRAY_SIZE, &size);
+    glGetIntegerv(GL_VERTEX_ARRAY_TYPE, &type);
+    EXPECT_EQ(size, 2);
+    EXPECT_EQ(type, GL_DOUBLE);
+    GLint binding = 0;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &binding);
+    EXPECT_EQ(static_cast<GLuint>(binding), texture);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
     glDeleteTextures(1, &texture);
     EXPECT_EQ(glGetError(), GL_NO_ERROR);
 }
@@ -654,5 +633,106 @@ TEST_F(FontAtlasGL, ResizingPanelBoundsUpdatesClippingAndRestoresWithTheme) {
     draw();
     EXPECT_EQ(menuPixel(48, 64), black);
     EXPECT_EQ(menuPixel(80, 64), red);
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+TEST_F(FontAtlasGL, RendererNestedClipsUseViewportOriginAndKeepCallerClip) {
+    glViewport(16, 8, 96, 64);
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(30, 20, 60, 40);
+    auto &renderer = CEngine::engine().uiRenderer();
+    {
+        ui::RenderPass outer(renderer);
+        EXPECT_DOUBLE_EQ(outer.surface.aspect, 1.5);
+        renderer.clip(ui::Rect{0, -1, 1.5, 1});
+        GLint box[4];
+        glGetIntegerv(GL_SCISSOR_BOX, box);
+        EXPECT_EQ(box[0], 64);
+        EXPECT_EQ(box[1], 20);
+        EXPECT_EQ(box[2], 26);
+        EXPECT_EQ(box[3], 40);
+        {
+            ui::RenderPass inner(renderer);
+            renderer.clip(ui::Rect{-1.5, -1, 1.5, 0});
+            renderer.clip(std::nullopt);
+            glGetIntegerv(GL_SCISSOR_BOX, box);
+            EXPECT_EQ(box[0], 64);
+            EXPECT_EQ(box[2], 26);
+            EXPECT_EQ(box[3], 40);
+        }
+        renderer.clip(std::nullopt);
+        glGetIntegerv(GL_SCISSOR_BOX, box);
+        EXPECT_EQ(box[0], 30);
+        EXPECT_EQ(box[2], 60);
+    }
+    EXPECT_TRUE(glIsEnabled(GL_SCISSOR_TEST));
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+TEST_F(FontAtlasGL, EngineColorCacheTracksRestoredStateAndBufferedFonts) {
+    auto &engine = CEngine::engine();
+    engine.invalidateRenderBindings();
+    engine.setColor(.2, .3, .4, .5);
+    glPushAttrib(GL_CURRENT_BIT);
+    engine.setColor(1, 0, 0, 1);
+    glPopAttrib();
+    engine.invalidateRenderBindings();
+    // Reapply the last requested color after the real state was restored.
+    engine.setColor(1, 0, 0, 1);
+    EXPECT_EQ(engine.getColor(), (std::array<double, 4>{1, 0, 0, 1}));
+
+    atlas("color-cache.tga", true);
+    CFonts fonts;
+    ASSERT_FALSE(fonts
+                     .addTextureToFont("default", path.string(),
+                                       "color-cache.tga", "a", {1, 1})
+                     .empty());
+    engine.setColor(0, 1, 0, 1);
+    fonts.drawTextInScreenWithBuffer("a", 0, 0, .2);
+    engine.setColor(0, 0, 1, 1);
+    fonts.drawAllBuffers();
+    EXPECT_EQ(engine.getColor(), (std::array<double, 4>{0, 0, 1, 1}));
+    engine.setColor(0, 1, 0, 1);
+    EXPECT_EQ(engine.getColor(), (std::array<double, 4>{0, 1, 0, 1}));
+    EXPECT_EQ(glGetError(), GL_NO_ERROR);
+}
+
+TEST_F(FontAtlasGL, EngineUIUploadMapsCPUFormatsAndRestoresBindings) {
+    auto &engine = CEngine::engine();
+    GLuint previous = 0;
+    glGenTextures(1, &previous);
+    glBindTexture(GL_TEXTURE_2D, previous);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
+    using Format = CTextureImage::PixelFormat;
+    for (const auto format :
+         {Format::Alpha, Format::Luminance, Format::RGB, Format::RGBA}) {
+        CTextureImage image;
+        image.Width = image.Height = 1;
+        image.Format = format;
+        image.BytesPerPixel = format == Format::RGBA  ? 4
+                              : format == Format::RGB ? 3
+                                                      : 1;
+        image.DataBytes = static_cast<size_t>(image.BytesPerPixel);
+        image.Data = std::make_unique<unsigned char[]>(image.DataBytes);
+        std::fill_n(image.Data.get(), image.DataBytes, 255);
+        const unsigned texture = engine.uploadUITexture(image);
+        ASSERT_TRUE(engine.isTextureValid(texture));
+        GLint binding = 0, alignment = 0;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &binding);
+        glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+        EXPECT_EQ(static_cast<unsigned>(binding), previous);
+        EXPECT_EQ(alignment, 8);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        std::array<unsigned char, 4> pixels{};
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                      pixels.data());
+        EXPECT_EQ(pixels[3], 255);
+        EXPECT_EQ(pixels[0], format == Format::Alpha ? 0 : 255);
+        engine.destroyTexture(texture);
+        EXPECT_FALSE(engine.isTextureValid(texture));
+        glBindTexture(GL_TEXTURE_2D, previous);
+    }
+    engine.destroyTexture(previous);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
     EXPECT_EQ(glGetError(), GL_NO_ERROR);
 }

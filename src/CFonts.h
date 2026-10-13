@@ -1,5 +1,6 @@
 #pragma once
 #include "CEngine.h"
+#include "CUIDrawTypes.h"
 #include <array>
 #include <cstdint>
 #include <deque>
@@ -34,30 +35,9 @@ class CFonts {
         double baseline = 0, ascent = 1, descent = 0;
     };
 
-    struct Glyph {
-        unsigned texture = 0;
-        size_t atlas = 0;
-        double u0 = 0, v0 = 0, u1 = 0, v1 = 0;
-        double width = 1, bearing = 0, advance = 2.0 / 3.0;
-        double left = 0, right = 0, bottom = 0, top = 1;
-        double height = 1, offset = 0;
-        bool visible = false;
-    };
-
-    struct Placement {
-        Glyph glyph;
-        double x = 0;
-    };
-
-    struct TextLayout {
-        std::vector<Placement> glyphs;
-        std::vector<double> carets;
-        double baseline = 0;
-        double advance = 0, left = 0, right = 0, bottom = 0, top = 1;
-        double width() const { return right - left; }
-
-        size_t cursorAt(double x) const;
-    };
+    using Glyph = ui::Glyph;
+    using Placement = ui::Placement;
+    using TextLayout = ui::TextLayout;
 
     class Font {
         struct Texture {

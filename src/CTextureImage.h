@@ -3,11 +3,11 @@
 #include <cstddef>
 #include <memory>
 
-// CPU-owned image data. Format contains the existing numeric pixel format;
-// this type itself requires neither an OpenGL header nor a current context.
+// CPU-owned image data, independent of the graphics API.
 struct CTextureImage {
     int Width = 0, Height = 0;
-    int Format = 0;
+    enum class PixelFormat { Unknown, Alpha, Luminance, RGB, RGBA };
+    PixelFormat Format = PixelFormat::Unknown;
     int BytesPerPixel = 0;
     size_t DataBytes = 0;
     std::unique_ptr<unsigned char[]> Data;

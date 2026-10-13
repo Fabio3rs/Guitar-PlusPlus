@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
         glLoadIdentity();
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        glColor3f(1, 0, 0);
+        CEngine::engine().setColor(1, 0, 0, 1);
         glBegin(GL_TRIANGLES);
         glVertex2f(-.8f, -.8f);
         glVertex2f(.8f, -.8f);

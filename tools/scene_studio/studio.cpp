@@ -415,7 +415,7 @@ void Session::render(Target &target, int w, int h, bool helpers) {
     glUseProgram(0);
     glActiveTexture(GL_TEXTURE0);
     glClientActiveTexture(GL_TEXTURE0);
-    glColor4f(1, 1, 1, 1);
+    CEngine::engine().setColor(1, 1, 1, 1);
     const auto &camera = settings.camera;
     const auto bounds = scene->model.bounds();
     const auto projection =

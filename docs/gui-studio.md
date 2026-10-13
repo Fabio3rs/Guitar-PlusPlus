@@ -472,3 +472,87 @@ convention. Local review logs are under `build/cmenu-validation/`.
 
 This validates synthetic rendering and menu interaction, not in-game song
 selection, Windows, physical controllers or performance on older GPUs.
+
+### Legacy menu-to-cursor state dependency
+
+The engine-owned OpenGL 2 backend (`src/CUIRendererGL2.cpp`) preserves the
+menu GL handoff used before commit `0002e24`.
+The host enters with fixed-function rendering, `GL_TEXTURE_2D` enabled and CPU
+client arrays configured. Solid backgrounds use the existing `Text = 0` quad
+path; the menu does not toggle texturing around individual controls.
+The backend restores matrices and the server attribute groups historically saved,
+but leaves client-array pointers and texture bindings as its 2D draws set them.
+`CEngine::renderFrame()` draws the cursor through that legacy path afterwards.
+Adding client-array or texture attribute restoration changes this handoff and
+caused a cursor regression after composition was introduced. Keep this dependency
+until an explicitly requested renderer migration updates both consumers together.
+This is an integration constraint, not a claim that either draw accepts arbitrary
+incoming OpenGL state.
+
+### UI renderer boundary
+
+`CMenu` sends logical rectangles, borrowed texture identifiers, text layouts,
+colors and clipping requests to `ui::Renderer` (`src/CUIRenderer.h`). It contains
+no OpenGL calls. `CUIDrawTypes.h` holds the shared geometry and glyph layout data
+without graphics headers; the existing `CMenu::Rect` and `CFonts::TextLayout`
+names remain aliases. Layout, focus, selection and typography caches stay in
+`CMenu`.
+
+The default implementation comes from `CEngine::uiRenderer()`. A host may set
+`CMenu::Context::renderer` to a non-owning alternate implementation; that object
+must outlive rendering with the context. Calls run synchronously on the render
+thread. `RenderPass` balances begin/end even on exceptions. The backend converts
+logical clipping into framebuffer coordinates, accounts for the viewport origin
+and intersects inherited clipping. Clearing a local clip preserves the caller's
+clip. Nested passes are supported.
+
+The current backend delegates quads and glyph batches to the existing engine and
+font drawing paths. It retains reusable buffers and the legacy state dependency
+above. The final cursor draw establishes HUD matrices without pushing and
+restoring the preceding 3D matrices or attribute groups. An OpenGL 4 or Vulkan
+implementation can replace this renderer without rewriting menu controls. Such a
+migration still needs resource/upload management and replacement of the legacy
+engine/font drawing implementations: unsigned texture values currently identify
+OpenGL textures, although controls only forward them. The rest of the game's
+renderer and the GUI Studio's surrounding GL drawing have not been migrated.
+
+Validation of this extraction: normal build and 97 selected UI/font/shader/Lua
+and Studio tests passed. Native Lab ASan/UBSan covered the same 66 CPU and 31
+GL/Studio cases, using the existing vendor-only sanitizer suppressions. The first
+Studio UI run failed its exported font-metrics assertion without a sanitizer
+report; after rebuilding the Studio executable as well, the 31 graphical cases
+all passed. Graphics tests used Mesa OpenGL 2.0 / GLSL 1.10. Changed regions were
+formatted and reviewed with clang-tidy; remaining findings concern style/API
+conventions, not analyzer errors. This does not replace visual verification on
+the user's GPU.
+
+### Engine colors and resources
+
+Immediate drawing colors in maintained game/Studio code go through
+`CEngine::setColor()`. `getColor()` captures the current backend color for buffered
+fonts and synchronizes the cache. Existing renderer boundaries call
+`invalidateRenderBindings()` after restoring native state; that invalidates the
+color cache as well. Engine draws with vertex colors invalidate it too. This
+adds no attribute-stack scopes and no GL queries to `setColor()` (it is also used
+inside immediate-mode drawing). Per-vertex colors and shader uniforms retain
+their distinct rendering roles.
+
+`makeEngineTextureBackend()` now supplies the game's texture-manager adapter
+from the engine layer. Guitar loading asks the engine about context/resource
+validity. Studio atlas uploads and deletion also use engine resource operations;
+the session has no GL calls. CPU image formats are an explicit `PixelFormat`
+enum, translated to GL only in the engine.
+
+The cursor is the final draw before presentation and no longer saves/restores
+attributes or matrices. It leaves the frame in HUD coordinates. Existing scoped
+restoration in the UI preview, model/material rendering and shadow/effect passes
+still protects subsequent draws; those are not blanket resets added for color
+management.
+
+Validation of the color/resource follow-up: 134 selected tests passed both
+normally and with ASan/UBSan in Native Lab (98 CPU, 36 graphical/Studio cases),
+with only the existing vendor suppressions. New tests cover color-cache
+invalidation, buffered-font color restoration, CPU pixel-format translation and
+UI upload binding/alignment preservation. The actual game menu was also captured
+under Mesa/Xvfb: the cursor had normal geometry and the final projection was 2D.
+This is not a validation on the user's GPU or a gameplay performance measurement.

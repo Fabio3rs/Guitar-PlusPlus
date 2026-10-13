@@ -7,6 +7,7 @@
 #include "CEngine.h"
 #include "CFonts.h"
 #include "CLuaH.hpp"
+#include "CUIRenderer.h"
 #include "CUIStyle.h"
 #include <array>
 #include <cstdint>
@@ -98,6 +99,7 @@ class CMenu {
     // the game's existing services. Preview never calls game/Lua callbacks.
     struct Context {
         CFonts *fonts = nullptr;
+        ui::Renderer *renderer = nullptr; // Non-owning; null uses the engine.
         std::string font = "default", language = "PT-BR";
         ui::Style style;
         double aspect = 1, mouseX = 0, mouseY = 0;
@@ -106,17 +108,7 @@ class CMenu {
         std::function<std::string(const std::string &)> translate;
     };
 
-    struct Rect {
-        double left = 0, bottom = 0, right = 0, top = 0;
-        bool contains(double px, double py) const {
-            return px >= left && px <= right && py >= bottom && py <= top;
-        }
-
-        bool intersects(const Rect &r) const {
-            return right >= r.left && left <= r.right && top >= r.bottom &&
-                   bottom <= r.top;
-        }
-    };
+    using Rect = ui::Rect;
 
   private:
     std::optional<Rect> fixedPanelBounds;

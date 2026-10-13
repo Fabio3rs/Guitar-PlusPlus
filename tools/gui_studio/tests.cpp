@@ -1,4 +1,5 @@
 #include "session.h"
+#include <GL/glew.h>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <limits>

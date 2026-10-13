@@ -2,7 +2,6 @@
 #include "CBackgroundRenderer.h"
 #include "CLog.h"
 #include "GPPGame.h"
-#include <GLFW/glfw3.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>

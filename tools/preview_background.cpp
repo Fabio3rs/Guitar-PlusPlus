@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
         glEnable(GL_LIGHT1);
         glEnable(GL_LIGHTING);
         glEnable(GL_COLOR_MATERIAL);
-        glColor4f(1, 1, 1, 1);
+        CEngine::engine().setColor(1, 1, 1, 1);
         std::vector<double> timings;
         int frames = argc > 4 ? std::max(2, std::stoi(argv[4])) : 12;
         for (int i = 0; i < frames; ++i) {

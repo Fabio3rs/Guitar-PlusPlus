@@ -1,7 +1,6 @@
 #pragma once
 #include "CModalManager.h"
 #include "fonts.h"
-#include <GL/glew.h>
 #include <filesystem>
 
 namespace GuiStudio {

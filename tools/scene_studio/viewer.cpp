@@ -196,8 +196,8 @@ void Session::drawModel(bool helpers) {
                         return false;
                     }
                     textureState.apply(m, textured);
-                    glColor4f(m.diffuse[0], m.diffuse[1], m.diffuse[2],
-                              m.opacity);
+                    CEngine::engine().setColor(m.diffuse[0], m.diffuse[1],
+                                               m.diffuse[2], m.opacity);
                     return true;
                 },
                 0, &visible);
@@ -213,7 +213,7 @@ void Session::drawModel(bool helpers) {
         scene->model.drawMaterials(
             [](const ObjModel::Part &, const ObjModel::Material &, bool) {
                 glDisable(GL_TEXTURE_2D);
-                glColor3f(.65f, .8f, .95f);
+                CEngine::engine().setColor(.65f, .8f, .95f, 1);
                 return true;
             },
             0, &visible);
@@ -226,7 +226,7 @@ void Session::drawModel(bool helpers) {
         scene->model.drawMaterials(
             [](const ObjModel::Part &, const ObjModel::Material &, bool) {
                 glDisable(GL_TEXTURE_2D);
-                glColor3f(1, .75f, .15f);
+                CEngine::engine().setColor(1, .75f, .15f, 1);
                 return true;
             },
             0, &highlight);
@@ -254,7 +254,7 @@ void Session::drawHelpers() {
         const float cx = std::floor(center[0] / step) * step;
         const float cz = std::floor(center[2] / step) * step;
         const float y = bounds.minimum[1];
-        glColor3f(.25f, .28f, .32f);
+        CEngine::engine().setColor(.25f, .28f, .32f, 1);
         for (int i = -10; i <= 10; ++i) {
             const float offset = float(i) * step;
             line({cx + offset, y, cz - 10 * step},
@@ -264,12 +264,12 @@ void Session::drawHelpers() {
         }
     }
     if (settings.bounds && visibleBounds.valid) {
-        glColor3f(.5f, .7f, 1);
+        CEngine::engine().setColor(.5f, .7f, 1, 1);
         box(bounds.minimum, bounds.maximum);
     }
     if (selected >= 0 && isVisible(size_t(selected))) {
         const auto &part = inspection().parts[size_t(selected)];
-        glColor3f(1, .75f, .15f);
+        CEngine::engine().setColor(1, .75f, .15f, 1);
         box(part.minimum, part.maximum);
     }
     glEnd();
@@ -281,7 +281,7 @@ void Session::drawHelpers() {
         for (size_t axis = 0; axis < 3; ++axis) {
             Vec color{}, end = center;
             color[axis] = 1;
-            glColor3fv(color.data());
+            CEngine::engine().setColor(color[0], color[1], color[2], 1);
             end[axis] += scale * .2f;
             line(center, end);
         }

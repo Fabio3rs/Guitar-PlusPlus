@@ -1,4 +1,5 @@
 #include "ui.h"
+#include <GL/glew.h>
 #include <algorithm>
 #include <cmath>
 #include <imgui_impl_glfw.h>
@@ -146,7 +147,7 @@ void drawPreview(const ImDrawList *, const ImDrawCmd *command) {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
-    glColor4d(1, 1, 1, 1);
+    CEngine::engine().setColor(1, 1, 1, 1);
     if (view.font) {
         const auto metrics =
             s.fonts.empty()
@@ -161,13 +162,13 @@ void drawPreview(const ImDrawList *, const ImDrawCmd *command) {
         glBegin(GL_LINES);
         for (double line : {metrics.baseline, metrics.baseline + metrics.ascent,
                             metrics.baseline - metrics.descent}) {
-            glColor4d(.2, .65, .7, 1);
+            CEngine::engine().setColor(.2, .65, .7, 1);
             glVertex2d(-aspect, originY + line * scale);
             glVertex2d(aspect, originY + line * scale);
         }
         glEnd();
         glEnable(GL_TEXTURE_2D);
-        glColor4d(1, 1, 1, 1);
+        CEngine::engine().setColor(1, 1, 1, 1);
         s.registry().drawTextInScreen(view.text, -aspect + 16.0 / view.size.y,
                                       originY, scale, s.context.font);
     } else {

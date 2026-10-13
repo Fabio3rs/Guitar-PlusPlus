@@ -214,6 +214,10 @@ class staticCallFunc {
     }
 };
 
+namespace ui {
+class Renderer;
+}
+
 class CEngine {
     void *window;
     customwcallback wcallfunc;
@@ -225,6 +229,9 @@ class CEngine {
     static cfile_ptr make_cfile(const char *name, const char *mode) {
         return cfile_ptr(fopen(name, mode));
     }
+
+    // UI/context thread only. Backend selection stays inside the engine.
+    ui::Renderer &uiRenderer();
 
     inline const double *getProjMatrix() const { return projMatrix.data(); }
 
@@ -384,6 +391,7 @@ class CEngine {
     //*****************************************
 
     double lrC{}, lgC{}, lbC{}, laC{};
+    bool colorValid = false;
 
     std::array<double, 3> lastRenderAt{};
 
@@ -527,6 +535,7 @@ class CEngine {
     // Call after restoring GL bindings changed outside the engine cache.
     void invalidateRenderBindings() {
         lastUsedTexture = lastUsedVBOBuffer = ~0u;
+        colorValid = false;
     }
 
     static void glEnable(int num);
@@ -558,7 +567,16 @@ class CEngine {
                                  double radius, double lineWeight, int maxPolys,
                                  unsigned int &bufferID);
     void draw2DLine(double *linedata, int points);
+    // Actual current color, including state restored by a renderer boundary.
+    std::array<double, 4> getColor();
     void setColor(double r, double g, double b, double a);
+    void setColor(const std::array<double, 4> &color) {
+        setColor(color[0], color[1], color[2], color[3]);
+    }
+    bool hasRenderContext() const;
+    bool isTextureValid(unsigned texture) const;
+    void destroyTexture(unsigned texture);
+    unsigned uploadUITexture(const CTextureImage &image);
 
     static void addToAccumulationBuffer(double d);
     static void retAccumulationBuffer(double d);

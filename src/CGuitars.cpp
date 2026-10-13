@@ -3,8 +3,6 @@
 #include "GPPGame.h"
 #include "CLuaFunctions.hpp"
 #include "CGPPFileMGR.h"
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 
 int CGuitars::addGuitarScriptEvent = 0, CGuitars::loadGuitarScriptEvent = 0,
     CGuitars::unloadingGuitarScriptEvent = 0;
@@ -61,7 +59,9 @@ auto CGuitars::getGuitarIfExists(const std::string &internalName)
 
 bool CGuitars::CGuitar::load() {
     if (loaded) { return true; }
-    if (!glfwGetCurrentContext()) { return false; }
+    if (!CEngine::engine().hasRenderContext()) {
+        return false;
+    }
     auto &loader = GPPGame::GuitarPP().modelLoader();
     if (!loader.isOwnerThread()) {
         return false;
@@ -86,8 +86,14 @@ bool CGuitars::CGuitar::load() {
         return false;
     }
     // Legacy scripts supply cached texture handles; the guitar does not own them.
-    if (textureID != 0 && !glIsTexture(static_cast<GLuint>(textureID))) { textureID = 0; }
-    if (fretboardText != 0 && !glIsTexture(fretboardText)) { fretboardText = 0; }
+    if (textureID != 0 &&
+        !CEngine::engine().isTextureValid(static_cast<unsigned>(textureID))) {
+        textureID = 0;
+    }
+    if (fretboardText != 0 &&
+        !CEngine::engine().isTextureValid(fretboardText)) {
+        fretboardText = 0;
+    }
     try {
         candidate.prepareForDraw();
     } catch (const std::exception &error) {

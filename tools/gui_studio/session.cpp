@@ -5,7 +5,7 @@
 namespace GuiStudio {
 Texture::~Texture() {
     if (id) {
-        glDeleteTextures(1, &id);
+        CEngine::engine().destroyTexture(id);
     }
 }
 
@@ -60,25 +60,7 @@ std::shared_ptr<Texture> readTexture(const fs::path &path) {
     if (!CEngine::engine().readImage(path.string().c_str(), &im, 0)) {
         throw std::runtime_error("Cannot read TGA: " + path.string());
     }
-    GLint previous = 0, alignment = 0;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previous);
-    glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
-    glGenTextures(1, &texture->id);
-    glBindTexture(GL_TEXTURE_2D, texture->id);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, im.Width, im.Height, 0,
-                 static_cast<GLenum>(im.Format), GL_UNSIGNED_BYTE,
-                 im.Data.get());
-    const GLenum error = glGetError();
-    glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-    glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(previous));
-    if (error != GL_NO_ERROR) {
-        throw std::runtime_error("Atlas texture upload failed");
-    }
+    texture->id = CEngine::engine().uploadUITexture(im);
     return texture;
 }
 } // namespace
@@ -171,7 +153,10 @@ void Session::applyFonts(FontDefinitions next) {
                 im.Width,
                 im.Height,
                 im.BytesPerPixel,
-                im.BytesPerPixel == 4 ? 3 : (im.Format == GL_ALPHA ? 0 : -1)};
+                im.BytesPerPixel == 4
+                    ? 3
+                    : (im.Format == CTextureImage::PixelFormat::Alpha ? 0
+                                                                      : -1)};
             if (!registry->addImageToFont(font.name, path.string(),
                                           resource->id, view, atlas.mapping,
                                           atlas.grid)) {

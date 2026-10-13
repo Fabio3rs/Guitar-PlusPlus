@@ -2,7 +2,6 @@
 #include "CLog.h"
 #include "GPPGame.h"
 #include "utf8.h"
-#include <GL/glew.h>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -146,7 +145,9 @@ bool CFonts::Font::registerTexture(const std::string &path,
                 image->BytesPerPixel,
                 image->BytesPerPixel == 4
                     ? 3
-                    : (image->Format == GL_ALPHA ? 0 : -1)};
+                    : (image->Format == CTextureImage::PixelFormat::Alpha
+                           ? 0
+                           : -1)};
         return true;
     };
     return registerImage(path + "/" + texture, id, {}, text, grid, pixels);
@@ -392,7 +393,7 @@ void CFonts::utf8RemoveAtRange(std::string &s, int at, int count) {
     s.erase(begin, end - begin);
 }
 
-size_t CFonts::TextLayout::cursorAt(double x) const {
+size_t ui::TextLayout::cursorAt(double x) const {
     if (carets.empty()) {
         return 0;
     }
@@ -568,7 +569,8 @@ void CFonts::drawText(std::string_view text, const std::string &font, double x,
     } context{this, x, y, z, sx, sy, sz, buffered, threeD};
 
     if (buffered) {
-        glGetDoublev(GL_CURRENT_COLOR, bufferedColor);
+        const auto color = CEngine::engine().getColor();
+        std::copy(color.begin(), color.end(), bufferedColor);
     }
 
     walk(
@@ -623,16 +625,17 @@ void CFonts::drawLayout(const TextLayout &layout, double x, double y,
 
 void CFonts::drawAllBuffers() {
     if (usedBatches) {
-        GLdouble color[4];
-        glGetDoublev(GL_CURRENT_COLOR, color);
+        auto &engine = CEngine::engine();
+        const auto color = engine.getColor();
 
         for (size_t i = 0; i < usedBatches; ++i) {
-            glColor4dv(batches[i].color);
+            const auto &tint = batches[i].color;
+            engine.setColor(tint[0], tint[1], tint[2], tint[3]);
             CEngine::engine().drawTrianglesWithAlpha(batches[i].data);
             batches[i].data.clear();
         }
 
-        glColor4dv(color);
+        engine.setColor(color);
         usedBatches = 0;
     }
 

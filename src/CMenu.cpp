@@ -4,7 +4,6 @@
 #include "CUIOverrides.h"
 #include "GPPGame.h"
 #include "utf8.h"
-#include <GL/glew.h>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -18,25 +17,6 @@ CMenu *CMenu::inputFocus = nullptr;
 CMenu *CMenu::mouseCapture = nullptr;
 
 namespace {
-void rectangle(const CMenu::Rect &r, unsigned texture = 0) {
-    if (texture) {
-        glEnable(GL_TEXTURE_2D);
-    } else {
-        glDisable(GL_TEXTURE_2D);
-    }
-    CEngine::RenderDoubleStruct q{};
-    q.x1 = q.x4 = r.left;
-    q.x2 = q.x3 = r.right;
-    q.y1 = q.y2 = r.top;
-    q.y3 = q.y4 = r.bottom;
-    q.TextureX1 = 0;
-    q.TextureX2 = 1;
-    q.TextureY1 = 1;
-    q.TextureY2 = 0;
-    q.Text = texture;
-    CEngine::engine().Render2DQuad(q);
-}
-
 bool interactive(const CMenu::menuOpt &o) {
     return !o.disabled && o.type != CMenu::static_text &&
            o.type != CMenu::none && o.type != CMenu::image &&
@@ -1342,47 +1322,16 @@ void CMenu::render() {
     auto &fonts = fontService();
     const std::string defaultFont = "default";
     const auto &fontName = context ? context->font : defaultFont;
-    auto color = [&](const ui::Color &c) { glColor4d(c.r, c.g, c.b, c.a); };
+    auto &renderer =
+        context && context->renderer ? *context->renderer : engine.uiRenderer();
+    ui::RenderPass pass(renderer);
+    const auto surface = pass.surface;
+    const double aspect = surface.aspect;
+    auto color = [&](const ui::Color &c) { renderer.color(c); };
+    auto rectangle = [&](const Rect &r, unsigned texture = 0) {
+        renderer.rectangle(r, texture);
+    };
 
-    glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_CURRENT_BIT |
-                 GL_SCISSOR_BIT | GL_DEPTH_BUFFER_BIT | GL_TEXTURE_BIT);
-    glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
-    GLint program = 0;
-    glGetIntegerv(GL_CURRENT_PROGRAM, &program);
-    glUseProgram(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    engine.invalidateRenderBindings();
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glDisable(GL_ALPHA_TEST);
-    glDisable(GL_CULL_FACE);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    GLint matrixMode, viewportPixels[4];
-    glGetIntegerv(GL_MATRIX_MODE, &matrixMode);
-    glGetIntegerv(GL_VIEWPORT, viewportPixels);
-    const double menuAspect =
-        viewportPixels[3] > 0
-            ? static_cast<double>(viewportPixels[2]) / viewportPixels[3]
-            : 1;
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(-menuAspect, menuAspect, -1, 1, -1, 1);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    GLint vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
-    const double aspect = vp[3] > 0 ? static_cast<double>(vp[2]) / vp[3] : 1;
-    const bool hadScissor = glIsEnabled(GL_SCISSOR_TEST) != 0;
-    GLint previousScissor[4];
-    glGetIntegerv(GL_SCISSOR_BOX, previousScissor);
     const auto panelBounds = getPanelBounds();
     const Rect menuClip = permanentPanel
                               ? Rect{std::max(-aspect, panelBounds.left + x),
@@ -1396,27 +1345,10 @@ void CMenu::render() {
         r.right = std::min(r.right, activeClip.right);
         r.bottom = std::max(r.bottom, activeClip.bottom);
         r.top = std::min(r.top, activeClip.top);
-        const int left =
-            vp[0] + static_cast<int>((r.left / aspect + 1) * vp[2] / 2);
-        const int bottom = vp[1] + static_cast<int>((r.bottom + 1) * vp[3] / 2);
-        const int right =
-            vp[0] + static_cast<int>((r.right / aspect + 1) * vp[2] / 2);
-        const int top = vp[1] + static_cast<int>((r.top + 1) * vp[3] / 2);
-        const int l = hadScissor ? std::max(left, previousScissor[0]) : left;
-        const int b =
-            hadScissor ? std::max(bottom, previousScissor[1]) : bottom;
-        const int rr =
-            hadScissor
-                ? std::min(right, previousScissor[0] + previousScissor[2])
-                : right;
-        const int tt =
-            hadScissor ? std::min(top, previousScissor[1] + previousScissor[3])
-                       : top;
-        glEnable(GL_SCISSOR_TEST);
-        glScissor(l, b, std::max(0, rr - l), std::max(0, tt - b));
+        renderer.clip(r);
     };
 
-    if (permanentPanel || hadScissor) {
+    if (permanentPanel) {
         clip(menuClip);
     }
     if (qbgd.Text) {
@@ -1468,10 +1400,10 @@ void CMenu::render() {
                           std::min(menuClip.top, view.top)};
         }
 
-        if (clipped || hadScissor || permanentPanel) {
+        if (clipped || permanentPanel) {
             clip(activeClip);
         } else {
-            glDisable(GL_SCISSOR_TEST);
+            renderer.clip(std::nullopt);
         }
 
         const double px = o.x + x, py = o.y + y + (clipped ? scrollOffset : 0);
@@ -1497,7 +1429,7 @@ void CMenu::render() {
             (o.type == table_row ||
              (o.type == textbtn && (o.width > 0 || o.height > 0)))) {
             border(r, style.selection.accent,
-                   std::max(.004, 2.0 / std::max(1, vp[3])));
+                   std::max(.004, 2.0 / std::max(1, surface.pixelHeight)));
         } else if (focusHere) {
             color(style.selection.accent);
             rectangle(
@@ -1507,9 +1439,9 @@ void CMenu::render() {
                 pickTexture);
         }
 
-        glColor4d(appearance.textColor.r, appearance.textColor.g,
-                  appearance.textColor.b,
-                  o.disabled ? .35 : appearance.textColor.a);
+        color({appearance.textColor.r, appearance.textColor.g,
+               appearance.textColor.b,
+               o.disabled ? .35 : appearance.textColor.a});
 
         if (o.type == panel) {
             border(
@@ -1517,7 +1449,7 @@ void CMenu::render() {
                 o.styleOverrides.borderWidth.value_or(style.panel.borderWidth));
         } else if (o.type == image) {
             if (o.texture) {
-                glColor4d(1, 1, 1, o.disabled ? .35 : 1);
+                color({1, 1, 1, o.disabled ? .35 : 1});
                 rectangle(r, o.texture);
             }
         } else if (o.type == table_row) {
@@ -1549,11 +1481,10 @@ void CMenu::render() {
                                       (cache.layout.top + cache.layout.bottom) *
                                           appearance.textSize) /
                                      2;
-                glEnable(GL_TEXTURE_2D);
-                fonts.drawLayout(cache.layout,
-                                 cellRect.left + pad -
-                                     (cache.layout.left * appearance.textSize),
-                                 textY, appearance.textSize);
+                renderer.text(cache.layout,
+                              cellRect.left + pad -
+                                  (cache.layout.left * appearance.textSize),
+                              textY, appearance.textSize);
             }
         } else if (o.type == text_input) {
             color(style.controls.field);
@@ -1572,11 +1503,8 @@ void CMenu::render() {
                            std::max(0.0, caret - o.fieldWidth +
                                              std::min(.02, o.fieldWidth * .25)),
                            std::max(0.0, caret));
-            glColor4d(appearance.textColor.r, appearance.textColor.g,
-                      appearance.textColor.b, appearance.textColor.a);
-            glEnable(GL_TEXTURE_2D);
-            fonts.drawLayout(o.layout, px - o.textScroll, py,
-                             appearance.textSize);
+            color(appearance.textColor);
+            renderer.text(o.layout, px - o.textScroll, py, appearance.textSize);
 
             if (o.status & 4) {
                 color(style.selection.accent);
@@ -1591,8 +1519,7 @@ void CMenu::render() {
             if (o.type == textbtn && (o.width > 0 || o.height > 0)) {
                 clip(r);
             }
-            glEnable(GL_TEXTURE_2D);
-            fonts.drawLayout(o.layout, px, py, appearance.textSize);
+            renderer.text(o.layout, px, py, appearance.textSize);
 
             if (o.type == deslizant_Select_list) {
                 const auto bar = controlRect(i, style);
@@ -1613,26 +1540,14 @@ void CMenu::render() {
                     rectangle({cursor, bar.bottom, cursor + appearance.textSize,
                                bar.top},
                               pickTexture);
-                    glColor4d(appearance.textColor.r, appearance.textColor.g,
-                              appearance.textColor.b, appearance.textColor.a);
-                    glEnable(GL_TEXTURE_2D);
-                    fonts.drawLayout(o.valueLayout,
-                                     bar.right + appearance.textSize, py,
-                                     appearance.textSize);
+                    color(appearance.textColor);
+                    renderer.text(o.valueLayout,
+                                  bar.right + appearance.textSize, py,
+                                  appearance.textSize);
                 }
             }
         }
     }
-
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(matrixMode);
-    glPopClientAttrib();
-    glPopAttrib();
-    glUseProgram(static_cast<GLuint>(program));
-    engine.invalidateRenderBindings();
 }
 
 int CMenu::getUIListSize() { return static_cast<int>(myUiList.size()); }

@@ -25,6 +25,24 @@
 #include <bass_fx.h>
 #include <cmath>
 
+namespace {
+GLenum texturePixelFormat(CTextureImage::PixelFormat format) {
+    switch (format) {
+    case CTextureImage::PixelFormat::Alpha:
+        return GL_ALPHA;
+    case CTextureImage::PixelFormat::Luminance:
+        return GL_LUMINANCE;
+    case CTextureImage::PixelFormat::RGB:
+        return GL_RGB;
+    case CTextureImage::PixelFormat::RGBA:
+        return GL_RGBA;
+    case CTextureImage::PixelFormat::Unknown:
+        return 0;
+    }
+    return 0;
+}
+} // namespace
+
 static const double perspectiveMaxDist = 500000.0;
 std::mutex CEngine::m_gl_mutex;
 
@@ -226,8 +244,20 @@ auto CEngine::getKey(int key) const -> int {
     return glfwGetKey((GLFWwindow *)window, key);
 }
 
+std::array<double, 4> CEngine::getColor() {
+    std::array<double, 4> color{};
+    glGetDoublev(GL_CURRENT_COLOR, color.data());
+    lrC = color[0];
+    lgC = color[1];
+    lbC = color[2];
+    laC = color[3];
+    colorValid = true;
+    return color;
+}
+
 void CEngine::setColor(double r, double g, double b, double a) {
-    if (lrC != r || lgC != g || lbC != b || laC != a) {
+    if (!colorValid || lrC != r || lgC != g || lbC != b || laC != a) {
+        colorValid = true;
         lrC = r;
         lgC = g;
         lbC = b;
@@ -509,17 +539,17 @@ auto CEngine::readImage(const char *name, GLFWimage *img, int flags) -> int {
     default:
     case 1:
         if ((flags & GLFW_ALPHA_MAP_BIT) != 0) {
-            img->Format = GL_ALPHA;
+            img->Format = CTextureImage::PixelFormat::Alpha;
         } else {
-            img->Format = GL_LUMINANCE;
+            img->Format = CTextureImage::PixelFormat::Luminance;
         }
 
         break;
     case 3:
-        img->Format = GL_RGB;
+        img->Format = CTextureImage::PixelFormat::RGB;
         break;
     case 4:
-        img->Format = GL_RGBA;
+        img->Format = CTextureImage::PixelFormat::RGBA;
         break;
     }
 
@@ -597,7 +627,8 @@ auto CEngine::loadTextureImage2D(GLFWimage *img, int flags, bool glUpload)
     // NOTE: May require box filter downsampling routine.
 
     // Do we need to convert the alpha map to RGBA format (OpenGL 1.0)?
-    if ((glMajor == 1) && (glMinor == 0) && (img->Format == GL_ALPHA)) {
+    if ((glMajor == 1) && (glMinor == 0) &&
+        (img->Format == CTextureImage::PixelFormat::Alpha)) {
         // We go to RGBA representation instead
         img->BytesPerPixel = 4;
 
@@ -690,7 +721,7 @@ auto CEngine::loadTextureImage2DFinish(GLFWimage *img, int flags) const -> int {
     if (glMajor == 1 && glMinor == 0) {
         format = img->BytesPerPixel;
     } else {
-        format = img->Format;
+        format = texturePixelFormat(img->Format);
     }
 
     // Set unpack alignment to one byte
@@ -740,7 +771,7 @@ void CEngine::freeImage(GLFWimage *img) {
     // Clear all fields
     img->Width = 0;
     img->Height = 0;
-    img->Format = 0;
+    img->Format = CTextureImage::PixelFormat::Unknown;
     img->BytesPerPixel = 0;
     img->DataBytes = 0;
 }
@@ -917,6 +948,55 @@ auto CEngine::loadTextureAsync(const char *textureFileName, GLFWimage *eimg)
     return false;
 }
 
+bool CEngine::hasRenderContext() const {
+    return glfwGetCurrentContext() != nullptr;
+}
+
+bool CEngine::isTextureValid(unsigned texture) const {
+    return hasRenderContext() && glIsTexture(texture) != GL_FALSE;
+}
+
+void CEngine::destroyTexture(unsigned texture) {
+    glDeleteTextures(1, &texture);
+    invalidateRenderBindings();
+}
+
+unsigned CEngine::uploadUITexture(const CTextureImage &image) {
+    if (!hasRenderContext()) {
+        throw std::runtime_error("UI texture upload requires a render context");
+    }
+    const auto format = texturePixelFormat(image.Format);
+    if (!image.Data || image.Width <= 0 || image.Height <= 0 || !format) {
+        throw std::runtime_error("Invalid UI texture image");
+    }
+
+    // Preserve the Studio caller's binding/alignment explicitly. This is a
+    // resource upload, not a new attribute-stack scope around drawing.
+    GLint previous = 0, alignment = 0;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previous);
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+    GLuint texture = 0;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.Width, image.Height, 0,
+                 format, GL_UNSIGNED_BYTE, image.Data.get());
+    const GLenum error = glGetError();
+    glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+    glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(previous));
+    invalidateRenderBindings();
+
+    if (error != GL_NO_ERROR || texture == 0) {
+        destroyTexture(texture);
+        throw std::runtime_error("UI texture upload failed");
+    }
+    return texture;
+}
+
 auto CEngine::uploadTextureToOGL(GLFWimage *eimg) -> unsigned int {
     if (!eimg || !eimg->Data || eimg->Width <= 0 || eimg->Height <= 0) {
         return 0u;
@@ -989,30 +1069,21 @@ void CEngine::renderFrame() {
 
     cursorPointer.Text = cursorText;
 
-    GLint previousMatrixMode;
-    glGetIntegerv(GL_MATRIX_MODE, &previousMatrixMode);
-    glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT | GL_COLOR_BUFFER_BIT);
+    // Final HUD draw: leave the frame in 2D, as expected by the legacy host.
+    // There is no subsequent draw requiring an attribute/matrix restoration.
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glColor4d(1, 1, 1, 1);
+    setColor(1, 1, 1, 1);
     glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
     glLoadIdentity();
     const double cursorAspect =
         windowHeight > 0 ? windowWidth / windowHeight : 1;
     glOrtho(-cursorAspect, cursorAspect, -1, 1, -1, 1);
     glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
     glLoadIdentity();
     Render2DQuad(cursorPointer);
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(previousMatrixMode);
-    glPopAttrib();
-    invalidateRenderBindings();
 
     glfwSwapBuffers((GLFWwindow *)window);
     glfwPollEvents();
@@ -1983,6 +2054,9 @@ void CEngine::drawTrianglesWithAlpha(dTriangleWithAlpha &tris) {
     glVertexPointer(3, GL_DOUBLE, 0, &(tris.vArray[0]));
 
     glDrawArrays(GL_TRIANGLES, 0, 6 * tris.vArray.size());
+    if (tris.useColors) {
+        colorValid = false;
+    }
     if (tris.useColors && tris.autoEnDisaColors) {
         {
             glDisableClientState(GL_COLOR_ARRAY);
@@ -2021,6 +2095,7 @@ void CEngine::Render3DQuadWithAlpha(const RenderDoubleStruct &quad3DData) {
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glDisableClientState(GL_COLOR_ARRAY);
+    colorValid = false;
 }
 
 CEngine::CEngine() {
