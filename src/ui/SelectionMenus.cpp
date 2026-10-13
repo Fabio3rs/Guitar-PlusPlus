@@ -98,8 +98,7 @@ void CMenuSystem::populateSongs(CMenu &selectSongMenu,
             for (const auto &song :
                  game.getDirectory("./data/songs", false, true)) {
                 const auto chart = CPlayer::smartChartSearch(song);
-                if (!chart.empty() && CChart::validateChartHeader(
-                                          "data/songs/" + song + "/" + chart)) {
+                if (!chart.empty()) {
                     songs.emplace_back(song,
                                        !CPlayer::smartSongSearch(song).empty());
                 }

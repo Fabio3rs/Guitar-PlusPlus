@@ -49,10 +49,13 @@ void CText::Parse() {
     tables.push_back(globalTable);
 
     for (size_t i = 0; i < fileSize; i++) {
-        while (isprint((unsigned char)content[i]) == 0) {
+        while (i < fileSize && isprint((unsigned char)content[i]) == 0) {
             {
                 i++;
             }
+        }
+        if (i == fileSize) {
+            break;
         }
 
         *bufferA = 0;

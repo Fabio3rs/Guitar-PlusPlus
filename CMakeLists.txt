@@ -17,6 +17,15 @@ include(CPack)
 
 add_subdirectory(glm SYSTEM)
 
+# Keep upstream settings scoped here. EXCLUDE_FROM_ALL also covers midi2beep
+# and optional humdrum examples, which bypass BUILD_MIDILIBRARY_ONLY upstream.
+set(BUILD_MIDILIBRARY_ONLY ON CACHE BOOL "Only build the MIDI library" FORCE)
+add_subdirectory(vendor/midifile EXCLUDE_FROM_ALL SYSTEM)
+target_include_directories(midifile SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/vendor/midifile/include")
+set_target_properties(midifile PROPERTIES EXCLUDE_FROM_ALL FALSE)
+configure_file(vendor/midifile/LICENSE.txt bin/licenses/midifile-LICENSE.txt COPYONLY)
+install(FILES vendor/midifile/LICENSE.txt DESTINATION share/GuitarPP/licenses RENAME midifile-LICENSE.txt)
+
 #if(POLICY CMP0072)
 #    cmake_policy(SET CMP0072 NEW)
 #endif()
@@ -91,6 +100,13 @@ include_directories(SYSTEM ${INCLUDE_DIRS})
 link_directories(${INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
+add_library(gpp_midi STATIC src/CMidiChart.cpp)
+target_compile_features(gpp_midi PUBLIC cxx_std_17)
+target_include_directories(gpp_midi PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/cereal/include")
+target_link_libraries(gpp_midi PRIVATE midifile)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(gpp_midi PRIVATE -Wall -Wextra -Wpedantic)
+endif()
 add_library(gpp_models STATIC src/CModelData.cpp src/CModelManager.cpp src/ObjModel.cpp src/SceneAO.cpp)
 target_include_directories(gpp_models PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(gpp_models PUBLIC Threads::Threads)
@@ -122,7 +138,7 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     target_compile_options("${myprojectname}_lib" PRIVATE -Weverything -Wno-date-time -Wno-disabled-macro-expansion -Wno-global-constructors $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>  -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-exit-time-destructors)
 endif()
 
-target_link_libraries("${myprojectname}_lib" gpp_textures gpp_models glfw GLEW OpenGL::GL bass bass_fx)
+target_link_libraries("${myprojectname}_lib" gpp_midi gpp_textures gpp_models glfw GLEW OpenGL::GL bass bass_fx)
 target_link_libraries(${myprojectname} "${myprojectname}_lib")
 
 

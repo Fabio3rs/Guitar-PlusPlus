@@ -10,3 +10,6 @@
 [submodule "vendor/imgui"]
 	path = vendor/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "vendor/midifile"]
+	path = vendor/midifile
+	url = https://github.com/craigsapp/midifile.git

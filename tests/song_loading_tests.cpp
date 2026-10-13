@@ -1,13 +1,14 @@
-#include "CChart.h"
 #include "ActiveDelta.h"
+#include "CChart.h"
 #include "GPPGame.h"
-#include <type_traits>
-#include <gtest/gtest.h>
+#include "MidiFixture.h"
 #include <bass.h>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <gtest/gtest.h>
 #include <limits>
+#include <type_traits>
 
 namespace {
 class SongLoading : public ::testing::Test {
@@ -490,4 +491,92 @@ TEST_F(SongLoading, PauseCompensationKeepsTimelineAndCountdownAligned) {
         EXPECT_NEAR(player->startTime, 102.415, 1e-10);
         EXPECT_DOUBLE_EQ(player->musicRunningTime, -2.0);
     }
+}
+
+TEST_F(SongLoading, MidiOnlySongLoadsThroughDiscoveryAndKeepsMusicalEvidence) {
+    midi_fixture::Track guitar;
+    guitar.note(480, 480, 96);
+    guitar.note(480, 480, 116);
+    writeChart(midi_fixture::smf({guitar}), "NOTES.MID");
+    CPlayer player("MIDI runtime");
+    EXPECT_EQ(CPlayer::smartChartSearch("test"), "NOTES.MID");
+    ASSERT_TRUE(player.loadSongOnlyChart("test"));
+    ASSERT_EQ(player.Notes.gNotes.size(), 1u);
+    EXPECT_DOUBLE_EQ(player.Notes.gNotes[0].time, 0.5);
+    EXPECT_DOUBLE_EQ(player.Notes.lastNoteEnd, 1.0);
+    EXPECT_EQ(player.Notes.source.ppq, 480);
+    EXPECT_EQ(player.Notes.source.noteTicks[0], 480);
+    ASSERT_EQ(player.Notes.gPlus.size(), 1u);
+    EXPECT_EQ(player.Notes.gPlus[0].firstNote, 0u);
+    EXPECT_EQ(player.Notes.gPlus[0].lastNote, 0u);
+    CPlayer second("independent MIDI runtime");
+    ASSERT_TRUE(second.loadSongOnlyChart("test"));
+    player.Notes.gNotes[0].type |= nf_picked;
+    EXPECT_EQ(second.Notes.gNotes[0].type & nf_picked, 0);
+    CChart::NotesData moved(std::move(player.Notes));
+    EXPECT_EQ(moved.source.ppq, 480);
+    moved.unloadChart();
+    EXPECT_TRUE(moved.source.gems.empty());
+    EXPECT_EQ(moved.source.ppq, 0);
+    EXPECT_FALSE(second.loadSongOnlyChart("missing"));
+    EXPECT_TRUE(second.Notes.gNotes.empty());
+    EXPECT_EQ(second.Notes.source.ppq, 0);
+}
+
+TEST_F(SongLoading, FeedbackPreferenceAndMalformedFallbackAreDeterministic) {
+    midi_fixture::Track guitar;
+    guitar.note(480, 0, 98);
+    writeChart(midi_fixture::smf({guitar}), "notes.mid");
+    const auto textPath = writeChart(chart(), "Chart.chart");
+    CPlayer player("format preference");
+    EXPECT_EQ(CPlayer::smartChartSearch("test"), "Chart.chart");
+    ASSERT_TRUE(player.loadSongOnlyChart("test"));
+    EXPECT_EQ(player.Notes.gNotes[0].type & CChart::notesEnum, nf_green);
+    midi_fixture::write(textPath,
+                        "[Song]\n{\nResolution = 192\n}\n[ExpertSingle]\n{\n");
+    EXPECT_EQ(CPlayer::smartChartSearch("test"), "notes.mid");
+    ASSERT_TRUE(player.loadSongOnlyChart("test"));
+    EXPECT_EQ(player.Notes.gNotes[0].type & CChart::notesEnum, nf_yellow);
+}
+
+TEST_F(SongLoading, MissingDifficultyDoesNotMixFormatsOrInventGuitar) {
+    midi_fixture::Track guitar, bass("PART BASS");
+    guitar.note(480, 0, 72);
+    bass.note(480, 0, 96);
+    writeChart(midi_fixture::smf({guitar, bass}), "notes.mid");
+    writeChart(chart());
+    CPlayer player("missing difficulty");
+    player.instrument = "[MediumSingle]";
+    EXPECT_FALSE(player.loadSongOnlyChart("test"));
+    EXPECT_EQ(CPlayer::smartChartSearch("test"), "notes.chart");
+    std::filesystem::remove(directory / "data/songs/test/notes.chart");
+    ASSERT_TRUE(player.loadSongOnlyChart("test"));
+    player.instrument = "[ExpertSingle]";
+    EXPECT_FALSE(player.loadSongOnlyChart("test"));
+    EXPECT_TRUE(player.Notes.gNotes.empty());
+    player.instrument = "[ExpertDoubleBass]";
+    ASSERT_TRUE(player.loadSongOnlyChart("test"));
+}
+
+TEST_F(SongLoading,
+       DiscoveryRetainsGppAndAlternateNamesAndIgnoresOriginalMidi) {
+    midi_fixture::Track guitar;
+    guitar.note(480, 0, 96);
+    writeChart(midi_fixture::smf({guitar}), "original.mid");
+    EXPECT_TRUE(CPlayer::smartChartSearch("test").empty());
+    writeChart(chart(), "test.chart");
+    writeChart(chart(), "notes.chart");
+    EXPECT_EQ(CPlayer::smartChartSearch("test"), "test.chart");
+    writeChart("N 6 0 120\nN 0 1 0\n", "test.gpp");
+    EXPECT_EQ(CPlayer::smartChartSearch("test"), "test.gpp");
+}
+
+TEST_F(SongLoading, LegacyLoaderHonorsStringViewPathLength) {
+    const auto path = writeChart("N 6 0 120\nN 0 1 0\n", "notes.gpp");
+    const std::string storage = path + ".not-part-of-the-path";
+    CPlayer player("test");
+    ASSERT_TRUE(player.Notes.loadChart(
+        std::string_view(storage.data(), path.size()), player));
+    ASSERT_EQ(player.Notes.gNotes.size(), 1u);
+    EXPECT_DOUBLE_EQ(player.Notes.gNotes[0].time, 1.0);
 }

@@ -254,6 +254,9 @@ auto CPlayer::loadSongOnlyChart(const std::string &path) -> bool {
     std::transform(
         extension.begin(), extension.end(), extension.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    if (extension == ".mid") {
+        return Notes.loadMidiChart(fullFilePath, *this);
+    }
     return extension == ".chart" ? Notes.loadFeedbackChart(fullFilePath, *this)
                                  : Notes.loadChart(fullFilePath, *this);
 }

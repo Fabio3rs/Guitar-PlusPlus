@@ -2,6 +2,7 @@
 #ifndef _GUITARPP_CCHART_H_
 #define _GUITARPP_CCHART_H_
 
+#include "ChartSource.h"
 #include <cereal/cereal.hpp>
 #include <cstdint>
 #include <deque>
@@ -157,8 +158,11 @@ class CChart {
         std::vector<Note> BPM;
         std::vector<plusNote> gPlus;
 
+        ChartSourceInfo source;
+
         bool loadChart(std::string_view chartFile, CPlayer &player);
         bool loadFeedbackChart(std::string_view chartFile, CPlayer &player);
+        bool loadMidiChart(std::string_view chartFile, CPlayer &player);
         void unloadChart();
 
         NotesData();
@@ -258,6 +262,8 @@ class CChart {
     // header.
     static bool validateChartHeader(const std::string &chartFile);
     static std::string smartChartSearch(const std::string &path);
+    static std::vector<std::string>
+    availableInstruments(const std::string &file);
     static bool hasLegacyTextHeader(const std::string &chartFile);
 
     bool open(const std::string &chartFile);

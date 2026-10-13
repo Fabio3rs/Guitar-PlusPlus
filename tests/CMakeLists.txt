@@ -4,6 +4,12 @@ include(GoogleTest)
 file(GLOB TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 list(FILTER TEST_SOURCES EXCLUDE REGEX "/model_manager_tests\\.cpp$")
 list(FILTER TEST_SOURCES EXCLUDE REGEX "/texture_manager_tests\\.cpp$")
+list(FILTER TEST_SOURCES EXCLUDE REGEX "/midi_chart_tests\\.cpp$")
+
+add_executable(gpp_midi_tests midi_chart_tests.cpp)
+target_link_libraries(gpp_midi_tests PRIVATE gpp_midi GTest::GTest GTest::Main)
+gtest_discover_tests(gpp_midi_tests TEST_PREFIX "midi_core."
+    PROPERTIES LABELS cpu TIMEOUT 30 DISCOVERY_TIMEOUT 30)
 
 # This executable never links the game, GL, GLFW, BASS or Lua.
 add_executable(gpp_texture_tests texture_manager_tests.cpp)

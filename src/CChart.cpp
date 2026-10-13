@@ -1,7 +1,9 @@
 #include "CChart.h"
 #include "CLog.h"
+#include "CMidiChart.h"
 #include "CPlayer.h"
 #include "CText.h"
+#include "ChartHopo.h"
 #include "GPPGame.h"
 #include <algorithm>
 #include <cctype>
@@ -16,6 +18,7 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 
 const int CChart::notesEnum =
@@ -87,6 +90,25 @@ bool CChart::hasLegacyTextHeader(const std::string &chartFile) {
     return false;
 }
 
+// Cereal's native binary format has no magic. Reject an impossible initial map
+// count/key size before it can request an enormous allocation for arbitrary
+// text. This is a prefix check, not a replacement for archive deserialization.
+static bool hasBinaryChartPrefix(std::istream &input) {
+    input.seekg(0, std::ios::end);
+    const auto size = input.tellg();
+    input.seekg(0);
+    cereal::size_type count = 0, keySize = 0;
+    input.read(reinterpret_cast<char *>(&count), sizeof(count));
+    input.read(reinterpret_cast<char *>(&keySize), sizeof(keySize));
+    const bool valid =
+        input && size >= 0 && count > 0 && keySize > 0 &&
+        count <= static_cast<uint64_t>(size) / (sizeof(count) + 1) &&
+        keySize <= static_cast<uint64_t>(size) - 2 * sizeof(count);
+    input.clear();
+    input.seekg(0);
+    return valid;
+}
+
 bool CChart::validateChartHeader(const std::string &chartFile) {
     try {
         std::ifstream input(chartFile, std::ios::binary);
@@ -100,6 +122,9 @@ bool CChart::validateChartHeader(const std::string &chartFile) {
         if (extension == ".gpp") {
             if (hasLegacyTextHeader(chartFile)) {
                 return true;
+            }
+            if (!hasBinaryChartPrefix(input)) {
+                return false;
             }
             // The historical archive stores notes before metadata, so reading
             // metadata alone is not possible without changing the file format.
@@ -115,6 +140,12 @@ bool CChart::validateChartHeader(const std::string &chartFile) {
                            return std::isfinite(b.time) &&
                                   std::isfinite(b.lTime) && b.lTime > 0.0;
                        });
+        }
+        if (extension == ".mid") {
+            MidiChart midi;
+            std::string error;
+            return readMidiChart(chartFile, midi, error) &&
+                   !midi.instruments.empty();
         }
         if (extension != ".chart") {
             return false;
@@ -504,12 +535,12 @@ auto CChart::parseFeebackChart(std::istream &chartStream) -> bool {
         auto &Song = chartMap["[Song]"];
 
         chartData.chartResolutionProp =
-            std::stod(Song["Resolution"][0]) / 192.0;
+            std::stod(chk(Song["Resolution"], 0)) / 192.0;
         chartData.songName = unquoteSongMetadata(chk(Song["Name"], 0u));
         chartData.songArtist = unquoteSongMetadata(chk(Song["Artist"], 0u));
         chartData.songCharter = unquoteSongMetadata(chk(Song["Charter"], 0u));
         try {
-            chartOffset = std::stod(Song["Offset"][0]);
+            chartOffset = std::stod(chk(Song["Offset"], 0));
         } catch (...) {
             chartOffset = 0;
         }
@@ -770,31 +801,109 @@ void CChart::instrumentNotes::deducePlusLastNotes() {
 }
 
 // Runtime loaders moved from CPlayer without changing parsing rules.
+std::vector<std::string>
+CChart::availableInstruments(const std::string &file) try {
+    std::string extension = std::filesystem::path(file).extension().string();
+    std::transform(
+        extension.begin(), extension.end(), extension.begin(),
+        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::vector<std::string> candidates, available;
+    if (extension == ".mid") {
+        MidiChart midi;
+        std::string error;
+        if (readMidiChart(file, midi, error)) {
+            for (const auto &part : midi.instruments) {
+                available.push_back(part.first);
+            }
+        } else {
+            CLog::log() << "Cannot inspect MIDI " + file + ": " + error;
+        }
+        return available;
+    }
+    if (!validateChartHeader(file)) {
+        return {};
+    }
+    if (extension == ".chart") {
+        std::ifstream input(file);
+        std::string line;
+        while (std::getline(input, line)) {
+            const auto first = line.find_first_not_of(" \t\r");
+            const auto last = line.find_last_not_of(" \t\r");
+            if (first == std::string::npos) {
+                continue;
+            }
+            line = line.substr(first, last - first + 1);
+            if (line.back() == ']' && (line.compare(0, 5, "[Easy") == 0 ||
+                                       line.compare(0, 7, "[Medium") == 0 ||
+                                       line.compare(0, 5, "[Hard") == 0 ||
+                                       line.compare(0, 7, "[Expert") == 0)) {
+                candidates.push_back(line);
+            }
+        }
+    } else if (hasLegacyTextHeader(file)) {
+        candidates.push_back("[ExpertSingle]");
+    } else {
+        CChart compiled;
+        std::ifstream input(file, std::ios::binary);
+        cereal::BinaryInputArchive archive(input);
+        archive(compiled);
+        for (const auto &part : compiled.instruments) {
+            candidates.push_back(part.first);
+        }
+    }
+    std::sort(candidates.begin(), candidates.end());
+    candidates.erase(std::unique(candidates.begin(), candidates.end()),
+                     candidates.end());
+    // Use the actual runtime loader for validity, not the older compiler
+    // parser. Inspection owns a temporary player and never opens audio or a GL
+    // context.
+    CPlayer inspection("chart inspection");
+    for (const auto &instrument : candidates) {
+        inspection.instrument = instrument;
+        const bool valid =
+            extension == ".chart"
+                ? inspection.Notes.loadFeedbackChart(file, inspection)
+                : inspection.Notes.loadChart(file, inspection);
+        if (valid) {
+            available.push_back(instrument);
+        }
+    }
+    return available;
+} catch (const std::exception &e) {
+    CLog::log() << "Cannot inspect chart " + file + ": " + e.what();
+    return {};
+}
+
 auto CChart::smartChartSearch(const std::string &path) -> std::string {
-    auto file_exists = [](const std::string &fileName) {
-        return std::fstream(fileName).is_open();
+    const std::filesystem::path directory =
+        std::filesystem::path("data/songs") / path;
+    const std::string formats[] = {
+        path + ".gpp", path + ".chart", "Chart.gpp", "Notes.gpp",
+        "Chart.chart", "notes.chart",   "notes.mid"};
+    auto lowercase = [](std::string value) {
+        std::transform(
+            value.begin(), value.end(), value.begin(),
+            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return value;
     };
-
-    const std::string fullPath = std::string("data/songs/") + path;
-
-    const std::string chartFormats[] = {path + ".gpp", path + ".chart",
-                                        "Chart.gpp",   "Notes.gpp",
-                                        "Chart.chart", "notes.chart"};
-
-    std::string tmp;
-
-    for (const auto &str : chartFormats) {
-        tmp = GPPGame::caseInsensitiveSearchDir(fullPath.c_str(), true, false,
-                                                str);
-
-        if (!tmp.empty()) {
-            {
-                return tmp;
+    std::vector<std::string> files;
+    std::error_code error;
+    for (std::filesystem::directory_iterator it(directory, error), last;
+         !error && it != last; it.increment(error)) {
+        if (it->is_regular_file(error)) {
+            files.push_back(it->path().filename().string());
+        }
+    }
+    std::sort(files.begin(), files.end());
+    for (const auto &candidate : formats) {
+        for (const auto &file : files) {
+            if (lowercase(file) == lowercase(candidate) &&
+                !availableInstruments((directory / file).string()).empty()) {
+                return file;
             }
         }
     }
-
-    return "";
+    return {};
 }
 
 static auto trimRuntimeChart(const std::string &str) -> std::string {
@@ -1029,45 +1138,18 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
     };
 
     auto hopoTest = [this](Note &note) {
-        size_t size = gNotes.size();
-        size_t i;
-        i = size - 1;
-        if (size > 0) {
-            size_t BPMsize = BPM.size();
-            size_t BPMi;
-            BPMi = BPMsize - 1;
-
-            double BPMStepCalc = 60.0 / 120.0;
-
-            if (BPMsize > 0) {
-                BPMStepCalc = 60.0 / BPM[BPMi].lTime;
+        double step = BPM.empty() ? 60.0 / 120.0 : 60.0 / BPM.back().lTime;
+        for (const auto &bpm : BPM) {
+            if (bpm.time > note.time) {
+                break;
             }
-
-            for (auto &b : BPM) {
-                if (b.time > note.time) {
-                    {
-                        break;
-                    }
-                }
-
-                BPMStepCalc = 60.0 / b.lTime;
-            }
-
-            BPMStepCalc /= 2.08;
-
-            if ((note.time - gNotes[i].time) >= BPMStepCalc) {
-                note.type |= nf_not_hopo;
-            }
-
-            int type1 = note.type & notesEnumWithOpenNotes;
-            int type2 = gNotes[i].type & notesEnumWithOpenNotes;
-
-            if (type1 == type2) {
-                note.type |= nf_not_hopo;
-            }
-        } else {
-            note.type |= nf_not_hopo;
+            step = 60.0 / bpm.lTime;
         }
+        step /= 2.08;
+        const auto *previous = gNotes.empty() ? nullptr : &gNotes.back();
+        chart::classifyHopo(note, previous,
+                            previous && note.time - previous->time < step,
+                            false);
     };
 
     auto notesCountToReserve = [](const parsedChart &chartMap,
@@ -1090,7 +1172,7 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
         return noten_length;
     };
 
-    auto noteRead = [&getNoteTime, &getRefBPM, &chartOffset](
+    auto noteRead = [this, &getNoteTime, &getRefBPM, &chartOffset](
                         noteContainer &NTS, const BPMContainer &BPMs,
                         parsedChart &chartMap, const std::string &difficulty) {
         std::vector<NoteInt> ntsI;
@@ -1196,6 +1278,9 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
             nt0 = nt;
 
             uint64_t loffsettmp = nt.time;
+            if (nt0.type != -1) {
+                source.noteTicks.push_back(static_cast<int64_t>(nt.time));
+            }
             if (nt0.type == -1) {
                 nt0.time = getNoteTime(BPMs, getRefBPM(BPMs, nt.time), nt.time);
                 nt0.lTime =
@@ -1283,6 +1368,67 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
                     })) {
         throw std::runtime_error("Invalid chart timing");
     }
+    const double ppq = chartResolutionProp * 192.0;
+    source.ppq =
+        ppq <= std::numeric_limits<int>::max() ? static_cast<int>(ppq) : 0;
+    source.offset = chartOffset;
+    source.hopoPolicy = "feedback-runtime-seconds-2.08";
+    auto secondsAt = [&](int64_t tick) {
+        return getNoteTime(BPMsdata, getRefBPM(BPMsdata, tick), tick) +
+               chartOffset;
+    };
+    for (const auto &tempo : BPMsdata) {
+        // Diagnostic ticks must not introduce an out-of-range floating cast
+        // for a legacy chart. Normal gameplay conversion remains unchanged.
+        if (tempo.offset < 0 || tempo.offset >= std::ldexp(1.0, 63)) {
+            continue;
+        }
+        source.tempos.push_back({static_cast<int64_t>(tempo.offset),
+                                 secondsAt(static_cast<int64_t>(tempo.offset)),
+                                 tempo.BPM / 1000.0});
+    }
+    for (const auto &scope : feedBackChartMap) {
+        if (scope.first != "[Events]" && scope.first != player.instrument) {
+            continue;
+        }
+        for (const auto &record : scope.second) {
+            for (const auto &value : record.second) {
+                std::istringstream fields(value);
+                std::string kind;
+                fields >> kind;
+                if (kind == "E") {
+                    std::string text;
+                    std::getline(fields, text);
+                    text = CChart::unquoteSongMetadata(text);
+                    const int64_t tick = std::stoll(record.first);
+                    source.events.push_back(
+                        {tick, secondsAt(tick), scope.first,
+                         text.find("section ") != std::string::npos ? "section"
+                                                                    : "text",
+                         text});
+                } else if (kind == "N") {
+                    int lane;
+                    int64_t length;
+                    if (fields >> lane >> length &&
+                        ((lane >= 0 && lane < 5) || lane == 7)) {
+                        const int64_t tick = std::stoll(record.first);
+                        if (tick < 0 || length < 0 ||
+                            tick >
+                                std::numeric_limits<int64_t>::max() - length) {
+                            continue;
+                        }
+                        source.gems.push_back(
+                            {tick, tick + length,
+                             lane == 7 ? nf_open : (1 << lane), secondsAt(tick),
+                             secondsAt(tick + length) - secondsAt(tick)});
+                    }
+                }
+            }
+        }
+    }
+    std::stable_sort(
+        source.gems.begin(), source.gems.end(),
+        [](const auto &a, const auto &b) { return a.tick < b.tick; });
     noteRead(Ntsdata, BPMsdata, feedBackChartMap,
              player.instrument); // Default: "[ExpertSingle]"
 
@@ -1345,6 +1491,36 @@ auto CChart::NotesData::loadFeedbackChart(std::string_view chartFile,
                        e.what();
     unloadChart();
     return false;
+}
+
+bool CChart::NotesData::loadMidiChart(std::string_view file, CPlayer &player) {
+    unloadChart();
+    MidiChart midi;
+    std::string error;
+    if (!readMidiChart(std::string(file), midi, error)) {
+        CLog::log() << "Cannot load MIDI " + std::string(file) + ": " + error;
+        return false;
+    }
+    const auto found = midi.instruments.find(player.instrument);
+    if (found == midi.instruments.end()) {
+        CLog::log() << "MIDI instrument unavailable: " + player.instrument;
+        return false;
+    }
+    gNotes = std::move(found->second.notes);
+    gPlus = std::move(found->second.plus);
+    source = std::move(found->second.source);
+    BPM = std::move(midi.bpm);
+    chartResolutionProp = source.ppq / 192.0;
+    if (!validateLoadedChart()) {
+        return false;
+    }
+    player.songName = std::move(midi.name);
+    player.songArtist = std::move(midi.artist);
+    player.songCharter = std::move(midi.charter);
+    for (const auto &warning : source.warnings) {
+        CLog::log() << "MIDI " + std::string(file) + ": " + warning;
+    }
+    return true;
 }
 
 void CChart::NotesData::deducePlusLastNotes() {
@@ -1411,6 +1587,10 @@ auto CChart::NotesData::loadChart(std::string_view chartFile, CPlayer &player)
         std::fstream chartf(std::string(chartFile),
                             std::ios::binary | std::ios::in);
 
+        if (!hasBinaryChartPrefix(chartf)) {
+            return false;
+        }
+
         try {
             cereal::BinaryInputArchive oarchive(chartf);
 
@@ -1427,7 +1607,8 @@ auto CChart::NotesData::loadChart(std::string_view chartFile, CPlayer &player)
         }
     }
 
-    CText ACTEXTChart(chartFile.data(), true);
+    const std::string legacyPath(chartFile);
+    CText ACTEXTChart(legacyPath.c_str(), true);
 
     std::deque<CText::field_t> &textArray = ACTEXTChart[""].fields;
 
@@ -1600,6 +1781,7 @@ bool CChart::NotesData::validateLoadedChart() {
 }
 
 void CChart::NotesData::unloadChart() {
+    source = {};
     lastNoteEnd = 0.0;
     chartEnd = 0;
     notePos = 0;
