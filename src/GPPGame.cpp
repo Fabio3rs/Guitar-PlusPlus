@@ -58,7 +58,7 @@ void GPPGame::helpMenu(const std::string &name) {
 }
 
 void GPPGame::charterModule(const std::string &name) {
-    CCharter cht;
+    CCharter cht(GPPGame::GuitarPP());
 
     GPPGame::GuitarPP().HUDText =
         GPPGame::GuitarPP().loadTexture("data/sprites", "HUD.tga").getTextId();

@@ -1,0 +1,170 @@
+#pragma once
+#include "charter/Document.h"
+#include <array>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/array.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
+#include <cmath>
+#include <cstdint>
+#include <filesystem>
+#include <map>
+#include <optional>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
+
+namespace gpp::charter {
+template <class A> void serialize(A &a, Note &n) {
+    a(n.id, n.time, n.duration, n.flags);
+}
+} // namespace gpp::charter
+
+namespace ChartStudio {
+namespace fs = std::filesystem;
+struct Tempo {
+    int64_t tick = 0;
+    int microseconds = 500000;
+    template <class A> void serialize(A &a) { a(tick, microseconds); }
+};
+struct Signature {
+    int64_t tick = 0;
+    int numerator = 4, denominator = 4;
+    template <class A> void serialize(A &a) { a(tick, numerator, denominator); }
+};
+struct ScoreNote {
+    uint64_t id = 0;
+    int pitch = 0, velocity = 0, channel = 0, program = 0;
+    int64_t start = 0, end = 0;
+    template <class A> void serialize(A &a) {
+        a(id, pitch, velocity, channel, program, start, end);
+    }
+};
+struct Track {
+    std::string name;
+    std::vector<ScoreNote> notes;
+    template <class A> void serialize(A &a) { a(name, notes); }
+};
+struct Score {
+    int ppq = 480;
+    std::vector<Track> tracks;
+    std::vector<Tempo> tempos{{}};
+    std::vector<Signature> signatures{{}};
+    std::vector<std::string> warnings;
+    double seconds(int64_t tick) const;
+    int64_t ticks(double seconds) const;
+    void validate() const;
+    template <class A> void serialize(A &a) {
+        a(ppq, tracks, tempos, signatures, warnings);
+    }
+};
+struct Settings {
+    std::string difficulty = "expert", algorithm = "beam";
+    int track = -1, channel = -1, program = -1, maxChord = 3, beam = 64;
+    bool structural = true, reuse = true;
+    double offset = 0, minimumSustain = -.5, density = 1;
+    // Integer cost weights, stable across platforms and locales.
+    std::array<int, 6> weights{{8, 2, 4, 3, 8, 1}};
+    void validate() const;
+    std::string fingerprint() const;
+    template <class A> void serialize(A &a) {
+        a(difficulty, algorithm, track, channel, program, maxChord, beam,
+          structural, reuse, offset, minimumSustain, density, weights);
+    }
+};
+struct Event {
+    gpp::charter::Note note;
+    int64_t tick = 0, duration = 0;
+    std::vector<ScoreNote> sources;
+    std::string phrase, exact, structural, origin = "algorithm", reason;
+    int status = 0; // experimental, confirmed, locked
+    bool manual = false, removed = false;
+    int64_t cost = 0;
+    template <class A> void serialize(A &a) {
+        a(note, tick, duration, sources, phrase, exact, structural, origin,
+          reason, status, manual, removed, cost);
+    }
+};
+struct Pattern {
+    std::string exact, structural, parameters, provenance = "algorithm";
+    std::vector<int> masks;
+    int status = 0;
+    template <class A> void serialize(A &a) {
+        a(exact, structural, parameters, provenance, masks, status);
+    }
+};
+struct State {
+    Score score;
+    Settings settings;
+    std::string input, inputHash, audio, reference;
+    std::vector<Event> events, original;
+    std::map<std::string, Pattern> patterns;
+    std::vector<std::string> conflicts, history;
+    std::vector<double> markers;
+    uint64_t nextId = 1;
+    template <class A> void serialize(A &a) {
+        a(score, settings, input, inputHash, audio, reference, events, original,
+          patterns, conflicts, history, markers, nextId);
+    }
+};
+
+std::string hash(const std::string &bytes);
+std::string fileHash(const fs::path &path);
+Score importMidi(const fs::path &path);
+std::string inspect(const Score &score);
+std::string encode(const State &state);
+State decode(const std::string &text);
+std::string canonical(const std::vector<Event> &events, size_t begin,
+                      size_t count, const Score &score,
+                      const Settings &settings, bool relative);
+void generate(State &state, const std::vector<Pattern> &library = {},
+              std::optional<std::pair<int64_t, int64_t>> region = {});
+// Negative minimumSustain encodes a beat limit (absolute value);
+// nonnegative values retain the original seconds policy and project format.
+int64_t exportDuration(const State &state, const Event &event);
+double exportDurationSeconds(const State &state, const Event &event);
+std::string chartText(const State &state);
+std::string report(const State &state);
+void synchronize(State &state);
+void validate(const State &state);
+
+// SQLite project/cache I/O is studio-only. No database types leak into runtime.
+void saveProject(const fs::path &path, const State &state, bool replace);
+State loadProject(const fs::path &path);
+std::vector<Pattern> loadLibrary(const fs::path &path);
+void promote(const fs::path &path, const Pattern &pattern);
+void protectDestination(const fs::path &path,
+                        const std::vector<fs::path> &inputs);
+void safeWrite(const fs::path &path, const std::string &text, bool replace);
+
+class Session {
+    std::vector<State> past_, future_;
+    std::string savedHash_;
+    void checkpoint();
+
+  public:
+    State state;
+    fs::path project;
+    bool dirty = false;
+    std::set<uint64_t> selection;
+    std::vector<Event> clipboard;
+    void openMidi(const fs::path &path);
+    void openProject(const fs::path &path);
+    void save(const fs::path &path);
+    void run(const std::vector<Pattern> &library = {},
+             std::optional<std::pair<int64_t, int64_t>> region = {});
+    void edit(uint64_t id, int mask, int64_t tick, int64_t duration, bool all);
+    void removeSelected();
+    void insert(int64_t tick, int mask, int64_t duration);
+    void copy();
+    void paste(int64_t tick);
+    void pattern(uint64_t id, int status, bool all);
+    void recalculate(uint64_t id);
+    void restore(int64_t begin, int64_t end);
+    void clearExperimental();
+    bool undo();
+    bool redo();
+};
+} // namespace ChartStudio

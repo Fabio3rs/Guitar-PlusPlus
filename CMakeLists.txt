@@ -55,7 +55,6 @@ file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/SongLibrary.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/SongLibraryAudio.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/SongFiles.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/sqlite3/sqlite3raii.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CCharter.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CControls.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/CEngine.cpp"
@@ -117,10 +116,17 @@ include_directories(SYSTEM ${INCLUDE_DIRS})
 link_directories(${INCLUDE_DIRS})
 
 find_package(Threads REQUIRED)
+add_library(gpp_midi_input STATIC src/MidiInput.cpp)
+target_include_directories(gpp_midi_input PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+add_library(gpp_sqlite STATIC src/sqlite3/sqlite3raii.cpp)
+target_link_libraries(gpp_sqlite PUBLIC SQLite::SQLite3)
+target_include_directories(gpp_sqlite PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
+add_library(gpp_charter STATIC src/charter/Document.cpp)
+target_include_directories(gpp_charter PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 add_library(gpp_midi STATIC src/CMidiChart.cpp)
 target_compile_features(gpp_midi PUBLIC cxx_std_17)
 target_include_directories(gpp_midi PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/cereal/include")
-target_link_libraries(gpp_midi PRIVATE midifile)
+target_link_libraries(gpp_midi PRIVATE midifile gpp_midi_input)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(gpp_midi PRIVATE -Wall -Wextra -Wpedantic)
 endif()
@@ -156,7 +162,7 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     target_compile_options("${myprojectname}_lib" PRIVATE -Weverything -Wno-date-time -Wno-disabled-macro-expansion -Wno-global-constructors $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>  -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-exit-time-destructors)
 endif()
 
-target_link_libraries("${myprojectname}_lib" gpp_midi gpp_textures gpp_models SQLite::SQLite3 glfw GLEW OpenGL::GL bass bass_fx)
+target_link_libraries("${myprojectname}_lib" gpp_midi gpp_textures gpp_models gpp_sqlite gpp_charter glfw GLEW OpenGL::GL bass bass_fx)
 target_link_libraries(${myprojectname} "${myprojectname}_lib")
 
 
@@ -191,14 +197,17 @@ endif()
 option(BUILD_SCENE_STUDIO "Build the independent Scene Studio" OFF)
 option(BUILD_AUDIO_STUDIO "Build the independent Audio Studio" OFF)
 option(BUILD_GUI_STUDIO "Build the independent GUI Studio" OFF)
-if(BUILD_SCENE_STUDIO OR BUILD_AUDIO_STUDIO OR BUILD_GUI_STUDIO)
+option(BUILD_CHART_STUDIO "Build the independent Chart Studio and score CLI" OFF)
+if(BUILD_SCENE_STUDIO OR BUILD_AUDIO_STUDIO OR BUILD_GUI_STUDIO OR BUILD_CHART_STUDIO)
     add_subdirectory(tools/scene_studio/imgui SYSTEM)
 endif()
 if(BUILD_SCENE_STUDIO)
     add_subdirectory(tools/scene_studio)
 endif()
-if(BUILD_AUDIO_STUDIO)
+if(BUILD_AUDIO_STUDIO OR BUILD_CHART_STUDIO)
     add_subdirectory(src/audio)
+endif()
+if(BUILD_AUDIO_STUDIO)
     add_subdirectory(tools/audio_studio)
 endif()
 
@@ -210,3 +219,7 @@ install(FILES src/sqlite3/LICENSE DESTINATION share/GuitarPP/licenses RENAME sql
 install(FILES vendor/xxhash/LICENSE DESTINATION share/GuitarPP/licenses RENAME xxhash-LICENSE.txt)
 configure_file(src/sqlite3/LICENSE bin/licenses/sqlite3raii-LICENSE.txt COPYONLY)
 configure_file(vendor/xxhash/LICENSE bin/licenses/xxhash-LICENSE.txt COPYONLY)
+
+if(BUILD_CHART_STUDIO)
+    add_subdirectory(tools/chart_studio)
+endif()

@@ -1,562 +1,307 @@
 #include "CCharter.h"
 #include "CFonts.h"
-#include <cstdint>
+#include "GPPGame.h"
+#include <algorithm>
+#include <bass.h>
+#include <bass_fx.h>
+#include <cmath>
 #include <memory>
+#include <stdexcept>
 
-auto CCharter::songTimePassBPMBased(const BPM_t &BPMContainer, double pass,
-                                    bool forward) -> double {
-
-    return 0.0;
-}
-
-void CCharter::prepareDemoGamePlay(CGamePlay &gp) {
-    workingNote = nullptr;
-    processNewNote = true;
-
-    for (auto &p : gpModule.players) {
-        eraseNulls(*p);
-        (*p).Notes.deducePlusLastNotes();
-    }
-
-    for (const auto &np : gpModule.players) {
-        CPlayer n = *np;
-
-        n.enableBot = true;
-        gp.players.push_back(std::make_unique<CPlayer>(n));
-    }
-}
-
-void CCharter::eraseNulls(CPlayer &player) {
-    for (auto it = player.Notes.gNotes.begin(); it != player.Notes.gNotes.end();
-         /******/) {
-        int ncount = 0;
-        for (int ji : CGamePlay::notesFlagsConst) {
-            if (((*it).type & ji) != 0) {
-                ++ncount;
-            }
-        }
-
-        if (ncount > 1) {
-            (*it).type |= nf_not_hopo;
-        }
-
-        if (((*it).type & CPlayer::notesEnum) != 0) {
-            ++it;
-        } else {
-            it = player.Notes.gNotes.erase(it);
-        }
-    }
-}
-
-void CCharter::preRender() {
+CCharter::CCharter(GPPGame &game) : songPath(game.songToLoad) {
+    gpModule.players.push_back(std::make_unique<CPlayer>("guitar charter"));
     auto &player = *gpModule.players.back();
-    {
-        if (player.BPMNowBuffer > 0) {
-            if (static_cast<size_t>(player.BPMNowBuffer) <
-                player.Notes.BPM.size()) {
-                if (player.Notes.BPM[player.BPMNowBuffer].time >
-                    (atMusicTime - 2.0)) {
-                    --player.BPMNowBuffer;
-
-                    if (player.BPMNowBuffer >= 0) {
-                        player.Notes.BPMMinPosition =
-                            player.Notes.BPM[player.BPMNowBuffer].time;
-                    }
-                }
-            } else {
-                player.BPMNowBuffer = 0;
-                player.Notes.BPMMinPosition =
-                    player.Notes.BPM[player.BPMNowBuffer].time;
-            }
-        }
-
-        if (player.BPMNowBuffer < 0) {
-            player.BPMNowBuffer = 0;
-            player.Notes.BPMMinPosition =
-                player.Notes.BPM[player.BPMNowBuffer].time;
-        }
+    if (!player.loadSong(game.songToLoad)) {
+        player.loadSongAudio(game.songToLoad);
     }
-
-    if (loading) {
-        {
-            std::lock_guard<std::mutex> lk(loadBPMMutex);
-
-            if (!songBPM.empty()) {
-                {
-                    player.Notes.BPM = songBPM;
-                }
-            }
-
-            player.BPMNowBuffer = 0;
-        }
-
-        double time = readBPMAtSeconds - 2.0;
-
-        if (time < 0.0) {
-            {
-                time = 0.0;
-            }
-        }
-
-        atMusicTime = time;
-        player.musicRunningTime = atMusicTime;
-        player.Notes.plusPos = 0;
-        backToZero = true;
-    } else if (backToZero) {
-        if (atMusicTime > 0.0) {
-            atMusicTime -= CEngine::engine().getDeltaTime() * 40.0;
-
-            if (atMusicTime < 0.0) {
-                atMusicTime = 0.0;
-                backToZero = false;
-                player.Notes.plusPos = 0;
-            }
-        } else {
-            backToZero = false;
-            player.Notes.plusPos = 0;
-        }
-    }
-
-    if (!loading) {
-        bool kfor = CEngine::engine().getKey(GLFW_KEY_UP) != 0;
-        bool kback = CEngine::engine().getKey(GLFW_KEY_DOWN) != 0;
-        bool kleft = CEngine::engine().getKey(GLFW_KEY_LEFT) != 0;
-        bool kright = CEngine::engine().getKey(GLFW_KEY_RIGHT) != 0;
-
-        auto roundTo = [](double t, double d) {
-            double d0 = pow(10.0, d);
-            t *= d0;
-            t = floor(t);
-            return t / d0;
-        };
-
-        auto &processingP = *gpModule.players.back();
-
-        double BPM = 120.0 / 60.0;
-
-        if (processingP.Notes.BPM.size() > 1) {
-            BPM = 30.0 / gpModule.getBPMAt(processingP, atMusicTime);
-        }
-
-        BPM = roundTo(BPM, 2);
-
-        double BPMDiv32 = BPM / 32.0;
-        // std::cout << BPMDiv64 << "   " << BPM * 0.125 << std::endl;
-
-        if (kleft || kright) {
-            if (!bLeftRightK) {
-                if (kright) {
-                    if (divTime < 4.0) {
-                        divTime *= 2.0;
-                    }
-                } else {
-                    if (divTime > 0.125) {
-                        divTime /= 2.0;
-                    }
-                }
-                bLeftRightK = true;
-            }
-        } else {
-            bLeftRightK = false;
-        }
-
-        if (kfor != kback) {
-            if (!bForwardBackwardK) {
-                if (kfor) {
-                    {
-                        atMusicTime += divTime * BPM;
-                    }
-                } else {
-                    if (atMusicTime > 0.0) {
-                        {
-                            atMusicTime -= divTime * BPM;
-                        }
-                    }
-
-                    if (atMusicTime < 0.0) {
-                        {
-                            atMusicTime = 0.0;
-                        }
-                    }
-                }
-                bForwardBackwardK = true;
-            }
-        } else {
-            bForwardBackwardK = false;
-        }
-
-        for (auto &pp : gpModule.players) {
-            auto &p = *pp;
-            p.musicRunningTime = atMusicTime;
-
-            auto &notes = p.Notes;
-            auto &gNotes = p.Notes.gNotes;
-            auto &engine = CEngine::engine();
-
-            while (true) {
-                if (notes.plusPos > 0 && notes.plusPos < notes.gPlus.size()) {
-                    auto pp = notes.plusPos - 1;
-
-                    auto &plPos = notes.gPlus[notes.plusPos];
-
-                    if ((plPos.time + plPos.lTime) > (atMusicTime - 2.0)) {
-                        notes.plusPos = pp;
-                    }
-                }
-
-                if (notes.notePos > 0) {
-                    auto np = notes.notePos - 1;
-
-                    auto &gnote = gNotes[np];
-
-                    if ((gnote.time + gnote.lTime) > (atMusicTime - 2.0)) {
-                        notes.notePos = np;
-                    } else {
-                        break;
-                    }
-                } else {
-                    break;
-                }
-            }
-        }
-
-        typedef std::vector<CPlayer::NotesData::Note> notesType;
-
-        auto searchNoteAt = [roundTo,
-                             BPMDiv32](notesType &gNotes, double time,
-                                       notesType::iterator &beforeTime,
-                                       notesType::iterator &afterTime) {
-            auto begin = gNotes.begin();
-            auto it = gNotes.begin();
-            auto lit = it;
-            auto end = gNotes.begin();
-
-            time = roundTo(time, 3);
-
-            for (; it != gNotes.end(); it++) {
-                auto &note = *it;
-
-                if (note.time < time) {
-                    beforeTime = it;
-                }
-
-                if (note.time > time) {
-                    afterTime = it;
-                }
-
-                double deltaNotes = note.time - time;
-
-                if (deltaNotes > (-BPMDiv32) && deltaNotes < BPMDiv32) {
-                    lit = it;
-                    lit++;
-                    afterTime = lit;
-                    break;
-                }
-
-                lit = it;
-            }
-
-            return it;
-        };
-
-        auto &gNotes = processingP.Notes.gNotes;
-
-        notesType::iterator beforeTime = gNotes.begin();
-        notesType::iterator afterTime = gNotes.end();
-        notesType::iterator result;
-
-        auto check = [&](notesType::iterator it, notesType::iterator end) {
-            if (it != end) {
-                std::cout << "  " << (*it).time << "  ";
-            } else {
-                std::cout << " it fail ";
-            }
-        };
-
-        int nowkeys = processingP.getFretsPressedFlags();
-
-        if (nowkeys == 0) {
-            workingNote = nullptr;
-            processNewNote = true;
-        }
-
-        if ((workingNote != nullptr) &&
-            (workingNoteIt->type & CPlayer::notesEnum) !=
-                processingP.getLastFretsPressedFlags()) {
-            workingNote = nullptr;
-        }
-
-        bool addedNow = false;
-
-        if (nowkeys != processingP.getLastFretsPressedFlags()) {
-            result = searchNoteAt(gNotes, atMusicTime, beforeTime, afterTime);
-        }
-
-        if (nowkeys > 0 && nowkeys != processingP.getLastFretsPressedFlags() &&
-            workingNote == nullptr && processNewNote) {
-            if (result == gNotes.end()) {
-                CPlayer::NotesData::Note newNote;
-                newNote.time = atMusicTime;
-                newNote.lTime = 0.0;
-                newNote.type = processingP.getFretsPressedFlags();
-
-                if (atMusicTime > processingP.Notes.chartEnd) {
-                    processingP.Notes.chartEnd = 0;
-                }
-
-                workingNoteIt = gNotes.insert(beforeTime, newNote);
-                result = workingNoteIt;
-                workingNote = &(*workingNoteIt);
-                addedNow = true;
-            } else {
-                workingNote = &(*result);
-                workingNoteIt = result;
-            }
-        } else {
-            if (workingNote != nullptr) {
-                double deltaT = atMusicTime - (workingNoteIt->time);
-                if (deltaT > 0.05) {
-                    workingNoteIt->lTime = atMusicTime - (workingNoteIt->time);
-                    workingNoteIt->type |= nf_slide;
-                    processNewNote = false;
-                } else if (deltaT < 0.0) {
-                    workingNote = nullptr;
-                } else if ((workingNoteIt->type & CPlayer::notesEnum) ==
-                           processingP.getLastFretsPressedFlags()) {
-                    workingNoteIt->type &= ~(nf_slide);
-                    workingNoteIt->lTime = 0;
-                }
-            }
-        }
-
-        for (size_t i = 0; i < 5; i++) {
-            if (!addedNow) {
-                if (!fretKeys[i] && processingP.fretsPressed[i]) {
-                    result->type ^= CGamePlay::notesFlagsConst[i];
-                }
-            }
-            fretKeys[i] = processingP.fretsPressed[i];
-        }
-
-        if (addedNow) {
-            std::sort(gNotes.begin(), gNotes.end());
-        }
-
-        /*if (nowkeys != processingP.getLastFretsPressedFlags() && atMusicTime >
-        0.0 && keypts < nowkeys)
-        {
-        keypts = nowkeys;
-        result = searchNoteAt(gNotes, atMusicTime, beforeTime, afterTime);
-
-        CPlayer::NotesData::Note newNote;
-        newNote.time = atMusicTime;
-        newNote.lTime = 0.0;
-        newNote.type = processingP.getFretsPressedFlags();
-        newNote.type |= nf_not_hopo;
-
-        if (result == gNotes.end())
-        {
-        gNotes.insert(beforeTime, newNote);
-        }
-        else
-        {
-        if (processingP.getFretsPressedFlags() != 0) result->type ^=
-        processingP.getFretsPressedFlags();
-        }
-
-        std::sort(gNotes.begin(), gNotes.end());*/
-        /*check(result, gNotes.end());
-        check(beforeTime, gNotes.end());
-        check(afterTime, gNotes.end());*/
-        /*std::cout << std::endl;
-}
-else
-{
-keypts = 0;
-}
-*/
-    }
-
-    gpModule.update();
-}
-
-void CCharter::readSongBPM(unsigned int song) {
-    songBPM.clear();
-    double len = CEngine::engine().getChannelLength(song);
-    double lenl = len - 0.5;
-
-    double lastBPM = 120.0;
-
-    unsigned int addedBPM = 0;
-
-    for (double l = 0.0; l < lenl; l += 0.5) {
-        readBPMPercent = 100.0 / len * l;
-        readBPMAtSeconds = l;
-
-        double BPM = CEngine::engine().getSoundBPM(
-            songAudioID, l, (l + 10.0) <= lenl ? 10.0 : (len - l));
-
-        if (BPM < 80.0) {
-            {
-                BPM *= 2.0;
-            }
-        }
-
-        double ceilBPM = ceil(BPM);
-
-        if (ceilBPM <= 0.0) {
-            ceilBPM = lastBPM;
-        }
-
-        if (lastBPM != ceilBPM || addedBPM == 0) {
-            lastBPM = ceilBPM;
-
-            CPlayer::NotesData::Note newBPM;
-
-            newBPM.time = l;
-            newBPM.lTime = ceilBPM;
-
-            std::lock_guard<std::mutex> lk(loadBPMMutex);
-            songBPM.push_back(newBPM);
-            ++addedBPM;
-        }
-    }
-}
-
-void CCharter::render() { gpModule.render(); }
-
-auto CCharter::getBPMAt(double time) -> double {
-    double result = 120.0;
-
-    for (auto &BPMn : songBPM) {
-        if (BPMn.time <= time) {
-            result = BPMn.lTime;
-        } else {
-            break;
-        }
-    }
-
-    return result;
-}
-
-void CCharter::renderInfo() {
-    // CEngine::engine().setSoundTime(songAudioID, atMusicTime);
-    CFonts::fonts().drawTextInScreen("div x " + std::to_string(divTime), 0.5,
-                                     0.3, 0.1);
-    // CFonts::fonts().drawTextInScreen("BPM " +
-    // std::to_string(gpModule.getBPMAt(gpModule.players.back(), atMusicTime)),
-    // -1.4, 0.3, 0.1); CFonts::fonts().drawTextInScreen("Song BPM " +
-    // std::to_string(getBPMAt(atMusicTime)), -1.4, 0.15, 0.1);
-
-    if (!loading) {
-        auto &player = *gpModule.players.back();
-        if (songBPM.size() != player.Notes.BPM.size()) {
-            player.Notes.BPM = songBPM;
-        }
-    } else {
-        CFonts::fonts().drawTextInScreen(
-            "Loading... " + std::to_string(readBPMPercent) + "%", -1.4, 0.3,
-            0.05);
-    }
-}
-
-void CCharter::renderAll() {
-    // auto &chartInstrument = chart.getInstrument(instrument);
-    // auto &BPM = chart.getBPMContainer();
-
-    auto &player = *gpModule.players.back();
-
     if (player.Notes.BPM.empty()) {
-        CPlayer::NotesData::Note n;
-        n.time = 0.0;
-        n.lTime = 120.0;
-        n.type = 0;
-
-        player.Notes.BPM.push_back(n);
+        CChart::Note tempo;
+        tempo.lTime = 120;
+        player.Notes.BPM.push_back(tempo);
     }
-
-    if (songBPM.empty()) {
-        songBPM = player.Notes.BPM;
+    gpp::charter::Document document;
+    constexpr int persistentFlags =
+        31 | nf_not_hopo | nf_slide | noteTap | nf_open | nf_reverseStrumHopo;
+    for (const auto &note : player.Notes.gNotes) {
+        document.insert(
+            {0, note.time, note.lTime, note.type & persistentFlags});
     }
-
-    preRender();
-    render();
-    renderInfo();
-}
-
-void CCharter::loadThreadFun(CCharter &ch) {
-    ch.readSongBPM(ch.songAudioID);
-
-    ch.loading = false;
-    ch.loadThreadEnd = true;
-}
-
-void CCharter::internalLoad() {
-    loading = true;
-    loadThreadEnd = false;
-    continueLoading = true;
-
-    loadThread = std::thread(loadThreadFun, std::ref(*this));
+    editor.reset(std::move(document));
+    gpModule.bIsACharterGP = true;
+    gpModule.bRenderHUD = false;
+    gpModule.showBPMVlaues = true;
+    gpModule.showBPMLines = true;
 }
 
 CCharter::~CCharter() {
     continueLoading = false;
-
-    while (!loadThreadEnd) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
     if (loadThread.joinable()) {
-        {
-            loadThread.join();
-        }
+        loadThread.join();
     }
 }
 
-CCharter::CCharter() {
-    readBPMPercent = 0.0;
-    workingNote = nullptr;
-    bForwardBackwardK = false;
-    bLeftRightK = false;
-    processNewNote = true;
-    continueLoading = true;
-    loadThreadEnd = true;
-    loading = false;
-    atMusicTime = 0.0;
-    gpModule.players.push_back(
-        std::make_unique<CPlayer>(CPlayer("guitar charter")));
-    instrument = "[ExpertSingle]";
-    gpModule.bIsACharterGP = true;
-    divTime = 0.5;
-    readBPMAtSeconds = 0.0;
-    backToZero = false;
+void CCharter::synchronizeNotes() {
+    auto &notes = gpModule.players.back()->Notes;
+    std::vector<CChart::Note> snapshot;
+    snapshot.reserve(editor.document().notes.size());
+    for (const auto &edited : editor.document().notes) {
+        if ((edited.flags & (31 | nf_open)) == 0) {
+            continue;
+        }
+        CChart::Note note;
+        note.time = edited.time;
+        note.lTime = edited.duration;
+        note.type = edited.flags;
+        if (note.lTime > 0) {
+            note.type |= nf_slide;
+        } else {
+            note.type &= ~nf_slide;
+        }
+        const int lanes = note.type & 31;
+        if ((lanes & (lanes - 1)) != 0) {
+            note.type |= nf_not_hopo;
+        }
+        snapshot.push_back(note);
+    }
+    notes.gNotes = std::move(snapshot);
+    notes.notePos = 0;
+    notes.plusPos = 0;
+    notes.chartEnd = 0;
+    notes.lastNoteEnd = 0;
+    notes.source =
+        {}; // Imported ticks no longer describe a seconds-domain edit.
+    for (const auto &note : notes.gNotes) {
+        notes.lastNoteEnd = std::max(notes.lastNoteEnd, note.time + note.lTime);
+    }
+    for (auto &phrase : notes.gPlus) {
+        phrase.firstNote = ~0uLL;
+        phrase.lastNote = 0;
+    }
+    notes.deducePlusLastNotes();
+}
 
-    std::string song = GPPGame::GuitarPP().songToLoad;
-    // module.players[0].loadSongOnlyChart(song);
-    // module.players[1].loadSong(song);
-    auto &player = *gpModule.players.back();
-    if (!player.loadSong(song)) {
-        // Editing may start with an empty/invalid chart; session validation
-        // must not prevent loading its audio to author a replacement chart.
-        player.loadSongAudio(song);
-        if (player.Notes.BPM.empty()) {
-            CPlayer::NotesData::Note bpm;
-            bpm.lTime = 120.0;
-            player.Notes.BPM.push_back(bpm);
+void CCharter::prepareDemoGamePlay(CGamePlay &gp) {
+    workingNote.reset();
+    synchronizeNotes();
+    for (const auto &player : gpModule.players) {
+        auto copy = std::make_unique<CPlayer>("charter preview");
+        copy->instrument = player->instrument;
+        copy->loadSongAudio(songPath);
+        copy->Notes = player->Notes;
+        copy->songName = player->songName;
+        copy->songArtist = player->songArtist;
+        copy->musicRunningTime = atMusicTime;
+        copy->enableBot = true;
+        gp.players.push_back(std::move(copy));
+    }
+}
+
+double CCharter::beatSeconds() const {
+    double bpm = 120;
+    for (const auto &tempo : gpModule.players.back()->Notes.BPM) {
+        if (tempo.time > atMusicTime) {
+            break;
+        }
+        if (tempo.lTime > 0 && std::isfinite(tempo.lTime)) {
+            bpm = tempo.lTime;
         }
     }
-    std::cout << "audio id "
-              << CEngine::engine().loadSoundStream(
-                     player.songFullPath.c_str(), songAudioID, true)
-              << std::endl;
-    gpModule.bRenderHUD = false;
-    gpModule.showBPMVlaues = true;
-    gpModule.showBPMLines = true;
+    return 60.0 / bpm;
+}
 
-    for (auto &b : fretKeys) {
-        b = false;
+void CCharter::preRender() {
+    auto &engine = CEngine::engine();
+    auto &player = *gpModule.players.back();
+    player.musicRunningTime = atMusicTime;
+    gpModule.update();
+    const bool forward = engine.getKey(GLFW_KEY_UP) != 0;
+    const bool backward = engine.getKey(GLFW_KEY_DOWN) != 0;
+    const bool left = engine.getKey(GLFW_KEY_LEFT) != 0;
+    const bool right = engine.getKey(GLFW_KEY_RIGHT) != 0;
+    if ((left || right) && !divisionHeld) {
+        divTime = std::clamp(divTime * (right ? 2 : .5), .125, 4.0);
     }
-    keypts = 0;
+    divisionHeld = left || right;
+    if ((forward != backward) && !forwardHeld) {
+        std::vector<gpp::charter::TempoPoint> tempos;
+        tempos.reserve(player.Notes.BPM.size());
+        for (const auto &tempo : player.Notes.BPM) {
+            tempos.push_back({tempo.time, tempo.lTime});
+        }
+        atMusicTime = std::max(
+            0.0, gpp::charter::advanceBeats(tempos, atMusicTime,
+                                            (forward ? 1 : -1) * divTime));
+        player.Notes.notePos = 0;
+        player.Notes.plusPos = 0;
+        player.BPMNowBuffer = 0;
+    }
+    forwardHeld = forward || backward;
+    const bool analysis = engine.getKey(GLFW_KEY_B) != 0;
+    if (analysis && !analysisHeld && !loading) {
+        startAnalysis();
+    }
+    analysisHeld = analysis;
+    const bool apply = engine.getKey(GLFW_KEY_A) != 0;
+    if (apply && !applyHeld && bpmReady && !loading) {
+        std::lock_guard<std::mutex> lock(loadBPMMutex);
+        if (!songBPM.empty()) {
+            player.Notes.BPM = songBPM;
+            player.BPMNowBuffer = 0;
+        }
+        bpmReady = false;
+    }
+    applyHeld = apply;
+    const bool ctrl = engine.getKey(GLFW_KEY_LEFT_CONTROL) ||
+                      engine.getKey(GLFW_KEY_RIGHT_CONTROL);
+    const bool undo = ctrl && engine.getKey(GLFW_KEY_Z);
+    const bool redo = ctrl && engine.getKey(GLFW_KEY_Y);
+    if ((undo && !undoHeld && editor.undo()) ||
+        (redo && !redoHeld && editor.redo())) {
+        workingNote.reset();
+        synchronizeNotes();
+    }
+    undoHeld = undo;
+    redoHeld = redo;
+    const int frets = player.getFretsPressedFlags() & 31;
+    if (!frets) {
+        workingNote.reset();
+    }
+    if (frets && frets != previousFrets && !ctrl) {
+        const auto existing =
+            editor.document().nearest(atMusicTime, beatSeconds() / 32.0);
+        if (existing) {
+            workingNote = existing;
+            editor.edit(
+                [&](auto &document) { document.lanes(*existing, frets); });
+        } else {
+            editor.edit([&](auto &document) {
+                workingNote = document.insert({0, atMusicTime, 0, frets});
+            });
+        }
+        synchronizeNotes();
+    } else if (frets && workingNote) {
+        const auto *note = editor.document().find(*workingNote);
+        if (!note || atMusicTime < note->time) {
+            workingNote.reset();
+        } else if (atMusicTime - note->time > .05 &&
+                   std::abs(note->duration - (atMusicTime - note->time)) >
+                       1e-9) {
+            const double duration = atMusicTime - note->time;
+            editor.edit([&](auto &document) {
+                document.sustain(*workingNote, duration);
+            });
+            synchronizeNotes();
+        }
+    }
+    previousFrets = frets;
+    player.musicRunningTime = atMusicTime;
+    player.Notes.BPMMinPosition =
+        player.Notes.BPM.empty() ? 0 : player.Notes.BPM.front().time;
+}
 
-    internalLoad();
+void CCharter::startAnalysis() {
+    if (loadThread.joinable()) {
+        loadThread.join();
+    }
+    const auto path = gpModule.players.back()->songFullPath;
+    if (path.empty()) {
+        return;
+    }
+    continueLoading = true;
+    loading = true;
+    bpmReady = false;
+    readBPMPercent = 0;
+    {
+        std::lock_guard<std::mutex> lock(loadBPMMutex);
+        songBPM.clear();
+        analysisError.clear();
+    }
+    try {
+        loadThread = std::thread(&CCharter::readSongBPM, this, path);
+    } catch (...) {
+        loading = false;
+        continueLoading = false;
+        throw;
+    }
+}
+
+void CCharter::readSongBPM(const std::string &path) {
+    // This worker owns a decode-only stream and never calls OpenGL or mutates
+    // player data.
+    const HSTREAM stream =
+        BASS_StreamCreateFile(FALSE, path.c_str(), 0, 0, BASS_STREAM_DECODE);
+    std::vector<CChart::Note> result;
+    std::string error;
+    try {
+        if (!stream) {
+            error = "Cannot open BPM analysis audio";
+        } else {
+            const double length = BASS_ChannelBytes2Seconds(
+                stream, BASS_ChannelGetLength(stream, BASS_POS_BYTE));
+            double previous = 0;
+            for (double at = 0; continueLoading && at < length; at += 10) {
+                // Synchronous decoding on this worker on both platforms. No
+                // BASS_FX_FREESOURCE.
+                const double bpm = BASS_FX_BPM_DecodeGet(
+                    stream, at, std::min(at + 10, length), 0, BASS_FX_BPM_MULT2,
+                    nullptr, nullptr);
+                if (std::isfinite(bpm) && bpm > 0 &&
+                    std::abs(previous - bpm) > .01) {
+                    CChart::Note tempo;
+                    tempo.time = at;
+                    tempo.lTime = bpm;
+                    result.push_back(tempo);
+                    previous = bpm;
+                }
+                readBPMPercent =
+                    length > 0 ? 100 * std::min(at + 10, length) / length : 100;
+            }
+        }
+    } catch (const std::exception &exception) {
+        result.clear();
+        error = exception.what();
+    } catch (...) {
+        result.clear();
+        error = "BPM analysis failed";
+    }
+    if (stream) {
+        BASS_FX_BPM_Free(stream);
+        BASS_StreamFree(stream);
+    }
+    {
+        std::lock_guard<std::mutex> lock(loadBPMMutex);
+        if (continueLoading) {
+            songBPM = std::move(result);
+            analysisError = std::move(error);
+            bpmReady = !songBPM.empty();
+        }
+    }
+    loading = false;
+}
+
+void CCharter::render() { gpModule.render(); }
+
+void CCharter::renderInfo() {
+    CFonts::fonts().drawTextInScreen("div x " + std::to_string(divTime), .5, .3,
+                                     .1);
+    std::string message =
+        "B: analyze BPM | A: apply result | Ctrl+Z/Y: undo/redo";
+    if (loading) {
+        message =
+            "Analyzing BPM: " + std::to_string(readBPMPercent.load()) + "%";
+    } else if (bpmReady) {
+        message = "BPM ready. A: replace tempo map";
+    } else {
+        std::lock_guard<std::mutex> lock(loadBPMMutex);
+        if (!analysisError.empty()) {
+            message = analysisError;
+        }
+    }
+    CFonts::fonts().drawTextInScreen(message, -1.4, .3, .035);
+}
+
+void CCharter::renderAll() {
+    preRender();
+    render();
+    renderInfo();
 }

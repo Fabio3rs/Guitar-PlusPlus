@@ -1,59 +1,45 @@
 #pragma once
-#ifndef _GPP_CCHARTER_H_
-#define _GPP_CCHARTER_H_
+#ifndef GPP_CCHARTER_H
+#define GPP_CCHARTER_H
 
-#include "CChart.h"
-#include "CEngine.h"
 #include "CGamePlay.h"
-#include "CPlayer.h"
-#include "GPPGame.h"
+#include "charter/Document.h"
 #include <atomic>
-#include <chrono>
 #include <mutex>
+#include <optional>
 #include <thread>
 
+class GPPGame;
+
+// Runtime adapter only. The shared document has no dependency on this host,
+// and the game does not depend on the external Chart Studio or ImGui.
 class CCharter {
     CGamePlay gpModule;
-    CChart chart;
-    double atMusicTime, divTime;
-    bool bForwardBackwardK, bLeftRightK;
-    bool fretKeys[5]{};
-    int keypts;
-    static void eraseNulls(CPlayer &player);
-    bool processNewNote;
-    std::atomic<bool> loading{}, continueLoading{}, loadThreadEnd{};
-    std::atomic<double> readBPMPercent{}, readBPMAtSeconds{};
-    std::string instrument;
+    gpp::charter::Editor editor;
+    std::optional<uint64_t> workingNote;
+    double atMusicTime = 0, divTime = .5;
+    bool forwardHeld = false, divisionHeld = false, analysisHeld = false,
+         applyHeld = false, undoHeld = false, redoHeld = false;
+    int previousFrets = 0;
+    std::atomic<bool> loading{false}, continueLoading{false}, bpmReady{false};
+    std::atomic<double> readBPMPercent{0};
     std::mutex loadBPMMutex;
-    bool backToZero;
-
-    int songAudioID{};
-
-    CPlayer::NotesData::Note *workingNote;
-    std::vector<CPlayer::NotesData::Note>::iterator workingNoteIt;
-    std::vector<CPlayer::NotesData::Note> songBPM;
-
-    void readSongBPM(unsigned int song);
-    double getBPMAt(double time);
-
-    static void loadThreadFun(CCharter &ch);
-    void internalLoad();
-
+    std::vector<CChart::Note> songBPM;
+    std::string analysisError, songPath;
     std::thread loadThread;
 
-    static double songTimePassBPMBased(const BPM_t &BPMContainer, double pass,
-                                       bool forward);
+    void synchronizeNotes();
+    void startAnalysis();
+    void readSongBPM(const std::string &path);
+    double beatSeconds() const;
 
   public:
+    explicit CCharter(GPPGame &game);
+    ~CCharter();
     void prepareDemoGamePlay(CGamePlay &gp);
-
     void preRender();
     void render();
     void renderInfo();
     void renderAll();
-
-    CCharter();
-    ~CCharter();
 };
-
 #endif
