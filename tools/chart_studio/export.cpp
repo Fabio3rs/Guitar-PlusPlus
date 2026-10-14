@@ -23,8 +23,8 @@ int64_t exportDuration(const State &state, const Event &event) {
 
 double exportDurationSeconds(const State &state, const Event &event) {
     const auto duration = exportDuration(state, event);
-    return state.score.seconds(event.tick + duration) -
-           state.score.seconds(event.tick);
+    return audioSeconds(state, event.tick + duration) -
+           audioSeconds(state, event.tick);
 }
 
 std::string chartText(const State &state) {
@@ -58,8 +58,7 @@ std::string chartText(const State &state) {
         << state.score.ppq << "\n  Offset = " << state.settings.offset
         << "\n}\n[SyncTrack]\n{\n";
     for (const auto &tempo : state.score.tempos) {
-        const int64_t milliBpm =
-            (60000000000LL + tempo.microseconds / 2) / tempo.microseconds;
+        const int64_t milliBpm = exportMilliBpm(state, tempo);
         out << "  " << tempo.tick << " = B " << milliBpm << '\n';
     }
     for (const auto &signature : state.score.signatures) {

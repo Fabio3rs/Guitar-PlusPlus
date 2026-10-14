@@ -1,13 +1,18 @@
+#include "alignment.h"
 #include "audio/audio.h"
 #include "core.h"
+#include "file_browser.h"
 #include "runtime.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <functional>
+#include <future>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <imgui_internal.h>
 #include <imgui_stdlib.h>
 #include <iostream>
 #include <memory>
@@ -21,9 +26,80 @@ const ImU32 colors[] = {IM_COL32(55, 210, 110, 255), IM_COL32(240, 75, 85, 255),
                         IM_COL32(245, 140, 55, 255)};
 struct Workbench {
     Session session;
+    FileBrowser browser;
+    bool firstLayout = true, hasSavedLayout = false, resetLayout = false,
+         showHelp = false;
+    bool showFiles = true, showTracks = true, showMapping = true;
+    bool showEditing = true, showAlignment = true;
+    bool pendingPrompt = false;
+    std::string notice;
+    const char *helpTitle = "Getting started";
+    static constexpr const char *workflowHelp =
+        "Open a musical MIDI in Files, then select its guitar track in Tracks. "
+        "Generate maps pitches and chords to five buttons. Review the timeline "
+        "and use Edit and patterns to correct or lock phrases. Save project "
+        "preserves editing data; Export .chart writes the playable file. Audio "
+        "and reference charts are optional.\n\nDrag panel tabs to rearrange "
+        "them inside this window. Panels > Reset layout restores the "
+        "default.\n\nShortcuts: Ctrl+S save, Ctrl+G generate, Ctrl+E export, "
+        "Ctrl+Z/Y undo/redo, Ctrl+C/V copy/paste, Ctrl+L lock, Delete remove. "
+        "Keys 1-5 toggle lanes on the selected note.";
+    const char *helpText = workflowHelp;
+
+    void help(const char *title, const char *text) {
+        ImGui::PushID(title);
+        if (ImGui::SmallButton("?")) {
+            helpTitle = title;
+            helpText = text;
+            showHelp = true;
+        }
+        hint(title);
+        ImGui::SameLine();
+        ImGui::TextUnformatted(title);
+        ImGui::PopID();
+    }
+
+    static void hint(const char *text) {
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+            ImGui::SetTooltip("%s", text);
+        }
+    }
+
+    void pathField(const char *label, std::string &value,
+                   std::vector<std::string> extensions, bool save = false) {
+        ImGui::PushID(label);
+        ImGui::TextUnformatted(label);
+        ImGui::SetNextItemWidth(
+            std::max(80.f, ImGui::GetContentRegionAvail().x - 80));
+        ImGui::InputText("##path", &value);
+        ImGui::SameLine();
+        if (ImGui::Button("Browse...")) {
+            browser.choose(value, std::move(extensions), save);
+        }
+        ImGui::PopID();
+    }
+
+    bool hasTrack() const {
+        const auto track = session.state.settings.track;
+        return track >= 0 && size_t(track) < session.state.score.tracks.size();
+    }
+
+    void generate() {
+        session.run(loadLibrary(fs::u8path(libraryPath)));
+        notice = "Generated " + std::to_string(session.state.events.size()) +
+                 " attacks. Review the timeline, then Save project and Export "
+                 ".chart.";
+    }
+
+    void saveProject() {
+        session.save(fs::u8path(projectPath));
+        notice = "Project saved: " + projectPath;
+    }
+
     std::string inputPath, projectPath, outputPath, libraryPath, referencePath,
         audioPath;
     std::string instrument = "[ExpertSingle]", message;
+    std::string projectionPath;
     Reference reference;
     gpp::audio::AnalysisResult spectrum;
     bool loopRegion = false;
@@ -39,9 +115,23 @@ struct Workbench {
     std::chrono::steady_clock::time_point last =
         std::chrono::steady_clock::now();
     int audioDevice = -1;
+    std::future<AlignmentResult> alignmentJob;
+    std::atomic<bool> cancelAlignment{false};
+    std::optional<AlignmentResult> alignmentResult;
+    AlignmentSettings alignmentSettings;
+    int alignmentCandidate = 0, alignmentMode = 2;
+    bool previewAlignment = false;
+    ~Workbench() { stopAlignment(); }
+    void stopAlignment() {
+        cancelAlignment = true;
+        if (alignmentJob.valid()) {
+            alignmentJob.wait();
+        }
+    }
 
     explicit Workbench(const fs::path &output, int device)
         : audioDevice(device) {
+        hasSavedLayout = fs::exists(output / "layout-docking.ini");
         projectPath = (output / "untitled.gppchartproj").u8string();
         outputPath = (output / "untitled.generated.chart").u8string();
         libraryPath = (output / "patterns.sqlite").u8string();
@@ -57,21 +147,59 @@ struct Workbench {
     void request(const std::function<void()> &action) {
         if (session.dirty) {
             pending = action;
-            ImGui::OpenPopup("Unsaved project");
+            pendingPrompt = true;
         } else {
             perform(action);
         }
     }
     void open(const fs::path &path) {
+        stopAlignment();
+        alignmentJob = {};
+        alignmentResult.reset();
+        previewAlignment = false;
         if (path.extension() == ".gppchartproj") {
             session.openProject(path);
             projectPath = path.u8string();
             inputPath = session.state.input;
             referencePath = session.state.reference;
             audioPath = session.state.audio;
+            if (!session.state.alignment.evidence.empty()) {
+                alignmentResult =
+                    decodeAlignment(session.state.alignment.evidence);
+                for (size_t i = 0; i < alignmentResult->candidates.size();
+                     ++i) {
+                    const auto &c = alignmentResult->candidates[i];
+                    if (c.scale == session.state.alignment.scale &&
+                        c.offset == session.state.settings.offset) {
+                        alignmentCandidate = int(i);
+                    }
+                }
+            }
         } else {
             session.openMidi(path);
             inputPath = path.u8string();
+            projectPath = (fs::u8path(projectPath).parent_path() /
+                           (path.stem().u8string() + ".gppchartproj"))
+                              .u8string();
+            outputPath = (fs::u8path(outputPath).parent_path() /
+                          (path.stem().u8string() + ".generated.chart"))
+                             .u8string();
+            audioPath.clear();
+            referencePath.clear();
+        }
+        if (path.extension() == ".gppchartproj") {
+            outputPath = (path.parent_path() /
+                          (path.stem().u8string() + ".generated.chart"))
+                             .u8string();
+            notice = "Project reopened: " +
+                     std::to_string(session.state.events.size()) +
+                     " saved attacks. Continue editing or export. Use Load "
+                     "audio / reference to enable saved external files.";
+        } else {
+            notice =
+                "Loaded " + path.filename().u8string() + ". " +
+                std::to_string(session.state.score.tracks.size()) +
+                " musical tracks. Choose a track in Tracks before generating.";
         }
         playing = false;
         cursor = 0;
@@ -103,10 +231,8 @@ struct Workbench {
                 cursor += delta;
             }
             if (loopRegion && regionEnd > regionBegin &&
-                cursor >= session.state.score.seconds(regionEnd) +
-                              session.state.settings.offset) {
-                seek(session.state.score.seconds(regionBegin) +
-                     session.state.settings.offset);
+                cursor >= audioSeconds(session.state, regionEnd)) {
+                seek(audioSeconds(session.state, regionBegin));
                 if (transport) {
                     transport->play();
                 }
@@ -136,28 +262,52 @@ struct Workbench {
                            {session.project, fs::u8path(projectPath),
                             fs::u8path(libraryPath)});
         exportValidated(session.state, fs::u8path(outputPath), replaceOutput);
+        notice = "Exported and validated with the game parser: " + outputPath;
     }
     void files() {
-        if (!ImGui::CollapsingHeader("Files and project",
-                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-            return;
-        }
-        ImGui::InputText("MIDI / project", &inputPath);
-        if (ImGui::Button("Open")) {
+        help("Opening and saving",
+             "Open a musical MIDI exported by TuxGuitar or another score "
+             "editor. Gameplay MIDI uses different conventions and is not a "
+             "musical score. Browse only fills a path: click Open MIDI / "
+             "project to load it.\n\nAfter opening MIDI, choose a track in "
+             "Tracks. Nothing is generated automatically. Save project stores "
+             "notes, manual decisions, source references and alignment; it "
+             "does not create the playable chart. Export .chart creates that "
+             "separate game file.\n\nAn existing project can be reopened from "
+             "the same input field. Optional audio and reference charts can be "
+             "loaded below. Files used as sources are never overwritten by "
+             "export.");
+        ImGui::TextWrapped("1. Browse for a musical MIDI, then click Open.");
+        pathField("Musical MIDI / project", inputPath,
+                  {".mid", ".midi", ".gppchartproj"});
+        if (ImGui::Button("Open MIDI / project")) {
             request([this] { open(fs::u8path(inputPath)); });
         }
-        ImGui::SameLine();
+        ImGui::Separator();
+        ImGui::TextWrapped(
+            "Save project keeps editable notes, source links and mapping "
+            "decisions. Export creates the file used by the game.");
+        ImGui::BeginDisabled(session.state.input.empty());
         if (ImGui::Button("Save project")) {
-            perform([&] { session.save(fs::u8path(projectPath)); });
+            perform([&] { saveProject(); });
         }
-        ImGui::InputText("Project", &projectPath);
-        ImGui::InputText("Chart output", &outputPath);
-        ImGui::Checkbox("Replace output explicitly", &replaceOutput);
+        ImGui::EndDisabled();
+        pathField("Project", projectPath, {".gppchartproj"}, true);
+        pathField("Chart output", outputPath, {".chart"}, true);
+        ImGui::Checkbox("Allow replacing an existing export", &replaceOutput);
+        hint("Only enable this when you intend to replace the destination "
+             "chart or comparison report. Source files remain protected.");
+        ImGui::BeginDisabled(session.state.events.empty());
         if (ImGui::Button("Export .chart")) {
             perform([&] { exportChart(); });
         }
-        ImGui::InputText("Pattern library", &libraryPath);
-        ImGui::InputText("Reference", &referencePath);
+        ImGui::EndDisabled();
+        ImGui::Separator();
+        ImGui::TextWrapped("Optional: shared patterns, a reference chart for "
+                           "comparison, and audio for playback / alignment.");
+        pathField("Pattern library", libraryPath, {".sqlite"}, true);
+        pathField("Reference", referencePath, {".chart", ".mid", ".gpp"},
+                  false);
         ImGui::InputText("Reference part", &instrument);
         if (ImGui::Button("Load reference")) {
             perform([&] {
@@ -169,7 +319,8 @@ struct Workbench {
             });
         }
         ImGui::InputDouble("Reference shift (s)", &referenceOffset, .01);
-        ImGui::InputText("Optional audio", &audioPath);
+        pathField("Optional audio", audioPath,
+                  {".ogg", ".mp3", ".wav", ".flac"}, false);
         if (ImGui::Button("Load audio")) {
             perform([&] {
                 if (!system) {
@@ -216,16 +367,131 @@ struct Workbench {
                 "MIDI to replace the source.");
         }
     }
+    void alignmentPanel() {
+        if (alignmentJob.valid() && alignmentJob.wait_for(std::chrono::seconds(
+                                        0)) == std::future_status::ready) {
+            perform([&] {
+                alignmentResult = alignmentJob.get();
+                alignmentCandidate = 0;
+                previewAlignment = false;
+            });
+        }
+        help("Aligning MIDI and audio",
+             "Audio is optional. Choose the recording in Files. Analyze "
+             "compares harmonic features from MIDI and audio, then lists "
+             "candidate offsets and tempo scales. It does not apply them "
+             "automatically.\n\nOffset shifts the whole chart. Linear also "
+             "adjusts the overall tempo. Auto prefers the simplest confident "
+             "result. Preview draws candidate positions in white; Apply "
+             "changes the project timing and can be undone. The original MIDI "
+             "and lane patterns are preserved.\n\nAmbiguous results need "
+             "listening and manual confirmation. The silence warning reports "
+             "how much silence the recording would need at its start; this "
+             "tool does not edit the audio file.");
+        ImGui::Text("Applied: t_audio = %.6f * t_MIDI %+.3f s",
+                    session.state.alignment.scale,
+                    session.state.settings.offset);
+        ImGui::Combo("Alignment mode", &alignmentMode,
+                     "Offset\0Linear\0Auto\0");
+        alignmentSettings.mode = alignmentMode == 0   ? "offset"
+                                 : alignmentMode == 1 ? "linear"
+                                                      : "auto";
+        ImGui::InputDouble("Minimum offset (s)",
+                           &alignmentSettings.minimumOffset);
+        ImGui::InputDouble("Maximum offset (s)",
+                           &alignmentSettings.maximumOffset);
+        if (alignmentJob.valid()) {
+            ImGui::TextUnformatted("Analyzing audio and score...");
+            if (ImGui::Button("Cancel analysis")) {
+                cancelAlignment = true;
+            }
+        } else if (ImGui::Button("Analyze alignment")) {
+            perform([&] {
+                alignmentSettings.validate();
+                if (!system) {
+                    gpp::audio::DeviceSettings settings;
+                    settings.device = audioDevice;
+                    system = std::make_unique<gpp::audio::BassSystem>(settings);
+                }
+                cancelAlignment = false;
+                alignmentResult.reset();
+                previewAlignment = false;
+                const auto state = session.state;
+                const auto path = fs::u8path(audioPath);
+                const auto settings = alignmentSettings;
+                const auto device = system->device();
+                alignmentJob = std::async(
+                    std::launch::async, [this, state, path, settings, device] {
+                        gpp::audio::check(BASS_SetDevice(DWORD(device)),
+                                          "Select alignment decoder device");
+                        return analyzeAlignment(state, path, settings, [this] {
+                            if (cancelAlignment.load()) {
+                                throw std::runtime_error("Alignment cancelled");
+                            }
+                        });
+                    });
+            });
+        }
+        if (alignmentResult) {
+            const auto &r = *alignmentResult;
+            ImGui::TextWrapped("%s", r.diagnostic.c_str());
+            ImGui::Text("Candidate margin: %.3f", r.margin);
+            for (size_t i = 0; i < r.candidates.size(); ++i) {
+                const auto &c = r.candidates[i];
+                const auto label = std::to_string(i) + ": offset " +
+                                   std::to_string(c.offset) + " scale " +
+                                   std::to_string(c.scale);
+                ImGui::RadioButton(label.c_str(), &alignmentCandidate, int(i));
+                ImGui::Text("score %.3f, coverage %.1f%%", c.score,
+                            c.coverage * 100);
+            }
+            ImGui::Checkbox("Preview alignment (white outlines)",
+                            &previewAlignment);
+            if (ImGui::Button("Apply selected alignment")) {
+                perform([&] {
+                    if (fs::absolute(fs::u8path(audioPath))
+                                .lexically_normal() !=
+                            fs::u8path(r.audioPath).lexically_normal() ||
+                        fileHash(fs::u8path(audioPath)) != r.audioHash) {
+                        throw std::runtime_error(
+                            "Audio changed; analyze again");
+                    }
+                    applyAlignment(session, r, size_t(alignmentCandidate));
+                    session.state.audio = r.audioPath;
+                    previewAlignment = false;
+                });
+            }
+            for (const auto &w : r.windows) {
+                ImGui::Text("At %.1fs: residual %+.2fs (best candidate)",
+                            w.midiTime, w.residual);
+            }
+            if (alignmentSilence(r, size_t(alignmentCandidate)) > 0) {
+                ImGui::TextWrapped(
+                    "Suggested initial audio silence: %.3f s. Add manually and "
+                    "increase offset equally; audio is unchanged.",
+                    alignmentSilence(r, size_t(alignmentCandidate)));
+            }
+        }
+        if (ImGui::Button("Reset alignment")) {
+            perform([&] {
+                session.setAlignment(1, 0, "");
+                previewAlignment = false;
+            });
+        }
+    }
     void tracks() {
-        if (!ImGui::CollapsingHeader("Musical tracks",
-                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-            return;
+        ImGui::TextWrapped("2. Select the musical track to map to five "
+                           "buttons. Track selection does not generate notes. "
+                           "Drums should not be used as guitar.");
+        if (session.state.score.tracks.empty()) {
+            ImGui::TextWrapped("No MIDI loaded. Open one in Files first.");
         }
         for (size_t i = 0; i < session.state.score.tracks.size(); ++i) {
             const auto &track = session.state.score.tracks[i];
-            const std::string label = std::to_string(i) + ": " + track.name +
-                                      " (" +
-                                      std::to_string(track.notes.size()) + ")";
+            const std::string label =
+                std::to_string(i) + ": " +
+                (track.name.empty() ? "Unnamed track" : track.name) + " (" +
+                std::to_string(track.notes.size()) + ")";
             if (ImGui::Selectable(label.c_str(),
                                   session.state.settings.track == int(i))) {
                 if (!session.state.events.empty() &&
@@ -238,24 +504,37 @@ struct Workbench {
                         session.state.settings.channel = -1;
                         session.state.settings.program = -1;
                         session.dirty = true;
+                        notice = "Track selected. Next: Generate chart.";
                     });
                 } else {
                     session.state.settings.track = int(i);
                     session.dirty = true;
+                    notice = "Track selected. Next: Generate chart.";
                 }
             }
         }
         if (ImGui::TreeNode("Track details (zero-based channels/programs)")) {
             const auto details = inspect(session.state.score);
-            ImGui::TextUnformatted(details.c_str());
+            ImGui::TextWrapped("%s", details.c_str());
             ImGui::TreePop();
         }
     }
     void algorithm() {
-        if (!ImGui::CollapsingHeader("Mapping",
-                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-            return;
-        }
+        help("Generation and settings",
+             "Generate maps real pitches and chords to five lanes. Start with "
+             "Expert and Beam search; lower difficulties are experimental "
+             "reduction profiles. Keep attacks = 1 retains every attack; "
+             "smaller values reduce density.\n\nReuse cache uses established "
+             "mappings. Reuse transposed phrases recognizes identical "
+             "intervals and rhythm in a different key. Confirmed and locked "
+             "choices survive regeneration. Weights affect newly calculated "
+             "decisions; they do not erase confirmed patterns.\n\nChannel and "
+             "Program filters are zero-based; -1 includes all. They help "
+             "isolate instruments in Type 0 MIDI. Mapping settings apply when "
+             "you Generate again.\n\nUMAP requires an external projection "
+             "file; it is not a self-contained UI workflow yet. Beam search "
+             "and Heuristic work entirely in the interface.");
+        ImGui::TextWrapped("3. Choose settings, then Generate chart.");
         auto &s = session.state.settings;
         const char *difficulties[] = {"expert", "hard", "medium", "easy"};
         int difficulty = 0;
@@ -271,17 +550,40 @@ struct Workbench {
         if (difficulty) {
             ImGui::TextWrapped("Experimental reduction profile");
         }
-        int strategy = s.algorithm == "beam" ? 0 : 1;
-        if (ImGui::Combo("Algorithm", &strategy, "Beam search\0Heuristic\0")) {
-            s.algorithm = strategy ? "heuristic" : "beam";
+        int strategy = s.algorithm == "beam"        ? 0
+                       : s.algorithm == "heuristic" ? 1
+                                                    : 2;
+        if (ImGui::Combo("Algorithm", &strategy,
+                         "Beam search\0Heuristic\0UMAP (experimental)\0")) {
+            s.algorithm = strategy == 0   ? "beam"
+                          : strategy == 1 ? "heuristic"
+                                          : "umap";
             session.dirty = true;
         }
         session.dirty |= ImGui::InputInt("Channel (-1: all)", &s.channel);
         session.dirty |= ImGui::InputInt("Program (-1: all)", &s.program);
         session.dirty |= ImGui::SliderInt("Max chord lanes", &s.maxChord, 1, 3);
-        session.dirty |= ImGui::InputDouble("Retention 0..1", &s.density, .05);
+        session.dirty |=
+            ImGui::InputDouble("Keep attacks (0..1)", &s.density, .05);
         session.dirty |= ImGui::Checkbox("Reuse cache", &s.reuse);
-        session.dirty |= ImGui::Checkbox("Strict transposition", &s.structural);
+        session.dirty |=
+            ImGui::Checkbox("Reuse transposed phrases", &s.structural);
+        hint("Recognize the same intervals and rhythm in another key; the "
+             "pitches need not be identical.");
+        if (strategy == 2) {
+            pathField("UMAP artifact", projectionPath, {".json"}, false);
+            if (ImGui::Button("Load projection")) {
+                perform([&] {
+                    session.projection =
+                        readProjection(fs::u8path(projectionPath));
+                    s.algorithm = "umap:" + session.projection->identity;
+                    session.dirty = true;
+                });
+            }
+            ImGui::TextWrapped("Experimental. Create artifact with "
+                               "experiments/umap_projection.py; reload it "
+                               "after opening a project.");
+        }
         double offset = s.offset * 1000;
         if (ImGui::InputDouble("Audio offset (ms)", &offset, 10)) {
             perform([&] {
@@ -293,6 +595,13 @@ struct Workbench {
                 session.dirty = true;
             });
         }
+        help("Sustain cutoff",
+             "Export can omit very short sustain tails while preserving the "
+             "musical durations in the project. In beat mode, a sustain must "
+             "be strictly longer than the chosen limit (0.5 = half a beat). In "
+             "seconds mode, the limit is an absolute duration. This is an "
+             "export policy; it does not change MIDI notes or the pattern "
+             "cache.");
         bool automaticSustains = s.minimumSustain < 0;
         if (ImGui::Checkbox("Musical sustain cutoff (beats)",
                             &automaticSustains)) {
@@ -339,31 +648,64 @@ struct Workbench {
             }
             ImGui::TreePop();
         }
-        if (ImGui::Button("Generate")) {
-            perform([&] { session.run(loadLibrary(fs::u8path(libraryPath))); });
+        ImGui::BeginDisabled(!hasTrack());
+        if (ImGui::Button("Generate chart")) {
+            perform([&] { generate(); });
         }
-        ImGui::InputScalar("Region begin tick", ImGuiDataType_S64,
-                           &regionBegin);
-        ImGui::InputScalar("Region end tick", ImGuiDataType_S64, &regionEnd);
+        ImGui::EndDisabled();
+        if (!hasTrack()) {
+            ImGui::TextWrapped(
+                "Select a track in Tracks to enable generation.");
+        }
+        ImGui::Separator();
+        help("Regenerating a region",
+             "Place the playback cursor in Timeline and mark the region start "
+             "and end below. Regenerate only changes this interval, preserving "
+             "protected decisions. Restore returns the region to the original "
+             "generated result. Tick fields are an optional precise "
+             "alternative; one beat equals the MIDI resolution in ticks.");
+        if (ImGui::Button("Set start at cursor")) {
+            regionBegin = audioTick(session.state, cursor);
+        }
+        if (ImGui::Button("Set end at cursor")) {
+            regionEnd = audioTick(session.state, cursor);
+        }
+        ImGui::Text("Region: %.2f to %.2f s",
+                    audioSeconds(session.state, regionBegin),
+                    audioSeconds(session.state, regionEnd));
+        if (ImGui::TreeNode("Exact region ticks")) {
+            ImGui::InputScalar("Start tick", ImGuiDataType_S64, &regionBegin);
+            ImGui::InputScalar("End tick", ImGuiDataType_S64, &regionEnd);
+            ImGui::TreePop();
+        }
+        ImGui::BeginDisabled(!hasTrack() || regionBegin < 0 ||
+                             regionEnd <= regionBegin);
         if (ImGui::Button("Regenerate region")) {
             perform([&] {
-                if (regionBegin < 0 || regionEnd <= regionBegin) {
-                    throw std::runtime_error("Select a nonempty tick region");
-                }
                 session.run(loadLibrary(fs::u8path(libraryPath)),
                             {{regionBegin, regionEnd}});
             });
         }
-        ImGui::SameLine();
         if (ImGui::Button("Restore region")) {
             perform([&] { session.restore(regionBegin, regionEnd); });
         }
+        ImGui::EndDisabled();
     }
+
     void editing() {
-        if (!ImGui::CollapsingHeader("Edit and teach",
-                                     ImGuiTreeNodeFlags_DefaultOpen)) {
-            return;
-        }
+        help("Editing and remembered patterns",
+             "Click a generated note in Timeline. Ctrl-click extends "
+             "selection; Copy and Delete use the selection. Lane/time/sustain "
+             "fields edit the first selected event. Drag a note to move it; "
+             "Shift-drag changes its sustain. Keys 1-5 toggle "
+             "lanes.\n\nConfirm remembers the phrase; Lock protects it against "
+             "regeneration. Enable Apply to equivalent occurrences to teach "
+             "all matching phrases. Otherwise this occurrence can become a "
+             "separate variant. Promote shares a confirmed pattern with other "
+             "projects via the library file.\n\nUnlock returns a pattern to "
+             "experimental status. Recalculate explicitly requests a new "
+             "pattern. Clear experimental cache preserves confirmed and locked "
+             "decisions. Save project persists your edits.");
         if (ImGui::Button("Undo")) {
             session.undo();
         }
@@ -377,17 +719,11 @@ struct Workbench {
         }
         ImGui::SameLine();
         if (ImGui::Button("Paste")) {
-            perform([&] {
-                session.paste(session.state.score.ticks(
-                    std::max(0.0, cursor - session.state.settings.offset)));
-            });
+            perform([&] { session.paste(audioTick(session.state, cursor)); });
         }
         if (ImGui::Button("Insert at cursor")) {
             perform([&] {
-                session.insert(
-                    session.state.score.ticks(
-                        std::max(0.0, cursor - session.state.settings.offset)),
-                    1, 0);
+                session.insert(audioTick(session.state, cursor), 1, 0);
             });
         }
         ImGui::SameLine();
@@ -395,41 +731,59 @@ struct Workbench {
             session.removeSelected();
         }
         ImGui::Checkbox("Apply to equivalent occurrences", &propagate);
+        if (session.selection.empty()) {
+            ImGui::TextWrapped("Select a generated note in Timeline to edit "
+                               "its lanes or teach a phrase.");
+        }
         if (const auto *event = selected()) {
             const Event e = *event;
-            ImGui::Text("Event %llu | %zu sources | cost %lld",
-                        static_cast<unsigned long long>(e.note.id),
-                        e.sources.size(), static_cast<long long>(e.cost));
+            ImGui::Text("Selected: %zu | editing event %llu",
+                        session.selection.size(),
+                        static_cast<unsigned long long>(e.note.id));
             int mask = e.note.flags;
             int64_t tick = e.tick, duration = e.duration;
             bool edited = false;
+            const char *names[] = {"Green", "Red", "Yellow", "Blue", "Orange"};
             for (int lane = 0; lane < 5; ++lane) {
-                if (lane) {
-                    ImGui::SameLine();
-                }
                 bool enabled = mask & (1 << lane);
-                ImGui::PushID(lane);
-                if (ImGui::Checkbox("", &enabled)) {
+                ImGui::PushStyleColor(ImGuiCol_Text, colors[lane]);
+                if (ImGui::Checkbox(names[lane], &enabled)) {
                     mask ^= 1 << lane;
                     edited = true;
                 }
-                ImGui::PopID();
+                ImGui::PopStyleColor();
             }
-            edited |= ImGui::InputScalar("Tick", ImGuiDataType_S64, &tick);
-            edited |= ImGui::InputScalar("Sustain ticks", ImGuiDataType_S64,
-                                         &duration);
+            double position = audioSeconds(session.state, tick);
+            double sustain =
+                audioSeconds(session.state, tick + duration) - position;
+            if (ImGui::InputDouble("Start (s)", &position, .01)) {
+                tick = audioTick(session.state, position);
+                edited = true;
+            }
+            if (ImGui::InputDouble("Sustain (s)", &sustain, .01)) {
+                duration = std::max<int64_t>(
+                    0, audioTick(session.state,
+                                 audioSeconds(session.state, tick) + sustain) -
+                           tick);
+                edited = true;
+            }
+            if (ImGui::TreeNode("Exact note ticks")) {
+                edited |= ImGui::InputScalar("Tick", ImGuiDataType_S64, &tick);
+                edited |= ImGui::InputScalar("Sustain ticks", ImGuiDataType_S64,
+                                             &duration);
+                ImGui::TreePop();
+            }
             if (edited) {
                 perform([&] {
                     session.edit(e.note.id, mask, tick, duration, propagate);
                 });
             }
-            ImGui::TextWrapped(
-                "Phrase %s\nPattern %s\nOrigin: %s\nMatch: %s\nState: %s",
-                e.phrase.c_str(), hash(e.exact).c_str(), e.origin.c_str(),
-                e.reason.c_str(),
-                e.status == 2   ? "locked"
-                : e.status == 1 ? "confirmed"
-                                : "experimental");
+            ImGui::TextWrapped("Phrase %s\nOrigin: %s\nMatch: %s\nState: %s",
+                               e.phrase.c_str(), e.origin.c_str(),
+                               e.reason.c_str(),
+                               e.status == 2   ? "locked"
+                               : e.status == 1 ? "confirmed"
+                                               : "experimental");
             if (ImGui::Button("Confirm")) {
                 perform([&] { session.pattern(e.note.id, 1, propagate); });
             }
@@ -472,9 +826,13 @@ struct Workbench {
         }
     }
     void canvas() {
-        ImGui::BeginChild("timeline", {0, -115}, true);
+        ImGui::BeginChild(
+            "timeline",
+            {0, std::max(120.f, ImGui::GetContentRegionAvail().y - 180)}, true);
         const ImVec2 origin = ImGui::GetCursorScreenPos();
-        const ImVec2 size = ImGui::GetContentRegionAvail();
+        const ImVec2 available = ImGui::GetContentRegionAvail();
+        const ImVec2 size{std::max(1.f, available.x),
+                          std::max(1.f, available.y)};
         const float piano = std::max(90.f, size.y * .38f), laneTop = piano + 30,
                     laneHeight = std::max(15.f, size.y * .042f);
         auto *draw = ImGui::GetWindowDrawList();
@@ -498,17 +856,16 @@ struct Workbench {
         draw->AddText(origin, IM_COL32(180, 190, 210, 255),
                       "SCORE / piano roll  |  wheel: zoom, middle drag: pan");
         const auto &score = session.state.score;
-        const double offset = session.state.settings.offset;
         const double end = start + size.x / scale;
         if (!score.tempos.empty()) {
-            int64_t beginTick = score.ticks(std::max(0.0, start - offset));
-            const int64_t endTick = score.ticks(std::max(0.0, end - offset));
+            int64_t beginTick = audioTick(session.state, start);
+            const int64_t endTick = audioTick(session.state, end);
             beginTick = beginTick / score.ppq * score.ppq;
             for (int64_t tick = beginTick;
                  tick <= endTick &&
                  tick - beginTick < int64_t(score.ppq) * 1000;
                  tick += score.ppq) {
-                const float xx = x(score.seconds(tick) + offset);
+                const float xx = x(audioSeconds(session.state, tick));
                 Signature meter;
                 for (const auto &signature : score.signatures) {
                     if (signature.tick <= tick) {
@@ -533,12 +890,14 @@ struct Workbench {
                 }
             }
             for (const auto &tempo : score.tempos) {
-                const float xx = x(score.seconds(tempo.tick) + offset);
+                const float xx = x(audioSeconds(session.state, tempo.tick));
                 if (xx >= origin.x && xx <= origin.x + size.x) {
                     draw->AddText(
                         {xx + 3, origin.y + piano - 16},
                         IM_COL32(235, 195, 95, 255),
-                        (std::to_string(int(60000000.0 / tempo.microseconds)) +
+                        (std::to_string(int(60000000.0 /
+                                            (tempo.microseconds *
+                                             session.state.alignment.scale))) +
                          " BPM")
                             .c_str());
                 }
@@ -555,8 +914,8 @@ struct Workbench {
         const int track = session.state.settings.track;
         if (track >= 0 && size_t(track) < score.tracks.size()) {
             for (const auto &note : score.tracks[track].notes) {
-                const double at = score.seconds(note.start) + offset,
-                             finish = score.seconds(note.end) + offset;
+                const double at = audioSeconds(session.state, note.start),
+                             finish = audioSeconds(session.state, note.end);
                 if (at > end || finish < start) {
                     continue;
                 }
@@ -574,6 +933,27 @@ struct Workbench {
                 origin.y + laneTop + static_cast<float>(lane) * laneHeight;
             draw->AddLine({origin.x, yy}, {origin.x + size.x, yy},
                           colors[lane]);
+        }
+        if (previewAlignment && alignmentResult &&
+            alignmentResult->midiHash == session.state.inputHash) {
+            const auto &candidate =
+                alignmentResult->candidates.at(size_t(alignmentCandidate));
+            for (const auto &event : session.state.events) {
+                const double time =
+                    candidate.scale * score.seconds(event.tick) +
+                    candidate.offset;
+                if (event.removed || time < start || time > end) {
+                    continue;
+                }
+                for (int lane = 0; lane < 5; ++lane) {
+                    if (event.note.flags & (1 << lane)) {
+                        const float yy =
+                            origin.y + laneTop + float(lane) * laneHeight;
+                        draw->AddRect({x(time) - 5, yy - 9},
+                                      {x(time) + 5, yy + 9}, IM_COL32_WHITE);
+                    }
+                }
+            }
         }
         uint64_t hit = 0;
         for (const auto &event : session.state.events) {
@@ -662,8 +1042,9 @@ struct Workbench {
             if (std::abs(io.MousePos.x - dragX) > 4) {
                 const double delta = (io.MousePos.x - dragX) / scale;
                 perform([&] {
-                    const auto tick = score.ticks(
-                        std::max(0.0, score.seconds(dragEvent.tick) + delta));
+                    const auto tick = audioTick(
+                        session.state,
+                        audioSeconds(session.state, dragEvent.tick) + delta);
                     const auto duration =
                         io.KeyShift
                             ? std::max<int64_t>(0, tick - dragEvent.tick +
@@ -691,7 +1072,7 @@ struct Workbench {
             });
         }
         ImGui::SameLine();
-        ImGui::Checkbox("Loop tick region", &loopRegion);
+        ImGui::Checkbox("Loop region", &loopRegion);
         ImGui::SameLine();
         ImGui::SetNextItemWidth(160);
         double position = cursor;
@@ -702,7 +1083,8 @@ struct Workbench {
             session.state.markers.push_back(cursor);
             session.dirty = true;
         }
-        ImGui::SameLine();
+        ImGui::BeginDisabled(reference.notes.empty() ||
+                             session.state.events.empty());
         if (ImGui::Button("Export comparison.json")) {
             perform([&] {
                 safeWrite(fs::u8path(outputPath).parent_path() /
@@ -712,14 +1094,18 @@ struct Workbench {
                           replaceOutput);
             });
         }
-        ImGui::TextWrapped("%s", report(session.state).c_str());
+        ImGui::EndDisabled();
+        if (ImGui::TreeNode("Generation diagnostics")) {
+            ImGui::TextWrapped("%s", report(session.state).c_str());
+            ImGui::TreePop();
+        }
     }
     bool frame(GLFWwindow *window) {
         tick();
         auto &io = ImGui::GetIO();
         if (!io.WantTextInput) {
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) {
-                perform([&] { session.save(fs::u8path(projectPath)); });
+                perform([&] { saveProject(); });
             }
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z)) {
                 session.undo();
@@ -728,8 +1114,7 @@ struct Workbench {
                 session.redo();
             }
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_G)) {
-                perform(
-                    [&] { session.run(loadLibrary(fs::u8path(libraryPath))); });
+                perform([&] { generate(); });
             }
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_E)) {
                 perform([&] { exportChart(); });
@@ -741,10 +1126,8 @@ struct Workbench {
                 session.copy();
             }
             if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_V)) {
-                perform([&] {
-                    session.paste(session.state.score.ticks(
-                        std::max(0.0, cursor - session.state.settings.offset)));
-                });
+                perform(
+                    [&] { session.paste(audioTick(session.state, cursor)); });
             }
             if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
                 session.removeSelected();
@@ -765,12 +1148,165 @@ struct Workbench {
                 }
             }
         }
-        const auto *viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->WorkPos);
-        ImGui::SetNextWindowSize(viewport->WorkSize);
-        ImGui::Begin("Guitar++ Chart Studio", nullptr,
-                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                         ImGuiWindowFlags_NoSavedSettings);
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("Panels")) {
+                ImGui::MenuItem("Files", nullptr, &showFiles);
+                ImGui::MenuItem("Tracks", nullptr, &showTracks);
+                ImGui::MenuItem("Mapping", nullptr, &showMapping);
+                ImGui::MenuItem("Edit and patterns", nullptr, &showEditing);
+                ImGui::MenuItem("Audio alignment", nullptr, &showAlignment);
+                if (ImGui::MenuItem("Reset layout")) {
+                    resetLayout = true;
+                    showFiles = showTracks = showMapping = showEditing =
+                        showAlignment = true;
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::MenuItem("Help / workflow")) {
+                helpTitle = "Getting started";
+                helpText = workflowHelp;
+                showHelp = true;
+            }
+            ImGui::TextUnformatted(session.dirty ? "Unsaved project changes"
+                                                 : "Project unchanged");
+            ImGui::EndMainMenuBar();
+        }
+        const auto dock =
+            ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+        if (resetLayout || (firstLayout && !hasSavedLayout)) {
+            ImGui::DockBuilderRemoveNode(dock);
+            ImGui::DockBuilderAddNode(dock, ImGuiDockNodeFlags_DockSpace);
+            ImGui::DockBuilderSetNodeSize(dock,
+                                          ImGui::GetMainViewport()->WorkSize);
+            ImGuiID center = dock;
+            const auto left = ImGui::DockBuilderSplitNode(
+                center, ImGuiDir_Left, .27f, nullptr, &center);
+            const auto right = ImGui::DockBuilderSplitNode(
+                center, ImGuiDir_Right, .36f, nullptr, &center);
+            ImGui::DockBuilderDockWindow("Files", left);
+            ImGui::DockBuilderDockWindow("Tracks", left);
+            ImGui::DockBuilderDockWindow("Mapping", right);
+            ImGui::DockBuilderDockWindow("Edit and patterns", right);
+            ImGui::DockBuilderDockWindow("Audio alignment", right);
+            ImGui::DockBuilderDockWindow("Timeline", center);
+            ImGui::DockBuilderFinish(dock);
+        }
+        firstLayout = resetLayout = false;
+        if (showFiles) {
+            if (ImGui::Begin("Files", &showFiles)) {
+                ImGui::PushItemWidth(
+                    std::max(80.f, ImGui::GetContentRegionAvail().x * .38f));
+                files();
+                ImGui::PopItemWidth();
+            }
+            ImGui::End();
+        }
+        if (showTracks) {
+            if (ImGui::Begin("Tracks", &showTracks)) {
+                ImGui::PushItemWidth(
+                    std::max(80.f, ImGui::GetContentRegionAvail().x * .38f));
+                tracks();
+                ImGui::PopItemWidth();
+            }
+            ImGui::End();
+        }
+        if (showMapping) {
+            if (ImGui::Begin("Mapping", &showMapping)) {
+                ImGui::PushItemWidth(
+                    std::max(80.f, ImGui::GetContentRegionAvail().x * .38f));
+                algorithm();
+                ImGui::PopItemWidth();
+            }
+            ImGui::End();
+        }
+        if (showEditing) {
+            if (ImGui::Begin("Edit and patterns", &showEditing)) {
+                ImGui::PushItemWidth(
+                    std::max(80.f, ImGui::GetContentRegionAvail().x * .38f));
+                editing();
+                ImGui::PopItemWidth();
+            }
+            ImGui::End();
+        }
+        if (showAlignment) {
+            if (ImGui::Begin("Audio alignment", &showAlignment)) {
+                ImGui::PushItemWidth(
+                    std::max(80.f, ImGui::GetContentRegionAvail().x * .38f));
+                alignmentPanel();
+                ImGui::PopItemWidth();
+            }
+            ImGui::End();
+        }
+        ImGui::Begin("Timeline");
+        ImGui::TextWrapped(
+            "Open MIDI > Select track > Generate > Review > Save / Export");
+        if (session.state.score.tracks.empty()) {
+            ImGui::TextWrapped("Start in Files: Browse for a musical MIDI, "
+                               "then Open MIDI / project. Audio is optional.");
+        } else if (!hasTrack()) {
+            ImGui::TextWrapped(
+                "MIDI loaded. Next: choose the guitar instrument in Tracks.");
+            if (ImGui::Button("Choose track")) {
+                showTracks = true;
+                ImGui::SetWindowFocus("Tracks");
+            }
+        } else {
+            ImGui::TextWrapped(
+                "Selected track %d: %s | %zu generated attacks",
+                session.state.settings.track,
+                session.state.score.tracks[session.state.settings.track]
+                        .name.empty()
+                    ? "Unnamed track"
+                    : session.state.score.tracks[session.state.settings.track]
+                          .name.c_str(),
+                session.state.events.size());
+            if (ImGui::Button(session.state.events.empty()
+                                  ? "Generate chart"
+                                  : "Regenerate chart")) {
+                perform([&] { generate(); });
+            }
+        }
+        if (!message.empty()) {
+            ImGui::TextColored({1, .45f, .35f, 1}, "Action failed:");
+            ImGui::TextWrapped("%s", message.c_str());
+        } else if (!notice.empty()) {
+            ImGui::TextWrapped("%s", notice.c_str());
+        }
+        if (!session.state.conflicts.empty()) {
+            ImGui::TextWrapped("Conflict: %s",
+                               session.state.conflicts.front().c_str());
+        }
+        canvas();
+        ImGui::End();
+        // A stable ID scope for dialogs, regardless of the originating dock
+        // panel.
+        ImGui::SetNextWindowPos({-100, -100});
+        ImGui::SetNextWindowSize({1, 1});
+        ImGui::Begin(
+            "Dialog host", nullptr,
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings |
+                ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoInputs);
+        browser.draw();
+        if (showHelp) {
+            ImGui::OpenPopup("Chart Studio manual");
+            showHelp = false;
+        }
+        ImGui::SetNextWindowSize({620, 400}, ImGuiCond_FirstUseEver);
+        if (ImGui::BeginPopupModal("Chart Studio manual", nullptr)) {
+            ImGui::TextUnformatted(helpTitle);
+            ImGui::Separator();
+            ImGui::BeginChild("manual text", {0, -40});
+            ImGui::TextWrapped("%s", helpText);
+            ImGui::EndChild();
+            if (ImGui::Button("Close manual")) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+        if (pendingPrompt) {
+            ImGui::OpenPopup("Unsaved project");
+            pendingPrompt = false;
+        }
         bool close = false;
         if (glfwWindowShouldClose(window)) {
             glfwSetWindowShouldClose(window, GLFW_FALSE);
@@ -783,9 +1319,12 @@ struct Workbench {
         if (ImGui::BeginPopupModal("Close unsaved project", nullptr,
                                    ImGuiWindowFlags_AlwaysAutoResize)) {
             ImGui::TextUnformatted("Save changes before closing?");
+            if (!message.empty()) {
+                ImGui::TextWrapped("%s", message.c_str());
+            }
             if (ImGui::Button("Save and close")) {
                 perform([&] {
-                    session.save(fs::u8path(projectPath));
+                    saveProject();
                     close = true;
                 });
             }
@@ -799,25 +1338,25 @@ struct Workbench {
             }
             ImGui::EndPopup();
         }
-        ImGui::TextUnformatted("CHART STUDIO   /   score -> five lanes -> "
-                               "remembered musical decisions");
-        if (!message.empty()) {
-            ImGui::TextWrapped("%s", message.c_str());
-        }
-        if (!session.state.conflicts.empty()) {
-            ImGui::TextWrapped("Conflict: %s",
-                               session.state.conflicts.front().c_str());
-        }
-        ImGui::BeginChild("inspector", {370, 0}, true);
-        files();
-        tracks();
-        algorithm();
-        editing();
         if (ImGui::BeginPopupModal("Unsaved project", nullptr,
                                    ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::TextUnformatted("Discard unsaved changes before opening "
-                                   "another document/source?");
-            if (ImGui::Button("Discard and open")) {
+            ImGui::TextUnformatted("Changing document or track discards the "
+                                   "current edits. Continue?");
+            if (!message.empty()) {
+                ImGui::TextWrapped("%s", message.c_str());
+            }
+            if (ImGui::Button("Save and continue")) {
+                perform([&] {
+                    saveProject();
+                    if (pending) {
+                        pending();
+                        pending = {};
+                    }
+                    ImGui::CloseCurrentPopup();
+                });
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Discard and continue")) {
                 if (pending) {
                     perform(pending);
                     pending = {};
@@ -831,11 +1370,6 @@ struct Workbench {
             }
             ImGui::EndPopup();
         }
-        ImGui::EndChild();
-        ImGui::SameLine();
-        ImGui::BeginChild("work", {0, 0});
-        canvas();
-        ImGui::EndChild();
         ImGui::End();
         return close;
     }
@@ -939,8 +1473,9 @@ int main(int argc, char **argv) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         context = true;
-        ini = (output / "layout.ini").u8string();
+        ini = (output / "layout-docking.ini").u8string();
         ImGui::GetIO().IniFilename = ini.c_str();
+        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         ImGui::StyleColorsDark();
         glfwBackend = ImGui_ImplGlfw_InitForOpenGL(window, true);
         glBackend = glfwBackend && ImGui_ImplOpenGL3_Init("#version 110");

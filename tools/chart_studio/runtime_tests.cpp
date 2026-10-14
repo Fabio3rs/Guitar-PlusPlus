@@ -30,6 +30,12 @@ TEST(ChartStudioRuntime, RoundTripTempoOffsetChordsAndReferenceProtection) {
     ASSERT_EQ(reference.notes.size(), 2u);
     EXPECT_NEAR(reference.notes[0].time, 0, 1e-5);
     EXPECT_NEAR(reference.notes[0].duration, .5000005, 1e-5);
+    s.setAlignment(1.023, .7, "linear regression test");
+    ASSERT_NO_THROW(exportValidated(s.state, root / "aligned.chart", false));
+    const auto aligned = readReference(root / "aligned.chart");
+    EXPECT_NEAR(aligned.notes[0].time, .7 + .2500005 * 1.023, 1e-5);
+    EXPECT_NEAR(aligned.notes[0].duration, .5000005 * 1.023, 1e-5);
+    EXPECT_EQ(s.state.score.tempos[1].microseconds, 1000000);
     s.state.reference = (root / "out.chart").string();
     const auto before = fileHash(root / "out.chart");
     EXPECT_THROW(exportValidated(s.state, root / "out.chart", true),

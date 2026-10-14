@@ -454,4 +454,51 @@ TEST_F(ScoreTest, PersistedCacheCannotChangePhraseBoundaries) {
     }
 }
 
+TEST_F(ScoreTest, UmapsAreOptionalAndCannotOverrideLocksOrMismatchedInput) {
+    auto s = mapped();
+    Projection p;
+    p.identity = "test";
+    p.inputHash = s.state.inputHash;
+    p.difficulty = "expert";
+    p.track = 0;
+    std::map<std::string, std::vector<int>> rows;
+    for (const auto &e : s.state.events) {
+        rows[e.phrase].push_back(48);
+    }
+    for (const auto &e : s.state.events) {
+        p.positions[e.structural] = rows[e.phrase];
+    }
+    s.state.settings.algorithm = "umap:test";
+    EXPECT_THROW(s.run(), std::exception);
+    s.projection = p;
+    ASSERT_NO_THROW(s.run());
+    const auto calculated = masks(s.state);
+    s.run();
+    EXPECT_EQ(calculated, masks(s.state));
+    EXPECT_EQ(s.state.events.front().origin, "project-cache");
+    s.edit(s.state.events.front().note.id, 1, s.state.events.front().tick,
+           s.state.events.front().duration, true);
+    s.pattern(s.state.events.front().note.id, 2, true);
+    const auto locked = masks(s.state);
+    s.projection->identity = "another-seed";
+    for (auto &row : s.projection->positions) {
+        std::fill(row.second.begin(), row.second.end(), 0);
+    }
+    s.state.settings.algorithm = "umap:another-seed";
+    s.run();
+    EXPECT_EQ(locked, masks(s.state));
+    s.save(root / "umap.gppchartproj");
+    Session opened;
+    opened.openProject(root / "umap.gppchartproj");
+    EXPECT_THROW(opened.run(), std::exception);
+    opened.projection = s.projection;
+    opened.run();
+    EXPECT_EQ(locked, masks(opened.state));
+    opened.projection->inputHash = "wrong source";
+    EXPECT_THROW(opened.run(), std::exception);
+    EXPECT_EQ(locked, masks(opened.state));
+    s.projection->positions.begin()->second.clear();
+    EXPECT_THROW(s.run(), std::exception);
+}
+
 } // namespace

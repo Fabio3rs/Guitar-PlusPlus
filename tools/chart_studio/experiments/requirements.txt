@@ -1,0 +1,7 @@
+# Optional experiment environment used for this evaluation; never a runtime dependency.
+umap-learn==0.5.11
+numpy==2.4.4
+numba==0.64.0
+scikit-learn==1.8.0
+scipy==1.17.1
+pynndescent==0.6.0

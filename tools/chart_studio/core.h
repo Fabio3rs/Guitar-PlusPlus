@@ -95,7 +95,15 @@ struct Pattern {
         a(exact, structural, parameters, provenance, masks, status);
     }
 };
+struct TimingAlignment {
+    double scale = 1;
+    std::string evidence;
+    template <class A> void serialize(A &a) {
+        a(CEREAL_NVP(scale), CEREAL_NVP(evidence));
+    }
+};
 struct State {
+    TimingAlignment alignment;
     Score score;
     Settings settings;
     std::string input, inputHash, audio, reference;
@@ -110,6 +118,15 @@ struct State {
     }
 };
 
+// Optional, external UMAP artifact. No Python dependency in the CPU library.
+struct Projection {
+    std::string identity, inputHash, difficulty, metadata;
+    int track = -1, channel = -1, program = -1;
+    std::map<std::string, std::vector<int>> positions;
+};
+Projection readProjection(const fs::path &path);
+std::string experimentEvents(const State &state);
+
 std::string hash(const std::string &bytes);
 std::string fileHash(const fs::path &path);
 Score importMidi(const fs::path &path);
@@ -120,13 +137,17 @@ std::string canonical(const std::vector<Event> &events, size_t begin,
                       size_t count, const Score &score,
                       const Settings &settings, bool relative);
 void generate(State &state, const std::vector<Pattern> &library = {},
-              std::optional<std::pair<int64_t, int64_t>> region = {});
+              std::optional<std::pair<int64_t, int64_t>> region = {},
+              const Projection *projection = nullptr);
 // Negative minimumSustain encodes a beat limit (absolute value);
 // nonnegative values retain the original seconds policy and project format.
 int64_t exportDuration(const State &state, const Event &event);
 double exportDurationSeconds(const State &state, const Event &event);
 std::string chartText(const State &state);
 std::string report(const State &state);
+double audioSeconds(const State &state, int64_t tick);
+int64_t audioTick(const State &state, double time);
+int64_t exportMilliBpm(const State &state, const Tempo &tempo);
 void synchronize(State &state);
 void validate(const State &state);
 
@@ -146,6 +167,8 @@ class Session {
 
   public:
     State state;
+    std::optional<Projection>
+        projection; // Reload explicitly after opening a project.
     fs::path project;
     bool dirty = false;
     std::set<uint64_t> selection;
@@ -164,6 +187,7 @@ class Session {
     void recalculate(uint64_t id);
     void restore(int64_t begin, int64_t end);
     void clearExperimental();
+    void setAlignment(double scale, double offset, const std::string &evidence);
     bool undo();
     bool redo();
 };

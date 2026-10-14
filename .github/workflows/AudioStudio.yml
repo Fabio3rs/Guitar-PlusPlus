@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential clang-20 ninja-build xorg-dev libglew-dev libgl-dev libegl1-mesa-dev libpng-dev libgtest-dev xvfb xauth xdotool libgl1-mesa-dri python3 file unzip wget
+          sudo apt-get install -y build-essential cmake pkg-config clang-20 ninja-build xorg-dev libglew-dev libgl-dev libegl1-mesa-dev libpng-dev libsqlite3-dev libgtest-dev xvfb xauth xdotool libgl1-mesa-dri python3 file unzip wget
 
       # Download and setup Bass libraries
       - name: Setup Bass Libraries

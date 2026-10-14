@@ -1,3 +1,4 @@
+#include "alignment.h"
 #include "audio/audio.h"
 #include "core.h"
 #include "runtime.h"
@@ -8,13 +9,24 @@ int main(int argc, char **argv) try {
     using namespace ChartStudio;
     if (argc < 2 || std::string(argv[1]) == "--help") {
         std::cout
-            << "gpp_score_to_chart inspect MIDI\n"
+            << "gpp_score_to_chart align MIDI --audio AUDIO [--align "
+               "offset|linear|auto] --output FILE.json\n"
+               "  [--align-min-offset SEC --align-max-offset SEC]\n"
+               "  convert: [--audio AUDIO --align none|offset|linear|auto] "
+               "[--alignment FILE.json]\n"
+               "  [--alignment-candidate 0..2] (explicit acceptance of an "
+               "ambiguous candidate)\n"
+               "gpp_score_to_chart inspect MIDI\n"
+               "gpp_score_to_chart features MIDI --track N [--output "
+               "FILE.json]\n"
+               "gpp_score_to_chart events PROJECT [--output FILE.json]\n"
                "gpp_score_to_chart fft AUDIO --at SECONDS [--output "
                "FILE.json]\n"
                "gpp_score_to_chart convert MIDI --track N --output FILE.chart "
                "[--project FILE.gppchartproj]\n"
                "  [--difficulty expert|hard|medium|easy] [--algorithm "
-               "beam|heuristic] [--channel 0..15] [--program 0..127]\n"
+               "beam|heuristic|umap] [--projection FILE.json] [--channel "
+               "0..15] [--program 0..127]\n"
                "  [--offset-ms N] [--max-chord 1..3] [--density 0..1] "
                "[--minimum-sustain auto|SECONDS] [--sustain-beats BEATS]\n"
                "  [--cache LIBRARY.sqlite] [--no-structural] [--no-cache] "
@@ -38,6 +50,13 @@ int main(int argc, char **argv) try {
     const std::set<std::string> switches{"--replace", "--no-cache",
                                          "--no-structural"};
     const std::set<std::string> values{"--at",
+                                       "--audio",
+                                       "--align",
+                                       "--alignment",
+                                       "--alignment-candidate",
+                                       "--align-min-offset",
+                                       "--align-max-offset",
+                                       "--projection",
                                        "--track",
                                        "--output",
                                        "--project",
@@ -109,6 +128,63 @@ int main(int argc, char **argv) try {
     };
     if (positional.empty()) {
         throw std::runtime_error("Missing input path");
+    }
+    auto alignmentSettings = [&] {
+        AlignmentSettings settings;
+        settings.mode = get("--align", "auto");
+        settings.minimumOffset = number("--align-min-offset", -15);
+        settings.maximumOffset = number("--align-max-offset", 30);
+        settings.validate();
+        return settings;
+    };
+    if (command == "align") {
+        if (!options.count("--audio")) {
+            throw std::runtime_error("Alignment requires --audio");
+        }
+        Session source;
+        source.openMidi(fs::u8path(positional[0]));
+        gpp::audio::DeviceSettings device;
+        device.device = 0;
+        gpp::audio::BassSystem audio(device);
+        const auto result = analyzeAlignment(
+            source.state, fs::u8path(get("--audio")), alignmentSettings());
+        const auto json = alignmentJson(result);
+        if (options.count("--output")) {
+            protectDestination(
+                fs::u8path(get("--output")),
+                {fs::u8path(positional[0]), fs::u8path(get("--audio"))});
+            safeWrite(fs::u8path(get("--output")), json,
+                      options.count("--replace"));
+        }
+        std::cout << json << '\n';
+        return 0; // Analysis reports uncertainty; it never applies a candidate.
+    }
+    if (command == "features" || command == "events") {
+        Session session;
+        if (command == "features") {
+            session.openMidi(fs::u8path(positional[0]));
+            auto &settings = session.state.settings;
+            settings.track = int(integer("--track", -1));
+            settings.channel = int(integer("--channel", -1));
+            settings.program = int(integer("--program", -1));
+            settings.difficulty = get("--difficulty", "expert");
+            session.run();
+        } else {
+            session.openProject(fs::u8path(positional[0]));
+        }
+        const auto output = experimentEvents(session.state);
+        if (options.count("--output")) {
+            protectDestination(fs::u8path(get("--output")),
+                               {fs::u8path(positional[0]),
+                                fs::u8path(session.state.input),
+                                fs::u8path(session.state.audio),
+                                fs::u8path(session.state.reference)});
+            safeWrite(fs::u8path(get("--output")), output,
+                      options.count("--replace"));
+        } else {
+            std::cout << output;
+        }
+        return 0;
     }
     if (command == "fft") {
         gpp::audio::DeviceSettings device;
@@ -245,10 +321,16 @@ int main(int argc, char **argv) try {
     const auto source = fs::u8path(positional[0]);
     const auto library = fs::u8path(get("--cache"));
     const auto reportPath = fs::u8path(get("--report"));
-    protectDestination(output, {source, project, library, reportPath});
-    protectDestination(project, {source, library, reportPath});
+    protectDestination(output, {source, project, library, reportPath,
+                                fs::u8path(get("--audio")),
+                                fs::u8path(get("--alignment"))});
+    protectDestination(project,
+                       {source, library, reportPath, fs::u8path(get("--audio")),
+                        fs::u8path(get("--alignment"))});
     if (!reportPath.empty()) {
-        protectDestination(reportPath, {source, library});
+        protectDestination(reportPath,
+                           {source, library, fs::u8path(get("--audio")),
+                            fs::u8path(get("--alignment"))});
     }
     if (fs::exists(project)) {
         session.openProject(project);
@@ -304,6 +386,105 @@ int main(int argc, char **argv) try {
         if (region->first < 0 || region->second <= region->first) {
             throw std::runtime_error("Invalid region");
         }
+    }
+    if (options.count("--projection")) {
+        session.projection = readProjection(fs::u8path(get("--projection")));
+        if (s.algorithm != "umap" && s.algorithm.rfind("umap:", 0) != 0) {
+            throw std::runtime_error("Projection requires --algorithm umap");
+        }
+        s.algorithm = "umap:" + session.projection->identity;
+        protectDestination(output, {fs::u8path(get("--projection"))});
+        protectDestination(project, {fs::u8path(get("--projection"))});
+        if (!reportPath.empty()) {
+            protectDestination(reportPath, {fs::u8path(get("--projection"))});
+        }
+    }
+    if (options.count("--audio")) {
+        if (!fs::is_regular_file(fs::u8path(get("--audio")))) {
+            throw std::runtime_error("Missing audio file");
+        }
+        session.state.audio =
+            fs::absolute(fs::u8path(get("--audio"))).u8string();
+    }
+    protectDestination(project, {fs::u8path(session.state.audio),
+                                 fs::u8path(session.state.reference)});
+    if (!reportPath.empty()) {
+        protectDestination(reportPath, {fs::u8path(session.state.audio),
+                                        fs::u8path(session.state.reference)});
+    }
+    if (options.count("--alignment-candidate") &&
+        !options.count("--alignment") && !options.count("--align")) {
+        throw std::runtime_error("Candidate selection requires an alignment");
+    }
+    if (options.count("--align") && get("--align") == "none") {
+        if (options.count("--alignment") ||
+            options.count("--alignment-candidate")) {
+            throw std::runtime_error(
+                "--align none conflicts with alignment artifact/candidate");
+        }
+        session.setAlignment(1, number("--offset-ms") / 1000, "");
+    } else if (options.count("--alignment") || options.count("--align")) {
+        if (options.count("--offset-ms")) {
+            throw std::runtime_error(
+                "Use alignment offset or --offset-ms, not both");
+        }
+        AlignmentResult result;
+        if (options.count("--alignment")) {
+            if (options.count("--align")) {
+                throw std::runtime_error(
+                    "Choose analysis or a saved alignment artifact");
+            }
+            result = readAlignment(fs::u8path(get("--alignment")));
+            if (session.state.audio.empty()) {
+                session.state.audio = result.audioPath;
+            }
+            if (fileHash(fs::u8path(session.state.audio)) != result.audioHash) {
+                throw std::runtime_error(
+                    "Alignment belongs to another audio file");
+            }
+        } else {
+            if (session.state.audio.empty()) {
+                throw std::runtime_error(
+                    "Alignment requires --audio or project audio");
+            }
+            gpp::audio::DeviceSettings device;
+            device.device = 0;
+            gpp::audio::BassSystem audio(device);
+            result =
+                analyzeAlignment(session.state, fs::u8path(session.state.audio),
+                                 alignmentSettings());
+        }
+        protectDestination(project, {fs::u8path(session.state.audio)});
+        if (!reportPath.empty()) {
+            protectDestination(reportPath, {fs::u8path(session.state.audio)});
+        }
+        if (!result.reliable && !options.count("--alignment-candidate")) {
+            const auto json = alignmentJson(result);
+            if (!reportPath.empty()) {
+                safeWrite(reportPath, json, options.count("--replace"));
+            }
+            std::cout << json << '\n';
+            std::cerr << "Alignment needs review; no chart/project written. "
+                         "Use align to save candidates, then --alignment FILE "
+                         "--alignment-candidate N to accept.\n";
+            return 4;
+        }
+        const auto candidate = integer("--alignment-candidate", 0);
+        if (candidate < 0) {
+            throw std::runtime_error("Invalid alignment candidate");
+        }
+        applyAlignment(session, result, size_t(candidate));
+        if (alignmentSilence(result, size_t(candidate)) > 0) {
+            std::cerr << "Warning: suggested initial audio silence: "
+                      << alignmentSilence(result, size_t(candidate))
+                      << " seconds. Audio is unchanged.\n";
+        }
+    }
+    protectDestination(project, {fs::u8path(session.state.audio),
+                                 fs::u8path(session.state.reference)});
+    if (!reportPath.empty()) {
+        protectDestination(reportPath, {fs::u8path(session.state.audio),
+                                        fs::u8path(session.state.reference)});
     }
     session.run(loadLibrary(fs::u8path(get("--cache"))), region);
     exportValidated(session.state, output, options.count("--replace"));

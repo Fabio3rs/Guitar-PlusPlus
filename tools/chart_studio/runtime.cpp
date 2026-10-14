@@ -124,7 +124,7 @@ void exportValidated(const State &state, const fs::path &path, bool replace) {
             time += double(tempo.tick - previous) * 60000.0 /
                     (state.score.ppq * double(bpm));
             previous = tempo.tick;
-            bpm = (60000000000LL + tempo.microseconds / 2) / tempo.microseconds;
+            bpm = exportMilliBpm(state, tempo);
         }
         return time + double(tick - previous) * 60000.0 /
                           (state.score.ppq * double(bpm));

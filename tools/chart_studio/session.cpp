@@ -31,6 +31,17 @@ void capturePattern(State &state, const Event &selected, int status) {
 }
 } // namespace
 
+void Session::setAlignment(double scale, double offset,
+                           const std::string &evidence) {
+    auto next = state;
+    next.alignment = {scale, evidence};
+    next.settings.offset = offset;
+    validate(next);
+    synchronize(next);
+    checkpoint();
+    state = std::move(next);
+}
+
 void Session::checkpoint() {
     past_.push_back(state);
     if (past_.size() > 64) {
@@ -46,6 +57,7 @@ void Session::openMidi(const fs::path &path) {
     next.input = fs::absolute(path).u8string();
     next.inputHash = fileHash(path);
     state = std::move(next);
+    projection.reset();
     project.clear();
     savedHash_.clear();
     past_.clear();
@@ -58,6 +70,7 @@ void Session::openProject(const fs::path &path) {
     auto next = loadProject(path);
     auto saved = fileHash(path);
     state = std::move(next);
+    projection.reset();
     project = fs::absolute(path);
     savedHash_ = std::move(saved);
     past_.clear();
@@ -89,7 +102,7 @@ void Session::run(const std::vector<Pattern> &library,
             "Source MIDI changed; reopen it explicitly before regeneration");
     }
     auto next = state;
-    generate(next, library, region);
+    generate(next, library, region, projection ? &*projection : nullptr);
     checkpoint();
     state = std::move(next);
 }
@@ -274,7 +287,7 @@ void Session::recalculate(uint64_t id) {
             end = std::max(end, event.tick + 1);
         }
     }
-    generate(next, {}, {{begin, end}});
+    generate(next, {}, {{begin, end}}, projection ? &*projection : nullptr);
     next.settings.reuse = reuse;
     checkpoint();
     state = std::move(next);

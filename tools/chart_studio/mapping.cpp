@@ -91,8 +91,8 @@ int64_t transition(int before, int after, int delta, const Settings &s) {
     return cost;
 }
 std::vector<Candidate> optimize(const std::vector<Event> &events,
-                                const Phrase &phrase,
-                                const Settings &settings) {
+                                const Phrase &phrase, const Settings &settings,
+                                const Projection *projection) {
     std::vector<Candidate> beam(1);
     int low = 127, high = 0;
     for (size_t k = 0; k < phrase.count; ++k) {
@@ -116,7 +116,10 @@ std::vector<Candidate> optimize(const std::vector<Event> &events,
                 // Phrase-relative contour reference, not a global pitch-to-lane
                 // dictionary.
                 const int expected =
-                    high == low
+                    projection
+                        ? projection->positions.at(phrase.structural).at(k) *
+                              (laneLimit(settings) - 1) / 4
+                    : high == low
                         ? 12
                         : (pitch(event) - low) *
                               ((laneLimit(settings) - 1) * 12) / (high - low);
@@ -219,7 +222,8 @@ std::vector<Phrase> segment(const std::vector<Event> &events,
 } // namespace
 
 void generate(State &state, const std::vector<Pattern> &library,
-              std::optional<std::pair<int64_t, int64_t>> region) {
+              std::optional<std::pair<int64_t, int64_t>> region,
+              const Projection *projection) {
     state.settings.validate();
     state.score.validate();
     const auto &settings = state.settings;
@@ -286,6 +290,37 @@ void generate(State &state, const std::vector<Pattern> &library,
         events.push_back(std::move(event));
     }
     auto phrases = segment(events, state.score, settings);
+    const bool experimental = settings.algorithm == "umap" ||
+                              settings.algorithm.rfind("umap:", 0) == 0;
+    if (experimental) {
+        if (!projection ||
+            settings.algorithm != "umap:" + projection->identity ||
+            projection->inputHash != state.inputHash ||
+            projection->track != settings.track ||
+            projection->channel != settings.channel ||
+            projection->program != settings.program ||
+            projection->difficulty != settings.difficulty) {
+            throw std::runtime_error(
+                "UMAP requires the matching projection artifact for this input "
+                "and source selection");
+        }
+        for (const auto &phrase : phrases) {
+            const auto found = projection->positions.find(phrase.structural);
+            if (found == projection->positions.end() ||
+                found->second.size() != phrase.count) {
+                throw std::runtime_error(
+                    "UMAP projection does not cover the musical phrases");
+            }
+            for (int position : found->second) {
+                if (position < 0 || position > 48) {
+                    throw std::runtime_error("Invalid UMAP lane target");
+                }
+            }
+        }
+    } else {
+        projection = nullptr;
+    }
+
     std::map<std::string, std::vector<size_t>> groups;
     for (size_t p = 0; p < phrases.size(); ++p) {
         groups[settings.structural ? phrases[p].structural : phrases[p].exact]
@@ -297,7 +332,10 @@ void generate(State &state, const std::vector<Pattern> &library,
         const auto &representative = phrases[group.second.front()];
         std::optional<Pattern> chosen;
         int priority = 100;
-        std::string origin = "algorithm", reason = "new deterministic pattern";
+        std::string origin = "algorithm";
+        std::string reason = experimental
+                                 ? "UMAP target with deterministic beam"
+                                 : "new deterministic pattern";
         auto offer = [&](const Pattern &pattern, int rank,
                          const std::string &from, const std::string &why) {
             if (!compatible(pattern, representative.count, settings)) {
@@ -370,7 +408,8 @@ void generate(State &state, const std::vector<Pattern> &library,
             }
         }
         if (!chosen) {
-            auto candidates = optimize(events, representative, settings);
+            auto candidates =
+                optimize(events, representative, settings, projection);
             // Aggregate fixed-neighbor transitions over ALL occurrences before
             // selecting the shared pattern.
             for (auto &candidate : candidates) {
@@ -464,7 +503,8 @@ void generate(State &state, const std::vector<Pattern> &library,
                 if (fixed) {
                     continue;
                 }
-                auto candidates = optimize(events, representative, settings);
+                auto candidates =
+                    optimize(events, representative, settings, projection);
                 for (auto &candidate : candidates) {
                     candidate.cost *= int64_t(group.second.size());
                     for (size_t p : group.second) {

@@ -2,6 +2,7 @@
 #include "MidiInput.h"
 #include <MidiFile.h>
 #include <algorithm>
+#include <cereal/external/rapidjson/document.h>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -215,7 +216,8 @@ void Settings::validate() const {
     require(difficulty == "expert" || difficulty == "hard" ||
                 difficulty == "medium" || difficulty == "easy",
             "Unknown difficulty");
-    require(algorithm == "beam" || algorithm == "heuristic",
+    require(algorithm == "beam" || algorithm == "heuristic" ||
+                algorithm == "umap" || algorithm.rfind("umap:", 0) == 0,
             "Unknown algorithm");
     require(channel >= -1 && channel <= 15 && program >= -1 && program <= 127 &&
                 maxChord >= 1 && maxChord <= 3 && beam >= 1 && beam <= 256,
@@ -327,6 +329,7 @@ std::string encode(const State &state) {
     {
         cereal::JSONOutputArchive archive(out);
         archive(state);
+        archive(cereal::make_nvp("alignment", state.alignment));
     }
     return out.str();
 }
@@ -337,9 +340,30 @@ State decode(const std::string &text) {
     {
         cereal::JSONInputArchive archive(input);
         archive(state);
+        rapidjson::Document document;
+        document.Parse(text.c_str());
+        if (!document.HasParseError() && document.IsObject() &&
+            document.HasMember("alignment")) {
+            archive(cereal::make_nvp("alignment", state.alignment));
+        }
     }
     validate(state);
     return state;
+}
+
+double audioSeconds(const State &state, int64_t tick) {
+    return state.alignment.scale * state.score.seconds(tick) +
+           state.settings.offset;
+}
+
+int64_t audioTick(const State &state, double time) {
+    return state.score.ticks(
+        std::max(0.0, (time - state.settings.offset) / state.alignment.scale));
+}
+
+int64_t exportMilliBpm(const State &state, const Tempo &tempo) {
+    return std::llround(60000000000.0 /
+                        (tempo.microseconds * state.alignment.scale));
 }
 
 void synchronize(State &state) {
@@ -348,10 +372,9 @@ void synchronize(State &state) {
                     event.duration <= INT32_MAX &&
                     event.tick <= INT32_MAX - event.duration,
                 "Mapped event exceeds MIDI tick range");
-        event.note.time =
-            state.score.seconds(event.tick) + state.settings.offset;
-        event.note.duration = state.score.seconds(event.tick + event.duration) -
-                              state.score.seconds(event.tick);
+        event.note.time = audioSeconds(state, event.tick);
+        event.note.duration = audioSeconds(state, event.tick + event.duration) -
+                              audioSeconds(state, event.tick);
     }
     std::stable_sort(state.events.begin(), state.events.end(),
                      [](const Event &a, const Event &b) {
@@ -363,6 +386,9 @@ void synchronize(State &state) {
 void validate(const State &state) {
     state.score.validate();
     state.settings.validate();
+    require(std::isfinite(state.alignment.scale) &&
+                state.alignment.scale >= .5 && state.alignment.scale <= 2,
+            "Invalid alignment scale");
     std::set<uint64_t> ids;
     for (const auto &e : state.events) {
         require(
@@ -437,6 +463,8 @@ std::string report(const State &state) {
         << ",\"chord_reductions\":" << simplified
         << ",\"sustain_duration_losses\":" << sustainLosses
         << ",\"short_sustains_removed\":" << shortSustains
+        << ",\"alignment_scale\":" << state.alignment.scale
+        << ",\"offset_seconds\":" << state.settings.offset
         << ",\"conflicts\":" << state.conflicts.size()
         << ",\"average_attacks_per_second\":"
         << (end > 0 ? static_cast<double>(attacks) / end : 0)

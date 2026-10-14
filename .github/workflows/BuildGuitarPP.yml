@@ -4,25 +4,33 @@ on:
   push:
     branches:
       - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   Testing_Code_Quality:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     env:
       CC: clang-20
       CXX: clang++-20
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
     steps:
       # Checkout
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
       #instalando dependencias das libraries
       - name: Installing Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake clang-20 clang-tidy-20 clang-format-20 ninja-build xorg-dev libglew-dev libgl-dev libxrandr-dev libxinerama-dev libgtest-dev libsqlite3-dev libpng-dev xdotool xvfb xauth libgl1-mesa-dri file unzip wget
+          sudo apt-get install -y build-essential cmake pkg-config python3 python3-venv clang-20 clang-tidy-20 clang-format-20 ninja-build xorg-dev libglew-dev libgl-dev libxrandr-dev libxinerama-dev libgtest-dev libsqlite3-dev libpng-dev imagemagick xdotool xvfb xauth libgl1-mesa-dri file unzip wget
           clang-20 --version
 
       # Download and setup Bass libraries
@@ -53,13 +61,35 @@ jobs:
         with:
           cmake-version: '3.30.x'
 
+      # Python remains optional for users; CI exercises the experimental path too.
+      - name: Install optional UMAP experiment dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/gpp-umap-venv"
+          "$RUNNER_TEMP/gpp-umap-venv/bin/python" -m pip install -r tools/chart_studio/experiments/requirements.txt
+          "$RUNNER_TEMP/gpp-umap-venv/bin/python" -m pip check
+          "$RUNNER_TEMP/gpp-umap-venv/bin/python" -c 'import umap, numpy, numba, scipy, sklearn, pynndescent'
+
       - name: Build project
         run: |
-          mkdir build && cd build
-          cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGPP_NATIVE_CPU=OFF -DBUILD_CHART_STUDIO=ON -DBUILD_TESTING=ON
-          cmake --build . --config Debug --target all -j $(nproc) --
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGPP_NATIVE_CPU=OFF \
+            -DBUILD_CHART_STUDIO=ON -DBUILD_TESTING=ON \
+            -DBUILD_CHART_STUDIO_UMAP_TESTS=ON \
+            -DCHART_STUDIO_UMAP_PYTHON="$RUNNER_TEMP/gpp-umap-venv/bin/python"
+          cmake --build build --parallel 2
 
       - name: Test project
         run: |
           cd build
           ctest -j 20 -C Debug -T test --output-on-failure
+
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guitarpp-chart-studio-tests
+          path: |
+            build/Testing/Temporary/
+            build/chart-studio/cli-tests/
+            build/chart-studio/ui-tests/
+            build/chart-studio/alignment-tests/
+          if-no-files-found: warn

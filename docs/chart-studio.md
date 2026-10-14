@@ -5,10 +5,15 @@ cinco lanes, corrigir frases e guardar decisões em SQLite. O objetivo musical �
 um chart razoável e consistente, com estilo próprio; igualdade com lanes de um
 chart profissional não é uma medida de qualidade.
 
+Há um [experimento opcional com UMAP](chart-studio-umap.md) para projetar contexto
+musical em alvos de cinco lanes, preservando a busca e a precedência do cache.
+O algoritmo padrão continua sendo `beam`.
+
 ## Build e execução
 
 Requer as dependências habituais do jogo, ImGui existente e libpng. Para os testes
-de interface em Linux, instale Xvfb e xdotool. `BUILD_CHART_STUDIO` fica OFF por padrão.
+de interface em Linux, instale Xvfb e xdotool. ImageMagick é opcional para capturas
+de diagnóstico (instalado no CI). `BUILD_CHART_STUDIO` fica OFF por padrão.
 
 ```sh
 cmake -S . -B build -G Ninja -DBUILD_CHART_STUDIO=ON -DBUILD_TESTING=ON -DGPP_NATIVE_CPU=OFF
@@ -19,29 +24,53 @@ ctest --test-dir build -R '^chart_studio' --output-on-failure
 ```
 
 A GUI usa GLFW/OpenGL 2.0 e GLSL 1.10, com configuração própria em
-`chart-studio/layout.ini`; `--output-dir DIR` altera esse diretório. Não precisa
+`chart-studio/layout-docking.ini`; `--output-dir DIR` altera esse diretório. Não precisa
 abrir o jogo, inicializar `GPPGame` ou carregar seus modelos/texturas. A CLI não
 cria janela nem contexto GL. `gpp_score_tests` nem sequer linka bibliotecas gráficas.
 
 ## Fluxo de uso
 
-1. Abra MIDI ou `.gppchartproj` pelo campo de caminho. Escolha explicitamente a
-   pista e, para Type 0 ambíguo, canal/programa. Índices são **zero-based**.
-2. Inspecione os detalhes da pista. Generate usa beam search determinística;
-   a heurística gulosa está disponível para comparação. Ajuste os seis pesos.
-3. Na timeline, roda do mouse faz zoom e arrasto com botão central navega.
-   Clique no ataque para destacar as fontes musicais. Arrasto move a nota;
-   Shift+arrasto ajusta sustain. Ctrl+clique adiciona à seleção.
-4. Teclas 1–5 alteram lanes da nota selecionada. Use o painel para ticks/sustain,
-   copiar/colar, inserir/excluir, confirmar, bloquear, desbloquear ou recalcular.
-   “Apply to equivalent occurrences” torna a correção compartilhada explicitamente.
-5. Ctrl+L bloqueia a frase; Ctrl+G regenera preservando intervenções manuais e
-   bloqueios. Ctrl+Z/Y desfaz/refaz; Ctrl+S salva; Ctrl+E exporta; Ctrl+Q fecha.
-6. Carregue referência `.chart`, `.gpp` ou MIDI de **gameplay** separadamente.
-   A referência é somente leitura e usa a mesma escala temporal.
-7. Áudio é opcional. Play/Pause/Stop usam BASS quando carregado e relógio monotônico
-   sem áudio. Loop usa os limites em ticks do painel. O offset global é expresso
-   em milissegundos; marcas manuais são apenas referências visuais.
+1. Em **Files**, clique em **Browse...**, navegue pelas pastas e selecione um
+   `.mid`/`.midi`. **Use this path** preenche o campo; **Open MIDI / project**
+   carrega o arquivo. O mesmo fluxo abre `.gppchartproj`. A mensagem central informa
+   quantas pistas foram carregadas e qual é o próximo passo.
+2. Em **Tracks**, escolha explicitamente a pista. Para Type 0 com vários
+   instrumentos, use os filtros canal/programa em **Mapping** (índices a partir
+   de zero; `-1` inclui todos). Abrir MIDI e selecionar pista não geram notas.
+3. Clique em **Generate chart** na timeline ou em **Mapping**. Comece com Expert
+   e Beam search. Ajustes de pesos/densidade valem para a próxima geração;
+   decisões confirmadas/bloqueadas continuam sendo reutilizadas.
+4. Na timeline, roda do mouse faz zoom e arrasto com botão central navega.
+   Clique no ataque para destacar suas fontes. Arrasto move a nota;
+   Shift+arrasto ajusta sustain; Ctrl+clique adiciona à seleção.
+5. Em **Edit and patterns**, as lanes têm nomes e cores. Início e sustain podem
+   ser editados em segundos ou, opcionalmente, ticks. Os campos editam a primeira
+   nota selecionada; Copy/Delete usam a seleção. Confirm/Lock ensinam a frase.
+   **Apply to equivalent occurrences** compartilha a correção explicitamente.
+6. Para regenerar um trecho, posicione o cursor e use **Set start/end at cursor**
+   em Mapping. Os limites aparecem em segundos, com ticks disponíveis em detalhes.
+7. Em **Files**, confira os destinos e use **Save project** para guardar a edição
+   e **Export .chart** para criar o arquivo jogável. São arquivos diferentes.
+   Um MIDI novo sugere nomes derivados da música, no diretório de saída do studio.
+   A substituição de export existente exige habilitar a opção correspondente.
+8. Áudio e referência são opcionais. Carregue uma referência `.chart`, `.gpp` ou
+   MIDI de **gameplay** em Files para comparação somente leitura. Play/Pause/Stop
+   usam BASS com áudio carregado e relógio monotônico sem áudio. **Audio alignment**
+   separa Analyze, Preview e Apply; o botão **?** explica candidatos e confiança.
+
+Os botões **?** abrem um manual modal por assunto. **Help / workflow** abre o guia
+inicial. Arraste as abas para encaixar, agrupar ou soltar painéis dentro da janela;
+**Panels** reabre painéis fechados e **Reset layout** restaura a organização inicial.
+O layout é salvo em arquivo próprio, sem dependência de ImGui no runtime.
+
+Atalhos opcionais: Ctrl+L bloqueia frase; Ctrl+G gera; Ctrl+Z/Y desfaz/refaz;
+Ctrl+S salva; Ctrl+E exporta; Ctrl+C/V copia/cola; Ctrl+Q fecha. Teclas 1–5 alternam
+as lanes da nota selecionada. A interface permite o fluxo principal sem terminal;
+o experimento UMAP ainda exige preparar externamente seu arquivo de projeção.
+
+O navegador é não recursivo, filtra por extensão e nome, permite subir de pasta,
+atualizar a lista e digitar caminhos (inclusive unidades no Windows). Ele apenas
+seleciona caminhos: não sobrescreve nem carrega arquivos ao navegar.
 
 A inspeção FFT reutiliza `gpp::audio::analyze` do Audio Studio. O botão analisa
 uma janela de 200 ms na posição de playback, FFT de 8192 amostras, sem sintetizar
@@ -53,8 +82,8 @@ e harmônicos podem parecer outras notas. Não modifica BPM, offset nem lanes.
   --at 60 --output build/chart-studio/paramore-fft.json
 ```
 
-Diferenças de offset entre MIDI e gravação são toleradas nesta fase. Alinhamento
-automático, DTW e inferência de instrumentos a partir da mixagem ficam para depois.
+O [alinhamento MIDI/áudio](chart-studio-alignment.md) oferece offset e escala global.
+DTW e inferência de instrumentos a partir da mixagem continuam pendentes.
 
 ## CLI e memória persistente
 
@@ -205,3 +234,7 @@ negativos continuam em segundos. Não houve alteração da estrutura serializada
 
 A comparação detalhada, os problemas encontrados e os resultados das ferramentas
 estão em [chart-studio-review.md](chart-studio-review.md).
+
+O [alinhamento MIDI–áudio](chart-studio-alignment.md) oferece busca de offset e
+escala global em CLI/GUI, diagnóstico de ambiguidade, preview, aplicação com
+undo/redo e exportação do SyncTrack corrigido. Não altera o áudio nem o cache de lanes.
