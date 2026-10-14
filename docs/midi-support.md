@@ -25,7 +25,7 @@ A comparação de nomes ignora maiúsculas/minúsculas e empates usam a ordem le
 | Informação | Interpretação |
 | --- | --- |
 | Contêiner | SMF Type 0 e Type 1, divisão PPQ positiva |
-| Instrumentos | `PART GUITAR` e alias GH antigo `T1 GEMS` → `Single`; `PART BASS` → `DoubleBass` |
+| Instrumentos | `PART GUITAR` e alias GH antigo `T1 GEMS` → `Single`; `PART BASS` → `DoubleBass`; `PART RHYTHM` → `DoubleRhythm`; `PART GUITAR COOP` → `DoubleGuitar`; `PART KEYS` → `Keyboard` |
 | Dificuldades | Easy, Medium, Hard, Expert: bases 60, 72, 84, 96 |
 | Pistas | Base + 0…4: verde, vermelho, amarelo, azul, laranja |
 | Acordes | Notas com o mesmo tick viram um ataque com máscara de pistas |
@@ -80,7 +80,7 @@ python3 tools/chart_evidence.py formats build/bin/gpp_dump_chart build/comparaca
 ctest --test-dir build --output-on-failure -R 'midi_core|SongLoading|Chart'
 ```
 
-`inspect` exporta todas as dificuldades reconhecidas; arquivos MIDI sem guitarra/baixo são reconhecidos, mas não oferecem uma parte jogável. `formats` compara `.chart` com `notes.mid` e `notes.mid` com `original.mid`. A tolerância padrão é 1 ms, ajustável por `--tolerance`. O relatório compara instrumentos, ataques, pistas, acordes, HOPOs, taps, sustains agregados e por pista, Plus, seções, tempos e duração estimada até o último fim de nota. Inserções não deslocam toda a comparação subsequente.
+`inspect` exporta todas as dificuldades reconhecidas; arquivos MIDI sem partes compatíveis de cinco lanes são reconhecidos, mas não oferecem uma parte jogável. `formats` compara `.chart` com `notes.mid` e `notes.mid` com `original.mid`. A tolerância padrão é 1 ms, ajustável por `--tolerance`. O relatório compara instrumentos, ataques, pistas, acordes, HOPOs, taps, sustains agregados e por pista, Plus, seções, tempos e duração estimada até o último fim de nota. Inserções não deslocam toda a comparação subsequente.
 
 O diretório de evidências deve ser novo. O script verifica hashes dos arquivos antes/depois. A varredura recursiva ocorre somente nessa ferramenta manual quando recebe uma pasta; não integra a descoberta runtime nem o CTest. Os modos históricos `capture` e `compare` mantêm snapshots exatos de `.chart`/`.gpp`.
 
@@ -88,9 +88,28 @@ Os testes MIDI geram SMFs sintéticos e não dependem de músicas, áudio ou con
 
 ## Limites e continuidade
 
-Bateria, voz, teclados, GHL/seis pistas, pro guitar, coop/rhythm, BRE, trills/tremolos e animações não são convertidos em gameplay. Trilhas continuam identificáveis e textos relevantes são conservados. Não há reprodução MIDI, exportação MIDI, migração do editor ou descoberta recursiva runtime. A interpretação de 104 e 103 é uma política de importação documentada, não detecção infalível da origem do arquivo.
+Bateria, voz, teclado Pro (`PART REAL_KEYS_*`), GHL/seis pistas, pro guitar/bass, BRE, trills/tremolos e animações não são convertidos em gameplay. Trilhas continuam identificáveis e textos relevantes são conservados. Não há reprodução MIDI, exportação MIDI, migração do editor ou descoberta recursiva runtime. A interpretação de 104 e 103 é uma política de importação documentada, não detecção infalível da origem do arquivo.
 
 Próximos passos: integrar instrumentos/dificuldades à futura interface; validar interativamente input, áudio e Plus com Mindflow; tratar sustains independentes por pista se o gameplay passar a representá-los; corrigir separadamente os casos históricos de `.chart` apontados pela comparação, com uma decisão explícita de compatibilidade.
+
+## TODO: reconhecimento vocal sem gameplay
+
+Não implementar gameplay vocal nesta etapa. Atualmente `MidiChart::trackNames`
+preserva os nomes `PART VOCALS`, `HARM1`, `HARM2` e `HARM3`, e eventos de texto
+continuam disponíveis para diagnóstico. Isso identifica a presença das trilhas,
+mas não equivale a interpretar semanticamente um chart vocal.
+
+Em uma etapa futura, expor capacidades vocais separadas da lista de instrumentos
+jogáveis e, se necessário, importar alturas, letras, limites de frases e marcadores
+de voz falada para uma representação própria. Não transformar pitches vocais em
+cinco lanes, nem inserir essas partes em `gNotes`/`gPlus` do jogador de guitarra.
+Testar vocais sem instrumentos, harmonias independentes e marcadores específicos
+antes de habilitar a interpretação. A UI deve indicar "presente, não jogável".
+
+Inventário local de 2026-10-14: entre 157 arquivos MIDI de `build/bin/data/songs`,
+71 contêm `PART VOCALS`, 62 contêm `HARM1`, 62 contêm `HARM2` e 43 contêm `HARM3`.
+São contagens de arquivos com essas trilhas, não garantia de conteúdo completo ou
+de músicas únicas. Nenhum arquivo musical foi modificado por esta revisão.
 
 ## Referências de convenções
 
@@ -99,3 +118,8 @@ Próximos passos: integrar instrumentos/dificuldades à futura interface; valida
 - [Cálculo comunitário de HOPO em scan-chart](https://github.com/Geomitron/scan-chart/blob/master/src/chart/natural-hopo.ts)
 - [Loader de músicas do FoFiX](https://github.com/fofix/fofix/blob/master/fofix/game/song/song.py)
 - [midifile](https://github.com/craigsapp/midifile/tree/98917df5b1bf0d6e8d4c0e5fff86d6b05343e793)
+
+Rhythm, Co-op e Keys de cinco lanes usam o mesmo adaptador CPU das partes de
+guitarra/baixo, incluindo as quatro dificuldades, sustains, modificadores e Plus.
+Cada parte permanece independente; uma parte ausente não é substituída por outra.
+Esta ampliação não altera julgamento, clocks, energia Plus ou seleção de stems.

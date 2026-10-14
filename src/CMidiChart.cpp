@@ -1,6 +1,6 @@
 #include "CMidiChart.h"
-#include "MidiInput.h"
 #include "ChartHopo.h"
+#include "MidiInput.h"
 #include <MidiFile.h>
 #include <algorithm>
 #include <array>
@@ -37,7 +37,6 @@ void require(bool condition, const char *message) {
         throw std::runtime_error(message);
     }
 }
-
 
 std::map<std::string, std::string>
 readIni(const std::filesystem::path &directory) {
@@ -97,6 +96,15 @@ std::string instrumentName(const std::string &name) {
     }
     if (name == "part bass") {
         return "DoubleBass";
+    }
+    if (name == "part rhythm") {
+        return "DoubleRhythm";
+    }
+    if (name == "part guitar coop") {
+        return "DoubleGuitar";
+    }
+    if (name == "part keys") {
+        return "Keyboard";
     }
     return {};
 }
@@ -506,7 +514,7 @@ bool readMidiChart(const std::filesystem::path &path, MidiChart &result,
     }
     if (loaded.instruments.empty()) {
         loaded.source.warnings.push_back(
-            "No supported five-fret guitar/bass notes");
+            "No supported five-lane instrument notes");
     }
     result = std::move(loaded);
     return true;

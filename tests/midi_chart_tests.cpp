@@ -1,5 +1,6 @@
 #include "CMidiChart.h"
 #include "MidiFixture.h"
+#include <array>
 #include <gtest/gtest.h>
 
 namespace {
@@ -46,6 +47,61 @@ TEST_F(MidiChartTest, TypeOneFindsAllDifficultiesAndBassWithoutAudio) {
     EXPECT_DOUBLE_EQ(expert().notes[0].time, 0.5);
     EXPECT_EQ(expert().notes[0].type & 31, nf_green);
     EXPECT_EQ(chart.source.ppq, 480);
+}
+
+TEST_F(MidiChartTest, FiveLaneRolesRemainSeparateAcrossDifficulties) {
+    const std::array<const char *, 5> names{"PART GUITAR", "PART BASS",
+                                            "PART RHYTHM", "PART GUITAR COOP",
+                                            "part keys"};
+    const std::array<const char *, 5> suffixes{
+        "Single", "DoubleBass", "DoubleRhythm", "DoubleGuitar", "Keyboard"};
+    const std::array<const char *, 4> difficulties{"Easy", "Medium", "Hard",
+                                                   "Expert"};
+    std::vector<Track> tracks;
+    for (size_t role = 0; role < names.size(); ++role) {
+        Track track(names[role]);
+        track.note(480, 960, 116);
+        for (unsigned d = 0; d < difficulties.size(); ++d) {
+            track.note(480, 240, 60 + d * 12 + unsigned(role));
+            track.note(960, 0, 60 + d * 12 + unsigned(role));
+            track.note(960, 60, 65 + d * 12); // Force HOPO, even repeated lane.
+        }
+        tracks.push_back(track);
+    }
+    ASSERT_TRUE(load(smf(tracks))) << error;
+    ASSERT_EQ(chart.instruments.size(), 20u);
+    for (size_t role = 0; role < names.size(); ++role) {
+        for (const auto *difficulty : difficulties) {
+            const auto &part = chart.instruments.at(
+                "[" + std::string(difficulty) + suffixes[role] + "]");
+            ASSERT_EQ(part.notes.size(), 2u);
+            EXPECT_EQ(part.notes[0].type & 31, 1 << role);
+            EXPECT_DOUBLE_EQ(part.notes[0].lTime, .25);
+            EXPECT_EQ(part.notes[1].type & nf_not_hopo, 0);
+            ASSERT_EQ(part.plus.size(), 1u);
+            EXPECT_EQ(part.plus[0].firstNote, 0u);
+            EXPECT_EQ(part.plus[0].lastNote, 1u);
+        }
+    }
+    Track duplicate("PART RHYTHM");
+    duplicate.note(480, 0, 96);
+    tracks.push_back(duplicate);
+    EXPECT_FALSE(load(smf(tracks)));
+    EXPECT_NE(error.find("Duplicate supported"), std::string::npos);
+}
+
+TEST_F(MidiChartTest, ProSixFretAndVocalsAreNotFiveLaneParts) {
+    std::vector<Track> tracks;
+    for (const auto *name :
+         {"PART REAL_GUITAR", "PART REAL_BASS", "PART REAL_KEYS_X",
+          "PART GUITAR GHL", "PART RHYTHM GHL", "PART VOCALS", "HARM1",
+          "PART DRUMS"}) {
+        Track track(name);
+        track.note(480, 240, 96);
+        tracks.push_back(track);
+    }
+    ASSERT_TRUE(load(smf(tracks))) << error;
+    EXPECT_TRUE(chart.instruments.empty());
 }
 
 TEST_F(MidiChartTest,

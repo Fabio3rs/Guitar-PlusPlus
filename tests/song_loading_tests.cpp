@@ -493,6 +493,39 @@ TEST_F(SongLoading, PauseCompensationKeepsTimelineAndCountdownAligned) {
     }
 }
 
+TEST_F(SongLoading, MidiPlayersLoadDifferentFiveLaneInstrumentsIndependently) {
+    midi_fixture::Track guitar, rhythm("PART RHYTHM"), coop("PART GUITAR COOP"),
+        keys("PART KEYS");
+    guitar.note(480, 240, 96);
+    rhythm.note(960, 480, 97);
+    rhythm.note(960, 480, 116);
+    coop.note(1440, 240, 98);
+    keys.note(1920, 240, 99);
+    writeChart(midi_fixture::smf({guitar, rhythm, coop, keys}), "notes.mid");
+    CPlayer first("lead"), second("other part");
+    ASSERT_TRUE(first.loadSongOnlyChart("test"));
+    second.instrument = "[ExpertDoubleRhythm]";
+    ASSERT_TRUE(second.loadSongOnlyChart("test"));
+    ASSERT_EQ(second.Notes.gNotes.size(), 1u);
+    EXPECT_EQ(second.Notes.gNotes[0].type & 31, nf_red);
+    ASSERT_EQ(second.Notes.gPlus.size(), 1u);
+    EXPECT_EQ(second.Notes.gPlus[0].firstNote, 0u);
+    EXPECT_EQ(second.Notes.gPlus[0].lastNote, 0u);
+    second.Notes.gNotes[0].type |= nf_picked;
+    second.instrument = "[ExpertDoubleGuitar]";
+    ASSERT_TRUE(second.loadSongOnlyChart("test"));
+    EXPECT_EQ(second.Notes.gNotes[0].type & 31, nf_yellow);
+    EXPECT_EQ(second.Notes.gNotes[0].type & nf_picked, 0);
+    EXPECT_TRUE(second.Notes.gPlus.empty());
+    second.instrument = "[ExpertKeyboard]";
+    ASSERT_TRUE(second.loadSongOnlyChart("test"));
+    EXPECT_EQ(second.Notes.gNotes[0].type & 31, nf_blue);
+    ASSERT_EQ(first.Notes.gNotes.size(), 1u);
+    EXPECT_EQ(first.Notes.gNotes[0].type & 31, nf_green);
+    EXPECT_EQ(first.Notes.gNotes[0].type & nf_picked, 0);
+    EXPECT_DOUBLE_EQ(first.Notes.gNotes[0].time, .5);
+}
+
 TEST_F(SongLoading, MidiOnlySongLoadsThroughDiscoveryAndKeepsMusicalEvidence) {
     midi_fixture::Track guitar;
     guitar.note(480, 480, 96);

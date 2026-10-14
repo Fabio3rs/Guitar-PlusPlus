@@ -327,10 +327,10 @@ pode trocar/misturar instrumentos, diferentemente da pista selecionada no MIDI.
 
 ## Limitações e próximos experimentos
 
-- Referências `.chart` podem selecionar as cinco partes. O loader de MIDI de
-  gameplay do runtime ainda reconhece guitarra principal e baixo; esta entrega
-  não amplia a leitura das outras partes de MIDI profissional. Use uma referência
-  `.chart` compatível para comparar rítmica, co-op ou Keys.
+- Referências `.chart` e MIDI de gameplay podem selecionar guitarra principal,
+  baixo, rítmica, co-op e Keys de cinco lanes. Bateria, vocais, instrumentos Pro
+  e GHL continuam sem adaptação ao gameplay; veja os TODOs em
+  [Suporte MIDI](midi-support.md#todo-reconhecimento-vocal-sem-gameplay).
 - Expert é o foco. Outros perfis usam retenção periódica e restrições de lanes/
   acordes; relevância musical da simplificação ainda precisa evoluir.
 - Motivos repetidos são procurados entre 4 e 32 ataques; passagens únicas usam
