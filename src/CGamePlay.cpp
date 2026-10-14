@@ -13,7 +13,10 @@
 #include <future>
 #include <ratio>
 
-static auto gpppowi(int b, int e) -> int { return static_cast<int>(pow(b, e)); }
+static constexpr auto gpppowi(int b, int e) noexcept -> int {
+    assert(e >= 0);
+    return static_cast<int>(std::pow(b, e));
+}
 
 constexpr static double NOTE_SIZE = 0.2;
 // Trigger.obj has a local top at y=0.043614; leave a small surface clearance.

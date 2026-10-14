@@ -779,6 +779,8 @@ void GPPGame::serverModule(const std::string &name) {
         return;
     }
 
+    module.resetModule();
+
     module.setHyperSpeed(2.5 * game.hyperSpeed);
 
     module.players.push_back(game.mainPlayer);

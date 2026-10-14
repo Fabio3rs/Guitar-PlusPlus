@@ -113,9 +113,9 @@ class CPlayer {
     // The editor can open audio while creating an empty chart.
     bool loadSongAudio(const std::string &path);
 
-    double points;
-    int64_t combo;
-    double experience;
+    double points{};
+    int64_t combo{};
+    double experience{};
     double songScoreStart = 0.0;
     uint64_t songCorrectStart = 0;
     int64_t songMaxCombo = 0;
@@ -123,49 +123,50 @@ class CPlayer {
   public:
     NotesData Notes;
     std::vector<lineData> tailsData;
-    double rangle;
-    double npPsetted;
-    double updatedMusicRunningTime;
+    double rangle{};
+    double npPsetted{};
+    double updatedMusicRunningTime{};
 
-    int lastHOPO;
-    size_t BPMNowBuffer;
+    int lastHOPO{};
+    size_t BPMNowBuffer{};
 
-    double musicRunningTime;
+    double musicRunningTime{};
     bool lastFretsPressed[5]{};
-    bool bRenderP, bUpdateP, bPlusStrike;
+    bool bRenderP{}, bUpdateP{}, bPlusStrike{};
     bool fretsPressed[5]{};
-    bool plusEnabled;
+    bool plusEnabled{};
     bool canDoHOPO{};
     double fretsPressedTime[5]{};
-    double strklinenttime;
+    double strklinenttime{};
 
     int lastNotePlusType{};
 
     size_t notesSlide[5]{};
-    size_t strklinent;
+    size_t strklinent{};
 
-    int palhetaKeyLast;
-    int palhetaKey;
+    int palhetaKeyLast{};
+    int palhetaKey{};
 
-    bool usarPalheta;
+    bool usarPalheta{};
 
-    bool enableBot;
+    bool enableBot{};
 
-    bool aError;
+    bool aError{};
 
-    bool remoteControls;
+    bool remoteControls{};
 
-    double startTime, plusThunterStrikeStart, plusPower,
-        plusParticleEffectPosition, maxPlusPower;
+    double startTime{}, plusThunterStrikeStart{}, plusPower{},
+        plusParticleEffectPosition{}, maxPlusPower{};
     AtomicDouble plusLoadF, plusLoadB, plusLoadInterval;
 
-    uint64_t publicAprov, correctNotes, correctNotesMarathon, maxPublicAprov;
+    uint64_t publicAprov{}, correctNotes{}, correctNotesMarathon{},
+        maxPublicAprov{};
 
-    unsigned int plusCircleBuffer, plusLoadBuffer, publicApprovBuffer,
-        correctNotesBuffer, multiplierBuffer;
+    unsigned int plusCircleBuffer{}, plusLoadBuffer{}, publicApprovBuffer{},
+        correctNotesBuffer{}, multiplierBuffer{};
 
-    int songAudioID;
-    int instrumentSound;
+    int songAudioID{};
+    int instrumentSound{};
     std::string instrumentAudioName;
     std::map<std::string, int> backingStems;
     std::vector<std::string> activeAudioStems;
@@ -181,7 +182,7 @@ class CPlayer {
     CParticle playerParticles;
     CPlusLightning plusLightning;
 
-    CGuitars::CGuitar *guitar;
+    CGuitars::CGuitar *guitar{};
 
     CFonts::textAlert lvlUpAlert, notesStreakAlert;
 
@@ -199,15 +200,10 @@ class CPlayer {
     int playerType{};
 
     struct MPInfo {
-        void *i;
-        bool ready;
+        void *i{nullptr};
+        bool ready{};
 
-        inline MPInfo() noexcept {
-            i = nullptr;
-            ready = false;
-        }
-
-    } multiPlayerInfo;
+    } multiPlayerInfo{};
 
     std::string instrument;
     std::string songName, songArtist, songCharter;
@@ -226,15 +222,17 @@ class CPlayer {
     static std::string smartSongSearch(const std::string &path);
 
     void addPointsByDoingLongNote(double activeSeconds);
-    double getExperience() const { return experience; }
+    [[nodiscard]] double getExperience() const { return experience; }
     void processErrorNonPickedB(size_t pos);
     void doNote(size_t i);
-    double comboToMultiplier() const;
+    [[nodiscard]] double comboToMultiplier() const;
     double comboToMultiplierWM();
 
-    int getLevel() const;
+    [[nodiscard]] int getLevel() const;
 
     void resetData();
+
+    void resetCamera();
 
     void breakCombo();
     void breakPlus();
@@ -248,20 +246,20 @@ class CPlayer {
     void muteInstrument() const;
     void unmuteInstrument() const;
 
-    auto getFretsPressedFlags() const -> int;
-    auto getLastFretsPressedFlags() const -> int;
+    [[nodiscard]] auto getFretsPressedFlags() const -> int;
+    [[nodiscard]] auto getLastFretsPressedFlags() const -> int;
 
     bool loadSong(const std::string &path);
     bool loadSongOnlyChart(const std::string &path);
 
-    int64_t getCombo() const;
+    [[nodiscard]] int64_t getCombo() const;
     // Called by the main thread between songs, while gameplay is quiescent.
     void takeLoadedSong(CPlayer &source);
     void beginSongResult();
-    PlayerSongResult songResult() const;
-    int64_t getPoints() const;
+    [[nodiscard]] PlayerSongResult songResult() const;
+    [[nodiscard]] int64_t getPoints() const;
 
-    bool isSongChartFinished();
+    [[nodiscard]] bool isSongChartFinished() const;
 
     CPlayer(const char *name);
     ~CPlayer() noexcept;

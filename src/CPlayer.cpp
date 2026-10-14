@@ -329,6 +329,27 @@ void CPlayer::resetData() {
     correctNotes = 0;
     bRenderP = bUpdateP = true;
     bPlusStrike = false;
+
+    updatedMusicRunningTime = 0.0;
+    musicRunningTime = 0.0;
+    std::fill(std::begin(notesSlide), std::end(notesSlide), -1);
+    std::fill(std::begin(lastFretsPressed), std::end(lastFretsPressed), false);
+    std::fill(std::begin(fretsPressed), std::end(fretsPressed), false);
+    std::fill(std::begin(fretsPressedTime), std::end(fretsPressedTime), 0.0);
+}
+
+void CPlayer::resetCamera() {
+    playerCamera.eye.x = 0.0;
+    playerCamera.eye.y = 0.5;
+    playerCamera.eye.z = 2.42;
+    playerCamera.center.x = 0.0;
+    playerCamera.center.y = -0.2;
+    playerCamera.center.z = 0.0;
+    playerCamera.up.x = 0.0;
+    playerCamera.up.y = 1.0;
+    playerCamera.up.z = 0.0;
+
+    targetCamera = playerCamera;
 }
 
 void CPlayer::addPointsByDoingLongNote(double activeSeconds) {
@@ -496,7 +517,7 @@ auto CPlayer::getPoints() const -> int64_t {
     return static_cast<int64_t>(points);
 }
 
-auto CPlayer::isSongChartFinished() -> bool {
+auto CPlayer::isSongChartFinished() const -> bool {
     return Notes.gNotes.empty() || musicRunningTime > Notes.lastNoteEnd + 3.0;
 }
 
@@ -620,10 +641,6 @@ CPlayer::CPlayer(const char *name) {
     enableBot = false;
 
     updatedMusicRunningTime = 0.0;
-    memset(notesSlide, -1, sizeof(notesSlide));
-    memset(lastFretsPressed, 0, sizeof(lastFretsPressed));
-    memset(fretsPressed, 0, sizeof(fretsPressed));
-    memset(fretsPressedTime, 0, sizeof(fretsPressedTime));
 
     instrumentSound = 0;
     strklinenttime = -5.0;
@@ -633,7 +650,7 @@ CPlayer::CPlayer(const char *name) {
     plusThunterStrikeStart = plusPower = plusParticleEffectPosition =
         maxPlusPower = plusLoadF = plusLoadB = plusLoadInterval = 0.0;
     plusCircleBuffer = plusLoadBuffer = publicApprovBuffer =
-        correctNotesBuffer = multiplierBuffer = ~0u;
+        correctNotesBuffer = multiplierBuffer = ~0U;
 
     correctNotes = 0;
 
@@ -643,17 +660,8 @@ CPlayer::CPlayer(const char *name) {
 
     strklinent = ~(static_cast<size_t>(0));
 
-    playerCamera.eye.x = 0.0;
-    playerCamera.eye.y = 0.5;
-    playerCamera.eye.z = 2.42;
-    playerCamera.center.x = 0.0;
-    playerCamera.center.y = -0.2;
-    playerCamera.center.z = 0.0;
-    playerCamera.up.x = 0.0;
-    playerCamera.up.y = 1.0;
-    playerCamera.up.z = 0.0;
-
-    targetCamera = playerCamera;
+    resetCamera();
+    resetData();
 
     experience = 100.0;
     tailsData.reserve(32);
@@ -674,11 +682,7 @@ void CPlayer::resetSongThings() {
 
     correctNotesMarathon = 0;
 
-    memset(notesSlide, -1, sizeof(notesSlide));
-    memset(lastFretsPressed, 0, sizeof(lastFretsPressed));
-    memset(fretsPressed, 0, sizeof(fretsPressed));
-    memset(fretsPressedTime, 0, sizeof(fretsPressedTime));
-
+    resetData();
     instrumentSound = 0;
     strklinenttime = -5.0;
 
