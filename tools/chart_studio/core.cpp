@@ -159,6 +159,9 @@ Score importMidi(const fs::path &path) {
         std::array<int, 16> programs{};
         for (int e = 0; e < midi[t].size(); ++e) {
             auto &event = midi[t][e];
+            if (event.isMeta() && event.size() >= 3 && event[1] == 0x06) {
+                result.markers.push_back({event.tick, event.getMetaContent()});
+            }
             if (event.isTrackName()) {
                 track.name = event.getMetaContent();
             }
@@ -330,6 +333,8 @@ std::string encode(const State &state) {
         cereal::JSONOutputArchive archive(out);
         archive(state);
         archive(cereal::make_nvp("alignment", state.alignment));
+        archive(cereal::make_nvp("plus", state.plus));
+        archive(cereal::make_nvp("musical_markers", state.score.markers));
     }
     return out.str();
 }
@@ -346,6 +351,19 @@ State decode(const std::string &text) {
             document.HasMember("alignment")) {
             archive(cereal::make_nvp("alignment", state.alignment));
         }
+    }
+    rapidjson::Document extra;
+    extra.Parse(text.c_str());
+    if (!extra.HasParseError() && extra.IsObject() && extra.HasMember("plus")) {
+        std::istringstream plusInput(text);
+        cereal::JSONInputArchive archive(plusInput);
+        archive(cereal::make_nvp("plus", state.plus));
+    }
+    if (!extra.HasParseError() && extra.IsObject() &&
+        extra.HasMember("musical_markers")) {
+        std::istringstream markerInput(text);
+        cereal::JSONInputArchive archive(markerInput);
+        archive(cereal::make_nvp("musical_markers", state.score.markers));
     }
     validate(state);
     return state;
@@ -384,6 +402,17 @@ void synchronize(State &state) {
 }
 
 void validate(const State &state) {
+    state.plus.settings.validate();
+    require(state.plus.version == 1, "Unsupported Plus document version");
+    std::set<uint64_t> plusIds;
+    for (const auto &phrase : state.plus.phrases) {
+        require(phrase.id > 0 && phrase.id < state.plus.nextId &&
+                    plusIds.insert(phrase.id).second && phrase.begin >= 0 &&
+                    phrase.end > phrase.begin && phrase.end <= INT32_MAX &&
+                    phrase.status >= 0 && phrase.status <= 2 &&
+                    std::isfinite(phrase.risk),
+                "Invalid Plus phrase data");
+    }
     state.score.validate();
     state.settings.validate();
     require(std::isfinite(state.alignment.scale) &&

@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+#include "plus_types.h"
+
 namespace gpp::charter {
 template <class A> void serialize(A &a, Note &n) {
     a(n.id, n.time, n.duration, n.flags);
@@ -48,6 +50,8 @@ struct Track {
     template <class A> void serialize(A &a) { a(name, notes); }
 };
 struct Score {
+    std::vector<MusicalMarker>
+        markers; // Versioned top-level project extension.
     int ppq = 480;
     std::vector<Track> tracks;
     std::vector<Tempo> tempos{{}};
@@ -102,7 +106,9 @@ struct TimingAlignment {
         a(CEREAL_NVP(scale), CEREAL_NVP(evidence));
     }
 };
+struct PlusProposal;
 struct State {
+    PlusDocument plus;
     TimingAlignment alignment;
     Score score;
     Settings settings;
@@ -171,6 +177,7 @@ class Session {
         projection; // Reload explicitly after opening a project.
     fs::path project;
     bool dirty = false;
+    uint64_t revision = 0, documentGeneration = 0;
     std::set<uint64_t> selection;
     std::vector<Event> clipboard;
     void openMidi(const fs::path &path);
@@ -188,6 +195,9 @@ class Session {
     void restore(int64_t begin, int64_t end);
     void clearExperimental();
     void setAlignment(double scale, double offset, const std::string &evidence);
+    void configurePlus(const PlusSettings &settings);
+    void applyPlus(const PlusProposal &proposal);
+    void editPlus(PlusPhrase phrase, bool remove = false);
     bool undo();
     bool redo();
 };

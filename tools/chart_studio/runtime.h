@@ -1,6 +1,10 @@
 #pragma once
 #include "core.h"
+#include "plus_generator.h"
 namespace ChartStudio {
+std::pair<PlusAnalysis, PlusDocument>
+readPlusReference(const fs::path &path,
+                  const std::string &instrument = "[ExpertSingle]");
 struct Reference {
     std::vector<gpp::charter::Note> notes;
     std::string name, instrument;

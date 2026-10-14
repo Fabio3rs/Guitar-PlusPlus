@@ -1,4 +1,5 @@
 #include "core.h"
+#include "plus_generator.h"
 #include <algorithm>
 #include <stdexcept>
 
@@ -43,6 +44,7 @@ void Session::setAlignment(double scale, double offset,
 }
 
 void Session::checkpoint() {
+    ++revision;
     past_.push_back(state);
     if (past_.size() > 64) {
         past_.erase(past_.begin());
@@ -52,6 +54,8 @@ void Session::checkpoint() {
 }
 
 void Session::openMidi(const fs::path &path) {
+    ++documentGeneration;
+    ++revision;
     State next;
     next.score = importMidi(path);
     next.input = fs::absolute(path).u8string();
@@ -67,6 +71,8 @@ void Session::openMidi(const fs::path &path) {
 }
 
 void Session::openProject(const fs::path &path) {
+    ++documentGeneration;
+    ++revision;
     auto next = loadProject(path);
     auto saved = fileHash(path);
     state = std::move(next);
@@ -328,6 +334,7 @@ void Session::clearExperimental() {
 }
 
 bool Session::undo() {
+    ++revision;
     if (past_.empty()) {
         return false;
     }
@@ -340,6 +347,7 @@ bool Session::undo() {
 }
 
 bool Session::redo() {
+    ++revision;
     if (future_.empty()) {
         return false;
     }
@@ -350,4 +358,56 @@ bool Session::redo() {
     selection.clear();
     return true;
 }
+void Session::configurePlus(const PlusSettings &settings) {
+    settings.validate();
+    checkpoint();
+    state.plus.settings = settings;
+}
+
+void Session::applyPlus(const PlusProposal &proposal) {
+    if (proposal.source != hash(encode(state))) {
+        throw std::runtime_error("Plus proposal is stale; analyze again");
+    }
+    State next = state;
+    next.plus = proposal.document;
+    validate(next);
+    const auto errors = plusProblems(next);
+    if (!errors.empty()) {
+        throw std::runtime_error(errors.front());
+    }
+    checkpoint();
+    state = std::move(next);
+}
+
+void Session::editPlus(PlusPhrase phrase, bool remove) {
+    State next = state;
+    auto &phrases = next.plus.phrases;
+    auto found = std::find_if(phrases.begin(), phrases.end(),
+                              [&](const auto &p) { return p.id == phrase.id; });
+    if (found != phrases.end()) {
+        if (found->status == 2 && (remove || found->begin != phrase.begin ||
+                                   found->end != phrase.end)) {
+            throw std::runtime_error("Unlock the Plus phrase before editing");
+        }
+        if (remove) {
+            phrases.erase(found);
+        } else {
+            phrase.manual = true;
+            *found = phrase;
+        }
+    } else {
+        if (remove || phrase.id != 0) {
+            throw std::runtime_error("Unknown Plus phrase");
+        }
+        phrase.id = next.plus.nextId++;
+        phrase.manual = true;
+        phrases.push_back(phrase);
+    }
+    std::sort(phrases.begin(), phrases.end(),
+              [](const auto &a, const auto &b) { return a.begin < b.begin; });
+    validate(next);
+    checkpoint();
+    state = std::move(next);
+}
+
 } // namespace ChartStudio

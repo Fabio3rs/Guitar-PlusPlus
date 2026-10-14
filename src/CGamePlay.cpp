@@ -3,6 +3,7 @@
 #include "CEngine.h"
 #include "CFonts.h"
 #include "GPPGame.h"
+#include "PlusRules.h"
 #include <GLFW/glfw3.h>
 #include <array>
 #include <chrono>
@@ -1126,7 +1127,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
     int playerLVL = player.getLevel();
 
     if (player.plusEnabled) {
-        player.plusPower -= deltatime * 0.05;
+        player.plusPower -= deltatime * gpp::plus::drainPerSecond;
 
         if (player.plusPower <= 0.0) {
             player.plusEnabled = false;
@@ -1187,8 +1188,9 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
     }
 
     if (player.plusLoadF != player.plusLoadB) {
-        player.plusLoadB +=
-            (player.plusLoadF - player.plusLoadB) * deltatime * 10.0;
+        player.plusLoadB.store(
+            player.plusLoadB.load() +
+            ((player.plusLoadF - player.plusLoadB.load()) * deltatime * 10.0));
     }
 
     bool inslide = false;
@@ -1217,7 +1219,8 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
 
             if (player.plusPower < player.maxPlusPower) {
                 if (plPos.lastNote == i) {
-                    player.plusPower += player.maxPlusPower / 5.0;
+                    player.plusPower +=
+                        player.maxPlusPower / gpp::plus::phrasesPerBar;
                     ++notes.plusPos;
                     player.plusThunterStrikeStart = engine.getTime();
                     player.bPlusStrike = true;
@@ -2508,7 +2511,7 @@ bool CGamePlay::update() {
         iFPSCount = 0;
         lastiFPSUpdated = now;
 
-        getBPlayer().seekSongAudio(getRunningMusicTime(getBPlayer()));
+        // getBPlayer().seekSongAudio(getRunningMusicTime(getBPlayer()));
     }
 
     for (auto &pp : players) {

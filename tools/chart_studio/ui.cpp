@@ -2,6 +2,7 @@
 #include "audio/audio.h"
 #include "core.h"
 #include "file_browser.h"
+#include "plus_simulation.h"
 #include "runtime.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
@@ -30,7 +31,7 @@ struct Workbench {
     bool firstLayout = true, hasSavedLayout = false, resetLayout = false,
          showHelp = false;
     bool showFiles = true, showTracks = true, showMapping = true;
-    bool showEditing = true, showAlignment = true;
+    bool showEditing = true, showAlignment = true, showPlus = true;
     bool pendingPrompt = false;
     std::string notice;
     const char *helpTitle = "Getting started";
@@ -121,7 +122,26 @@ struct Workbench {
     AlignmentSettings alignmentSettings;
     int alignmentCandidate = 0, alignmentMode = 2;
     bool previewAlignment = false;
-    ~Workbench() { stopAlignment(); }
+    PlusSettings plusDraft;
+    struct PlusJobResult {
+        PlusProposal proposal;
+        PlusSimulation sequence;
+    };
+    std::future<PlusJobResult> plusJob;
+    std::atomic<bool> cancelPlus{false};
+    std::optional<PlusJobResult> plusResult;
+    uint64_t plusRevision = 0;
+    PlusPhrase plusEdit;
+    int plusPolicy = 0, plusSkill = 0;
+    bool plusRegionOnly = false, showPlusOverlay = true;
+    std::string plusLoaded;
+    ~Workbench() {
+        cancelPlus = true;
+        if (plusJob.valid()) {
+            plusJob.wait();
+        }
+        stopAlignment();
+    }
     void stopAlignment() {
         cancelAlignment = true;
         if (alignmentJob.valid()) {
@@ -825,6 +845,232 @@ struct Workbench {
             session.clearExperimental();
         }
     }
+    void plusPanel() {
+        ImGui::PushItemWidth(
+            std::max(80.f, ImGui::GetContentRegionAvail().x * .42f));
+        const auto key = std::to_string(session.documentGeneration) +
+                         session.state.inputHash;
+        if (key != plusLoaded) {
+            plusDraft = session.state.plus.settings;
+            plusLoaded = key;
+            plusResult.reset();
+            plusEdit = {};
+        }
+        if (plusJob.valid() && plusJob.wait_for(std::chrono::seconds(0)) ==
+                                   std::future_status::ready) {
+            perform([&] {
+                auto result = plusJob.get();
+                if (plusRevision != session.revision ||
+                    result.proposal.source != hash(encode(session.state))) {
+                    throw std::runtime_error("Document changed; Plus analysis "
+                                             "discarded. Analyze again.");
+                }
+                plusResult = std::move(result);
+                notice = "Plus preview ready. Inspect reasons and simulation, "
+                         "then Apply proposal.";
+            });
+        }
+        help(
+            "Plus: planning and editing",
+            "1. Enable Plus and choose a profile. 2. Analyze and propose "
+            "creates a preview only. "
+            "3. Compare energy and reasons. 4. Apply proposal changes the "
+            "project and supports Undo. "
+            "Save project keeps phrases; Export writes playable S 2 events.\n\n"
+            "Reserve 0.4 means 40%, or two successful phrases and eight "
+            "seconds of activation. "
+            "This is a preference, not a guarantee. Manual, confirmed and "
+            "locked phrases are preserved. "
+            "Unlock before moving or deleting. A region uses the Start/End "
+            "controls in Mapping.\n\n"
+            "Simulation requires every attack in the phrase. Extra strums and "
+            "judgment windows are not modeled. Skill is independent success "
+            "per "
+            "attack, not phrase success. "
+            "Risk and score benefit are design approximations. The energy plot "
+            "shows trial 0, not a prediction.");
+        ImGui::Checkbox("Enable Plus generation", &plusDraft.enabled);
+        ImGui::Checkbox("Show Plus timeline overlays", &showPlusOverlay);
+        const char *profiles[] = {"balanced", "strategic", "generous",
+                                  "sparse"};
+        if (ImGui::BeginCombo("Profile", plusDraft.profile.c_str())) {
+            for (auto profile : profiles) {
+                if (ImGui::Selectable(profile, plusDraft.profile == profile)) {
+                    const bool enabled = plusDraft.enabled;
+                    plusDraft = plusProfile(profile);
+                    plusDraft.enabled = enabled;
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::InputDouble("Reserve (0-1)", &plusDraft.reserve, .05, .2,
+                           "%.2f");
+        ImGui::InputInt("Phrase measures (1-2)", &plusDraft.preferredBars);
+        ImGui::InputDouble("Spacing (measures)", &plusDraft.spacingBars, 1, 4,
+                           "%.1f");
+        if (ImGui::TreeNode("Planning weights")) {
+            ImGui::InputDouble("Musical boundaries",
+                               &plusDraft.structureWeight);
+            ImGui::InputDouble("Future reserve", &plusDraft.strategyWeight);
+            ImGui::InputDouble("Completion risk", &plusDraft.riskWeight);
+            ImGui::TreePop();
+        }
+        if (ImGui::Button("Save Plus settings")) {
+            perform([&] { session.configurePlus(plusDraft); });
+        }
+        ImGui::Checkbox("Only selected tick region", &plusRegionOnly);
+        ImGui::Combo("Activation policy", &plusPolicy,
+                     "Save for dense regions\0Activate immediately\0Wait for "
+                     "reserve\0Approximate future value\0Never activate\0");
+        ImGui::Combo("Success per attack", &plusSkill, "100%\090%\075%\050%\0");
+        const bool busy = plusJob.valid();
+        ImGui::BeginDisabled(busy || session.state.events.empty());
+        const auto launch = [&](bool generate) {
+            const auto snapshot = session.state;
+            const auto parameters = plusDraft;
+            parameters.validate();
+            std::optional<std::pair<int64_t, int64_t>> region;
+            if (plusRegionOnly) {
+                if (regionEnd <= regionBegin) {
+                    throw std::runtime_error(
+                        "Select a valid region in Mapping first");
+                }
+                region = {{regionBegin, regionEnd}};
+            }
+            PlusSimulationSettings simulation;
+            const char *policies[] = {"dense", "immediate", "reserve", "score",
+                                      "never"};
+            const double skills[] = {1., .9, .75, .5};
+            simulation.strategy = policies[plusPolicy];
+            simulation.success = skills[plusSkill];
+            simulation.reserve = std::max(.01, parameters.reserve);
+            cancelPlus = false;
+            plusRevision = session.revision;
+            plusJob = std::async(
+                std::launch::async, [this, snapshot, parameters, region,
+                                     simulation, generate]() mutable {
+                    const auto check = [this] {
+                        if (cancelPlus.load()) {
+                            throw std::runtime_error("Plus analysis cancelled");
+                        }
+                    };
+                    PlusJobResult result;
+                    if (generate) {
+                        result.proposal =
+                            proposePlus(snapshot, parameters, region, check);
+                    } else {
+                        result.proposal.source = hash(encode(snapshot));
+                        result.proposal.document = snapshot.plus;
+                        result.proposal.analysis = analyzePlus(snapshot);
+                        result.proposal.diagnostics = plusProblems(snapshot);
+                    }
+                    result.sequence = simulatePlus(
+                        result.proposal.analysis,
+                        result.proposal.document.phrases, simulation, check);
+                    return result;
+                });
+        };
+        ImGui::BeginDisabled(!plusDraft.enabled);
+        if (ImGui::Button("Analyze and propose Plus")) {
+            perform([&] { launch(true); });
+        }
+        ImGui::EndDisabled();
+        if (ImGui::Button("Simulate applied phrases")) {
+            perform([&] { launch(false); });
+        }
+        ImGui::EndDisabled();
+        if (busy) {
+            ImGui::TextUnformatted("Analyzing immutable snapshot...");
+            if (ImGui::Button("Cancel Plus analysis")) {
+                cancelPlus = true;
+            }
+        }
+        if (plusResult && plusRevision != session.revision) {
+            plusResult.reset();
+        }
+        if (plusResult) {
+            const auto &r = *plusResult;
+            ImGui::Text("Preview: %zu phrases, %zu target regions",
+                        r.proposal.document.phrases.size(),
+                        r.proposal.analysis.regions.size());
+            ImGui::TextWrapped(
+                "Simulation: completed %.2f; activation %.1f s; wasted energy "
+                "%.2f. Requires every attack in each phrase.",
+                r.sequence.completed, r.sequence.activeSeconds,
+                r.sequence.wasted);
+            if (ImGui::Button("Apply Plus proposal")) {
+                perform([&] {
+                    session.applyPlus(plusResult->proposal);
+                    plusResult.reset();
+                    notice = "Plus applied. Save project or Export .chart; "
+                             "Undo restores previous phrases.";
+                });
+            }
+            if (plusResult) {
+                for (const auto &diagnostic :
+                     plusResult->proposal.diagnostics) {
+                    ImGui::TextWrapped("%s", diagnostic.c_str());
+                }
+                if (ImGui::TreeNode("Preview reasons")) {
+                    for (const auto &phrase :
+                         plusResult->proposal.document.phrases) {
+                        ImGui::TextWrapped(
+                            "#%llu risk %.2f: %s",
+                            static_cast<unsigned long long>(phrase.id),
+                            phrase.risk, phrase.reason.c_str());
+                    }
+                    ImGui::TreePop();
+                }
+            }
+        }
+        ImGui::Separator();
+        ImGui::TextUnformatted("Applied phrases: select to edit");
+        ImGui::BeginChild("Plus phrase list", {0, 140}, true);
+        for (const auto &phrase : session.state.plus.phrases) {
+            const auto label = "Plus #" + std::to_string(phrase.id) + " [" +
+                               std::to_string(phrase.begin) + ", " +
+                               std::to_string(phrase.end) + ")";
+            if (ImGui::Selectable(label.c_str(), plusEdit.id == phrase.id)) {
+                plusEdit = phrase;
+                seek(audioSeconds(session.state, phrase.begin));
+            }
+        }
+        ImGui::EndChild();
+        ImGui::InputScalar("Plus start tick", ImGuiDataType_S64,
+                           &plusEdit.begin);
+        ImGui::InputScalar("Plus end tick (exclusive)", ImGuiDataType_S64,
+                           &plusEdit.end);
+        ImGui::Combo("Protection", &plusEdit.status,
+                     "Editable\0Confirmed\0Locked\0");
+        ImGui::BeginDisabled(plusEdit.id == 0);
+        if (ImGui::Button("Save phrase edit")) {
+            perform([&] { session.editPlus(plusEdit); });
+        }
+        ImGui::SameLine();
+        ImGui::EndDisabled();
+        if (ImGui::Button("New phrase from region")) {
+            perform([&] {
+                PlusPhrase phrase;
+                phrase.begin = regionBegin;
+                phrase.end = regionEnd;
+                session.editPlus(phrase);
+            });
+        }
+        if (plusEdit.id && ImGui::Button("Delete selected Plus")) {
+            perform([&] {
+                session.editPlus(plusEdit, true);
+                plusEdit = {};
+            });
+        }
+        if (plusEdit.id && ImGui::TreeNode("Selected phrase details")) {
+            ImGui::TextWrapped("Generation rationale: %s",
+                               plusEdit.reason.c_str());
+            ImGui::Text("Generation risk: %.2f (heuristic)", plusEdit.risk);
+            ImGui::TreePop();
+        }
+        ImGui::PopItemWidth();
+    }
+
     void canvas() {
         ImGui::BeginChild(
             "timeline",
@@ -1017,6 +1263,64 @@ struct Workbench {
                               IM_COL32(200, 130, 230, 180));
             }
         }
+        if (showPlusOverlay) {
+            const bool preview = plusResult && plusRevision == session.revision;
+            const auto &phrases = preview
+                                      ? plusResult->proposal.document.phrases
+                                      : session.state.plus.phrases;
+            for (const auto &phrase : phrases) {
+                const float left = x(audioSeconds(session.state, phrase.begin)),
+                            right = x(audioSeconds(session.state, phrase.end));
+                draw->AddRectFilled(
+                    {left, origin.y + laneTop - 12},
+                    {right, origin.y + laneTop + 5 * laneHeight},
+                    preview ? IM_COL32(190, 120, 255, 45)
+                            : IM_COL32(80, 210, 255, 45));
+                draw->AddText({left, origin.y + laneTop - 12},
+                              IM_COL32(210, 235, 255, 255), "Plus");
+            }
+            if (preview) {
+                for (const auto &r : plusResult->proposal.analysis.regions) {
+                    draw->AddRectFilled({x(r.time), origin.y + size.y - 16},
+                                        {x(r.endTime), origin.y + size.y - 5},
+                                        IM_COL32(255, 160, 50, 180));
+                }
+                // One-second attack density, normalized to the visible maximum.
+                std::map<int, int> density;
+                int peak = 1;
+                for (const auto &attack :
+                     plusResult->proposal.analysis.attacks) {
+                    if (attack.time >= start && attack.time <= end) {
+                        peak = std::max(
+                            peak, ++density[int(std::floor(attack.time))]);
+                    }
+                }
+                for (const auto &bin : density) {
+                    draw->AddRectFilled(
+                        {x(bin.first),
+                         origin.y + size.y - 80 -
+                             float(bin.second) * 20 / float(peak)},
+                        {x(bin.first + 1), origin.y + size.y - 80},
+                        IM_COL32(210, 210, 220, 110));
+                }
+                const auto &trace = plusResult->sequence.trajectory;
+                for (size_t i = 1; i < trace.size(); ++i) {
+                    draw->AddLine(
+                        {x(trace[i - 1].time),
+                         origin.y + size.y - 20 -
+                             float(trace[i - 1].energy) * 40},
+                        {x(trace[i].time),
+                         origin.y + size.y - 20 - float(trace[i].energy) * 40},
+                        IM_COL32(80, 230, 255, 255), 2);
+                }
+                for (const auto &activation :
+                     plusResult->sequence.activations) {
+                    draw->AddLine({x(activation.begin), origin.y + size.y - 70},
+                                  {x(activation.end), origin.y + size.y - 70},
+                                  IM_COL32(100, 255, 120, 255), 4);
+                }
+            }
+        }
         draw->AddLine({x(cursor), origin.y}, {x(cursor), origin.y + size.y},
                       IM_COL32(255, 255, 255, 210), 2);
         if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
@@ -1155,10 +1459,11 @@ struct Workbench {
                 ImGui::MenuItem("Mapping", nullptr, &showMapping);
                 ImGui::MenuItem("Edit and patterns", nullptr, &showEditing);
                 ImGui::MenuItem("Audio alignment", nullptr, &showAlignment);
+                ImGui::MenuItem("Plus", nullptr, &showPlus);
                 if (ImGui::MenuItem("Reset layout")) {
                     resetLayout = true;
                     showFiles = showTracks = showMapping = showEditing =
-                        showAlignment = true;
+                        showAlignment = showPlus = true;
                 }
                 ImGui::EndMenu();
             }
@@ -1188,6 +1493,7 @@ struct Workbench {
             ImGui::DockBuilderDockWindow("Mapping", right);
             ImGui::DockBuilderDockWindow("Edit and patterns", right);
             ImGui::DockBuilderDockWindow("Audio alignment", right);
+            ImGui::DockBuilderDockWindow("Plus", right);
             ImGui::DockBuilderDockWindow("Timeline", center);
             ImGui::DockBuilderFinish(dock);
         }
@@ -1234,6 +1540,12 @@ struct Workbench {
                     std::max(80.f, ImGui::GetContentRegionAvail().x * .38f));
                 alignmentPanel();
                 ImGui::PopItemWidth();
+            }
+            ImGui::End();
+        }
+        if (showPlus) {
+            if (ImGui::Begin("Plus", &showPlus)) {
+                plusPanel();
             }
             ImGui::End();
         }

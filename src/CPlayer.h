@@ -32,6 +32,8 @@ struct lineData {
     double bottom;
 };
 
+using AtomicDouble = std::atomic<double>;
+
 /*struct fretsPosition{
         double lineFretSize, columnSize;
         unsigned int notesTexture, strikeLineTexture;
@@ -154,8 +156,8 @@ class CPlayer {
     bool remoteControls;
 
     double startTime, plusThunterStrikeStart, plusPower,
-        plusParticleEffectPosition, maxPlusPower, plusLoadF, plusLoadB,
-        plusLoadInterval;
+        plusParticleEffectPosition, maxPlusPower;
+    AtomicDouble plusLoadF, plusLoadB, plusLoadInterval;
 
     uint64_t publicAprov, correctNotes, correctNotesMarathon, maxPublicAprov;
 
@@ -235,6 +237,7 @@ class CPlayer {
     void resetData();
 
     void breakCombo();
+    void breakPlus();
     void processError();
     void releaseSong();
 

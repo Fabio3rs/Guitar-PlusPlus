@@ -1,6 +1,7 @@
 #include "runtime.h"
 #include "CChart.h"
 #include "CMidiChart.h"
+#include "plus_generator.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -8,6 +9,117 @@
 #include <stdexcept>
 
 namespace ChartStudio {
+std::pair<PlusAnalysis, PlusDocument>
+readPlusReference(const fs::path &path, const std::string &instrument) {
+    CChart::NotesData data;
+    CChart::Metadata metadata;
+    auto extension = path.extension().string();
+    std::transform(extension.begin(), extension.end(), extension.begin(),
+                   [](unsigned char c) { return char(std::tolower(c)); });
+    if (extension == ".mid" || extension == ".midi") {
+        MidiChart midi;
+        std::string error;
+        if (!readMidiChart(path, midi, error)) {
+            throw std::runtime_error(error);
+        }
+        const auto part = midi.instruments.find(instrument);
+        if (part == midi.instruments.end()) {
+            throw std::runtime_error("Reference instrument unavailable: " +
+                                     instrument);
+        }
+        data.gNotes = part->second.notes;
+        data.gPlus = part->second.plus;
+        data.source = part->second.source;
+        data.BPM = midi.bpm;
+    } else {
+        const bool loaded =
+            extension == ".chart"
+                ? data.loadFeedbackChartCPU(path.u8string(), instrument,
+                                            metadata, nullptr, true)
+                : data.loadChartCPU(path.u8string(), instrument, metadata);
+        if (!loaded) {
+            throw std::runtime_error("Cannot load Plus reference chart");
+        }
+    }
+    State state;
+    const bool originalTiming =
+        data.source.ppq > 0 && !data.source.tempos.empty();
+    if (originalTiming) {
+        state.score.ppq = data.source.ppq;
+        state.score.tempos.clear();
+        state.score.signatures.clear();
+        for (const auto &tempo : data.source.tempos) {
+            state.score.tempos.push_back(
+                {tempo.tick, int(std::llround(60000000.0 / tempo.bpm))});
+        }
+        state.settings.offset = data.source.offset;
+        for (const auto &event : data.source.events) {
+            if (event.kind == "time-signature") {
+                int numerator = 0, exponent = 0;
+                if (std::sscanf(event.text.c_str(), "%d/2^%d", &numerator,
+                                &exponent) == 2 &&
+                    numerator > 0 && exponent >= 0 && exponent <= 10) {
+                    state.score.signatures.push_back(
+                        {event.tick, numerator, 1 << exponent});
+                }
+            }
+        }
+    } else {
+        state.score.ppq = 1000;
+        state.score.tempos = {{0, 1000000}};
+        state.settings.offset =
+            data.gNotes.empty() ? 0 : std::min(0., data.gNotes.front().time);
+    }
+    size_t sourceIndex = 0;
+    for (const auto &note : data.gNotes) {
+        Event event;
+        event.note.id = state.nextId++;
+        event.tick =
+            originalTiming && sourceIndex < data.source.noteTicks.size()
+                ? data.source.noteTicks[sourceIndex]
+                : audioTick(state, note.time);
+        event.duration = std::max(
+            int64_t(0), audioTick(state, note.time + note.lTime) - event.tick);
+        ++sourceIndex;
+        // Open attacks remain attacks; no export or mapping is performed here.
+        event.note.flags = (note.type & 31) ? note.type & 31 : 1;
+        state.events.push_back(event);
+    }
+    state.settings.minimumSustain = 0;
+    synchronize(state);
+    auto analysis = analyzePlus(state);
+    if (!originalTiming) {
+        analysis.diagnostics.push_back(
+            "Original tick/meter evidence unavailable; reference timeline "
+            "reconstructed at 1 ms. Musical boundaries are not authoritative.");
+    }
+    for (size_t i = 0; i < analysis.attacks.size() && i < data.gNotes.size();
+         ++i) {
+        analysis.attacks[i].mask = data.gNotes[i].type & (31 | nf_open);
+    }
+    PlusDocument document;
+    for (const auto &p : data.gPlus) {
+        if (p.firstNote >= data.gNotes.size() ||
+            p.lastNote >= data.gNotes.size() || p.firstNote > p.lastNote) {
+            analysis.diagnostics.push_back(
+                "Invalid runtime Plus indices; phrase omitted from simulation");
+            continue;
+        }
+        PlusPhrase phrase;
+        phrase.id = document.nextId++;
+        // Preserve actual membership returned by the loader, including its
+        // cursor semantics.
+        phrase.begin = audioTick(state, p.time);
+        phrase.end = audioTick(state, p.time + p.lTime);
+        phrase.runtimeFirst = int64_t(p.firstNote);
+        phrase.runtimeLast = int64_t(p.lastNote);
+        phrase.reason =
+            "Reference phrase; actual loader indices used for simulation";
+        document.phrases.push_back(phrase);
+    }
+    return {std::move(analysis), std::move(document)};
+}
+
 Reference readReference(const fs::path &path, const std::string &instrument) {
     Reference result;
     result.instrument = instrument;
@@ -138,6 +250,26 @@ void exportValidated(const State &state, const fs::path &path, bool replace) {
                                    seconds(entry.first))) > 1e-6) {
             throw std::runtime_error(
                 "Round-trip lanes/timing/sustain mismatch");
+        }
+    }
+    auto phrases = state.plus.phrases;
+    std::sort(phrases.begin(), phrases.end(),
+              [](const auto &a, const auto &b) { return a.begin < b.begin; });
+    const auto attacks = plusAttacks(state);
+    if (phrases.size() != loaded.gPlus.size()) {
+        throw std::runtime_error("Round-trip Plus count mismatch");
+    }
+    for (size_t i = 0; i < phrases.size(); ++i) {
+        const auto &p = phrases[i];
+        const auto &actual = loaded.gPlus[i];
+        const auto range = plusAttackRange(attacks, p);
+        if (range.first == range.second || actual.firstNote != range.first ||
+            actual.lastNote != range.second - 1 ||
+            std::abs(actual.time - seconds(p.begin)) > 1e-6 ||
+            std::abs(actual.lTime - (seconds(p.end) - seconds(p.begin))) >
+                1e-6) {
+            throw std::runtime_error(
+                "Round-trip Plus boundaries or indices mismatch");
         }
     }
     safeWrite(path, text, replace);

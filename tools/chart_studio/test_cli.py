@@ -78,4 +78,20 @@ with tempfile.TemporaryDirectory(prefix='cli-', dir=root) as work:
     run(*base, '--replace', '--report', midi, ok=False)
     run(*base, '--replace', '--track', '1e100', ok=False)
     assert project.read_bytes() == project_bytes and midi.read_bytes() == source
+    plus_chart = work / 'with-plus.chart'
+    plus = json.loads(run('convert', midi, '--track', 0, '--plus', 'auto',
+                          '--plus-trials', 8, '--output', plus_chart).stdout)
+    assert len(plus['simulations']) == 20
+    assert all(s['completion'] == 'sequence' for s in plus['simulations'])
+    assert plus['phrases'], plus
+    plus_bytes = plus_chart.read_bytes()
+    assert b' = S 2 ' in plus_bytes
+    assert [line for line in plus_bytes.splitlines() if b' = N ' in line] == [line for line in original.splitlines() if b' = N ' in line]
+    run('convert', midi, '--track', 0, '--plus', 'auto', '--plus-trials', 8,
+        '--output', plus_chart, '--replace')
+    assert plus_chart.read_bytes() == plus_bytes
+    analyzed = json.loads(run('plus-simulate', plus_chart, '--plus-trials', 8).stdout)
+    assert len(analyzed['phrases']) == len(plus['phrases'])
+    run('plus-generate', project, '--output', midi, '--replace', ok=False)
+    assert midi.read_bytes() == source
     print(json.dumps({'first': first, 'second_process': second, 'confirmed_library': third}, indent=2))

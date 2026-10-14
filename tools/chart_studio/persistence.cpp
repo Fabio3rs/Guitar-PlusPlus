@@ -32,13 +32,14 @@ void schema(SqliteDb &db, const std::string &kind, bool create) {
             "CREATE INDEX pattern_structural ON patterns(structural);"
             "PRAGMA application_id=1196442451; PRAGMA user_version=1;");
         if (kind == "project") {
-            db.exec("PRAGMA user_version=2;");
+            db.exec("PRAGMA user_version=3;");
         }
         auto insert = db.prepare("INSERT INTO metadata VALUES('kind',?)",
                                  "database kind");
         (void)insert.bind(1, kind).step();
         tx.commit();
-    } else if ((found != 1 && !(kind == "project" && found == 2)) ||
+    } else if ((found != 1 &&
+                !(kind == "project" && (found == 2 || found == 3))) ||
                sqlite3_column_int(app.get(), 0) != application) {
         throw std::runtime_error("Unknown or incompatible Chart Studio "
                                  "database; original file was preserved");

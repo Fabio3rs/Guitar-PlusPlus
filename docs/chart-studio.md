@@ -151,6 +151,14 @@ Nenhuma alteração no formato histórico `.gpp`.
   e pela sessão; sem ImGui, SQLite ou dependência do studio.
 - `src/MidiInput.*`: validação SMF compartilhada pelos dois importadores.
 
+O adaptador `tools/chart_studio/runtime.*` não executa o gameplay: usa os loaders
+do jogo para leitura e validação CPU. A simulação offline de Plus também não é
+uma emulação de `CGamePlay`/`CPlayer`: exige acertar a sequência completa, mas
+não modela palhetadas extras nem todas as condições de julgamento. O jogo possui
+invalidação por erros em `processError()`, `breakPlus()` e
+`processErrorNonPickedB()`.
+Consulte as [condições reais e limitações da simulação](chart-studio-plus.md#simulação-e-contrato-real).
+
 O CCharter recebe `GPPGame&` explicitamente. Seu documento pode alimentar um futuro
 adaptador 3D; não foi extraído o renderer de CGamePlay. A prévia do workbench é 2D,
 pois o highway atual depende de recursos e estados globais de gameplay.
@@ -404,3 +412,11 @@ ctest --test-dir build -R 'chart_plus_statistics|ChartRuntime|midi_core' \
 Tests use synthetic charts/MIDI only. The CI enables `BUILD_CHART_TOOLS` and runs
 the same test suite. Report viewing is separate from ImGui and does not make the
 runtime depend on a browser or Python.
+
+## Geração estratégica de Plus
+
+O studio agora oferece geração opt-in de Plus, prévia/aplicação, edição protegida,
+undo/redo, exportação validada de `S 2` e simulação CPU compartilhada entre GUI/CLI.
+Veja [o manual de Plus](chart-studio-plus.md) para perfis, comandos, modelos de
+conclusão, migração de projetos e limitações. O analisador estatístico descrito
+acima continua independente e é reutilizado pela avaliação dos perfis.

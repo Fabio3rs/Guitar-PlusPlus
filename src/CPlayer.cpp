@@ -5,6 +5,7 @@
 #include "CLog.h"
 #include "CMultiplayer.h"
 #include "GPPGame.h"
+#include "PlusRules.h"
 #include "SongFiles.h"
 #include <algorithm>
 #include <cctype>
@@ -320,8 +321,6 @@ bool CPlayer::loadSongAudio(const std::string &path) {
     return true;
 }
 
-#include <iostream>
-
 auto CPlayer::getLevel() const -> int {
     return static_cast<int>(log(experience));
 }
@@ -346,6 +345,7 @@ void CPlayer::addPointsByDoingLongNote(double activeSeconds) {
 
 void CPlayer::processError() {
     breakCombo();
+    breakPlus();
     aError = true;
     muteInstrument();
 
@@ -357,6 +357,16 @@ void CPlayer::processError() {
 }
 
 void CPlayer::processErrorNonPickedB(size_t pos) {
+    double currentPlusStart = -1.0;
+    double currentPlusEnd = -1.0;
+    if (Notes.plusPos < Notes.gPlus.size()) {
+        auto &plusp = Notes.gPlus[Notes.plusPos];
+        currentPlusStart = plusp.time;
+        currentPlusEnd = plusp.time + plusp.lTime;
+    }
+
+    bool shouldBreakPlus = false;
+
     if (pos > 0 && pos < Notes.gNotes.size()) {
         auto &noteRef = Notes.gNotes[pos];
         double tMin = noteRef.time - 0.5;
@@ -373,6 +383,11 @@ void CPlayer::processErrorNonPickedB(size_t pos) {
                 ((note.type & notesFlags::nf_doing_slide) == 0)) {
                 note.type |= notesFlags::nf_failed;
                 ++count;
+
+                if (note.time > currentPlusStart &&
+                    note.time < currentPlusEnd) {
+                    shouldBreakPlus = true;
+                }
             }
         }
 
@@ -385,6 +400,11 @@ void CPlayer::processErrorNonPickedB(size_t pos) {
                 publicAprov -= count;
             }
         }
+    }
+
+    if (shouldBreakPlus) {
+        ++Notes.plusPos;
+        plusLoadF = plusLoadB = 0.0;
     }
 }
 
@@ -410,6 +430,22 @@ void CPlayer::releaseSong() {
 }
 
 void CPlayer::breakCombo() { combo = 0; }
+
+void CPlayer::breakPlus() {
+    if (Notes.plusPos >= Notes.gPlus.size()) {
+        return;
+    }
+
+    auto &plusp = Notes.gPlus[Notes.plusPos];
+
+    if (musicRunningTime < plusp.time ||
+        musicRunningTime > (plusp.time + plusp.lTime)) {
+        return;
+    }
+
+    ++Notes.plusPos;
+    plusLoadF = plusLoadB = 0.0;
+}
 
 auto CPlayer::comboToMultiplierWM() -> double { return comboToMultiplier(); }
 
@@ -597,7 +633,7 @@ CPlayer::CPlayer(const char *name) {
 
     correctNotes = 0;
 
-    maxPlusPower = 1.0;
+    maxPlusPower = gpp::plus::maximumEnergy;
     maxPublicAprov = 120.0;
     publicAprov = maxPublicAprov / 2.0;
 
@@ -651,7 +687,7 @@ void CPlayer::resetSongThings() {
 
     correctNotes = 0;
 
-    maxPlusPower = 1.0;
+    maxPlusPower = gpp::plus::maximumEnergy;
     maxPublicAprov = 120.0;
     publicAprov = maxPublicAprov / 2.0;
 

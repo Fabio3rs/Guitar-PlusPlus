@@ -1,4 +1,5 @@
 #include "core.h"
+#include "plus_generator.h"
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
@@ -29,6 +30,10 @@ double exportDurationSeconds(const State &state, const Event &event) {
 
 std::string chartText(const State &state) {
     validate(state);
+    const auto errors = plusProblems(state);
+    if (!errors.empty()) {
+        throw std::runtime_error(errors.front());
+    }
     std::map<int64_t, std::pair<int, int64_t>> attacks;
     for (const auto &event : state.events) {
         if (event.removed) {
@@ -79,6 +84,14 @@ std::string chartText(const State &state) {
                     << attack.second.second << '\n';
             }
         }
+    }
+    auto phrases = state.plus.phrases;
+    std::sort(phrases.begin(), phrases.end(),
+              [](const auto &a, const auto &b) { return a.begin < b.begin; });
+    // Keep N records before S records at shared ticks: the historical loader
+    // otherwise merges a note into the special marker.
+    for (const auto &p : phrases) {
+        out << "  " << p.begin << " = S 2 " << p.end - p.begin << '\n';
     }
     out << "}\n";
     return out.str();

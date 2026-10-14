@@ -1,6 +1,7 @@
 #include "alignment.h"
 #include "audio/audio.h"
 #include "core.h"
+#include "plus_simulation.h"
 #include "runtime.h"
 #include <iostream>
 #include <stdexcept>
@@ -8,6 +9,16 @@
 int main(int argc, char **argv) try {
     using namespace ChartStudio;
     if (argc < 2 || std::string(argv[1]) == "--help") {
+        std::cout << "Plus: convert MIDI --track N --plus auto --plus-profile "
+                     "strategic --output FILE.chart\n"
+                     "  [--plus-reserve 0.4 --plus-spacing 8 --plus-bars 1]\n"
+                     "  [--plus-structure 2 --plus-strategy 4 --plus-risk 2 "
+                     "--plus-trials 256 --plus-seed 42]\n"
+                     "  plus-generate PROJECT --output FILE.chart [--project "
+                     "NEW_PROJECT] [--report FILE.json]\n"
+                     "  plus-analyze CHART|PROJECT [--output FILE.json]\n"
+                     "  plus-simulate CHART|PROJECT [--output FILE.json] "
+                     "[--instrument PART]\n";
         std::cout
             << "gpp_score_to_chart align MIDI --audio AUDIO [--align "
                "offset|linear|auto] --output FILE.json\n"
@@ -49,7 +60,17 @@ int main(int argc, char **argv) try {
     std::map<std::string, std::string> options;
     const std::set<std::string> switches{"--replace", "--no-cache",
                                          "--no-structural"};
-    const std::set<std::string> values{"--at",
+    const std::set<std::string> values{"--plus",
+                                       "--plus-profile",
+                                       "--plus-reserve",
+                                       "--plus-spacing",
+                                       "--plus-bars",
+                                       "--plus-structure",
+                                       "--plus-strategy",
+                                       "--plus-risk",
+                                       "--plus-trials",
+                                       "--plus-seed",
+                                       "--at",
                                        "--audio",
                                        "--align",
                                        "--alignment",
@@ -128,6 +149,106 @@ int main(int argc, char **argv) try {
     };
     if (positional.empty()) {
         throw std::runtime_error("Missing input path");
+    }
+    auto plusSettings = [&](const PlusSettings &saved) {
+        auto settings = options.count("--plus-profile")
+                            ? plusProfile(get("--plus-profile"))
+                            : saved;
+        settings.enabled = true;
+        settings.reserve = number("--plus-reserve", settings.reserve);
+        settings.spacingBars = number("--plus-spacing", settings.spacingBars);
+        settings.preferredBars =
+            int(integer("--plus-bars", settings.preferredBars));
+        settings.structureWeight =
+            number("--plus-structure", settings.structureWeight);
+        settings.strategyWeight =
+            number("--plus-strategy", settings.strategyWeight);
+        settings.riskWeight = number("--plus-risk", settings.riskWeight);
+        settings.validate();
+        return settings;
+    };
+    const int plusTrials = int(integer("--plus-trials", 256));
+    const auto plusSeed = integer("--plus-seed", 42);
+    if (plusTrials < 1 || plusTrials > 4096 || plusSeed < 0) {
+        throw std::runtime_error("Invalid Plus trials or seed");
+    }
+    if (options.count("--plus") && get("--plus") != "auto" &&
+        get("--plus") != "none") {
+        throw std::runtime_error("--plus requires auto or none");
+    }
+    if (command == "plus-analyze" || command == "plus-simulate" ||
+        command == "plus-generate") {
+        const auto input = fs::u8path(positional[0]);
+        std::string json;
+        if (command == "plus-generate") {
+            if (!options.count("--output")) {
+                throw std::runtime_error("Plus generation requires --output");
+            }
+            Session session;
+            session.openProject(input);
+            std::optional<std::pair<int64_t, int64_t>> region;
+            if (options.count("--begin-tick") || options.count("--end-tick")) {
+                if (!options.count("--begin-tick") ||
+                    !options.count("--end-tick")) {
+                    throw std::runtime_error("Both region boundaries required");
+                }
+                region = {{integer("--begin-tick"), integer("--end-tick")}};
+            }
+            const auto proposal =
+                proposePlus(session.state,
+                            plusSettings(session.state.plus.settings), region);
+            session.applyPlus(proposal);
+            const auto output = fs::u8path(get("--output"));
+            auto project = fs::u8path(
+                get("--project", output.u8string() + ".gppchartproj"));
+            protectDestination(output, {input, project});
+            const std::vector<fs::path> sources{
+                input, fs::u8path(session.state.input),
+                fs::u8path(session.state.audio),
+                fs::u8path(session.state.reference), output};
+            protectDestination(project, sources);
+            if (!options.count("--replace")) {
+                for (const auto &destination :
+                     {output, project, fs::u8path(get("--report"))}) {
+                    if (!destination.empty() && fs::exists(destination)) {
+                        throw std::runtime_error(
+                            "Destination exists; use --replace: " +
+                            destination.u8string());
+                    }
+                }
+            }
+            if (options.count("--report")) {
+                protectDestination(fs::u8path(get("--report")), sources);
+                protectDestination(fs::u8path(get("--report")), {project});
+            }
+            exportValidated(session.state, output, options.count("--replace"));
+            saveProject(project, session.state, options.count("--replace"));
+            json = plusReport(session.state, plusTrials, uint64_t(plusSeed));
+            for (const auto &message : proposal.diagnostics) {
+                std::cerr << "Plus: " << message << '\n';
+            }
+            if (options.count("--report")) {
+                safeWrite(fs::u8path(get("--report")), json,
+                          options.count("--replace"));
+            }
+        } else {
+            if (input.extension() == ".gppchartproj") {
+                json = plusReport(loadProject(input), plusTrials,
+                                  uint64_t(plusSeed));
+            } else {
+                const auto reference = readPlusReference(
+                    input, get("--instrument", "[ExpertSingle]"));
+                json = plusReport(reference.first, reference.second, plusTrials,
+                                  uint64_t(plusSeed));
+            }
+            if (options.count("--output")) {
+                protectDestination(fs::u8path(get("--output")), {input});
+                safeWrite(fs::u8path(get("--output")), json,
+                          options.count("--replace"));
+            }
+        }
+        std::cout << json;
+        return 0;
     }
     auto alignmentSettings = [&] {
         AlignmentSettings settings;
@@ -487,9 +608,21 @@ int main(int argc, char **argv) try {
                                         fs::u8path(session.state.reference)});
     }
     session.run(loadLibrary(fs::u8path(get("--cache"))), region);
+    if (get("--plus") == "none") {
+        auto settings = session.state.plus.settings;
+        settings.enabled = false;
+        session.configurePlus(settings);
+    }
+    if (get("--plus") == "auto") {
+        session.applyPlus(proposePlus(
+            session.state, plusSettings(session.state.plus.settings), region));
+    }
     exportValidated(session.state, output, options.count("--replace"));
     session.save(project);
-    const auto summary = report(session.state);
+    const auto summary =
+        get("--plus") == "auto"
+            ? plusReport(session.state, plusTrials, uint64_t(plusSeed))
+            : report(session.state);
     if (options.count("--report")) {
         safeWrite(fs::u8path(get("--report")), summary,
                   options.count("--replace"));

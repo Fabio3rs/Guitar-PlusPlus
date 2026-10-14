@@ -1,4 +1,4 @@
-add_library(gpp_score_core STATIC core.cpp mapping.cpp persistence.cpp session.cpp export.cpp experiment.cpp alignment.cpp)
+add_library(gpp_score_core STATIC core.cpp mapping.cpp persistence.cpp session.cpp export.cpp experiment.cpp alignment.cpp plus_generator.cpp plus_simulation.cpp)
 target_include_directories(gpp_score_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(gpp_score_core SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/vendor/xxhash)
 target_link_libraries(gpp_score_core PUBLIC gpp_charter gpp_sqlite PRIVATE midifile gpp_midi_input)
@@ -23,7 +23,7 @@ endif()
 if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     find_package(Python3 COMPONENTS Interpreter REQUIRED)
-    add_executable(gpp_score_tests tests.cpp alignment_tests.cpp)
+    add_executable(gpp_score_tests tests.cpp alignment_tests.cpp plus_tests.cpp)
     target_include_directories(gpp_score_tests PRIVATE ${PROJECT_SOURCE_DIR}/tests)
     target_link_libraries(gpp_score_tests PRIVATE gpp_score_core GTest::GTest GTest::Main)
     add_test(NAME chart_studio_cpu COMMAND gpp_score_tests)
@@ -46,6 +46,12 @@ if(BUILD_TESTING)
         add_test(NAME chart_studio_ui COMMAND ${CHART_XVFB} -a -s "-screen 0 1600x1000x24"
             ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_ui.py $<TARGET_FILE:gpp_chart_studio>
             ${CMAKE_BINARY_DIR}/chart-studio/ui-tests)
+        add_test(NAME chart_studio_plus_ui COMMAND ${CHART_XVFB} -a -s "-screen 0 1600x1000x24"
+            ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_plus_ui.py $<TARGET_FILE:gpp_chart_studio>
+            ${CMAKE_BINARY_DIR}/chart-studio/plus-ui-tests)
+        set_tests_properties(chart_studio_plus_ui PROPERTIES LABELS "chart_studio;gpu" TIMEOUT 120
+            RESOURCE_LOCK gpp_graphics RUN_SERIAL TRUE
+            ENVIRONMENT "LIBGL_ALWAYS_SOFTWARE=1;LP_NUM_THREADS=2;MESA_GL_VERSION_OVERRIDE=2.0;MESA_GLSL_VERSION_OVERRIDE=110")
         set_tests_properties(chart_studio_ui PROPERTIES LABELS "chart_studio;gpu" TIMEOUT 120
             RESOURCE_LOCK gpp_graphics RUN_SERIAL TRUE
             ENVIRONMENT "LIBGL_ALWAYS_SOFTWARE=1;LP_NUM_THREADS=2;MESA_GL_VERSION_OVERRIDE=2.0;MESA_GLSL_VERSION_OVERRIDE=110")
