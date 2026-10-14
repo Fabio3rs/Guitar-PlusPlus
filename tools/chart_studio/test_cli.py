@@ -6,6 +6,7 @@ import wave
 import os
 from pathlib import Path
 import struct
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -95,3 +96,49 @@ with tempfile.TemporaryDirectory(prefix='cli-', dir=root) as work:
     run('plus-generate', project, '--output', midi, '--replace', ok=False)
     assert midi.read_bytes() == source
     print(json.dumps({'first': first, 'second_process': second, 'confirmed_library': third}, indent=2))
+
+    # Repeated --part, real loader validation, persistence and scoped edits.
+    multi = work / 'multi.chart'
+    multi_project = multi.with_suffix('.gppchartproj')
+    args = ['convert', midi, '--part', 'ExpertSingle:0', '--part', 'ExpertDoubleBass:0',
+            '--part', 'ExpertKeyboard:0', '--plus', 'auto', '--plus-trials', 2, '--output', multi]
+    batch = json.loads(run(*args).stdout)
+    assert len(batch['parts']) == 3
+    multi_bytes = multi.read_bytes()
+    for section in ('ExpertSingle', 'ExpertDoubleBass', 'ExpertKeyboard'):
+        assert f'[{section}]'.encode() in multi_bytes
+        assert json.loads(run('events', multi_project, '--instrument', section).stdout)['events']
+    run('patterns', multi_project, 'lock', '--instrument', 'ExpertDoubleBass', '--event', 1)
+    run(*args, '--replace')
+    assert multi.read_bytes() == multi_bytes
+    assert 'status=2' in run('patterns', multi_project, 'list', '--instrument', 'ExpertDoubleBass').stdout
+    assert 'status=2' not in run('patterns', multi_project, 'list', '--instrument', 'ExpertSingle').stdout
+    reversed_chart = work / 'reversed.chart'
+    run('convert', midi, '--part', 'ExpertKeyboard:0', '--part', 'ExpertDoubleBass:0',
+        '--part', 'ExpertSingle:0', '--plus', 'auto', '--plus-trials', 2, '--output', reversed_chart)
+    assert reversed_chart.read_bytes() == multi_bytes
+    simulations = json.loads(run('plus-simulate', multi_project, '--plus-trials', 2).stdout)
+    assert len(simulations['parts']) == 3
+    single = json.loads(run('plus-simulate', multi_project, '--instrument', 'ExpertDoubleBass', '--plus-trials', 2).stdout)
+    assert len(single['simulations']) == 20
+    run('compare', multi_project, multi, '--instrument', '[ExpertDoubleBass]')
+    # Reports must not overwrite reference charts belonging to inactive parts.
+    reference = work / 'inactive-reference.chart'
+    reference.write_bytes(multi_bytes)
+    with sqlite3.connect(multi_project) as db:
+        document = json.loads(db.execute("SELECT value FROM metadata WHERE key='document'").fetchone()[0])
+        document['parts'][0]['reference'] = str(reference)
+        db.execute("UPDATE metadata SET value=? WHERE key='document'", (json.dumps(document),))
+    protected_output = work / 'protected-plus.chart'
+    result = run('plus-generate', multi_project, '--output', protected_output,
+                 '--report', reference, '--replace', '--plus-trials', 2, ok=False)
+    assert reference.read_bytes() == multi_bytes
+    assert not protected_output.exists(), result.stderr
+    for invalid in (['--part', 'ExpertSingle:0', '--part', 'ExpertSingle:0'],
+                    ['--part', 'ExpertDrums:0'], ['--part', 'ExpertDoubleBass:99'],
+                    ['--part', 'ExpertSingle:0', '--track', 0],
+                    ['--part', 'ExpertSingle:0:15']):
+        bad = work / 'bad-multipart.chart'
+        run('convert', midi, *invalid, '--output', bad, ok=False)
+        assert not bad.exists() and not bad.with_suffix('.gppchartproj').exists()
+    print('Multi-part CLI: deterministic sections, reopen/regenerate, scoped locks, reports and failures passed')

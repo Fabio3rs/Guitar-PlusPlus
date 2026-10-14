@@ -36,8 +36,10 @@ struct Workbench {
     std::string notice;
     const char *helpTitle = "Getting started";
     static constexpr const char *workflowHelp =
-        "Open a musical MIDI in Files, then select its guitar track in Tracks. "
-        "Generate maps pitches and chords to five buttons. Review the timeline "
+        "Open a musical MIDI in Files, then assign game parts to musical "
+        "tracks in Tracks. "
+        "Generate all parts maps each source to its own five-button chart "
+        "section. Review each part in the timeline "
         "and use Edit and patterns to correct or lock phrases. Save project "
         "preserves editing data; Export .chart writes the playable file. Audio "
         "and reference charts are optional.\n\nDrag panel tabs to rearrange "
@@ -86,6 +88,10 @@ struct Workbench {
     }
 
     void generate() {
+        if (generationJob.valid()) {
+            throw std::runtime_error(
+                "Wait for or cancel batch generation first");
+        }
         session.run(loadLibrary(fs::u8path(libraryPath)));
         notice = "Generated " + std::to_string(session.state.events.size()) +
                  " attacks. Review the timeline, then Save project and Export "
@@ -95,6 +101,70 @@ struct Workbench {
     void saveProject() {
         session.save(fs::u8path(projectPath));
         notice = "Project saved: " + projectPath;
+    }
+
+    std::future<State> generationJob;
+    std::atomic<bool> cancelGeneration{false};
+    std::atomic<size_t> generatedParts{0}, generationTotal{0};
+    std::string generationSource;
+    int addInstrument = 1, addDifficulty = 0;
+    std::optional<Settings> sourceDraft;
+    uint64_t sourceDraftPart = 0;
+
+    void generateAll() {
+        if (generationJob.valid()) {
+            throw std::runtime_error("Batch generation is already running");
+        }
+        const auto library = loadLibrary(fs::u8path(libraryPath));
+        const auto snapshot = session.state;
+        const auto projections = session.partProjections();
+        generationSource = hash(encode(snapshot));
+        cancelGeneration = false;
+        generatedParts = 0;
+        generationTotal = snapshot.otherParts.size() + 1;
+        generationJob = std::async(
+            std::launch::async, [this, snapshot, library, projections] {
+                return generateParts(
+                    snapshot, library, projections,
+                    [this](size_t done, size_t total, const std::string &) {
+                        if (cancelGeneration.load()) {
+                            throw std::runtime_error(
+                                "Batch cancelled; previous parts preserved");
+                        }
+                        generatedParts = done;
+                        generationTotal = total;
+                    });
+            });
+    }
+
+    void changedPart() {
+        dragging = 0;
+        sourceDraft.reset();
+        reference = {};
+        referencePath = session.state.reference;
+        instrument = partSection(session.state.settings);
+        projectionPath.clear();
+        plusLoaded.clear();
+    }
+
+    void batchControls() {
+        if (generationJob.valid()) {
+            ImGui::Text("Generating parts: %zu / %zu", generatedParts.load(),
+                        generationTotal.load());
+            if (ImGui::Button("Cancel batch")) {
+                cancelGeneration = true;
+            }
+            hint("Cancellation is checked between parts. Previous results stay "
+                 "intact.");
+        } else {
+            ImGui::BeginDisabled(session.state.score.tracks.empty());
+            if (ImGui::Button("Generate all parts")) {
+                perform([&] { generateAll(); });
+            }
+            ImGui::EndDisabled();
+        }
+        hint("Uses each part's mapping and Plus settings; applies the complete "
+             "batch as one undoable change.");
     }
 
     std::string inputPath, projectPath, outputPath, libraryPath, referencePath,
@@ -136,6 +206,10 @@ struct Workbench {
     bool plusRegionOnly = false, showPlusOverlay = true;
     std::string plusLoaded;
     ~Workbench() {
+        cancelGeneration = true;
+        if (generationJob.valid()) {
+            generationJob.wait();
+        }
         cancelPlus = true;
         if (plusJob.valid()) {
             plusJob.wait();
@@ -173,6 +247,7 @@ struct Workbench {
         }
     }
     void open(const fs::path &path) {
+        cancelGeneration = true;
         stopAlignment();
         alignmentJob = {};
         alignmentResult.reset();
@@ -224,7 +299,7 @@ struct Workbench {
         playing = false;
         cursor = 0;
         start = 0;
-        reference = {};
+        changedPart();
         transport.reset();
         system.reset();
     }
@@ -322,6 +397,11 @@ struct Workbench {
             perform([&] { exportChart(); });
         }
         ImGui::EndDisabled();
+        ImGui::TextWrapped("Export includes these sections:");
+        for (const auto *part : parts(session.state)) {
+            ImGui::Text("%s: %zu attacks", partSection(part->settings).c_str(),
+                        part->events.size());
+        }
         ImGui::Separator();
         ImGui::TextWrapped("Optional: shared patterns, a reference chart for "
                            "comparison, and audio for playback / alignment.");
@@ -500,44 +580,178 @@ struct Workbench {
         }
     }
     void tracks() {
-        ImGui::TextWrapped("2. Select the musical track to map to five "
-                           "buttons. Track selection does not generate notes. "
-                           "Drums should not be used as guitar.");
-        if (session.state.score.tracks.empty()) {
-            ImGui::TextWrapped("No MIDI loaded. Open one in Files first.");
+        help("Game parts and musical tracks",
+             "Add one row per game instrument/difficulty. Each row maps ONE "
+             "musical MIDI track "
+             "to its own section in the exported chart. Guitar, bass, rhythm, "
+             "co-op and Keys all use five lanes. "
+             "Drum/vocal/Pro destinations are not supported.\n\nSelect a row "
+             "to edit its source, mapping, Plus "
+             "and notes. All parts share audio alignment and playback "
+             "position. Generate all parts processes "
+             "every row; Export writes all sections into one file.\n\nPrograms "
+             "describe MIDI playback sounds, "
+             "not necessarily the actual instrument: tablatures often use "
+             "sax/clarinet for vocals. "
+             "Combining several guitars or bass tracks into one part is "
+             "planned, not implemented. "
+             "Use channel/program filters only when needed; -1 keeps every "
+             "channel/program in the selected track.");
+        ImGui::TextWrapped("2. Assign each game part to a musical track. "
+                           "Select a row to edit it.");
+        uint64_t chosen = 0;
+        if (ImGui::BeginTable("Parts", 3,
+                              ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                                  ImGuiTableFlags_SizingStretchProp)) {
+            ImGui::TableSetupColumn("Game part");
+            ImGui::TableSetupColumn("MIDI track");
+            ImGui::TableSetupColumn("Attacks");
+            ImGui::TableHeadersRow();
+            for (const auto *part : parts(session.state)) {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                const auto label = partSection(part->settings);
+                if (ImGui::Selectable(label.c_str(),
+                                      part->partId == session.state.partId,
+                                      ImGuiSelectableFlags_SpanAllColumns)) {
+                    chosen = part->partId;
+                }
+                ImGui::TableNextColumn();
+                ImGui::Text("%d", part->settings.track);
+                ImGui::TableNextColumn();
+                const auto attacks = std::count_if(
+                    part->events.begin(), part->events.end(),
+                    [](const Event &event) { return !event.removed; });
+                ImGui::Text("%zu", static_cast<size_t>(attacks));
+            }
+            ImGui::EndTable();
         }
-        for (size_t i = 0; i < session.state.score.tracks.size(); ++i) {
-            const auto &track = session.state.score.tracks[i];
-            const std::string label =
-                std::to_string(i) + ": " +
-                (track.name.empty() ? "Unnamed track" : track.name) + " (" +
-                std::to_string(track.notes.size()) + ")";
-            if (ImGui::Selectable(label.c_str(),
-                                  session.state.settings.track == int(i))) {
-                if (!session.state.events.empty() &&
-                    session.state.settings.track != int(i)) {
-                    request([this, i] {
-                        session.state.events.clear();
-                        session.state.original.clear();
-                        session.state.patterns.clear();
-                        session.state.settings.track = int(i);
-                        session.state.settings.channel = -1;
-                        session.state.settings.program = -1;
-                        session.dirty = true;
-                        notice = "Track selected. Next: Generate chart.";
-                    });
-                } else {
-                    session.state.settings.track = int(i);
-                    session.dirty = true;
-                    notice = "Track selected. Next: Generate chart.";
+        if (chosen) {
+            perform([&] {
+                session.selectPart(chosen);
+                changedPart();
+            });
+        }
+        const char *names[] = {"Lead guitar", "Bass", "Rhythm guitar",
+                               "Co-op guitar", "Keys (5 lanes)"};
+        const char *roles[] = {"guitar", "bass", "rhythm", "coop", "keys"};
+        const char *levels[] = {"expert", "hard", "medium", "easy"};
+        ImGui::Combo("New instrument", &addInstrument, names, 5);
+        ImGui::Combo("New difficulty", &addDifficulty, levels, 4);
+        if (ImGui::Button("Add part")) {
+            perform([&] {
+                Settings settings;
+                settings.instrument = roles[addInstrument];
+                settings.difficulty = levels[addDifficulty];
+                session.addPart(settings);
+                changedPart();
+            });
+        }
+        ImGui::SameLine();
+        ImGui::BeginDisabled(session.state.otherParts.empty());
+        if (ImGui::Button("Remove active part")) {
+            perform([&] {
+                session.removePart(session.state.partId);
+                changedPart();
+            });
+        }
+        ImGui::EndDisabled();
+        hint("Removes this part and its edits. Undo restores it.");
+        ImGui::Separator();
+        ImGui::Text("Editing %s", partSection(session.state.settings).c_str());
+        if (sourceDraftPart != session.state.partId) {
+            sourceDraft.reset();
+            sourceDraftPart = session.state.partId;
+        }
+        auto settings = sourceDraft.value_or(session.state.settings);
+        auto trackLabel = [&](int index) {
+            if (index < 0 ||
+                size_t(index) >= session.state.score.tracks.size()) {
+                return std::string("Choose a musical track...");
+            }
+            const auto &track = session.state.score.tracks[size_t(index)];
+            std::set<int> programs, channels;
+            for (const auto &note : track.notes) {
+                programs.insert(note.program);
+                channels.insert(note.channel);
+            }
+            std::string label = std::to_string(index) + ": " +
+                                (track.name.empty() ? "Unnamed" : track.name) +
+                                " | " + std::to_string(track.notes.size()) +
+                                " notes | programs";
+            for (int program : programs) {
+                label += " " + std::to_string(program);
+            }
+            label += " | channels";
+            for (int channel : channels) {
+                label += " " + std::to_string(channel);
+            }
+            return label;
+        };
+        bool sourceChanged = false;
+        const auto label = trackLabel(settings.track);
+        ImGui::SetNextItemWidth(-1);
+        if (ImGui::BeginCombo("##SourceTrack", label.c_str())) {
+            for (size_t i = 0; i < session.state.score.tracks.size(); ++i) {
+                const auto item = trackLabel(int(i));
+                if (ImGui::Selectable(item.c_str(), settings.track == int(i))) {
+                    settings.track = int(i);
+                    settings.channel = settings.program = -1;
+                    sourceChanged = true;
                 }
             }
+            ImGui::EndCombo();
         }
-        if (ImGui::TreeNode("Track details (zero-based channels/programs)")) {
+        hint(label.c_str());
+        if (ImGui::TreeNode("Source filters (optional)")) {
+            sourceChanged |=
+                ImGui::InputInt("Channel (-1: all)", &settings.channel);
+            sourceChanged |=
+                ImGui::InputInt("Program (-1: all)", &settings.program);
+            ImGui::TreePop();
+        }
+        if (sourceChanged) {
+            if (session.state.events.empty() &&
+                session.state.plus.phrases.empty()) {
+                perform([&] {
+                    session.configurePart(settings);
+                    sourceDraft.reset();
+                });
+            } else {
+                sourceDraft = settings;
+            }
+        }
+        if (sourceDraft) {
+            ImGui::TextWrapped("Source changed. Reset only this part's notes, "
+                               "cache and Plus? Undo remains available.");
+            if (ImGui::Button("Reset this part to new source")) {
+                perform([&] {
+                    session.configurePart(*sourceDraft, true);
+                    changedPart();
+                });
+            }
+            if (ImGui::Button("Keep current source")) {
+                sourceDraft.reset();
+            }
+        }
+        if (ImGui::TreeNode("Track details (names, programs, chords, range)")) {
             const auto details = inspect(session.state.score);
             ImGui::TextWrapped("%s", details.c_str());
             ImGui::TreePop();
         }
+        if (hasTrack()) {
+            const auto &notes =
+                session.state.score.tracks[size_t(session.state.settings.track)]
+                    .notes;
+            if (std::any_of(notes.begin(), notes.end(), [](const ScoreNote &n) {
+                    return n.channel == 9;
+                })) {
+                ImGui::TextWrapped("Percussion detected: five-lane melodic "
+                                   "mapping is not a drum converter. Select a "
+                                   "melodic source or filter channel 9 out.");
+            }
+        }
+        batchControls();
     }
     void algorithm() {
         help("Generation and settings",
@@ -564,8 +778,11 @@ struct Workbench {
             }
         }
         if (ImGui::Combo("Difficulty", &difficulty, difficulties, 4)) {
-            s.difficulty = difficulties[difficulty];
-            session.dirty = true;
+            perform([&] {
+                auto next = s;
+                next.difficulty = difficulties[difficulty];
+                session.configurePart(next);
+            });
         }
         if (difficulty) {
             ImGui::TextWrapped("Experimental reduction profile");
@@ -580,8 +797,8 @@ struct Workbench {
                                           : "umap";
             session.dirty = true;
         }
-        session.dirty |= ImGui::InputInt("Channel (-1: all)", &s.channel);
-        session.dirty |= ImGui::InputInt("Program (-1: all)", &s.program);
+        ImGui::Text("Part: %s (source filters in Tracks)",
+                    partSection(s).c_str());
         session.dirty |= ImGui::SliderInt("Max chord lanes", &s.maxChord, 1, 3);
         session.dirty |=
             ImGui::InputDouble("Keep attacks (0..1)", &s.density, .05);
@@ -610,9 +827,9 @@ struct Workbench {
                 auto settings = s;
                 settings.offset = offset / 1000;
                 settings.validate();
-                s = settings;
-                synchronize(session.state);
-                session.dirty = true;
+                session.setAlignment(session.state.alignment.scale,
+                                     settings.offset,
+                                     session.state.alignment.evidence);
             });
         }
         help("Sustain cutoff",
@@ -849,7 +1066,8 @@ struct Workbench {
         ImGui::PushItemWidth(
             std::max(80.f, ImGui::GetContentRegionAvail().x * .42f));
         const auto key = std::to_string(session.documentGeneration) +
-                         session.state.inputHash;
+                         session.state.inputHash + ":" +
+                         std::to_string(session.state.partId);
         if (key != plusLoaded) {
             plusDraft = session.state.plus.settings;
             plusLoaded = key;
@@ -1405,6 +1623,21 @@ struct Workbench {
         }
     }
     bool frame(GLFWwindow *window) {
+        if (generationJob.valid() &&
+            generationJob.wait_for(std::chrono::seconds(0)) ==
+                std::future_status::ready) {
+            perform([&] {
+                auto result = generationJob.get();
+                if (cancelGeneration.load()) {
+                    throw std::runtime_error(
+                        "Batch cancelled; previous parts preserved");
+                }
+                session.applyGenerated(std::move(result), generationSource);
+                plusLoaded.clear();
+                notice = "All parts generated. Review each row, Save project, "
+                         "then Export the combined .chart.";
+            });
+        }
         tick();
         auto &io = ImGui::GetIO();
         if (!io.WantTextInput) {
@@ -1551,7 +1784,7 @@ struct Workbench {
         }
         ImGui::Begin("Timeline");
         ImGui::TextWrapped(
-            "Open MIDI > Select track > Generate > Review > Save / Export");
+            "Open MIDI > Assign parts > Generate > Review > Save / Export");
         if (session.state.score.tracks.empty()) {
             ImGui::TextWrapped("Start in Files: Browse for a musical MIDI, "
                                "then Open MIDI / project. Audio is optional.");
@@ -1564,7 +1797,8 @@ struct Workbench {
             }
         } else {
             ImGui::TextWrapped(
-                "Selected track %d: %s | %zu generated attacks",
+                "%s | track %d: %s | %zu attacks",
+                partSection(session.state.settings).c_str(),
                 session.state.settings.track,
                 session.state.score.tracks[session.state.settings.track]
                         .name.empty()
@@ -1577,6 +1811,28 @@ struct Workbench {
                                   : "Regenerate chart")) {
                 perform([&] { generate(); });
             }
+        }
+        if (!session.state.otherParts.empty()) {
+            if (ImGui::BeginCombo(
+                    "Active part",
+                    partSection(session.state.settings).c_str())) {
+                uint64_t chosen = 0;
+                for (const auto *part : parts(session.state)) {
+                    if (ImGui::Selectable(partSection(part->settings).c_str(),
+                                          part->partId ==
+                                              session.state.partId)) {
+                        chosen = part->partId;
+                    }
+                }
+                if (chosen) {
+                    perform([&] {
+                        session.selectPart(chosen);
+                        changedPart();
+                    });
+                }
+                ImGui::EndCombo();
+            }
+            batchControls();
         }
         if (!message.empty()) {
             ImGui::TextColored({1, .45f, .35f, 1}, "Action failed:");

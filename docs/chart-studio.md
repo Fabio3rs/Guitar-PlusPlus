@@ -1,7 +1,7 @@
 # Guitar++ Chart Studio
 
-Workbench independente para importar **MIDI musical**, escolher uma pista, gerar
-cinco lanes, corrigir frases e guardar decisões em SQLite. O objetivo musical é
+Workbench independente para importar **MIDI musical**, associar pistas a partes
+instrumentais do jogo, gerar cinco lanes, corrigir frases e guardar decisões em SQLite. O objetivo musical é
 um chart razoável e consistente, com estilo próprio; igualdade com lanes de um
 chart profissional não é uma medida de qualidade.
 
@@ -34,12 +34,18 @@ cria janela nem contexto GL. `gpp_score_tests` nem sequer linka bibliotecas grá
    `.mid`/`.midi`. **Use this path** preenche o campo; **Open MIDI / project**
    carrega o arquivo. O mesmo fluxo abre `.gppchartproj`. A mensagem central informa
    quantas pistas foram carregadas e qual é o próximo passo.
-2. Em **Tracks**, escolha explicitamente a pista. Para Type 0 com vários
-   instrumentos, use os filtros canal/programa em **Mapping** (índices a partir
-   de zero; `-1` inclui todos). Abrir MIDI e selecionar pista não geram notas.
-3. Clique em **Generate chart** na timeline ou em **Mapping**. Comece com Expert
-   e Beam search. Ajustes de pesos/densidade valem para a próxima geração;
-   decisões confirmadas/bloqueadas continuam sendo reutilizadas.
+2. Em **Tracks**, selecione uma parte na tabela e escolha sua pista musical.
+   **New instrument / New difficulty / Add part** acrescenta outra associação.
+   **Source filters** permite escolher canal/programa (índices a partir de zero;
+   `-1` inclui todos). A lista mostra nome, programas, canais e quantidade de notas;
+   os detalhes mostram também acordes e alturas. Selecionar uma pista não gera notas.
+3. **Generate all parts** gera o projeto inteiro em background, incluindo Plus nas
+   partes em que está habilitado. **Generate chart** e Ctrl+G geram somente as lanes
+   da parte ativa. Comece com Expert e Beam. Pesos/densidade valem para a próxima
+   geração; decisões confirmadas/bloqueadas continuam sendo reutilizadas.
+   O lote é aplicado inteiro como uma operação de undo; falhas/cancelamento
+   preservam os resultados anteriores. Cancelamento é verificado entre partes.
+   Alterar o projeto durante o processamento torna o resultado obsoleto.
 4. Na timeline, roda do mouse faz zoom e arrasto com botão central navega.
    Clique no ataque para destacar suas fontes. Arrasto move a nota;
    Shift+arrasto ajusta sustain; Ctrl+clique adiciona à seleção.
@@ -50,7 +56,9 @@ cria janela nem contexto GL. `gpp_score_tests` nem sequer linka bibliotecas grá
 6. Para regenerar um trecho, posicione o cursor e use **Set start/end at cursor**
    em Mapping. Os limites aparecem em segundos, com ticks disponíveis em detalhes.
 7. Em **Files**, confira os destinos e use **Save project** para guardar a edição
-   e **Export .chart** para criar o arquivo jogável. São arquivos diferentes.
+   e **Export .chart** para criar o arquivo jogável com todas as seções listadas.
+   São arquivos diferentes. Todas as partes precisam ter ataques para exportar;
+   remova associações incompletas ou gere-as antes.
    Um MIDI novo sugere nomes derivados da música, no diretório de saída do studio.
    A substituição de export existente exige habilitar a opção correspondente.
 8. Áudio e referência são opcionais. Carregue uma referência `.chart`, `.gpp` ou
@@ -63,7 +71,7 @@ inicial. Arraste as abas para encaixar, agrupar ou soltar painéis dentro da jan
 **Panels** reabre painéis fechados e **Reset layout** restaura a organização inicial.
 O layout é salvo em arquivo próprio, sem dependência de ImGui no runtime.
 
-Atalhos opcionais: Ctrl+L bloqueia frase; Ctrl+G gera; Ctrl+Z/Y desfaz/refaz;
+Atalhos opcionais: Ctrl+L bloqueia frase; Ctrl+G gera a parte ativa; Ctrl+Z/Y desfaz/refaz;
 Ctrl+S salva; Ctrl+E exporta; Ctrl+C/V copia/cola; Ctrl+Q fecha. Teclas 1–5 alternam
 as lanes da nota selecionada. A interface permite o fluxo principal sem terminal;
 o experimento UMAP ainda exige preparar externamente seu arquivo de projeção.
@@ -84,6 +92,132 @@ e harmônicos podem parecer outras notas. Não modifica BPM, offset nem lanes.
 
 O [alinhamento MIDI/áudio](chart-studio-alignment.md) oferece offset e escala global.
 DTW e inferência de instrumentos a partir da mixagem continuam pendentes.
+
+## Várias partes no mesmo chart
+
+Uma parte é o par **instrumento do jogo + dificuldade**, com uma pista musical
+como origem. A mesma pista pode alimentar destinos diferentes. Cada parte guarda
+suas notas, edições, padrões e Plus; mapa de tempo, gravação e alinhamento são comuns.
+Troque a parte ativa pela tabela Tracks ou pelo seletor da timeline. Cursor/zoom
+continuam iguais; seleção de notas e referência carregada são reiniciadas para não
+editar/comparar acidentalmente outra parte. Remover uma parte permite undo.
+
+| Destino | Sufixo da seção `.chart` |
+|---|---|
+| Guitarra principal | `Single` |
+| Baixo | `DoubleBass` |
+| Guitarra rítmica | `DoubleRhythm` |
+| Guitarra co-op | `DoubleGuitar` |
+| Keys de cinco lanes | `Keyboard` |
+
+A dificuldade prefixa o sufixo: `[ExpertDoubleBass]`, por exemplo. Keys usa o mesmo
+núcleo melódico de cinco lanes; não é Pro Keys. Não há conversão de bateria/vocal/Pro
+nessa lista. O programa GM descreve o timbre de reprodução, não garante o papel
+musical: nossas tablaturas usam sax/clarinete para algumas vozes.
+
+```sh
+./build/bin/gpp_score_to_chart convert "build/tabs/Paramore - Still Into You.mid" \
+  --part ExpertSingle:3 --part ExpertDoubleRhythm:4 \
+  --part ExpertDoubleBass:5 --part ExpertKeyboard:6 \
+  --plus auto --plus-profile strategic --plus-trials 32 \
+  --output build/chart-studio/StillIntoYou.multitrack.chart \
+  --project build/chart-studio/StillIntoYou.multitrack.gppchartproj \
+  --report build/chart-studio/StillIntoYou.multitrack.json
+
+./build/bin/gpp_score_to_chart inspect build/chart-studio/StillIntoYou.multitrack.gppchartproj
+./build/bin/gpp_score_to_chart events build/chart-studio/StillIntoYou.multitrack.gppchartproj \
+  --instrument ExpertDoubleBass
+./build/bin/gpp_score_to_chart plus-simulate build/chart-studio/StillIntoYou.multitrack.gppchartproj \
+  --instrument ExpertDoubleBass --output build/chart-studio/bass-plus.json
+```
+
+`--part SECAO:TRACK[:CANAL[:PROGRAMA]]` é repetível. Track/canal/programa começam em
+zero; filtros omitidos ou `-1` incluem todos. Seções duplicadas, fontes sem ataques
+ou instrumentos não suportados causam erro. `--part` substitui `--track`,
+`--difficulty`, `--channel` e `--program`; não combine essas opções. `--track`
+sozinho continua gerando guitarra principal como antes.
+
+Pesos, política de sustains e parâmetros Plus da CLI são aplicados às partes do
+lote. O projeto mantém parâmetros individuais para ajustes posteriores na GUI.
+Ao reutilizar um projeto existente, associações correspondentes preservam edições;
+novas associações são adicionadas e partes omitidas permanecem no projeto. Mudar a
+origem de uma parte já editada exige **Reset this part to new source** na GUI
+(com undo), ou um novo projeto. Nenhuma edição é descartada implicitamente.
+Regeneração por região continua disponível para a parte ativa na GUI; o lote
+pela CLI não aceita limites globais `--begin-tick`/`--end-tick`.
+
+O alinhamento `--audio ... --align auto` é calculado uma única vez. Todas as partes
+recebem o mesmo offset/escala; apenas um `[Song]` e um `[SyncTrack]` são exportados.
+O round-trip carrega cada seção pelo parser real e verifica notas, sustains e Plus
+antes de publicar o arquivo. Isso não acrescenta modos de bateria/voz ao runtime.
+
+UMAP permanece opcional: use `--algorithm umap` e um
+`--part-projection SECAO=ARQUIVO.json` por parte. Para preparar features de outro
+instrumento, use `features MIDI --track N --instrument ExpertDoubleBass` antes do
+fluxo de projeção descrito no manual UMAP. Artefatos são externos e devem ser
+recarregados depois de abrir o projeto. O cache verifica instrumento/dificuldade;
+as assinaturas antigas de guitarra principal continuam válidas.
+
+Projetos novos usam SQLite versão 4. As versões 1–3 são lidas como uma parte de
+guitarra principal; ler não modifica o arquivo, salvar publica a nova versão.
+O payload mantém o bloco legado e acrescenta a identidade ativa e as partes
+adicionais. `Part` contém os dados editáveis; `State` mantém a parte ativa e a
+partitura/alinhamento compartilhados. Os motores existentes operam na parte ativa,
+sem duplicar suas regras. O histórico guarda snapshots completos, até 64 operações.
+A biblioteca global de padrões continua na versão 1; não há migração de `.gpp`.
+Relatórios de múltiplas partes usam `schema: 2` e uma lista `parts` com a seção,
+a origem e o relatório existente de cada parte. Relatórios de parte única mantêm
+seu formato anterior. `plus-simulate` sem seletor relata todas as partes;
+`events` e `patterns` usam a parte ativa quando `--instrument` é omitido.
+
+### Fontes musicais locais verificadas
+
+Índices abaixo são candidatos identificados por nomes/programas, não uma seleção
+automática nem uma afirmação de equivalência ao chart profissional:
+
+| MIDI em `build/tabs` | Pistas candidatas |
+|---|---|
+| Slow Ride | Guitarra 1, segunda guitarra 2, baixo 3 |
+| Magia, ambas as versões | Guitarras 1/2/3, baixo 4 |
+| Still Into You | Principal 3, rítmica 4, baixo 5, sintetizador 6 |
+| Through the Fire and Flames | Elétricas 6/7/9, baixo 10; teclados em várias pistas |
+| Destructive Device, ambas as versões | Guitarra 1, baixo 2 |
+| Knights of Cydonia | Elétrica 4, limpa 3, baixo 5, sintetizador 7 |
+| Before I Forget | Principal 2, rítmica 3, baixo 6, teclado 7 |
+| My Name Is Jonas | Elétrica 6, rítmica 8, baixo 10, acústica 5 |
+| Barracuda | Guitarras 2/3/4, baixo 5; nomes vazios exigem inspeção |
+| Honesty | Guitarra 1; guitarras 2/3 têm apenas 19 notas cada |
+| The Logic Behind Heads Or Tails | Guitarra 1; pista 2 usa piano e tem apenas 28 notas |
+
+Foram encontrados 13 MIDI. Cliffs of Dover tem `.gp5`, mas não MIDI local nesta
+avaliação. Não inventar baixo/teclado ausente nem preencher lacunas da transcrição.
+Os arquivos locais não são fixtures redistribuíveis e não entram no repositório.
+
+### Avaliação desta implementação
+
+O script `tools/chart_studio/experiments/multipart_compare.py` executa as associações
+explícitas acima e grava comandos, hashes dos MIDI, relatórios por parte e resultados
+de reabertura. Ele exige um diretório de saída novo; não sobrescreve `songs`.
+
+```sh
+python3 tools/chart_studio/experiments/multipart_compare.py \
+  build/bin/gpp_score_to_chart build/tabs build/bin/data/songs \
+  build/chart-studio/minha-avaliacao-multipart
+```
+
+Na avaliação local de 2026-10-14, os 13 MIDI geraram **44 partes**, todas validadas
+pelo loader, e os 13 projetos reabriram. Foram usados Beam, Expert, Plus Strategic,
+preferência de dois compassos por frase e 32 ensaios por combinação de estratégia/
+habilidade. Honesty, Magia e The Logic Behind Heads Or Tails reutilizaram a evidência
+de alinhamento dos projetos instalados. Os resultados estão em
+`build/chart-studio/multipart-evaluation-20261014/summary.json`; os `.chart`, projetos
+e relatórios individuais ficam ao lado. Essa avaliação verifica o pipeline e não
+substitui ouvir/jogar cada arranjo.
+
+A suíte sintética verifica exportação das cinco seções, dificuldades diferentes,
+fontes/filtros, isolamento de decisões, undo/redo, migração v1–v3, projeções opcionais
+e proteção dos arquivos. O teste de GUI adiciona baixo, gera o lote, preserva o
+bloqueio da guitarra, desfaz/refaz e exporta ambas as partes usando ImGui real.
 
 ## CLI e memória persistente
 
@@ -193,6 +327,10 @@ pode trocar/misturar instrumentos, diferentemente da pista selecionada no MIDI.
 
 ## Limitações e próximos experimentos
 
+- Referências `.chart` podem selecionar as cinco partes. O loader de MIDI de
+  gameplay do runtime ainda reconhece guitarra principal e baixo; esta entrega
+  não amplia a leitura das outras partes de MIDI profissional. Use uma referência
+  `.chart` compatível para comparar rítmica, co-op ou Keys.
 - Expert é o foco. Outros perfis usam retenção periódica e restrições de lanes/
   acordes; relevância musical da simplificação ainda precisa evoluir.
 - Motivos repetidos são procurados entre 4 e 32 ataques; passagens únicas usam
@@ -203,8 +341,31 @@ pode trocar/misturar instrumentos, diferentemente da pista selecionada no MIDI.
   avançadas de repetição/continuidade entre charts ainda estão pendentes.
 - Windows tem caminhos UTF-8 e publicação via MoveFileExW, mas esta entrega foi
   compilada/testada em Linux. A GUI usa campos de caminho em vez de seletor nativo.
-- Geração e análise FFT são síncronas na GUI; canções grandes podem pausar a janela.
-  Undo copia estados completos (até 64), adequado ao protótipo, com custo de memória.
+- Geração de uma parte e inspeção FFT ainda são síncronas. Geração de todas as
+  partes roda em background, com cancelamento entre partes. Undo copia estados
+  completos (até 64), com custo de memória que cresce com a quantidade de partes.
+
+### Plano futuro: combinar guitarras ou baixos em uma parte
+
+**Pendente, não implementado:** associar várias pistas musicais de guitarra ou
+baixo a uma única parte jogável. É composição de eventos musicais, não mixagem
+nem separação de áudio. Poderá reunir vozes simultâneas ou alternar fontes por
+região, como acústica na introdução e elétrica no solo.
+
+O trabalho futuro precisa definir prioridades por região, deduplicação de uníssonos,
+tratamento de ataques/sustains sobrepostos e preservação das vozes/origens. A união
+não pode virar automaticamente um acorde excessivo; será necessária uma política
+musical de seleção/redução. As assinaturas do cache deverão representar a estrutura
+resultante, e Plus será analisado sobre a parte combinada preservando decisões
+manuais. A sintaxe dessa extensão ainda não está definida.
+
+Exemplo concreto: no nosso TTFAF, selecionar somente a elétrica 6 deixa de fora a
+introdução acústica das pistas 4/5. A versão co-op profissional pode servir de
+comparação, mas não resolve essa limitação de origem no conversor.
+
+Também permanecem pendentes conversores próprios para bateria, vocais e
+instrumentos Pro; importação direta de Guitar Pro/MusicXML; e DTW/alinhamento
+local. A geração de várias seções de cinco lanes não implementa esses recursos.
 
 Próximos experimentos: ouvir/jogar pequenos trechos corrigidos, promover apenas
 riffs aprovados, comparar lead/rhythm separadamente no TTFAF/co-op, ajustar pesos

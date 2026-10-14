@@ -216,6 +216,7 @@ Score importMidi(const fs::path &path) {
 }
 
 void Settings::validate() const {
+    (void)partSection(*this);
     require(difficulty == "expert" || difficulty == "hard" ||
                 difficulty == "medium" || difficulty == "easy",
             "Unknown difficulty");
@@ -251,7 +252,8 @@ std::string canonical(const std::vector<Event> &events, size_t begin,
                       const Settings &settings, bool relative) {
     std::ostringstream out;
     out.imbue(std::locale::classic());
-    out << "signature-v1/guitar/" << settings.difficulty << '/' << count << '/';
+    out << "signature-v1/" << settings.instrument << "/" << settings.difficulty
+        << '/' << count << '/';
     const int64_t start = events.at(begin).tick;
     int base = 127;
     for (const auto &source : events[begin].sources) {
@@ -335,6 +337,10 @@ std::string encode(const State &state) {
         archive(cereal::make_nvp("alignment", state.alignment));
         archive(cereal::make_nvp("plus", state.plus));
         archive(cereal::make_nvp("musical_markers", state.score.markers));
+        archive(cereal::make_nvp("instrument", state.settings.instrument),
+                cereal::make_nvp("active_part_id", state.partId),
+                cereal::make_nvp("next_part_id", state.nextPartId),
+                cereal::make_nvp("parts", state.otherParts));
     }
     return out.str();
 }
@@ -365,6 +371,15 @@ State decode(const std::string &text) {
         cereal::JSONInputArchive archive(markerInput);
         archive(cereal::make_nvp("musical_markers", state.score.markers));
     }
+    if (!extra.HasParseError() && extra.IsObject() &&
+        extra.HasMember("parts")) {
+        std::istringstream partsInput(text);
+        cereal::JSONInputArchive archive(partsInput);
+        archive(cereal::make_nvp("instrument", state.settings.instrument),
+                cereal::make_nvp("active_part_id", state.partId),
+                cereal::make_nvp("next_part_id", state.nextPartId),
+                cereal::make_nvp("parts", state.otherParts));
+    }
     validate(state);
     return state;
 }
@@ -385,23 +400,32 @@ int64_t exportMilliBpm(const State &state, const Tempo &tempo) {
 }
 
 void synchronize(State &state) {
-    for (auto &event : state.events) {
-        require(event.tick >= 0 && event.duration >= 0 &&
-                    event.duration <= INT32_MAX &&
-                    event.tick <= INT32_MAX - event.duration,
-                "Mapped event exceeds MIDI tick range");
-        event.note.time = audioSeconds(state, event.tick);
-        event.note.duration = audioSeconds(state, event.tick + event.duration) -
-                              audioSeconds(state, event.tick);
+    auto sync = [&](Part &part) {
+        part.settings.offset = state.settings.offset;
+        for (auto &event : part.events) {
+            require(event.tick >= 0 && event.duration >= 0 &&
+                        event.duration <= INT32_MAX &&
+                        event.tick <= INT32_MAX - event.duration,
+                    "Mapped event exceeds MIDI tick range");
+            event.note.time = audioSeconds(state, event.tick);
+            event.note.duration =
+                audioSeconds(state, event.tick + event.duration) -
+                audioSeconds(state, event.tick);
+        }
+        std::stable_sort(part.events.begin(), part.events.end(),
+                         [](const Event &a, const Event &b) {
+                             return a.tick != b.tick ? a.tick < b.tick
+                                                     : a.note.id < b.note.id;
+                         });
+    };
+    sync(state);
+    for (auto &part : state.otherParts) {
+        sync(part);
     }
-    std::stable_sort(state.events.begin(), state.events.end(),
-                     [](const Event &a, const Event &b) {
-                         return a.tick != b.tick ? a.tick < b.tick
-                                                 : a.note.id < b.note.id;
-                     });
 }
 
-void validate(const State &state) {
+namespace {
+void validatePart(const Part &state) {
     state.plus.settings.validate();
     require(state.plus.version == 1, "Unsupported Plus document version");
     std::set<uint64_t> plusIds;
@@ -413,11 +437,7 @@ void validate(const State &state) {
                     std::isfinite(phrase.risk),
                 "Invalid Plus phrase data");
     }
-    state.score.validate();
     state.settings.validate();
-    require(std::isfinite(state.alignment.scale) &&
-                state.alignment.scale >= .5 && state.alignment.scale <= 2,
-            "Invalid alignment scale");
     std::set<uint64_t> ids;
     for (const auto &e : state.events) {
         require(
@@ -439,6 +459,29 @@ void validate(const State &state) {
         for (int mask : p.masks) {
             require(mask >= 0 && mask <= 31, "Invalid pattern lanes");
         }
+    }
+}
+
+} // namespace
+
+void validate(const State &state) {
+    state.score.validate();
+    require(std::isfinite(state.alignment.scale) &&
+                state.alignment.scale >= .5 && state.alignment.scale <= 2,
+            "Invalid alignment scale");
+    require(state.otherParts.size() < 20,
+            "At most twenty instrument/difficulty parts are supported");
+    std::set<uint64_t> ids;
+    std::set<std::string> sections;
+    for (const auto *part : parts(state)) {
+        require(part->partId > 0 && part->partId < state.nextPartId &&
+                    ids.insert(part->partId).second,
+                "Invalid or duplicate part ID");
+        require(sections.insert(partSection(part->settings)).second,
+                "Duplicate chart section");
+        require(part->settings.offset == state.settings.offset,
+                "Parts must share the audio offset");
+        validatePart(*part);
     }
 }
 

@@ -28,7 +28,7 @@ double exportDurationSeconds(const State &state, const Event &event) {
            audioSeconds(state, event.tick);
 }
 
-std::string chartText(const State &state) {
+std::string singleChartText(const State &state) {
     validate(state);
     const auto errors = plusProblems(state);
     if (!errors.empty()) {
@@ -74,9 +74,7 @@ std::string chartText(const State &state) {
         out << "  " << signature.tick << " = TS " << signature.numerator << ' '
             << exponent << '\n';
     }
-    auto difficulty = state.settings.difficulty;
-    difficulty[0] = char(difficulty[0] - 'a' + 'A');
-    out << "}\n[" << difficulty << "Single]\n{\n";
+    out << "}\n" << partSection(state.settings) << "\n{\n";
     for (const auto &attack : attacks) {
         for (int lane = 0; lane < 5; ++lane) {
             if (attack.second.first & (1 << lane)) {
@@ -95,5 +93,26 @@ std::string chartText(const State &state) {
     }
     out << "}\n";
     return out.str();
+}
+std::string chartText(const State &state) {
+    validate(state);
+    std::string result;
+    for (const auto *part : parts(state)) {
+        const auto selected = partState(state, part->partId);
+        std::string text;
+        try {
+            text = singleChartText(selected);
+        } catch (const std::exception &error) {
+            throw std::runtime_error(partSection(part->settings) + ": " +
+                                     error.what());
+        }
+        if (result.empty()) {
+            result = text;
+        } else {
+            result +=
+                text.substr(text.find(partSection(part->settings) + "\n"));
+        }
+    }
+    return result;
 }
 } // namespace ChartStudio

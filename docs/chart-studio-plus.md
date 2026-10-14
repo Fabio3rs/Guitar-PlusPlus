@@ -1,5 +1,19 @@
 # Geração estratégica de Plus
 
+Em projetos com várias partes, cada instrumento/dificuldade tem sua configuração,
+frases, bloqueios e simulação de Plus. O painel **Plus** atua sobre a parte ativa.
+**Generate all parts** gera Plus nas partes em que ele está habilitado; a CLI
+`convert --part ... --part ... --plus auto` habilita a geração em todas as partes
+associadas. Não há compartilhamento de energia entre partes na simulação.
+O alinhamento temporal é comum, mas a distribuição estratégica considera as notas
+de cada parte. A economia do runtime permanece inalterada.
+
+Use `--instrument ExpertDoubleBass` para selecionar uma parte de projeto em
+`plus-generate`, `plus-analyze` ou `plus-simulate`. Os dois últimos, sem seletor,
+relatam todas as partes; `plus-generate` modifica apenas a parte ativa/selecionada
+e exporta o projeto inteiro. Veja [associações e limitações](chart-studio.md#várias-partes-no-mesmo-chart).
+
+
 O Chart Studio pode propor frases Plus depois de mapear o MIDI musical para lanes.
 O gerador, a simulação e a edição usam C++ e funcionam sem áudio, janela ou
 `GPPGame`. A geração é opt-in: a CLI exige `--plus auto`; a GUI separa a proposta
@@ -180,7 +194,7 @@ Não reproduz combo, release de cada fret ou execução humana validada.
 
 ## Persistência e fronteiras de exportação
 
-O projeto SQLite v3 acrescenta blocos nomeados `plus` e `musical_markers`, sem
+Os blocos nomeados `plus` e `musical_markers` foram introduzidos no projeto v3, sem
 reordenar o payload antigo. Projetos v1/v2 são lidos com Plus vazio/desabilitado;
 a migração só é escrita ao salvar. Biblioteca de padrões continua no schema v1.
 Não há mudança na serialização histórica `.gpp` nem na identidade dos motivos.
@@ -261,3 +275,22 @@ Limitações: heurística global limitada, não otimização exata; análise de 
 não reconhece semanticamente refrões; o risco e a execução são modelos experimentais.
 Ajustes finos de perfis, comparação perceptual e diversão precisam de escuta e
 playtest. Windows utiliza as rotinas existentes, mas esta validação foi Linux.
+
+### Revisão multipartes: limite de Plus com alinhamento
+
+Na revisão de 14/10/2026, os 13 MIDI locais (44 partes) passaram pela
+exportação, loader real e reabertura do projeto com `--plus-bars 2`.
+Os charts repetiram exatamente os hashes da avaliação anterior. Os resultados
+estão em `build/chart-studio/multipart-review-20261014/summary.json`.
+
+Há uma falha reproduzível fora dessa configuração: `Mindflow - The Logic Behind
+Heads Or Tails.mid`, track 1, perfil Strategic, duração padrão de um compasso e
+alinhamento salvo do projeto instalado. A frase 3, ticks 180480–185760, deveria
+abranger os ataques 368–380; o loader inclui também o ataque 381. Sem o alinhamento,
+essa conversão passa. A comparação temporal em segundos do loader na fronteira
+da frase precisa ser investigada; não foi alterada nesta revisão.
+
+O round-trip bloqueia a publicação do chart divergente. `--plus-bars 2` funciona
+nesse arquivo, mas muda a distribuição e não constitui uma correção geral.
+O diagnóstico agora informa frase, ticks e índices esperados/carregados.
+Reprodução e log locais: `build/chart-studio/review-plus-default/aligned.log`.

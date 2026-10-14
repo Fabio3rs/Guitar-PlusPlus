@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <optional>
 #include <set>
@@ -65,9 +66,14 @@ struct Score {
     }
 };
 struct Settings {
+    // Stored in the versioned parts extension; legacy positional fields stay
+    // intact.
+    std::string instrument = "guitar";
     std::string difficulty = "expert", algorithm = "beam";
     int track = -1, channel = -1, program = -1, maxChord = 3, beam = 64;
     bool structural = true, reuse = true;
+    // offset is mirrored across parts for legacy engine compatibility;
+    // change project timing through Session::setAlignment / synchronize.
     double offset = 0, minimumSustain = -.5, density = 1;
     // Integer cost weights, stable across platforms and locales.
     std::array<int, 6> weights{{8, 2, 4, 3, 8, 1}};
@@ -107,17 +113,32 @@ struct TimingAlignment {
     }
 };
 struct PlusProposal;
-struct State {
+// The active part is exposed as the State base for the existing CPU engines.
+// Inactive parts own only editing data; score, audio and alignment exist once.
+struct Part {
+    uint64_t partId = 1;
     PlusDocument plus;
-    TimingAlignment alignment;
-    Score score;
     Settings settings;
-    std::string input, inputHash, audio, reference;
+    std::string reference;
     std::vector<Event> events, original;
     std::map<std::string, Pattern> patterns;
     std::vector<std::string> conflicts, history;
-    std::vector<double> markers;
     uint64_t nextId = 1;
+    template <class A> void serialize(A &a) {
+        a(CEREAL_NVP(partId), CEREAL_NVP(settings),
+          cereal::make_nvp("instrument", settings.instrument), CEREAL_NVP(plus),
+          CEREAL_NVP(reference), CEREAL_NVP(events), CEREAL_NVP(original),
+          CEREAL_NVP(patterns), CEREAL_NVP(conflicts), CEREAL_NVP(history),
+          CEREAL_NVP(nextId));
+    }
+};
+struct State : Part {
+    TimingAlignment alignment;
+    Score score;
+    std::string input, inputHash, audio;
+    std::vector<double> markers;
+    std::vector<Part> otherParts;
+    uint64_t nextPartId = 2;
     template <class A> void serialize(A &a) {
         a(score, settings, input, inputHash, audio, reference, events, original,
           patterns, conflicts, history, markers, nextId);
@@ -131,6 +152,20 @@ struct Projection {
     std::map<std::string, std::vector<int>> positions;
 };
 Projection readProjection(const fs::path &path);
+std::string partSection(const Settings &settings);
+Settings parsePart(const std::string &association,
+                   const Settings &defaults = {});
+void setPartSection(Settings &settings, const std::string &section);
+std::vector<const Part *> parts(const State &state);
+void activatePart(State &state, uint64_t id);
+State partState(const State &state, uint64_t id);
+uint64_t findPart(const State &state, const std::string &section);
+using PartProgress = std::function<void(size_t, size_t, const std::string &)>;
+State generateParts(State state, const std::vector<Pattern> &library = {},
+                    const std::map<uint64_t, Projection> &projections = {},
+                    const PartProgress &progress = {});
+std::string partsReport(const State &state, bool plus = false, int trials = 256,
+                        uint64_t seed = 42);
 std::string experimentEvents(const State &state);
 
 std::string hash(const std::string &bytes);
@@ -150,6 +185,7 @@ void generate(State &state, const std::vector<Pattern> &library = {},
 int64_t exportDuration(const State &state, const Event &event);
 double exportDurationSeconds(const State &state, const Event &event);
 std::string chartText(const State &state);
+std::string singleChartText(const State &state);
 std::string report(const State &state);
 double audioSeconds(const State &state, int64_t tick);
 int64_t audioTick(const State &state, double time);
@@ -173,6 +209,7 @@ class Session {
 
   public:
     State state;
+    std::map<uint64_t, Projection> projections;
     std::optional<Projection>
         projection; // Reload explicitly after opening a project.
     fs::path project;
@@ -180,6 +217,13 @@ class Session {
     uint64_t revision = 0, documentGeneration = 0;
     std::set<uint64_t> selection;
     std::vector<Event> clipboard;
+    void selectPart(uint64_t id);
+    void addPart(const Settings &settings);
+    void removePart(uint64_t id);
+    void configurePart(const Settings &settings, bool resetSource = false);
+    void applyGenerated(State result, const std::string &sourceHash);
+    std::map<uint64_t, Projection> partProjections() const;
+    void runAll(const std::vector<Pattern> &library = {});
     void openMidi(const fs::path &path);
     void openProject(const fs::path &path);
     void save(const fs::path &path);

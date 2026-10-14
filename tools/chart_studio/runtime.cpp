@@ -128,6 +128,13 @@ Reference readReference(const fs::path &path, const std::string &instrument) {
     std::transform(extension.begin(), extension.end(), extension.begin(),
                    [](unsigned char c) { return char(std::tolower(c)); });
     std::vector<CChart::Note> notes;
+    if (extension == ".gppchartproj") {
+        const auto project = loadProject(path);
+        result = asReference(partState(project, findPart(project, instrument)));
+        result.name = path.filename().u8string();
+        result.instrument = instrument;
+        return result;
+    }
     if (extension == ".mid" || extension == ".midi") {
         MidiChart chart;
         std::string error;
@@ -173,21 +180,15 @@ Reference asReference(const State &state) {
     return result;
 }
 
-void exportValidated(const State &state, const fs::path &path, bool replace) {
-    for (const auto &input : {state.input, state.reference, state.audio}) {
-        if (input.empty()) {
-            continue;
-        }
-        std::error_code error;
-        const bool same =
-            fs::exists(path) && fs::equivalent(path, fs::u8path(input), error);
-        if (same || fs::absolute(path).lexically_normal() ==
-                        fs::absolute(fs::u8path(input)).lexically_normal()) {
-            throw std::runtime_error(
-                "Export cannot replace an input or reference file");
-        }
+void exportValidated(const State &project, const fs::path &path, bool replace) {
+    // Protect references belonging to every part, not only the active one.
+    std::vector<fs::path> sources{fs::u8path(project.input),
+                                  fs::u8path(project.audio)};
+    for (const auto *part : parts(project)) {
+        sources.push_back(fs::u8path(part->reference));
     }
-    const auto text = chartText(state);
+    protectDestination(path, sources);
+    const auto text = chartText(project);
     const auto temp =
         fs::temp_directory_path() /
         ("gpp-chart-check-" + hash(text) + "-" +
@@ -202,74 +203,91 @@ void exportValidated(const State &state, const fs::path &path, bool replace) {
         }
     } cleanup{temp};
     safeWrite(temp, text, false);
-    std::string difficulty = state.settings.difficulty;
-    difficulty[0] = char(difficulty[0] - 'a' + 'A');
-    CChart::NotesData loaded;
-    CChart::Metadata metadata;
-    if (!loaded.loadFeedbackChartCPU(temp.u8string(),
-                                     "[" + difficulty + "Single]", metadata)) {
-        throw std::runtime_error("Runtime rejected exported chart");
-    }
-    std::map<int64_t, std::pair<int, int64_t>> expected;
-    for (const auto &event : state.events) {
-        if (event.removed) {
-            continue;
-        }
-        const auto duration = exportDuration(state, event);
-        auto [it, inserted] = expected.emplace(
-            event.tick, std::make_pair(event.note.flags, duration));
-        if (!inserted) {
-            it->second.first |= event.note.flags;
-            it->second.second = std::min(it->second.second, duration);
-        }
-    }
-    if (expected.size() != loaded.gNotes.size()) {
-        throw std::runtime_error("Round-trip attack count mismatch");
-    }
-    auto seconds = [&](int64_t tick) {
-        double time = state.settings.offset;
-        int64_t previous = 0, bpm = 120000;
-        for (const auto &tempo : state.score.tempos) {
-            if (tempo.tick > tick) {
-                break;
+    for (const auto *part : parts(project)) {
+        try {
+            const auto selected = partState(project, part->partId);
+            const State &state = selected;
+            CChart::NotesData loaded;
+            CChart::Metadata metadata;
+            if (!loaded.loadFeedbackChartCPU(
+                    temp.u8string(), partSection(state.settings), metadata)) {
+                throw std::runtime_error("Runtime rejected exported chart");
             }
-            time += double(tempo.tick - previous) * 60000.0 /
-                    (state.score.ppq * double(bpm));
-            previous = tempo.tick;
-            bpm = exportMilliBpm(state, tempo);
-        }
-        return time + double(tick - previous) * 60000.0 /
-                          (state.score.ppq * double(bpm));
-    };
-    size_t index = 0;
-    for (const auto &entry : expected) {
-        const auto &note = loaded.gNotes[index++];
-        if ((note.type & 31) != entry.second.first ||
-            std::abs(note.time - seconds(entry.first)) > 1e-6 ||
-            std::abs(note.lTime - (seconds(entry.first + entry.second.second) -
-                                   seconds(entry.first))) > 1e-6) {
-            throw std::runtime_error(
-                "Round-trip lanes/timing/sustain mismatch");
-        }
-    }
-    auto phrases = state.plus.phrases;
-    std::sort(phrases.begin(), phrases.end(),
-              [](const auto &a, const auto &b) { return a.begin < b.begin; });
-    const auto attacks = plusAttacks(state);
-    if (phrases.size() != loaded.gPlus.size()) {
-        throw std::runtime_error("Round-trip Plus count mismatch");
-    }
-    for (size_t i = 0; i < phrases.size(); ++i) {
-        const auto &p = phrases[i];
-        const auto &actual = loaded.gPlus[i];
-        const auto range = plusAttackRange(attacks, p);
-        if (range.first == range.second || actual.firstNote != range.first ||
-            actual.lastNote != range.second - 1 ||
-            std::abs(actual.time - seconds(p.begin)) > 1e-6 ||
-            std::abs(actual.lTime - (seconds(p.end) - seconds(p.begin))) >
-                1e-6) {
-            throw std::runtime_error(
-                "Round-trip Plus boundaries or indices mismatch");
+            std::map<int64_t, std::pair<int, int64_t>> expected;
+            for (const auto &event : state.events) {
+                if (event.removed) {
+                    continue;
+                }
+                const auto duration = exportDuration(state, event);
+                auto [it, inserted] = expected.emplace(
+                    event.tick, std::make_pair(event.note.flags, duration));
+                if (!inserted) {
+                    it->second.first |= event.note.flags;
+                    it->second.second = std::min(it->second.second, duration);
+                }
+            }
+            if (expected.size() != loaded.gNotes.size()) {
+                throw std::runtime_error("Round-trip attack count mismatch");
+            }
+            auto seconds = [&](int64_t tick) {
+                double time = state.settings.offset;
+                int64_t previous = 0, bpm = 120000;
+                for (const auto &tempo : state.score.tempos) {
+                    if (tempo.tick > tick) {
+                        break;
+                    }
+                    time += double(tempo.tick - previous) * 60000.0 /
+                            (state.score.ppq * double(bpm));
+                    previous = tempo.tick;
+                    bpm = exportMilliBpm(state, tempo);
+                }
+                return time + double(tick - previous) * 60000.0 /
+                                  (state.score.ppq * double(bpm));
+            };
+            size_t index = 0;
+            for (const auto &entry : expected) {
+                const auto &note = loaded.gNotes[index++];
+                if ((note.type & 31) != entry.second.first ||
+                    std::abs(note.time - seconds(entry.first)) > 1e-6 ||
+                    std::abs(note.lTime -
+                             (seconds(entry.first + entry.second.second) -
+                              seconds(entry.first))) > 1e-6) {
+                    throw std::runtime_error(
+                        "Round-trip lanes/timing/sustain mismatch");
+                }
+            }
+            auto phrases = state.plus.phrases;
+            std::sort(
+                phrases.begin(), phrases.end(),
+                [](const auto &a, const auto &b) { return a.begin < b.begin; });
+            const auto attacks = plusAttacks(state);
+            if (phrases.size() != loaded.gPlus.size()) {
+                throw std::runtime_error("Round-trip Plus count mismatch");
+            }
+            for (size_t i = 0; i < phrases.size(); ++i) {
+                const auto &p = phrases[i];
+                const auto &actual = loaded.gPlus[i];
+                const auto range = plusAttackRange(attacks, p);
+                if (range.first == range.second ||
+                    actual.firstNote != range.first ||
+                    actual.lastNote != range.second - 1 ||
+                    std::abs(actual.time - seconds(p.begin)) > 1e-6 ||
+                    std::abs(actual.lTime -
+                             (seconds(p.end) - seconds(p.begin))) > 1e-6) {
+                    throw std::runtime_error(
+                        "Round-trip Plus boundaries or indices mismatch at "
+                        "phrase " +
+                        std::to_string(p.id) + " (ticks " +
+                        std::to_string(p.begin) + ".." + std::to_string(p.end) +
+                        ", expected attacks " + std::to_string(range.first) +
+                        ".." + std::to_string(range.second - 1) + ", loaded " +
+                        std::to_string(actual.firstNote) + ".." +
+                        std::to_string(actual.lastNote) + ")");
+                }
+            }
+        } catch (const std::exception &error) {
+            throw std::runtime_error(partSection(part->settings) + ": " +
+                                     error.what());
         }
     }
     safeWrite(path, text, replace);

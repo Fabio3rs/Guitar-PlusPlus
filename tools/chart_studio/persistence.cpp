@@ -32,14 +32,14 @@ void schema(SqliteDb &db, const std::string &kind, bool create) {
             "CREATE INDEX pattern_structural ON patterns(structural);"
             "PRAGMA application_id=1196442451; PRAGMA user_version=1;");
         if (kind == "project") {
-            db.exec("PRAGMA user_version=3;");
+            db.exec("PRAGMA user_version=4;");
         }
         auto insert = db.prepare("INSERT INTO metadata VALUES('kind',?)",
                                  "database kind");
         (void)insert.bind(1, kind).step();
         tx.commit();
-    } else if ((found != 1 &&
-                !(kind == "project" && (found == 2 || found == 3))) ||
+    } else if ((found != 1 && !(kind == "project" &&
+                                (found == 2 || found == 3 || found == 4))) ||
                sqlite3_column_int(app.get(), 0) != application) {
         throw std::runtime_error("Unknown or incompatible Chart Studio "
                                  "database; original file was preserved");
@@ -115,7 +115,12 @@ void insertPattern(SqliteDb &db, const Pattern &pattern) {
         .step();
 }
 void rebase(State &state, const fs::path &directory, bool saving) {
-    for (auto *name : {&state.input, &state.audio, &state.reference}) {
+    std::vector<std::string *> names{&state.input, &state.audio,
+                                     &state.reference};
+    for (auto &part : state.otherParts) {
+        names.push_back(&part.reference);
+    }
+    for (auto *name : names) {
         if (name->empty()) {
             continue;
         }
@@ -168,6 +173,12 @@ void safeWrite(const fs::path &path, const std::string &text, bool replace) {
 
 void saveProject(const fs::path &path, const State &state, bool replace) {
     validate(state);
+    std::vector<fs::path> inputs{fs::u8path(state.input),
+                                 fs::u8path(state.audio)};
+    for (const auto *part : parts(state)) {
+        inputs.push_back(fs::u8path(part->reference));
+    }
+    protectDestination(path, inputs);
     Temporary temp(path);
     auto saved = state;
     rebase(saved, fs::absolute(path).parent_path(), true);
@@ -178,6 +189,8 @@ void saveProject(const fs::path &path, const State &state, bool replace) {
         auto insert = db.prepare("INSERT INTO metadata VALUES('document',?)",
                                  "save document");
         (void)insert.bind(1, encode(saved)).step();
+        // Project decisions live in each serialized part. The legacy SQL
+        // index contains the active part only; it is not the source of truth.
         for (const auto &entry : saved.patterns) {
             insertPattern(db, entry.second);
         }

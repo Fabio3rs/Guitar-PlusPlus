@@ -32,13 +32,116 @@ void capturePattern(State &state, const Event &selected, int status) {
 }
 } // namespace
 
+std::map<uint64_t, Projection> Session::partProjections() const {
+    auto result = projections;
+    if (projection) {
+        result[state.partId] = *projection;
+    }
+    return result;
+}
+
+void Session::selectPart(uint64_t id) {
+    if (id == state.partId) {
+        return;
+    }
+    // Switching is navigation, not a document edit to undo.
+    projections = partProjections();
+    activatePart(state, id);
+    const auto found = projections.find(id);
+    projection = found == projections.end() ? std::optional<Projection>{}
+                                            : found->second;
+    selection.clear();
+    clipboard.clear();
+    ++revision;
+    dirty = true;
+}
+
+void Session::addPart(const Settings &settings) {
+    auto next = state;
+    Part part;
+    part.partId = next.nextPartId++;
+    part.settings = settings;
+    part.settings.offset = state.settings.offset;
+    next.otherParts.push_back(part);
+    validate(next);
+    checkpoint();
+    state = std::move(next);
+    selectPart(part.partId);
+}
+
+void Session::removePart(uint64_t id) {
+    if (state.otherParts.empty()) {
+        throw std::runtime_error("Keep at least one part in the project");
+    }
+    auto next = state;
+    activatePart(next, id);
+    activatePart(next, next.otherParts.front().partId);
+    next.otherParts.erase(
+        std::remove_if(next.otherParts.begin(), next.otherParts.end(),
+                       [id](const Part &part) { return part.partId == id; }),
+        next.otherParts.end());
+    validate(next);
+    projections = partProjections();
+    checkpoint();
+    state = std::move(next);
+    const auto found = projections.find(state.partId);
+    projection = found == projections.end() ? std::optional<Projection>{}
+                                            : found->second;
+    selection.clear();
+    clipboard.clear();
+}
+
+void Session::configurePart(const Settings &settings, bool resetSource) {
+    auto next = state;
+    const bool changedSource = settings.track != state.settings.track ||
+                               settings.channel != state.settings.channel ||
+                               settings.program != state.settings.program;
+    if (changedSource &&
+        (!state.events.empty() || !state.plus.phrases.empty())) {
+        if (!resetSource) {
+            throw std::runtime_error("Changing the source requires Reset this "
+                                     "part; existing edits are undoable");
+        }
+        Part fresh;
+        fresh.partId = state.partId;
+        fresh.plus.settings = state.plus.settings;
+        static_cast<Part &>(next) = std::move(fresh);
+    }
+    next.settings = settings;
+    next.settings.offset = state.settings.offset;
+    validate(next);
+    checkpoint();
+    state = std::move(next);
+    if (changedSource) {
+        projection.reset();
+        projections.erase(state.partId);
+        selection.clear();
+        clipboard.clear();
+    }
+}
+
+void Session::applyGenerated(State result, const std::string &sourceHash) {
+    if (hash(encode(state)) != sourceHash) {
+        throw std::runtime_error(
+            "Project changed; batch result discarded. Generate again.");
+    }
+    validate(result);
+    checkpoint();
+    state = std::move(result);
+}
+
+void Session::runAll(const std::vector<Pattern> &library) {
+    const auto source = hash(encode(state));
+    applyGenerated(generateParts(state, library, partProjections()), source);
+}
+
 void Session::setAlignment(double scale, double offset,
                            const std::string &evidence) {
     auto next = state;
     next.alignment = {scale, evidence};
     next.settings.offset = offset;
-    validate(next);
     synchronize(next);
+    validate(next);
     checkpoint();
     state = std::move(next);
 }
@@ -62,6 +165,7 @@ void Session::openMidi(const fs::path &path) {
     next.inputHash = fileHash(path);
     state = std::move(next);
     projection.reset();
+    projections.clear();
     project.clear();
     savedHash_.clear();
     past_.clear();
@@ -77,6 +181,7 @@ void Session::openProject(const fs::path &path) {
     auto saved = fileHash(path);
     state = std::move(next);
     projection.reset();
+    projections.clear();
     project = fs::absolute(path);
     savedHash_ = std::move(saved);
     past_.clear();
@@ -338,11 +443,16 @@ bool Session::undo() {
     if (past_.empty()) {
         return false;
     }
+    projections = partProjections();
     future_.push_back(state);
     state = std::move(past_.back());
     past_.pop_back();
     dirty = true;
     selection.clear();
+    clipboard.clear();
+    const auto found = projections.find(state.partId);
+    projection = found == projections.end() ? std::optional<Projection>{}
+                                            : found->second;
     return true;
 }
 
@@ -351,11 +461,16 @@ bool Session::redo() {
     if (future_.empty()) {
         return false;
     }
+    projections = partProjections();
     past_.push_back(state);
     state = std::move(future_.back());
     future_.pop_back();
     dirty = true;
     selection.clear();
+    clipboard.clear();
+    const auto found = projections.find(state.partId);
+    projection = found == projections.end() ? std::optional<Projection>{}
+                                            : found->second;
     return true;
 }
 void Session::configurePlus(const PlusSettings &settings) {

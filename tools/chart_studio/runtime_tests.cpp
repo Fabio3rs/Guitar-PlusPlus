@@ -1,5 +1,6 @@
 #include "MidiFixture.h"
 #include "runtime.h"
+#include <algorithm>
 #include <gtest/gtest.h>
 using namespace ChartStudio;
 TEST(ChartStudioRuntime, RoundTripTempoOffsetChordsAndReferenceProtection) {
@@ -119,7 +120,7 @@ TEST(ChartStudioPlus, LoaderKeepsAttacksAtMarkerTicksAndIndices) {
         Event e;
         e.note.id = state.nextId++;
         e.note.flags = 1 << (i % 5);
-        e.tick = i * 96;
+        e.tick = int64_t(i) * 96;
         state.events.push_back(e);
     }
     synchronize(state);
@@ -172,7 +173,7 @@ TEST(ChartStudioPlus, LegacyProjectMigrationAndAtomicProtection) {
         fs::path path;
         ~Cleanup() { fs::remove_all(path); }
     } cleanup{root};
-    for (int version : {1, 2}) {
+    for (int version : {1, 2, 3}) {
         State state;
         const auto path = root / (std::to_string(version) + ".gppchartproj");
         saveProject(path, state, false);
@@ -180,6 +181,14 @@ TEST(ChartStudioPlus, LegacyProjectMigrationAndAtomicProtection) {
         {
             cereal::JSONOutputArchive archive(legacy);
             archive(state);
+            if (version >= 2) {
+                archive(cereal::make_nvp("alignment", state.alignment));
+            }
+            if (version >= 3) {
+                archive(cereal::make_nvp("plus", state.plus));
+                archive(
+                    cereal::make_nvp("musical_markers", state.score.markers));
+            }
         }
         {
             SqliteDb db(path.u8string());
@@ -202,7 +211,7 @@ TEST(ChartStudioPlus, LegacyProjectMigrationAndAtomicProtection) {
         SqliteDb db(path.u8string());
         auto query = db.prepare("PRAGMA user_version", "version");
         (void)query.step();
-        EXPECT_EQ(sqlite3_column_int(query.get(), 0), 3);
+        EXPECT_EQ(sqlite3_column_int(query.get(), 0), 4);
     }
 }
 TEST(ChartStudioPlus, RuntimeEconomyConstantsAndAttackScore) {
@@ -276,4 +285,77 @@ TEST(ChartStudioRuntime, ExportDoesNotRequireStrategicMeasureAnalysis) {
     phrase.end = state.score.ppq;
     state.plus.phrases.push_back(phrase);
     ASSERT_NO_THROW(exportValidated(state, path, true));
+}
+
+TEST(ChartStudioParts, AllSectionsRoundTripAndProjectReopen) {
+    const auto root =
+        fs::temp_directory_path() /
+        ("chart-parts-" +
+         std::to_string(
+             std::chrono::steady_clock::now().time_since_epoch().count()));
+    fs::create_directory(root);
+    struct Cleanup {
+        fs::path path;
+        ~Cleanup() { fs::remove_all(path); }
+    } cleanup{root};
+    midi_fixture::Track track("Guitar");
+    track.tempo(0, 500001);
+    track.tempo(960, 400000);
+    track.meta(0, 0x58, midi_fixture::data({3, 2, 24, 8}));
+    track.meta(1440, 0x58, midi_fixture::data({5, 2, 24, 8}));
+    for (unsigned i = 0; i < 24; ++i) {
+        track.note(i * 480, 360, 60 + i % 5);
+    }
+    const auto input = root / "musical.mid";
+    midi_fixture::write(input, midi_fixture::smf({track}));
+    Session session;
+    session.openMidi(input);
+    session.state.settings.track = 0;
+    for (const auto *section : {"ExpertDoubleBass", "HardDoubleRhythm",
+                                "MediumDoubleGuitar", "EasyKeyboard"}) {
+        session.addPart(parsePart(std::string(section) + ":0"));
+    }
+    session.runAll();
+    std::vector<uint64_t> ids;
+    for (const auto *part : parts(session.state)) {
+        ids.push_back(part->partId);
+    }
+    for (const auto id : ids) {
+        session.selectPart(id);
+        PlusPhrase phrase;
+        phrase.id = session.state.plus.nextId++;
+        phrase.begin = session.state.events.front().tick;
+        phrase.end = session.state.events[2].tick + 100;
+        session.state.plus.phrases.push_back(phrase);
+    }
+    session.setAlignment(1.01, .37, "test");
+    const auto chart = root / "all.chart";
+    ASSERT_NO_THROW(exportValidated(session.state, chart, false));
+    for (const auto *part : parts(session.state)) {
+        const auto section = partSection(part->settings);
+        const auto loaded = readReference(chart, section);
+        const auto attackCount =
+            std::count_if(part->events.begin(), part->events.end(),
+                          [](const Event &e) { return !e.removed; });
+        EXPECT_EQ(loaded.notes.size(), size_t(attackCount)) << section;
+        const auto plus = readPlusReference(chart, section);
+        ASSERT_EQ(plus.second.phrases.size(), 1u) << section;
+        EXPECT_EQ(plus.second.phrases.front().runtimeFirst, 0);
+        const auto included = std::count_if(
+            part->events.begin(), part->events.end(), [&](const Event &e) {
+                return !e.removed && e.tick < part->plus.phrases.front().end;
+            });
+        EXPECT_EQ(plus.second.phrases.front().runtimeLast, included - 1);
+    }
+    const auto project = root / "all.gppchartproj";
+    session.save(project);
+    Session reopened;
+    reopened.openProject(project);
+    EXPECT_EQ(chartText(reopened.state), chartText(session.state));
+    EXPECT_EQ(readReference(project, "[ExpertDoubleBass]").notes.size(), 24u);
+    session.state.otherParts.front().reference = chart.u8string();
+    const auto originalHash = fileHash(chart);
+    EXPECT_THROW(exportValidated(session.state, chart, true), std::exception);
+    EXPECT_THROW(saveProject(chart, session.state, true), std::exception);
+    EXPECT_EQ(fileHash(chart), originalHash);
 }

@@ -3,6 +3,7 @@
 #include "core.h"
 #include "plus_simulation.h"
 #include "runtime.h"
+#include <algorithm>
 #include <iostream>
 #include <stdexcept>
 
@@ -51,12 +52,20 @@ int main(int argc, char **argv) try {
                "list|confirm|lock|unlock|recalculate|promote|clear-"
                "experimental\n"
                "  [--event ID] [--cache LIBRARY.sqlite]\n"
+               "Multi-part: convert MIDI --part ExpertSingle:3 --part "
+               "ExpertDoubleBass:5\n"
+               "  --part SECTION:TRACK[:CHANNEL[:PROGRAM]] (repeatable, "
+               "replaces --track)\n"
+               "  [--part-projection SECTION=FILE.json] (repeatable UMAP "
+               "artifacts)\n"
+               "  Use --instrument '[ExpertDoubleBass]' for project "
+               "events/patterns/Plus.\n"
                "Track/channel/program indices are zero-based. Source files are "
                "never overwritten.\n";
         return 0;
     }
     const std::string command = argv[1];
-    std::vector<std::string> positional;
+    std::vector<std::string> positional, associations, partProjectionPaths;
     std::map<std::string, std::string> options;
     const std::set<std::string> switches{"--replace", "--no-cache",
                                          "--no-structural"};
@@ -107,7 +116,13 @@ int main(int argc, char **argv) try {
                                        "--weight5"};
     for (int i = 2; i < argc; ++i) {
         const std::string arg = argv[i];
-        if (switches.count(arg)) {
+        if (arg == "--part" || arg == "--part-projection") {
+            if (++i == argc) {
+                throw std::runtime_error("Missing value: " + arg);
+            }
+            (arg == "--part" ? associations : partProjectionPaths)
+                .push_back(argv[i]);
+        } else if (switches.count(arg)) {
             options[arg] = "1";
         } else if (values.count(arg)) {
             if (++i == argc) {
@@ -118,6 +133,21 @@ int main(int argc, char **argv) try {
             throw std::runtime_error("Unknown option " + arg);
         } else {
             positional.push_back(arg);
+        }
+    }
+    if ((!associations.empty() || !partProjectionPaths.empty()) &&
+        command != "convert") {
+        throw std::runtime_error(
+            "--part and --part-projection are convert options");
+    }
+    if (!associations.empty()) {
+        for (const auto *key :
+             {"--track", "--channel", "--program", "--difficulty",
+              "--projection", "--begin-tick", "--end-tick"}) {
+            if (options.count(key)) {
+                throw std::runtime_error(
+                    std::string("--part cannot be combined with ") + key);
+            }
         }
     }
     auto get = [&](const std::string &key, const std::string &fallback = "") {
@@ -186,6 +216,10 @@ int main(int argc, char **argv) try {
             }
             Session session;
             session.openProject(input);
+            if (options.count("--instrument")) {
+                session.selectPart(
+                    findPart(session.state, get("--instrument")));
+            }
             std::optional<std::pair<int64_t, int64_t>> region;
             if (options.count("--begin-tick") || options.count("--end-tick")) {
                 if (!options.count("--begin-tick") ||
@@ -202,10 +236,13 @@ int main(int argc, char **argv) try {
             auto project = fs::u8path(
                 get("--project", output.u8string() + ".gppchartproj"));
             protectDestination(output, {input, project});
-            const std::vector<fs::path> sources{
+            std::vector<fs::path> sources{
                 input, fs::u8path(session.state.input),
                 fs::u8path(session.state.audio),
                 fs::u8path(session.state.reference), output};
+            for (const auto *part : parts(session.state)) {
+                sources.push_back(fs::u8path(part->reference));
+            }
             protectDestination(project, sources);
             if (!options.count("--replace")) {
                 for (const auto &destination :
@@ -233,8 +270,12 @@ int main(int argc, char **argv) try {
             }
         } else {
             if (input.extension() == ".gppchartproj") {
-                json = plusReport(loadProject(input), plusTrials,
-                                  uint64_t(plusSeed));
+                auto state = loadProject(input);
+                if (options.count("--instrument")) {
+                    state =
+                        partState(state, findPart(state, get("--instrument")));
+                }
+                json = partsReport(state, true, plusTrials, uint64_t(plusSeed));
             } else {
                 const auto reference = readPlusReference(
                     input, get("--instrument", "[ExpertSingle]"));
@@ -289,9 +330,15 @@ int main(int argc, char **argv) try {
             settings.channel = int(integer("--channel", -1));
             settings.program = int(integer("--program", -1));
             settings.difficulty = get("--difficulty", "expert");
+            if (options.count("--instrument")) {
+                setPartSection(settings, get("--instrument"));
+            }
             session.run();
         } else {
             session.openProject(fs::u8path(positional[0]));
+        }
+        if (command == "events" && options.count("--instrument")) {
+            session.selectPart(findPart(session.state, get("--instrument")));
         }
         const auto output = experimentEvents(session.state);
         if (options.count("--output")) {
@@ -350,7 +397,26 @@ int main(int argc, char **argv) try {
         return 0;
     }
     if (command == "inspect") {
-        std::cout << inspect(importMidi(fs::u8path(positional[0])));
+        const auto path = fs::u8path(positional[0]);
+        if (path.extension() == ".gppchartproj") {
+            const auto state = loadProject(path);
+            std::cout << inspect(state.score);
+            for (const auto *part : parts(state)) {
+                std::cout << partSection(part->settings) << " <- track "
+                          << part->settings.track
+                          << " channel=" << part->settings.channel
+                          << " program=" << part->settings.program
+                          << " attacks="
+                          << std::count_if(part->events.begin(),
+                                           part->events.end(),
+                                           [](const Event &event) {
+                                               return !event.removed;
+                                           })
+                          << '\n';
+            }
+        } else {
+            std::cout << inspect(importMidi(path));
+        }
         return 0;
     }
     if (command == "compare") {
@@ -382,6 +448,9 @@ int main(int argc, char **argv) try {
             throw std::runtime_error("Patterns needs project and action");
         }
         session.openProject(fs::u8path(positional[0]));
+        if (options.count("--instrument")) {
+            session.selectPart(findPart(session.state, get("--instrument")));
+        }
         const auto &action = positional[1];
         if (action == "list") {
             for (const auto &entry : session.state.patterns) {
@@ -462,41 +531,61 @@ int main(int argc, char **argv) try {
     } else {
         session.openMidi(fs::u8path(positional[0]));
     }
+    if (!session.state.otherParts.empty()) {
+        for (const auto *key :
+             {"--track", "--channel", "--program", "--difficulty",
+              "--projection", "--begin-tick", "--end-tick"}) {
+            if (options.count(key)) {
+                throw std::runtime_error(
+                    std::string(
+                        "Multi-part project requires per-part controls, not ") +
+                    key);
+            }
+        }
+    }
+    auto applySettings = [&](Settings &s) {
+        s.track = int(integer("--track", s.track));
+        s.channel = int(integer("--channel", s.channel));
+        s.program = int(integer("--program", s.program));
+        s.difficulty = get("--difficulty", s.difficulty);
+        s.algorithm = get("--algorithm", s.algorithm);
+        s.offset = number("--offset-ms", s.offset * 1000) / 1000;
+        s.maxChord = int(integer("--max-chord", s.maxChord));
+        s.density = number("--density", s.density);
+        s.minimumSustain = get("--minimum-sustain") == "auto"
+                               ? -.5
+                               : number("--minimum-sustain", s.minimumSustain);
+        if (options.count("--minimum-sustain") &&
+            get("--minimum-sustain") != "auto" && s.minimumSustain < 0) {
+            throw std::runtime_error(
+                "Minimum sustain seconds must be nonnegative; "
+                "use --sustain-beats for musical limits");
+        }
+        if (options.count("--sustain-beats")) {
+            if (options.count("--minimum-sustain")) {
+                throw std::runtime_error(
+                    "Choose beats or seconds for sustain cutoff, not both");
+            }
+            const double beats = number("--sustain-beats");
+            if (beats <= 0 || beats > 128) {
+                throw std::runtime_error(
+                    "Sustain beats must be greater than zero and at most 128");
+            }
+            s.minimumSustain = -beats;
+        }
+        s.reuse = !options.count("--no-cache");
+        s.structural = !options.count("--no-structural");
+        for (size_t i = 0; i < s.weights.size(); ++i) {
+            s.weights[i] =
+                int(integer("--weight" + std::to_string(i), s.weights[i]));
+        }
+    };
+    applySettings(session.state.settings);
+    for (auto &part : session.state.otherParts) {
+        applySettings(part.settings);
+    }
+    synchronize(session.state);
     auto &s = session.state.settings;
-    s.track = int(integer("--track", s.track));
-    s.channel = int(integer("--channel", s.channel));
-    s.program = int(integer("--program", s.program));
-    s.difficulty = get("--difficulty", s.difficulty);
-    s.algorithm = get("--algorithm", s.algorithm);
-    s.offset = number("--offset-ms", s.offset * 1000) / 1000;
-    s.maxChord = int(integer("--max-chord", s.maxChord));
-    s.density = number("--density", s.density);
-    s.minimumSustain = get("--minimum-sustain") == "auto"
-                           ? -.5
-                           : number("--minimum-sustain", s.minimumSustain);
-    if (options.count("--minimum-sustain") &&
-        get("--minimum-sustain") != "auto" && s.minimumSustain < 0) {
-        throw std::runtime_error("Minimum sustain seconds must be nonnegative; "
-                                 "use --sustain-beats for musical limits");
-    }
-    if (options.count("--sustain-beats")) {
-        if (options.count("--minimum-sustain")) {
-            throw std::runtime_error(
-                "Choose beats or seconds for sustain cutoff, not both");
-        }
-        const double beats = number("--sustain-beats");
-        if (beats <= 0 || beats > 128) {
-            throw std::runtime_error(
-                "Sustain beats must be greater than zero and at most 128");
-        }
-        s.minimumSustain = -beats;
-    }
-    s.reuse = !options.count("--no-cache");
-    s.structural = !options.count("--no-structural");
-    for (size_t i = 0; i < s.weights.size(); ++i) {
-        s.weights[i] =
-            int(integer("--weight" + std::to_string(i), s.weights[i]));
-    }
     std::optional<std::pair<int64_t, int64_t>> region;
     if (options.count("--begin-tick") || options.count("--end-tick")) {
         if (!options.count("--begin-tick") || !options.count("--end-tick")) {
@@ -519,6 +608,76 @@ int main(int argc, char **argv) try {
         if (!reportPath.empty()) {
             protectDestination(reportPath, {fs::u8path(get("--projection"))});
         }
+    }
+    if (!associations.empty()) {
+        std::vector<Settings> configured;
+        std::set<std::string> unique;
+        for (const auto &association : associations) {
+            auto selection = parsePart(association, s);
+            const auto section = partSection(selection);
+            if (!unique.insert(section).second) {
+                throw std::runtime_error("Duplicate part: " + section);
+            }
+            for (const auto *part : parts(session.state)) {
+                if (partSection(part->settings) == section) {
+                    selection = parsePart(association, part->settings);
+                    break;
+                }
+            }
+            configured.push_back(selection);
+        }
+        std::sort(configured.begin(), configured.end(),
+                  [](const auto &a, const auto &b) {
+                      return partSection(a) < partSection(b);
+                  });
+        const bool fresh = !fs::exists(project);
+        uint64_t first = session.state.partId;
+        for (size_t i = 0; i < configured.size(); ++i) {
+            if (fresh && i == 0) {
+                session.configurePart(configured[i]);
+            } else {
+                uint64_t existing = 0;
+                for (const auto *part : parts(session.state)) {
+                    if (partSection(part->settings) ==
+                        partSection(configured[i])) {
+                        existing = part->partId;
+                    }
+                }
+                if (existing) {
+                    session.selectPart(existing);
+                    session.configurePart(configured[i]);
+                } else {
+                    session.addPart(configured[i]);
+                }
+            }
+            if (i == 0) {
+                first = session.state.partId;
+            }
+        }
+        session.selectPart(first);
+    }
+    for (const auto &assignment : partProjectionPaths) {
+        const auto equals = assignment.find('=');
+        if (equals == std::string::npos || equals + 1 == assignment.size()) {
+            throw std::runtime_error("Part projection requires SECTION=FILE");
+        }
+        const auto id = findPart(session.state, assignment.substr(0, equals));
+        const auto artifact = fs::u8path(assignment.substr(equals + 1));
+        const auto active = session.state.partId;
+        session.selectPart(id);
+        if (session.state.settings.algorithm != "umap") {
+            throw std::runtime_error("Part projection requires --algorithm "
+                                     "umap and one artifact per part");
+        }
+        session.projection = readProjection(artifact);
+        session.state.settings.algorithm =
+            "umap:" + session.projection->identity;
+        protectDestination(output, {artifact});
+        protectDestination(project, {artifact});
+        if (!reportPath.empty()) {
+            protectDestination(reportPath, {artifact});
+        }
+        session.selectPart(active);
     }
     if (options.count("--audio")) {
         if (!fs::is_regular_file(fs::u8path(get("--audio")))) {
@@ -607,31 +766,57 @@ int main(int argc, char **argv) try {
         protectDestination(reportPath, {fs::u8path(session.state.audio),
                                         fs::u8path(session.state.reference)});
     }
-    session.run(loadLibrary(fs::u8path(get("--cache"))), region);
-    if (get("--plus") == "none") {
-        auto settings = session.state.plus.settings;
-        settings.enabled = false;
-        session.configurePlus(settings);
+    if (associations.empty() && session.state.otherParts.empty()) {
+        session.run(loadLibrary(fs::u8path(get("--cache"))), region);
+        if (get("--plus") == "none") {
+            auto settings = session.state.plus.settings;
+            settings.enabled = false;
+            session.configurePlus(settings);
+        }
+        if (get("--plus") == "auto") {
+            session.applyPlus(
+                proposePlus(session.state,
+                            plusSettings(session.state.plus.settings), region));
+        }
+    } else {
+        if (get("--plus") == "none") {
+            session.state.plus.settings.enabled = false;
+            for (auto &part : session.state.otherParts) {
+                part.plus.settings.enabled = false;
+            }
+        }
+        if (get("--plus") == "auto") {
+            session.state.plus.settings =
+                plusSettings(session.state.plus.settings);
+            for (auto &part : session.state.otherParts) {
+                part.plus.settings = plusSettings(part.plus.settings);
+            }
+        }
+        session.runAll(loadLibrary(fs::u8path(get("--cache"))));
     }
-    if (get("--plus") == "auto") {
-        session.applyPlus(proposePlus(
-            session.state, plusSettings(session.state.plus.settings), region));
+    if (!reportPath.empty()) {
+        for (const auto *part : parts(session.state)) {
+            protectDestination(reportPath, {fs::u8path(part->reference)});
+        }
     }
     exportValidated(session.state, output, options.count("--replace"));
     session.save(project);
-    const auto summary =
-        get("--plus") == "auto"
-            ? plusReport(session.state, plusTrials, uint64_t(plusSeed))
-            : report(session.state);
+    const auto summary = partsReport(session.state, get("--plus") == "auto",
+                                     plusTrials, uint64_t(plusSeed));
     if (options.count("--report")) {
         safeWrite(fs::u8path(get("--report")), summary,
                   options.count("--replace"));
     }
     std::cout << summary;
-    for (const auto &conflict : session.state.conflicts) {
-        std::cerr << "Conflict: " << conflict << '\n';
+    bool conflicts = false;
+    for (const auto *part : parts(session.state)) {
+        for (const auto &conflict : part->conflicts) {
+            conflicts = true;
+            std::cerr << partSection(part->settings)
+                      << " conflict: " << conflict << '\n';
+        }
     }
-    return session.state.conflicts.empty() ? 0 : 3;
+    return conflicts ? 3 : 0;
 } catch (const std::exception &error) {
     std::cerr << "Chart Studio: " << error.what() << '\n';
     return 1;

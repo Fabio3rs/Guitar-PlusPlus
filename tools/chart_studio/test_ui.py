@@ -97,7 +97,8 @@ with tempfile.TemporaryDirectory(prefix="ui-", dir=root) as temporary:
         click(413, 669)  # Use path; this must not open the MIDI by itself.
         click(83, 130)  # Open MIDI / project.
         click(110, 28)  # Tracks tab.
-        click(75, 96)  # First musical track.
+        click(150, 231)  # Active part's musical-source selector.
+        click(100, 253)  # First musical track.
         click(453, 90)  # Generate chart (timeline guide).
         screenshot("generated.png")
         click(428, 426)  # Second generated attack, initially red.
@@ -127,9 +128,17 @@ with tempfile.TemporaryDirectory(prefix="ui-", dir=root) as temporary:
                 )["value0"]
 
         before = state()
-        xdo("key", "ctrl+g")
-        xdo("key", "ctrl+s")
-        after = state()
+        # Under software rendering a shortcut can be delivered between frames.
+        # Wait for the observable saved result, with bounded retries, rather
+        # than asserting against the previous save immediately.
+        for attempt in range(3):
+            xdo("key", "ctrl+g")
+            time.sleep(1)
+            xdo("key", "ctrl+s")
+            after = state()
+            final_masks = [e["value0"]["value3"] for e in after["value6"]]
+            if final_masks[:5] == final_masks[5:10] == final_masks[10:]:
+                break
 
         def masks(s):
             return [
@@ -142,8 +151,35 @@ with tempfile.TemporaryDirectory(prefix="ui-", dir=root) as temporary:
         final_masks = [e["value0"]["value3"] for e in after["value6"]]
         assert final_masks[:5] == final_masks[5:10] == final_masks[10:], final_masks
         assert any(e["value10"] for e in after["value6"]), "Manual edit missing"
+        click(40, 186)  # Add the default new Bass / Expert part.
+        click(150, 248)  # Source selector after the additional table row.
+        click(100, 270)  # The same MIDI track may feed another game instrument.
+        click(80, 307)  # Generate all parts (asynchronous batch).
+        time.sleep(2)
+        xdo("key", "ctrl+s")
+
+        def whole_document():
+            with sqlite3.connect(project) as db:
+                return json.loads(db.execute("SELECT value FROM metadata WHERE key='document'").fetchone()[0])
+
+        multi = whole_document()
+        screenshot("multipart.png")
+        assert multi['instrument'] == 'bass' and len(multi['parts']) == 1
+        assert len(multi['value0']['value6']) == 15, 'Batch did not generate bass'
+        assert len(multi['parts'][0]['events']) == 15, 'Guitar disappeared'
+        assert any(e['value9'] == 2 for e in multi['parts'][0]['events']), 'Guitar lock lost'
+        xdo("key", "ctrl+z")
+        xdo("key", "ctrl+s")
+        assert not whole_document()['value0']['value6'], 'Batch undo did not restore empty bass'
+        xdo("key", "ctrl+y")
+        xdo("key", "ctrl+s")
+        assert len(whole_document()['value0']['value6']) == 15
+        click(80, 136)  # Select Guitar again; navigation must preserve both parts.
+        xdo("key", "ctrl+s")
+        assert whole_document()['instrument'] == 'guitar'
         xdo("key", "ctrl+e")
-        assert (work / "musical.generated.chart").exists()
+        exported = (work / "musical.generated.chart").read_text()
+        assert '[ExpertSingle]' in exported and '[ExpertDoubleBass]' in exported
         xdo("mousemove", "--window", window, 1200, 28)  # Detach editing tab.
         xdo("mousedown", 1)
         xdo("mousemove", "--window", window, 780, 300)
