@@ -238,3 +238,169 @@ estão em [chart-studio-review.md](chart-studio-review.md).
 O [alinhamento MIDI–áudio](chart-studio-alignment.md) oferece busca de offset e
 escala global em CLI/GUI, diagnóstico de ambiguidade, preview, aplicação com
 undo/redo e exportação do SyncTrack corrigido. Não altera o áudio nem o cache de lanes.
+
+## Recursive Plus statistics
+
+The offline analyzer discovers gameplay charts recursively and reads their Plus
+phrases through the game's loaders. It does **not** generate phrases, change
+energy rules, run the game, or synthesize audio. Musical MIDI without supported
+gameplay tracks is reported as an unsupported input, not as a chart with zero Plus.
+
+Build the existing CPU inspection tool (the GUI is not required):
+
+```sh
+cmake -S . -B build -G Ninja -DBUILD_CHART_TOOLS=ON -DBUILD_TESTING=ON
+cmake --build build --target gpp_dump_chart
+python3 tools/chart_studio/plus_stats.py build/bin/data/songs \
+  --dumper build/bin/gpp_dump_chart \
+  --output-dir build/chart-studio/plus-stats --samples 1000 --seed 42
+```
+
+Python 3.10+ is sufficient; no pip packages or network access are needed. Multiple
+root directories or individual `.chart`, `.gpp`, `.mid`, and `.midi` files can be
+passed as positional arguments. Directory symlinks are not followed. A failed
+file does not stop the scan; `--timeout` limits each loader subprocess (30 seconds
+by default). Loader logs are isolated in a temporary working directory.
+
+Open `report.html` directly in a browser. It contains its own data, styles and
+scripts; no server is required. Its initial view is Expert Guitar. Filter by
+origin, instrument/difficulty, or song, and enable **Mostrar variantes** to see
+alternative files. Click a song to inspect individual phrases, density, warnings
+and observed versus randomized metrics. The **Como interpretar** expander explains
+the method. Sorting, filters and graphs work offline.
+
+Outputs:
+
+- `report.json`: schema/version, settings, input hashes, inventory, errors, results
+  per chart/part, random comparisons and aggregate statistics.
+- `report.html`: interactive report in Portuguese, including density/Plus timelines
+  and observed values against the randomized percentile range.
+- `charts.csv` and `phrases.csv`: per-part and per-phrase tables, including variants
+  and a `selected` column. Spreadsheet formula-like strings are quoted safely.
+- `catalog.json`: editable selection and identity overrides.
+
+Existing reports require `--replace`. Each output is written to a temporary file
+and atomically installed; this is per-file atomicity, not a transaction covering
+all five outputs. Musical inputs and song metadata are never modified. Keep local
+reports under `build/`; do not commit commercial charts or derived fixture data.
+Exit codes: **0** complete, **1** partial results with input errors, **2** invalid
+configuration or output failure.
+
+### Representatives and origin
+
+All variants are inventoried. Aggregates use one representative per normalized
+song identity, origin, and instrument/difficulty. Song identity uses artist/title
+metadata; missing artists fall back to the directory identity to avoid merging
+unrelated songs. Covers, alternate spellings and unknown metadata may require
+manual identity overrides. Different origins are never silently pooled.
+
+Selection priority is an explicit catalog preference, then the same filename
+priority as `SongFiles::charts`, then the absolute path as a stable tie-break.
+The Plus count is **not** a selection criterion. Equivalent playback fingerprints
+within a song group include notes, Plus, tempos and meter; matching file bytes
+alone do not establish equivalence when `song.ini` changes interpretation.
+Metadata `icon` supplies origin (e.g. `gh3`, `gh3dlc`, `rb4`, `rbn`); absent/zero
+values become `unknown`. This does not certify official authorship.
+
+To override selection, copy/edit the emitted catalog and pass `--catalog` on the
+next run. Keys may be absolute paths or paths relative to an input root. Absolute
+keys take precedence; use them when roots contain the same relative filenames.
+For example, explicitly associate the old Slow Ride copies with the GH3 song and
+prefer the package version:
+
+```json
+{
+  "schema": 1,
+  "files": {
+    "Slow Ride/Chart.chart": {
+      "song_id": "foghat / slow ride", "game": "gh3"
+    },
+    "Slow Ride/notes.mid": {
+      "song_id": "foghat / slow ride", "game": "gh3"
+    },
+    "Guitar Hero III - Legends of Rock/Quickplay/Foghat - Slow Ride/notes.mid": {
+      "song_id": "foghat / slow ride", "game": "gh3", "preferred": true
+    }
+  }
+}
+```
+
+`exclude: true` removes a file from representative selection, but retains its
+inventory and observed statistics. Multiple preferred candidates are resolved by
+filename priority/path and produce a warning. The local old Slow Ride copies
+load zero Plus phrases, whereas the package version loads nine Expert Guitar
+phrases; the report deliberately keeps that difference visible.
+
+### Measurements and random baseline
+
+Additional `.chart` evidence is explicitly opt-in through
+`loadFeedbackChartCPU(..., includeExtendedEvidence=true)`, used only by the offline
+dumper. Existing callers keep the default `false`: normal gameplay does not scan
+SyncTrack for this extra evidence or append these diagnostic Plus events. Tests
+compare note times, durations and flags with the option on/off, retain compiled
+Plus compatibility, and verify that malformed diagnostic meter data cannot reject
+a playable chart.
+
+The source of playable special phrases is `gPlus`, not all MIDI marker notes.
+The existing loader chooses marker 103/116 using the track and INI rules; a solo
+marker is not counted as an additional Plus phrase. Original indices are retained
+and checked against attacks in `[start, end)`. Disagreements are diagnostics, not
+runtime repairs. Empty or overlapping phrases are also reported.
+
+The report measures counts/rates, temporal and attack coverage, phrase durations,
+start intervals, gaps, chords, sustains, HOPOs/taps/opens, lane movement, one-second
+peak attack density, boundaries of beats/bars/sections and surrounding density.
+Solo overlap uses explicit solo intervals when available; an absent marker yields
+unavailable data, rather than evidence that a song contains no solos. Section
+names are preserved; labels such as `0%-5%` are not inferred verses or choruses.
+
+- Musical units are **quarter-note beats (semínimas)**, integrating the original
+  tempo map. Compound meters retain their actual numerator and denominator.
+- Time normalization uses the first attack through the last sustain end across
+  supported parts in each file, not decoded audio duration. Negative audio offsets
+  therefore do not shift the musical position distribution.
+- Sustains are runtime caudas longer than 10 ms. A chord can have one merged
+  duration in the runtime; independent original tails are not inferred here.
+- Phrase context uses up to 16 quarter-note beats before/after, clipped to the
+  playable part. A context window with no available time is unavailable, not zero.
+  Whole-part density uses that part's playable span; zero-span parts have no density.
+- Bar/section alignment tolerance is `max(1 / PPQ, 1 / 48)` quarter-note beats.
+  Time-signature changes start a new bar; truncated bars are warned about. Assumed
+  4/4 is excluded from bar statistics. Compiled `.gpp` lacks original meter/tick
+  evidence, so only reconstructible durations are measured.
+- Lane movement is the distance between the average positions of adjacent
+  attacks, omitting transitions involving open notes. It is not a validated human
+  difficulty rating.
+
+The default baseline generates 1,000 schedules per representative. It preserves
+phrase count and musical durations, shuffles their placement order, and samples
+attack positions without overlap, wholly inside the playable part. Placement has
+bounded retries (64 candidates per phrase, 32 schedules per requested sample);
+failed samples are counted. This **attack-conditioned sequential model is not
+uniform over every possible schedule** and does not preserve original gaps.
+Charts with no valid phrases or overlapping phrases have no random comparison.
+Use `--samples 0` for inventory/observed statistics only.
+
+Seeds combine the requested seed, algorithm version, normalized playback
+fingerprint and part. Traversal order and other songs do not affect a part's
+samples. The report records Python and extractor versions/hashes. Results are
+repeatable in the same software environment; floating-point results are not
+promised bit-identical across different toolchains.
+
+Observed values are compared with randomized medians, 2.5/97.5 percentiles,
+percentile ranks (ties receive half weight), and differences from the random
+median. Aggregates give equal weight to songs within the same origin/part;
+correlations are exploratory Spearman coefficients with tied ranks and explicit
+sample sizes. There is no causal claim, author-intention inference, significance
+label, multiple-testing correction, energy simulation, or optimizer in this tool.
+
+Validation:
+
+```sh
+ctest --test-dir build -R 'chart_plus_statistics|ChartRuntime|midi_core' \
+  --output-on-failure
+```
+
+Tests use synthetic charts/MIDI only. The CI enables `BUILD_CHART_TOOLS` and runs
+the same test suite. Report viewing is separate from ImGui and does not make the
+runtime depend on a browser or Python.

@@ -172,10 +172,12 @@ class CChart {
         bool loadChart(std::string_view chartFile, CPlayer &player);
         bool loadFeedbackChart(std::string_view chartFile, CPlayer &player);
         bool loadMidiChart(std::string_view chartFile, CPlayer &player);
+        // Extended evidence is opt-in for offline tools, never part of .gpp.
         bool loadFeedbackChartCPU(std::string_view file,
                                   const std::string &instrument,
                                   Metadata &metadata,
-                                  const FeedbackDocument *document = nullptr);
+                                  const FeedbackDocument *document = nullptr,
+                                  bool includeExtendedEvidence = false);
         bool loadChartCPU(std::string_view file, const std::string &instrument,
                           Metadata &metadata);
         void unloadChart();

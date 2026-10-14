@@ -954,9 +954,11 @@ bool CChart::NotesData::loadFeedbackChart(std::string_view file,
     return valid;
 }
 
-bool CChart::NotesData::loadFeedbackChartCPU(
-    std::string_view chartFile, const std::string &instrument,
-    Metadata &metadata, const FeedbackDocument *document) try {
+bool CChart::NotesData::loadFeedbackChartCPU(std::string_view chartFile,
+                                             const std::string &instrument,
+                                             Metadata &metadata,
+                                             const FeedbackDocument *document,
+                                             bool includeExtendedEvidence) try {
     unloadChart();
     if (!document && !CChart::validateChartHeader(std::string(chartFile))) {
         CLog::log() << "Invalid chart header: " + std::string(chartFile);
@@ -1320,7 +1322,8 @@ bool CChart::NotesData::loadFeedbackChartCPU(
                                  tempo.BPM / 1000.0});
     }
     for (const auto &scope : feedBackChartMap) {
-        if (scope.first != "[Events]" && scope.first != instrument) {
+        if (scope.first != "[Events]" && scope.first != instrument &&
+            !(includeExtendedEvidence && scope.first == "[SyncTrack]")) {
             continue;
         }
         for (const auto &record : scope.second) {
@@ -1328,7 +1331,50 @@ bool CChart::NotesData::loadFeedbackChartCPU(
                 std::istringstream fields(value);
                 std::string kind;
                 fields >> kind;
-                if (kind == "E") {
+                if (kind == "TS" && scope.first == "[SyncTrack]") {
+                    // Inspection evidence only; preserve the runtime clock.
+                    int numerator = 0, exponent = 2;
+                    if (fields >> numerator && numerator > 0) {
+                        fields >> std::ws;
+                        if (!fields.eof() && !(fields >> exponent)) {
+                            source.warnings.push_back("Invalid time signature "
+                                                      "ignored for inspection");
+                            continue;
+                        }
+                        if (exponent >= 0 && exponent <= 10) {
+                            int64_t tick = 0;
+                            std::istringstream timestamp(record.first);
+                            if (timestamp >> tick && tick >= 0 &&
+                                (timestamp >> std::ws).eof()) {
+                                source.events.push_back(
+                                    {tick, secondsAt(tick), scope.first,
+                                     "time-signature",
+                                     std::to_string(numerator) + "/2^" +
+                                         std::to_string(exponent)});
+                            } else {
+                                source.warnings.push_back(
+                                    "Invalid time signature tick ignored for "
+                                    "inspection");
+                            }
+                        }
+                    }
+                } else if (includeExtendedEvidence && kind == "S" &&
+                           scope.first == instrument) {
+                    int marker = 0;
+                    int64_t length = 0;
+                    if (fields >> marker >> length && marker == 2 &&
+                        length >= 0) {
+                        const int64_t tick = std::stoll(record.first);
+                        if (tick >= 0 &&
+                            tick <=
+                                std::numeric_limits<int64_t>::max() - length) {
+                            source.events.push_back(
+                                {tick, secondsAt(tick), scope.first, "plus",
+                                 "2 end_tick=" +
+                                     std::to_string(tick + length)});
+                        }
+                    }
+                } else if (kind == "E") {
                     std::string text;
                     std::getline(fields, text);
                     text = CChart::unquoteSongMetadata(text);

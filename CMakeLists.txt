@@ -192,6 +192,14 @@ if(BUILD_CHART_TOOLS)
     target_link_libraries(gpp_scan_library GuitarPP_lib)
     add_executable(gpp_dump_chart tools/dump_chart.cpp)
     target_link_libraries(gpp_dump_chart GuitarPP_lib)
+    if(BUILD_TESTING)
+        find_package(Python3 COMPONENTS Interpreter REQUIRED)
+        add_test(NAME chart_plus_statistics COMMAND ${Python3_EXECUTABLE}
+            ${PROJECT_SOURCE_DIR}/tools/chart_studio/test_plus_stats.py
+            --dumper $<TARGET_FILE:gpp_dump_chart>)
+        set_tests_properties(chart_plus_statistics PROPERTIES
+            LABELS "chart_studio;cpu" TIMEOUT 120)
+    endif()
 endif()
 
 option(BUILD_SCENE_STUDIO "Build the independent Scene Studio" OFF)

@@ -159,7 +159,7 @@ bool inspect(const std::string &path, const std::string &destination) {
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
     std::string name, artist, charter, error;
     bool success = false;
-    if (extension == ".mid") {
+    if (extension == ".mid" || extension == ".midi") {
         MidiChart midi;
         success = readMidiChart(path, midi, error);
         name = midi.name;
@@ -179,24 +179,31 @@ bool inspect(const std::string &path, const std::string &destination) {
         json.EndObject();
     } else {
         const auto parts = CChart::availableInstruments(path);
-        CPlayer player("normalized chart dump");
+        CChart::NotesData notes;
+        CChart::Metadata metadata;
         json.Key("instruments");
         json.StartObject();
         for (const auto &part : parts) {
-            player.instrument = part;
-            const bool loaded =
-                extension == ".chart"
-                    ? player.Notes.loadFeedbackChart(path, player)
-                    : player.Notes.loadChart(path, player);
+            const bool loaded = extension == ".chart"
+                                    ? notes.loadFeedbackChartCPU(
+                                          path, part, metadata, nullptr, true)
+                                    : notes.loadChartCPU(path, part, metadata);
             if (loaded) {
                 success = true;
-                name = player.songName;
-                artist = player.songArtist;
-                charter = player.songCharter;
+                name = metadata.name;
+                artist = metadata.artist;
+                charter = metadata.charter;
                 string(json, part);
-                normalized(json, player.Notes.gNotes, player.Notes.gPlus,
-                           player.Notes.BPM, player.Notes.source);
+                normalized(json, notes.gNotes, notes.gPlus, notes.BPM,
+                           notes.source);
             }
+        }
+        json.EndObject();
+        json.Key("fields");
+        json.StartObject();
+        for (const auto &field : metadata.fields) {
+            string(json, field.first);
+            string(json, field.second);
         }
         json.EndObject();
         if (!success) {

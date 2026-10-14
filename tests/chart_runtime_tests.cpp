@@ -179,3 +179,56 @@ TEST_F(ChartRuntime, PlusPhraseStoresTimingAndStrictlyInteriorNotes) {
     EXPECT_EQ(phrase.lastNote, 1u);
 }
 } // namespace
+
+TEST_F(ChartRuntime, InspectionEvidenceDoesNotChangeCompiledPlusData) {
+    const auto path =
+        write("Name = \"Synthetic\"\nResolution = 192\nOffset = 0\n",
+              "0 = B 120000\n0 = TS 4\n384 = TS 3 2\n",
+              guitar("0 = S 2 384\n96 = N 0 0\n288 = N 1 0\n"));
+    CChart::NotesData feedback;
+    CChart::Metadata metadata;
+    ASSERT_TRUE(
+        feedback.loadFeedbackChartCPU(path, "[ExpertSingle]", metadata));
+    EXPECT_TRUE(feedback.source.events.empty());
+    const auto defaultNotes = feedback.gNotes;
+    ASSERT_TRUE(feedback.loadFeedbackChartCPU(path, "[ExpertSingle]", metadata,
+                                              nullptr, true));
+    ASSERT_EQ(feedback.gNotes.size(), defaultNotes.size());
+    for (size_t i = 0; i < defaultNotes.size(); ++i) {
+        EXPECT_DOUBLE_EQ(feedback.gNotes[i].time, defaultNotes[i].time);
+        EXPECT_DOUBLE_EQ(feedback.gNotes[i].lTime, defaultNotes[i].lTime);
+        EXPECT_EQ(feedback.gNotes[i].type, defaultNotes[i].type);
+    }
+    ASSERT_EQ(feedback.gPlus.size(), 1u);
+    ASSERT_EQ(feedback.source.events.size(), 3u);
+
+    CChart compiler;
+    ASSERT_TRUE(compiler.open(path));
+    const auto binary = (directory / "notes.gpp").string();
+    ASSERT_TRUE(compiler.compileGppChart(binary));
+    CChart::NotesData compiled;
+    ASSERT_TRUE(compiled.loadChartCPU(binary, "[ExpertSingle]", metadata));
+    ASSERT_EQ(compiled.gPlus.size(), feedback.gPlus.size());
+    EXPECT_DOUBLE_EQ(compiled.gPlus[0].time, feedback.gPlus[0].time);
+    EXPECT_DOUBLE_EQ(compiled.gPlus[0].lTime, feedback.gPlus[0].lTime);
+    EXPECT_EQ(compiled.gPlus[0].firstNote, feedback.gPlus[0].firstNote);
+    EXPECT_EQ(compiled.gPlus[0].lastNote, feedback.gPlus[0].lastNote);
+    EXPECT_TRUE(compiled.source.events.empty());
+    EXPECT_EQ(compiled.source.ppq, 0);
+}
+
+TEST_F(ChartRuntime, MalformedDiagnosticMeterDoesNotRejectPlayableChart) {
+    const auto path = write("Resolution = 192\nOffset = 0\n",
+                            "0 = B 120000\ninvalid = TS 4\n192 = TS 3 bad\n",
+                            guitar("0 = N 0 0\n192 = N 1 0\n"));
+    CChart::NotesData notes;
+    CChart::Metadata metadata;
+    ASSERT_TRUE(notes.loadFeedbackChartCPU(path, "[ExpertSingle]", metadata));
+    EXPECT_TRUE(notes.source.warnings.empty());
+    ASSERT_TRUE(notes.loadFeedbackChartCPU(path, "[ExpertSingle]", metadata,
+                                           nullptr, true));
+    ASSERT_EQ(notes.gNotes.size(), 2u);
+    EXPECT_DOUBLE_EQ(notes.gNotes[1].time, 0.5);
+    EXPECT_TRUE(notes.source.events.empty());
+    EXPECT_EQ(notes.source.warnings.size(), 2u);
+}

@@ -72,7 +72,7 @@ jobs:
       - name: Build project
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGPP_NATIVE_CPU=OFF \
-            -DBUILD_CHART_STUDIO=ON -DBUILD_TESTING=ON \
+            -DBUILD_CHART_STUDIO=ON -DBUILD_CHART_TOOLS=ON -DBUILD_TESTING=ON \
             -DBUILD_CHART_STUDIO_UMAP_TESTS=ON \
             -DCHART_STUDIO_UMAP_PYTHON="$RUNNER_TEMP/gpp-umap-venv/bin/python"
           cmake --build build --parallel 2
