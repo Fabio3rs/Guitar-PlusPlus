@@ -384,10 +384,14 @@ void CPlayer::processErrorNonPickedB(size_t pos) {
                 note.type |= notesFlags::nf_failed;
                 ++count;
 
-                if (note.time > currentPlusStart &&
+                if (note.time >= currentPlusStart &&
                     note.time < currentPlusEnd) {
                     shouldBreakPlus = true;
                 }
+            }
+
+            if (note.time < tMin) {
+                break;
             }
         }
 
