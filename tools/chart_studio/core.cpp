@@ -487,7 +487,8 @@ void validate(const State &state) {
 
 std::string report(const State &state) {
     size_t attacks = 0, chords = 0, sustains = 0, reused = 0, removed = 0,
-           simplified = 0, sustainLosses = 0, shortSustains = 0;
+           simplified = 0, sustainLosses = 0, shortSustains = 0,
+           shortenedSustains = 0;
     std::set<std::string> phrases, novel;
     std::map<int64_t, int> density;
     double end = 0;
@@ -499,6 +500,7 @@ std::string report(const State &state) {
         ++attacks;
         chords += (event.note.flags & (event.note.flags - 1)) != 0;
         sustains += exportDuration(state, event) > 0;
+        shortenedSustains += exportDuration(state, event) < event.duration;
         shortSustains +=
             event.duration > 0 && exportDuration(state, event) == 0;
         reused += event.origin != "algorithm";
@@ -535,6 +537,7 @@ std::string report(const State &state) {
         << ",\"chord_reductions\":" << simplified
         << ",\"sustain_duration_losses\":" << sustainLosses
         << ",\"short_sustains_removed\":" << shortSustains
+        << ",\"export_sustains_shortened\":" << shortenedSustains
         << ",\"alignment_scale\":" << state.alignment.scale
         << ",\"offset_seconds\":" << state.settings.offset
         << ",\"conflicts\":" << state.conflicts.size()

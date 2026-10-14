@@ -581,3 +581,20 @@ undo/redo, exportação validada de `S 2` e simulação CPU compartilhada entre 
 Veja [o manual de Plus](chart-studio-plus.md) para perfis, comandos, modelos de
 conclusão, migração de projetos e limitações. O analisador estatístico descrito
 acima continua independente e é reutilizado pela avaliação dos perfis.
+
+### Sustains e reutilização da mesma lane
+
+A prévia jogável e a exportação encerram uma cauda um tick antes do próximo
+ataque que reutilize qualquer lane ocupada por ela. Ataques em outras lanes não
+interrompem o sustain. O limite mínimo configurado é aplicado depois desse corte.
+Como o adaptador atual usa duração compartilhada para acordes, reutilizar uma de
+suas lanes encurta todas as caudas daquele acorde. Durações originais e fontes
+musicais permanecem no projeto; `export_sustains_shortened` no relatório conta
+os eventos encurtados por estas políticas (incluindo o limite mínimo).
+
+Na investigação de Magia, o MIDI musical original continha um Note On de pitch
+38, canal 2, track 2, no tick 239040 e seu Note Off no tick 412000: 86,48 segundos
+em 125 BPM/PPQ 960. Outras alturas tocavam simultaneamente, e o mapeamento havia
+atribuído 53 novos ataques à mesma lane verde. O pareamento MIDI estava correto;
+a política de saída não resolvia a colisão de lanes. Não se modifica o MIDI nem
+o loader de gameplay para corrigir esse caso.

@@ -113,6 +113,52 @@ TEST(ChartStudioRuntime, SustainCutoffPreservesScoreAndUsesMusicalTicks) {
 #include "plus_simulation.h"
 #include "sqlite3/sqlite3raii.hpp"
 
+TEST(ChartStudioRuntime, MusicalOverlapClipsOnlyReusedLanes) {
+    const auto root =
+        fs::temp_directory_path() /
+        ("overlap-chart-" +
+         std::to_string(
+             std::chrono::steady_clock::now().time_since_epoch().count()));
+    fs::create_directory(root);
+    struct Cleanup {
+        fs::path path;
+        ~Cleanup() { fs::remove_all(path); }
+    } cleanup{root};
+    midi_fixture::Track track;
+    track.note(0, 4000, 38);
+    track.note(480, 240, 53);
+    track.note(960, 240, 52);
+    midi_fixture::write(root / "overlap.mid", midi_fixture::smf({track}));
+    Session session;
+    session.openMidi(root / "overlap.mid");
+    session.state.settings.track = 0;
+    session.run();
+    auto &state = session.state;
+    ASSERT_EQ(state.events.size(), 3u);
+    EXPECT_EQ(state.score.tracks[0].notes[0].end, 4000);
+    state.events[0].note.flags = 1;
+    state.events[1].note.flags = 2; // Another lane does not interrupt green.
+    state.events[2].note.flags = 1;
+    synchronize(state);
+    EXPECT_EQ(exportDuration(state, state.events[0]), 959);
+    EXPECT_EQ(state.events[0].duration, 4000);
+    exportValidated(state, root / "out.chart", false);
+    const auto loaded = readReference(root / "out.chart");
+    ASSERT_EQ(loaded.notes.size(), 3u);
+    EXPECT_LT(loaded.notes[0].time + loaded.notes[0].duration,
+              loaded.notes[2].time);
+    EXPECT_GT(loaded.notes[0].time + loaded.notes[0].duration,
+              loaded.notes[1].time);
+    state.events[2].removed = true;
+    EXPECT_EQ(exportDuration(state, state.events[0]), 4000);
+    state.events[0].note.flags =
+        3; // Shared chord duration follows earliest reuse.
+    EXPECT_EQ(exportDuration(state, state.events[0]), 479);
+    state.settings.minimumSustain = -1;
+    EXPECT_EQ(exportDuration(state, state.events[0]), 0);
+    EXPECT_EQ(state.events[0].sources[0].end, 4000);
+}
+
 TEST(ChartStudioPlus, LoaderKeepsAttacksAtMarkerTicksAndIndices) {
     State state;
     state.score.ppq = 192;

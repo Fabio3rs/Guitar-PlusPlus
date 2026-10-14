@@ -9,17 +9,38 @@
 
 namespace ChartStudio {
 int64_t exportDuration(const State &state, const Event &event) {
+    auto duration = event.duration;
+    // synchronize() orders events by tick. Only a later attack using an
+    // occupied lane interrupts this sustain; other lanes remain independent.
+    const auto next =
+        std::upper_bound(state.events.begin(), state.events.end(), event.tick,
+                         [](int64_t tick, const Event &candidate) {
+                             return tick < candidate.tick;
+                         });
+    for (auto it = next; it != state.events.end(); ++it) {
+        const auto distance = it->tick - event.tick;
+        if (distance > duration) {
+            break;
+        }
+        if (!it->removed && (it->note.flags & event.note.flags & 31) != 0) {
+            // One tick separates the tail from the next attack. The runtime
+            // represents chords with a shared duration, so clip the chord.
+            duration = std::max<int64_t>(0, distance - 1);
+            break;
+        }
+    }
     if (state.settings.minimumSustain < 0) {
         // The default is strictly greater than half a quarter-note, slightly
         // larger than the Feedback HOPO window (quarter / 2.08). Compare
         // ticks directly: seconds rounding must not retain boundary notes.
-        return static_cast<double>(event.duration) <=
+        return static_cast<double>(duration) <=
                        -state.settings.minimumSustain * state.score.ppq
                    ? 0
-                   : event.duration;
+                   : duration;
     }
-    return event.note.duration < state.settings.minimumSustain ? 0
-                                                               : event.duration;
+    const double seconds = audioSeconds(state, event.tick + duration) -
+                           audioSeconds(state, event.tick);
+    return seconds < state.settings.minimumSustain ? 0 : duration;
 }
 
 double exportDurationSeconds(const State &state, const Event &event) {

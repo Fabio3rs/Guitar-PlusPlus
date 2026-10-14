@@ -799,6 +799,8 @@ void GPPGame::serverModule(const std::string &name) {
     module.getBPlayer().playerCamera.eye.z = 2.55;
     module.getBPlayer().playerHudOffsetX = -0.42;
     module.getBPlayer().playerHudOffsetY = 0.1;
+
+    module.getBPlayer().setInstrument("[ExpertDoubleRhythm]");
     // module.getBPlayer().remoteControls = true;
 
     loadThreadData l;
@@ -807,7 +809,7 @@ void GPPGame::serverModule(const std::string &name) {
 
     std::thread load(loadThread, std::ref(module), std::ref(l));
 
-    callOnDctor<void(void)> exitguard([&load, &module]() {
+    callOnDctor<void()> exitguard([&load, &module]() {
         if (load.joinable()) {
             {
                 load.join();

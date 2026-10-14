@@ -246,6 +246,8 @@ class CPlayer {
     void muteInstrument() const;
     void unmuteInstrument() const;
 
+    void setInstrument(std::string instr = "[ExpertSingle]");
+
     [[nodiscard]] auto getFretsPressedFlags() const -> int;
     [[nodiscard]] auto getLastFretsPressedFlags() const -> int;
 

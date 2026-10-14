@@ -40,6 +40,10 @@ void CPlayer::unmuteInstrument() const {
     CEngine::engine().setSoundVolume(instrumentSound, 1.0f);
 }
 
+void CPlayer::setInstrument(std::string instr) {
+    instrument = std::move(instr);
+}
+
 std::atomic<int> palhetaNpKey;
 
 void CPlayer::update() {
