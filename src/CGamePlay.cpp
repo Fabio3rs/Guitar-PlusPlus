@@ -719,7 +719,7 @@ auto CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type,
         constexpr double size = 0.2;
         constexpr double position = -0.51;
 
-        constexpr auto form = [](double idd) {
+        constexpr auto form = [=](double idd) {
             return position + (idd * size / 48.0) + (idd * size);
         };
 
@@ -896,7 +896,7 @@ void CGamePlay::renderTailsBuffer(const CPlayer &player) {
     constexpr double size = 0.2;
     constexpr double position = -0.51;
 
-    auto form = [&](int i) {
+    constexpr auto form = [&](int i) {
         return position + (static_cast<double>(i) * size / 48.0) +
                (static_cast<double>(i) * size);
     };
@@ -1042,7 +1042,7 @@ auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
 
     constexpr double position = -0.51;
 
-    constexpr auto form = [](double idd) {
+    constexpr auto form = [&](double idd) {
         return position + (idd * NOTE_SIZE / 48.0) + (idd * NOTE_SIZE);
     };
 
