@@ -33,11 +33,11 @@ auto CPlayer::smartChartSearch(const std::string &path) -> std::string {
 }
 
 void CPlayer::muteInstrument() const {
-    CEngine::engine().setSoundVolume(instrumentSound, 0.0f);
+    CEngine::engine().setSoundVolume(instrumentSound, 0.0F);
 }
 
 void CPlayer::unmuteInstrument() const {
-    CEngine::engine().setSoundVolume(instrumentSound, 1.0f);
+    CEngine::engine().setSoundVolume(instrumentSound, 1.0F);
 }
 
 void CPlayer::setInstrument(std::string instr) {
@@ -50,7 +50,7 @@ void CPlayer::update() {
     int i = 0;
     int pklast = palhetaKeyLast;
 
-    if ((CEngine::engine().getTime() - npPsetted) > 0.01 && enableBot) {
+    if ((CEngine::getTime() - npPsetted) > 0.01 && enableBot) {
         palhetaNpKey = 0;
     }
 
@@ -120,7 +120,7 @@ void CPlayer::update() {
                     ((note.type & notesFlags::nf_slide_picked) == 0)) {
                     palhetaKey = 1;
                     palhetaNpKey = palhetaKey;
-                    npPsetted = CEngine::engine().getTime();
+                    npPsetted = CEngine::getTime();
                 } else {
                     palhetaKey = 0;
                     palhetaKeyLast = palhetaKey;
@@ -131,10 +131,10 @@ void CPlayer::update() {
             palhetaKeyLast = palhetaKey;
         }
     } else if (!remoteControls) {
-        palhetaNpKey = palhetaKey =
+        palhetaNpKey = palhetaKey = static_cast<int>(
             (static_cast<int>(CEngine::engine().getKey(
-                                  GPPGame::GuitarPP().fretOneKey) != 0) ||
-             (CEngine::engine().getKey(GPPGame::GuitarPP().fretTwoKey)) != 0);
+                                  GPPGame::GuitarPP().fretOneKey) != 0) != 0) ||
+            (CEngine::engine().getKey(GPPGame::GuitarPP().fretTwoKey)) != 0);
 
         if (pklast == palhetaKey) {
             palhetaKey = 0;
@@ -146,7 +146,7 @@ void CPlayer::update() {
 
         int countI = 0;
 
-        double timeC = CEngine::engine().getTime();
+        double timeC = CEngine::getTime();
 
         for (auto &f : fretsPressed) {
             bool ftemp = f;
@@ -270,7 +270,7 @@ bool CPlayer::loadSongAudio(const std::string &path) {
     // The session clock/playback uses the main song stream. Instrument stems
     // are optional and must not turn an otherwise playable song into a failure.
     if (audioName.empty() ||
-        !engine.loadSoundStream(songFullPath.c_str(), songAudioID)) {
+        !CEngine::loadSoundStream(songFullPath.c_str(), songAudioID)) {
         CLog::log() << "Cannot load song audio: " + songFullPath;
         releaseSong();
         songFullPath.clear();
@@ -310,8 +310,9 @@ bool CPlayer::loadSongAudio(const std::string &path) {
             continue;
         }
         int handle = 0;
-        if (!engine.loadSoundStream((fullPath + "/" + file).c_str(), handle)) {
-            engine.unloadSoundStream(handle);
+        if (!CEngine::loadSoundStream((fullPath + "/" + file).c_str(),
+                                      handle)) {
+            CEngine::unloadSoundStream(handle);
             CLog::log() << "Cannot load optional instrument audio: " + file;
             continue;
         }
@@ -438,15 +439,15 @@ void CPlayer::processErrorNonPickedB(size_t pos) {
 
 void CPlayer::releaseSong() {
     if (songAudioID != -1 && (songAudioID != 0)) {
-        CEngine::engine().unloadSoundStream(songAudioID);
+        CEngine::unloadSoundStream(songAudioID);
     }
 
     if (instrumentSound != -1 && (instrumentSound != 0)) {
-        CEngine::engine().unloadSoundStream(instrumentSound);
+        CEngine::unloadSoundStream(instrumentSound);
     }
 
     for (auto &stem : backingStems) {
-        CEngine::engine().unloadSoundStream(stem.second);
+        CEngine::unloadSoundStream(stem.second);
     }
     backingStems.clear();
     activeAudioStems.clear();
@@ -503,7 +504,7 @@ void CPlayer::takeLoadedSong(CPlayer &source) {
     renderState.BPMNowBuffer = 0;
     BPMNowUpdate = 0;
     for (auto &slide : notesSlide) {
-        slide = ~0uL;
+        slide = ~0UL;
     }
 }
 
@@ -577,32 +578,30 @@ void CPlayer::doNote(size_t i) {
 
         experience += 50.0 * comboToMultiplier() / 100.0;
 
-        if (publicAprov > maxPublicAprov) {
-            publicAprov = maxPublicAprov;
-        }
+        publicAprov = std::min(publicAprov, maxPublicAprov);
     }
 }
 
 void CPlayer::playSongAudio(const std::vector<std::string> &activeStems) {
     activeAudioStems = activeStems;
     setSongVolume(backingVolume);
-    CEngine::engine().playSoundStream(songAudioID);
+    CEngine::playSoundStream(songAudioID);
     for (const auto &stem : backingStems) {
-        CEngine::engine().playSoundStream(stem.second);
+        CEngine::playSoundStream(stem.second);
     }
 }
 
 void CPlayer::pauseSongAudio() const {
-    CEngine::engine().pauseSoundStream(songAudioID);
+    CEngine::pauseSoundStream(songAudioID);
     for (const auto &stem : backingStems) {
-        CEngine::engine().pauseSoundStream(stem.second);
+        CEngine::pauseSoundStream(stem.second);
     }
 }
 
 void CPlayer::seekSongAudio(double seconds) const {
-    CEngine::engine().setSoundTime(songAudioID, seconds);
+    CEngine::setSoundTime(songAudioID, seconds);
     for (const auto &stem : backingStems) {
-        CEngine::engine().setSoundTime(stem.second, seconds);
+        CEngine::setSoundTime(stem.second, seconds);
     }
 }
 
@@ -613,16 +612,16 @@ void CPlayer::setSongVolume(float volume) {
         const bool played =
             std::find(activeAudioStems.begin(), activeAudioStems.end(),
                       stem.first) != activeAudioStems.end();
-        CEngine::engine().setSoundVolume(stem.second, played ? 0.0f : volume);
+        CEngine::engine().setSoundVolume(stem.second, played ? 0.0F : volume);
     }
 }
 
 void CPlayer::instrumentPlay() const {
-    CEngine::engine().playSoundStream(instrumentSound);
+    CEngine::playSoundStream(instrumentSound);
 }
 
 void CPlayer::instrumentPause() const {
-    CEngine::engine().pauseSoundStream(instrumentSound);
+    CEngine::pauseSoundStream(instrumentSound);
 }
 
 CPlayer::CPlayer(const char *name) {
@@ -638,14 +637,13 @@ CPlayer::CPlayer(const char *name) {
     songAudioID = -1;
     points = 0.0;
     combo = 0;
-    startTime = CEngine::engine().getTime();
+    startTime = CEngine::getTime();
     plusEnabled = false;
     musicRunningTime = 0.0;
     palhetaKeyLast = palhetaKey = 0;
     aError = false;
     lastHOPO = 0;
     enableBot = false;
-
 
     instrumentSound = 0;
     strklinenttime = -5.0;
@@ -699,7 +697,7 @@ void CPlayer::resetSongThings() {
         maxPlusPower = plusLoadF = plusLoadB = plusLoadInterval = 0.0;
     renderState.plusCircleBuffer = renderState.plusLoadBuffer =
         renderState.publicApprovBuffer = renderState.correctNotesBuffer =
-            renderState.multiplierBuffer = ~0uL;
+            renderState.multiplierBuffer = ~0UL;
 
     correctNotes = 0;
 

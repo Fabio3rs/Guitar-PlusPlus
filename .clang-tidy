@@ -21,7 +21,7 @@
 #   readability-convert-member-functions-to-static  Engines/resolvers são
 #       colaboradores injetáveis; tornar métodos static enfraquece esse
 #       contrato e força chamadas qualificadas por tipo em todos os clientes.
-Checks:          '-*,clang-diagnostic-*,clang-analyzer-*,bugprone-*,cppcoreguidelines-*,modernize-*,performance-*,readability-*,-modernize-use-trailing-return-type,-readability-identifier-length,-readability-function-cognitive-complexity,-bugprone-easily-swappable-parameters,-readability-redundant-member-init,-readability-convert-member-functions-to-static,-cppcoreguidelines-avoid-do-while'
+Checks:          '-*,clang-diagnostic-*,clang-analyzer-*,bugprone-*,cppcoreguidelines-*,modernize-*,performance-*,readability-*,-modernize-use-trailing-return-type,-readability-identifier-length,-readability-function-cognitive-complexity,-bugprone-easily-swappable-parameters,-readability-redundant-member-init,-readability-convert-member-functions-to-static,-cppcoreguidelines-avoid-do-while,-cppcoreguidelines-prefer-member-initializer'
 WarningsAsErrors: ''
 HeaderFileExtensions:
   - ''

@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   Testing_Code_Quality:
+    name: Linux x64 (RelWithDebInfo)
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -49,6 +50,8 @@ jobs:
           unzip -p "$download_dir/bass_fx.zip" C/bass_fx.h > bass/bass_fx.h
           unzip -p "$download_dir/bass.zip" libs/x86_64/libbass.so > bass/libbass.so
           unzip -p "$download_dir/bass_fx.zip" libs/x86_64/libbass_fx.so > bass/libbass_fx.so
+          unzip -p "$download_dir/bass.zip" bass.txt > bass/bass.txt
+          unzip -p "$download_dir/bass_fx.zip" bass_fx.txt > bass/bass_fx.txt
 
           # Fail during setup if an archive contains an unexpected architecture.
           for library in bass/libbass.so bass/libbass_fx.so; do
@@ -71,8 +74,9 @@ jobs:
 
       - name: Build project
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGPP_NATIVE_CPU=OFF \
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DGPP_NATIVE_CPU=OFF \
             -DBUILD_CHART_STUDIO=ON -DBUILD_CHART_TOOLS=ON -DBUILD_TESTING=ON \
+            -DGPP_PACKAGE_RUNTIME=ON \
             -DBUILD_CHART_STUDIO_UMAP_TESTS=ON \
             -DCHART_STUDIO_UMAP_PYTHON="$RUNNER_TEMP/gpp-umap-venv/bin/python"
           cmake --build build --parallel 2
@@ -80,7 +84,25 @@ jobs:
       - name: Test project
         run: |
           cd build
-          ctest -j 20 -C Debug -T test --output-on-failure
+          ctest -j 20 -C RelWithDebInfo -T test --output-on-failure
+
+      - name: Package and verify runtime ZIP
+        run: |
+          python3 tools/ci/package_runtime.py --build-dir build --platform linux --output-dir dist
+          python3 tools/ci/verify_runtime.py dist/GuitarPP-linux-x64-RelWithDebInfo.zip
+
+      - name: Upload Linux runtime
+        id: runtime
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/GuitarPP-linux-x64-RelWithDebInfo.zip
+          archive: false
+          if-no-files-found: error
+
+      - name: Link runtime download
+        env:
+          ARTIFACT_URL: ${{ steps.runtime.outputs.artifact-url }}
+        run: printf '[Download Linux x64 ZIP](%s)\n' "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload test diagnostics
         if: always()
@@ -93,4 +115,73 @@ jobs:
             build/chart-studio/ui-tests/
             build/chart-studio/alignment-tests/
             build/chart-studio/plus-ui-tests/
+          if-no-files-found: warn
+
+  Windows:
+    name: Windows x64 (RelWithDebInfo)
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Windows dependencies
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install glew:x64-windows-static sqlite3:x64-windows-static libpng:x64-windows-static gtest:x64-windows-static
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/ci/setup_bass_windows.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Configure project
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+            '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>' `
+            -DGLEW_USE_STATIC_LIBS=ON -DGPP_NATIVE_CPU=OFF `
+            -DBUILD_CHART_STUDIO=ON -DBUILD_CHART_TOOLS=ON -DBUILD_TESTING=ON `
+            -DBUILD_CHART_STUDIO_UMAP_TESTS=OFF -DGPP_PACKAGE_RUNTIME=ON
+
+      - name: Build project
+        run: cmake --build build --config RelWithDebInfo --parallel 2
+
+      - name: Test CPU behavior
+        run: ctest --test-dir build -C RelWithDebInfo -L cpu --parallel 2 --output-on-failure --no-tests=error
+
+      - name: Package runtime ZIP
+        run: python tools/ci/package_runtime.py --build-dir build --platform windows --output-dir dist
+
+      - name: Verify relocated runtime ZIP
+        run: python tools/ci/verify_runtime.py dist/GuitarPP-windows-x64-RelWithDebInfo.zip
+
+      - name: Upload Windows runtime
+        id: runtime
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/GuitarPP-windows-x64-RelWithDebInfo.zip
+          archive: false
+          if-no-files-found: error
+
+      - name: Link runtime download
+        env:
+          ARTIFACT_URL: ${{ steps.runtime.outputs.artifact-url }}
+        shell: pwsh
+        run: '"[Download Windows x64 ZIP]($env:ARTIFACT_URL)" >> $env:GITHUB_STEP_SUMMARY'
+
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guitarpp-windows-tests
+          path: |
+            build/Testing/Temporary/
+            build/chart-studio/cli-tests/
+            build/chart-studio/alignment-tests/
+            build/chart-studio/merge-cli-tests/
           if-no-files-found: warn

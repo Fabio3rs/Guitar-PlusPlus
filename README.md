@@ -158,6 +158,58 @@ the other game assets belong to the game team.
 CI uses Clang 20 on Ubuntu 24.04, installed from the official `noble-updates`
 `universe` packages (`clang-20`, `clang-tidy-20`, `clang-format-20`).
 
+## Windows builds and CI downloads
+
+The main **Build and test Guitar++** workflow builds Linux and Windows x64 in
+`RelWithDebInfo`, with `GPP_NATIVE_CPU=OFF`. Successful jobs publish
+`GuitarPP-linux-x64-RelWithDebInfo.zip` and
+`GuitarPP-windows-x64-RelWithDebInfo.zip` in the run's **Artifacts** section,
+with download links in the job summaries. Retention follows repository settings.
+Test diagnostics are uploaded separately, including on failure.
+
+Each ZIP contains the game, Chart Studio, score-to-chart, chart dump and library
+scan tools, debug symbols, runtime libraries, licenses, `Config.lua` and tracked
+assets/scripts. Full game assets and songs remain separate. Launch from the
+extracted directory. Linux packages target Ubuntu 24.04 and still require its
+system runtimes, X11 and OpenGL drivers; this is not a universal Linux bundle.
+Python/UMAP is optional and its environment is not included. Existing Audio,
+Scene and GUI Studio workflows are unchanged.
+
+Windows CI uses Visual Studio 2022 and vcpkg's `x64-windows-static` triplet
+(GLEW, SQLite3, libpng and GoogleTest), plus the official BASS/BASS_FX x64 DLLs.
+For a local build, use a Visual Studio developer PowerShell and an installed
+vcpkg, then run from the repository root:
+
+```powershell
+git submodule update --init --recursive
+& "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install glew:x64-windows-static sqlite3:x64-windows-static libpng:x64-windows-static gtest:x64-windows-static
+python tools/ci/setup_bass_windows.py
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+  "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+  -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+  '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>' `
+  -DGLEW_USE_STATIC_LIBS=ON -DGPP_NATIVE_CPU=OFF `
+  -DBUILD_CHART_STUDIO=ON -DBUILD_CHART_TOOLS=ON -DBUILD_TESTING=ON `
+  -DGPP_PACKAGE_RUNTIME=ON
+cmake --build build --config RelWithDebInfo --parallel 2
+ctest --test-dir build -C RelWithDebInfo -L cpu --output-on-failure
+python tools/ci/package_runtime.py --build-dir build --platform windows --output-dir dist
+python tools/ci/verify_runtime.py dist/GuitarPP-windows-x64-RelWithDebInfo.zip
+```
+
+Use a fresh build directory when switching toolchains. Linux packaging uses the
+same scripts with `--platform linux`, a `RelWithDebInfo` build configured with
+`GPP_PACKAGE_RUNTIME=ON`, and BASS's `bass.txt`/`bass_fx.txt` in `bass/`.
+Packaging installs only the `Runtime` component, not arbitrary local files in
+`build/bin` or `data`. ZIP verification extracts into another directory and runs
+the existing chart conversion integration test against the packaged executable.
+
+Windows runs CPU tests; the complete graphical and optional UMAP checks run on
+Linux. Linux-only webcam capture and unfinished legacy networking are excluded
+from Windows builds. **Server MP remains available as a local two-player mode**;
+it does not start the legacy network server. The existing Client MP network path
+is unavailable. These builds do not change the game's OpenGL 2.0 baseline.
+
 # Garage lighting and OBJ assets
 
 The garage uses a shared OpenGL 2.0 / GLSL 1.10 renderer in menus and gameplay.

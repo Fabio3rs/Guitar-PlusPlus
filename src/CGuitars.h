@@ -20,7 +20,7 @@ class CGuitars {
         friend CGamePlay;
         std::string path, internalName;
         std::string gameplayBarName;
-        int textureID;
+        unsigned int textureID;
         unsigned int fretboardText;
         GPPOBJ gameplayBar;
         bool loaded;

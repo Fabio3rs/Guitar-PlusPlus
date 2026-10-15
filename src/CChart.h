@@ -122,7 +122,7 @@ class CChart {
             double time{}, lTime{} /*, unmodifiedTime*/;
             int type{};
 
-            size_t firstNote{}, lastNote{};
+            size_t firstNote{~size_t{0}}, lastNote{};
 
             bool operator<(const plusNote &b) const noexcept {
                 return time < b.time;

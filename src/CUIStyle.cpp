@@ -31,8 +31,7 @@ Style resolveStyle(const Style &base, const StyleOverrides &overrides) {
     result.layout.padding = overrides.padding.value_or(base.layout.padding);
     result.selection.pickGap =
         overrides.pickGap.value_or(base.selection.pickGap);
-    result.selection.accent =
-        overrides.accent.value_or(base.selection.accent);
+    result.selection.accent = overrides.accent.value_or(base.selection.accent);
     result.selection.background =
         overrides.selection.value_or(base.selection.background);
     if (overrides.focus) {

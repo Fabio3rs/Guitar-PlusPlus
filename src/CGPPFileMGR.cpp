@@ -3,7 +3,9 @@
 #include <filesystem>
 
 std::deque<std::string> CGPPFileMGR::getDirectory(const std::string &directory,
-    bool getFiles, bool getDirectories, std::error_code *error) {
+                                                  bool getFiles,
+                                                  bool getDirectories,
+                                                  std::error_code *error) {
     std::deque<std::string> result;
     if (error) {
         error->clear();
@@ -28,7 +30,8 @@ std::deque<std::string> CGPPFileMGR::getDirectory(const std::string &directory,
     while (entry != end) {
         const auto status = entry->status(ec);
         if (ec) {
-            // A dangling link or an entry removed during enumeration is harmless.
+            // A dangling link or an entry removed during enumeration is
+            // harmless.
             if (ec != std::errc::no_such_file_or_directory) {
                 report(entry->path(), ec);
             }

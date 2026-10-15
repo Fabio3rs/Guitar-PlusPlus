@@ -164,12 +164,12 @@ void CParticle::renderFire(bool plusActive, double multiplier,
     shaders.processEvent(effect.event);
     ShaderProject::CShader::setFloatUniform(
         effect.time, static_cast<float>(CEngine::engine().getTime()));
-    ShaderProject::CShader::setFloatUniform(
-        effect.plusActive, plusActive ? 1.0f : 0.0f);
-    ShaderProject::CShader::setFloatUniform(
-        effect.multiplier, static_cast<float>(multiplier));
-    ShaderProject::CShader::setFloatUniform(
-        effect.publicApproval, static_cast<float>(publicApproval));
+    ShaderProject::CShader::setFloatUniform(effect.plusActive,
+                                            plusActive ? 1.0f : 0.0f);
+    ShaderProject::CShader::setFloatUniform(effect.multiplier,
+                                            static_cast<float>(multiplier));
+    ShaderProject::CShader::setFloatUniform(effect.publicApproval,
+                                            static_cast<float>(publicApproval));
     glEnable(GL_BLEND);
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_CULL_FACE);

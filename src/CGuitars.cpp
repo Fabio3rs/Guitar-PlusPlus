@@ -1,22 +1,28 @@
 #include "CGuitars.h"
-#include "CLog.h"
-#include "GPPGame.h"
-#include "CLuaFunctions.hpp"
 #include "CGPPFileMGR.h"
+#include "CLog.h"
+#include "CLuaFunctions.hpp"
+#include "GPPGame.h"
 
 int CGuitars::addGuitarScriptEvent = 0, CGuitars::loadGuitarScriptEvent = 0,
     CGuitars::unloadingGuitarScriptEvent = 0;
 
 // Call after players stop using the catalogue, while the GL context is current.
 void CGuitars::unload() {
-    for (auto &entry : guitars) { entry.second.unload(); }
+    for (auto &entry : guitars) {
+        entry.second.unload();
+    }
     guitars.clear();
 }
 
 auto CGuitars::addGuitar(const std::string &path,
                          const std::string &internalName) -> CGuitar * {
-    if (auto *existing = getGuitarIfExists(internalName)) { return existing; }
-    if (staging || internalName.empty()) { return nullptr; }
+    if (auto *existing = getGuitarIfExists(internalName)) {
+        return existing;
+    }
+    if (staging || internalName.empty()) {
+        return nullptr;
+    }
     // A node transfer preserves the luaScript address stored in its Lua state.
     std::map<std::string, CGuitar> pending;
     auto &candidate = pending[internalName];
@@ -27,12 +33,16 @@ auto CGuitars::addGuitar(const std::string &path,
         CGuitar *&pointer;
         ~ResetStaging() { pointer = nullptr; }
     } reset{staging};
-    candidate.luaF = CLuaH::Lua().newScript(path + "/" + internalName, "GuitarScript.lua");
+    candidate.luaF =
+        CLuaH::Lua().newScript(path + "/" + internalName, "GuitarScript.lua");
     const CLuaH::multiCallBackParams_t params = {path, internalName};
-    if (!candidate.luaF.luaState || CLuaH::Lua().runScript(candidate.luaF) != 0 ||
-        !CLuaH::Lua().runInternalEventWithParams(candidate.luaF, addGuitarScriptEvent, params) ||
+    if (!candidate.luaF.luaState ||
+        CLuaH::Lua().runScript(candidate.luaF) != 0 ||
+        !CLuaH::Lua().runInternalEventWithParams(
+            candidate.luaF, addGuitarScriptEvent, params) ||
         candidate.gameplayBarName.empty()) {
-        CLog::log() << std::string("Invalid guitar configuration: ") + internalName;
+        CLog::log() << std::string("Invalid guitar configuration: ") +
+                           internalName;
         return nullptr;
     }
     guitars.insert(pending.extract(internalName));
@@ -58,7 +68,9 @@ auto CGuitars::getGuitarIfExists(const std::string &internalName)
 }
 
 bool CGuitars::CGuitar::load() {
-    if (loaded) { return true; }
+    if (loaded) {
+        return true;
+    }
     if (!CEngine::engine().hasRenderContext()) {
         return false;
     }
@@ -80,12 +92,14 @@ bool CGuitars::CGuitar::load() {
     const auto previousTexture = textureID;
     const auto previousFretboard = fretboardText;
     const CLuaH::multiCallBackParams_t params = {path, internalName};
-    if (!CLuaH::Lua().runInternalEventWithParams(luaF, loadGuitarScriptEvent, params)) {
+    if (!CLuaH::Lua().runInternalEventWithParams(luaF, loadGuitarScriptEvent,
+                                                 params)) {
         textureID = previousTexture;
         fretboardText = previousFretboard;
         return false;
     }
-    // Legacy scripts supply cached texture handles; the guitar does not own them.
+    // Legacy scripts supply cached texture handles; the guitar does not own
+    // them.
     if (textureID != 0 &&
         !CEngine::engine().isTextureValid(static_cast<unsigned>(textureID))) {
         textureID = 0;
@@ -110,7 +124,8 @@ bool CGuitars::CGuitar::load() {
 void CGuitars::CGuitar::unload() {
     if (loaded) {
         const CLuaH::multiCallBackParams_t params = {path, internalName};
-        CLuaH::Lua().runInternalEventWithParams(luaF, unloadingGuitarScriptEvent, params);
+        CLuaH::Lua().runInternalEventWithParams(
+            luaF, unloadingGuitarScriptEvent, params);
         gameplayBar.unload();
         loaded = false;
     }
@@ -146,8 +161,10 @@ auto CGuitars::changeGuitarData(lua_State *L) -> int {
 
         auto &manager = inst();
         auto *target = manager.staging
-            ? (manager.staging->internalName == targetGuitar ? manager.staging : nullptr)
-            : manager.getGuitarIfExists(targetGuitar);
+                           ? (manager.staging->internalName == targetGuitar
+                                  ? manager.staging
+                                  : nullptr)
+                           : manager.getGuitarIfExists(targetGuitar);
 
         if (target != nullptr) {
             std::string dataName;

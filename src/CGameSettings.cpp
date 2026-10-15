@@ -11,13 +11,12 @@
 
 bool CGameSettings::Window::valid() const {
     // Zero dimensions select the monitor's resolution in CEngine.
-    return w >= 0 && h >= 0 && AA >= 0 && colorBits > 0 &&
-           VSyncMode >= 0 && VSyncMode <= 3 &&
-           fullscreen >= 0 && fullscreen <= 3;
+    return w >= 0 && h >= 0 && AA >= 0 && colorBits > 0 && VSyncMode >= 0 &&
+           VSyncMode <= 3 && fullscreen >= 0 && fullscreen <= 3;
 }
 
 CGameSettings::LoadResult CGameSettings::load(Window &window,
-                                             std::string &language) {
+                                              std::string &language) {
     writable = false;
     lastError.clear();
     try {
@@ -85,8 +84,9 @@ bool CGameSettings::save(const Window &window, const std::string &language) {
 #ifdef _WIN32
         if (!MoveFileExW(temporary.c_str(), destination.c_str(),
                          MOVEFILE_REPLACE_EXISTING)) {
-            throw std::runtime_error("cannot replace settings file (Windows error " +
-                                     std::to_string(GetLastError()) + ")");
+            throw std::runtime_error(
+                "cannot replace settings file (Windows error " +
+                std::to_string(GetLastError()) + ")");
         }
 #else
         std::filesystem::rename(temporary, destination);

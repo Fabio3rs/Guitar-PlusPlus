@@ -11,9 +11,7 @@ namespace {
 bool stderrLog = false;
 }
 
-void CLog::configureStderr() {
-    stderrLog = true;
-}
+void CLog::configureStderr() { stderrLog = true; }
 
 #ifdef _WIN32
 auto InstallExceptionCatcher(void (*cb)(const char *buffer)) -> int;
@@ -22,16 +20,18 @@ auto InstallExceptionCatcher(void (*cb)(const char *buffer)) -> int;
 auto CLog::log() -> CLog & {
     static CLog Log(stderrLog ? "" : "Guitar++.log");
 #ifdef _WIN32
-    static const int installed = InstallExceptionCatcher([](const char *buffer) {
-        // A crash can interrupt a thread holding writeMutex. Use a separate,
-        // best-effort file rather than entering the normal logger again.
-        if (FILE *file = std::fopen("Guitar++.crash.log", "ab")) {
-            std::fwrite(buffer, 1, std::strlen(buffer), file);
-            std::fclose(file);
-        } else {
-            std::fputs(buffer, stderr);
-        }
-    });
+    static const int installed =
+        InstallExceptionCatcher([](const char *buffer) {
+            // A crash can interrupt a thread holding writeMutex. Use a
+            // separate, best-effort file rather than entering the normal logger
+            // again.
+            if (FILE *file = std::fopen("Guitar++.crash.log", "ab")) {
+                std::fwrite(buffer, 1, std::strlen(buffer), file);
+                std::fclose(file);
+            } else {
+                std::fputs(buffer, stderr);
+            }
+        });
     (void)installed;
 #endif
     return Log;
@@ -46,9 +46,9 @@ CLog::CLog(const std::string &NameOfFile)
     // Preserve the existing unbuffered file behavior for loading diagnostics.
     LogFile.rdbuf()->pubsetbuf(nullptr, 0);
     LogFile.open(NameOfFile, std::ios::out | std::ios::trunc);
-    writeLocked(std::string("* Guitar++ compilation date/time: ") +
-                __DATE__ + " " + __TIME__ + "\n* Log started at: " +
-                GetDateAndTime() + "\n");
+    writeLocked(std::string("* Guitar++ compilation date/time: ") + __DATE__ +
+                " " + __TIME__ + "\n* Log started at: " + GetDateAndTime() +
+                "\n");
 }
 
 CLog::~CLog() noexcept {
@@ -63,7 +63,8 @@ auto CLog::GetDateAndTime() -> std::string {
     const std::time_t now = std::time(nullptr);
     std::tm local{};
 #ifdef _WIN32
-    if (localtime_s(&local, &now) != 0) return "unknown time";
+    if (localtime_s(&local, &now) != 0)
+        return "unknown time";
 #else
     if (!localtime_r(&now, &local)) {
         return "unknown time";
@@ -79,13 +80,15 @@ auto CLog::GetDateAndTime() -> std::string {
 void CLog::writeLocked(const std::string &text) {
     if (!useStderr) {
         if (LogFile.good()) {
-            LogFile.write(text.data(), static_cast<std::streamsize>(text.size()));
+            LogFile.write(text.data(),
+                          static_cast<std::streamsize>(text.size()));
             if (LogFile.good()) {
                 return;
             }
         }
         useStderr = true;
-        std::fprintf(stderr, "Cannot write log '%s'; using stderr\n", FileName.c_str());
+        std::fprintf(stderr, "Cannot write log '%s'; using stderr\n",
+                     FileName.c_str());
     }
     std::fwrite(text.data(), 1, text.size(), stderr);
 }

@@ -90,9 +90,9 @@ auto CVideo::decodeFun(CVideo *ths) -> int {
 }
 
 auto CVideo::openDeviceFile(const char *address) -> bool {
-    struct v4l2_capability video_cap {};
-    struct v4l2_window video_win {};
-    struct v4l2_format videofmt {};
+    struct v4l2_capability video_cap{};
+    struct v4l2_window video_win{};
+    struct v4l2_format videofmt{};
     // struct v4l2_picture   video_pic;
 
     videofmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;

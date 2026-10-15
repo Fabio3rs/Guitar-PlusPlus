@@ -13,8 +13,10 @@
  */
 #ifdef _WIN32
 #include <cassert>
+#include <cstdarg>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <dbghelp.h>
 #include <windows.h>
 
@@ -285,8 +287,10 @@ void ExceptionTracer::PrintUnhandledException() {
         auto addr = (ULONG_PTR)record.ExceptionInformation[1]; // which address?
 
         Print(" %s 0x%p",
-              rw == 0 ? "reading location"
-                      : rw == 1 ? "writing location" : rw == 8 ? "DEP at" : "",
+              rw == 0   ? "reading location"
+              : rw == 1 ? "writing location"
+              : rw == 8 ? "DEP at"
+                        : "",
               addr);
 
         // IN_PAGE_ERROR have another information...

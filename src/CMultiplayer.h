@@ -2,6 +2,10 @@
 #ifndef __GUITARPP_CMULTIPLAYER_H__
 #define __GUITARPP_CMULTIPLAYER_H__
 
+// Networking is unfinished on Windows (duplicate class and obsolete socket
+// APIs). Keep COMPILEMP undefined there. Server MP is a separate local mode.
+#ifndef _WIN32
+
 #include <atomic>
 #include <map>
 #include <memory>
@@ -181,4 +185,5 @@ class CMultiplayer {
 };
 #endif
 
+#endif // !_WIN32
 #endif

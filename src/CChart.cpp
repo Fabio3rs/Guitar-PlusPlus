@@ -1788,7 +1788,7 @@ void CChart::NotesData::unloadChart() {
     lastNoteEnd = 0.0;
     chartEnd = 0;
     notePos = 0;
-    lastNotePicked = ~0uL;
+    lastNotePicked = ~size_t{0};
     chartResolutionProp = 1.0;
     plusPos = 0;
 
@@ -1803,7 +1803,7 @@ void CChart::NotesData::unloadChart() {
 
 CChart::NotesData::NotesData() {
     notePos = 0;
-    lastNotePicked = ~0uL;
+    lastNotePicked = ~size_t{0};
     chartResolutionProp = 1.0;
     plusPos = 0;
     BPMMinPosition = 0.0;

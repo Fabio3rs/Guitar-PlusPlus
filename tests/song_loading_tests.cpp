@@ -241,6 +241,20 @@ TEST_F(SongLoading, ValidAudioLoadsWithoutOptionalStemAndReleasesOnReloadFailure
     EXPECT_TRUE(player.Notes.gNotes.empty());
 }
 
+TEST_F(SongLoading, PickedNoteIndexIsInvalidBeforePlayAndAfterUnload) {
+    CPlayer player("cursor");
+    const auto invalid = std::numeric_limits<size_t>::max();
+    EXPECT_EQ(player.Notes.lastNotePicked, invalid);
+
+    player.Notes.gNotes.emplace_back();
+    player.doNote(0);
+    EXPECT_EQ(player.Notes.lastNotePicked, 0u);
+
+    player.Notes.unloadChart();
+    EXPECT_TRUE(player.Notes.gNotes.empty());
+    EXPECT_EQ(player.Notes.lastNotePicked, invalid);
+}
+
 TEST_F(SongLoading, NotesMoveTransfersBuffersAndPreservesCopySupport) {
     static_assert(std::is_nothrow_move_constructible_v<CPlayer::NotesData>);
     static_assert(std::is_nothrow_move_assignable_v<CPlayer::NotesData>);

@@ -225,7 +225,16 @@ bass/bass.h
 bass/bass_fx.h
 bass/libbass.so
 bass/libbass_fx.so
+bass/bass.dll
+bass/bass_fx.dll
+bass/bass.lib
+bass/bass_fx.lib
+bass/bass.txt
+bass/bass_fx.txt
 bass/*_stub.c
+
+# Generated CI runtime ZIPs
+/dist/
 
 # Rebuildable music library index
 /data/cache/

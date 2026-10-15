@@ -13,6 +13,11 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+if(MSVC)
+    add_compile_options(/utf-8)
+    add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+endif()
+
 # Small authored UI assets; game/music assets still come from the runtime pack.
 foreach(icon folders artist music charter no-cover)
     configure_file(data/sprites/quick-play/${icon}.tga
@@ -44,6 +49,29 @@ find_package(GLEW REQUIRED)
 # SQLite3_LIBRARY (matching the build architecture), or use a package-manager
 # toolchain such as vcpkg. SQLite is a system dependency, not downloaded here.
 find_package(SQLite3 REQUIRED)
+
+# Keep the existing bass/bass_fx target names for the game and audio tools.
+foreach(library bass bass_fx)
+    find_library(GPP_${library}_LIBRARY NAMES ${library}
+        PATHS "${PROJECT_SOURCE_DIR}/bass" NO_DEFAULT_PATH REQUIRED)
+    add_library(${library} SHARED IMPORTED GLOBAL)
+    if(WIN32)
+        set_target_properties(${library} PROPERTIES
+            IMPORTED_IMPLIB "${GPP_${library}_LIBRARY}"
+            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/bass/${library}.dll")
+        # GoogleTest discovery runs immediately after linking, before CTest.
+        configure_file("bass/${library}.dll" "bin/${library}.dll" COPYONLY)
+        foreach(config IN LISTS CMAKE_CONFIGURATION_TYPES)
+            configure_file("bass/${library}.dll" "bin/${config}/${library}.dll" COPYONLY)
+        endforeach()
+    else()
+        # The distributed Linux BASS libraries have no SONAME. Link with -l
+        # so DT_NEEDED never records the absolute SDK path in the executable.
+        set_target_properties(${library} PROPERTIES
+            IMPORTED_LOCATION "${GPP_${library}_LIBRARY}"
+            IMPORTED_NO_SONAME TRUE)
+    endif()
+endforeach()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/glfw SYSTEM)
 
@@ -101,6 +129,14 @@ file(
 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Lua/*.c"
 )
+
+if(WIN32)
+    # V4L2 is Linux-only. The unfinished network implementation also contains
+    # POSIX calls and a duplicate Windows class; local Server MP does not use it.
+    list(REMOVE_ITEM SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/CVideo.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/CMultiplayer.cpp")
+endif()
 
 # setando todos arquivos include
 set(INCLUDE_DIRS
@@ -162,7 +198,10 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     target_compile_options("${myprojectname}_lib" PRIVATE -Weverything -Wno-date-time -Wno-disabled-macro-expansion -Wno-global-constructors $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>  -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-exit-time-destructors)
 endif()
 
-target_link_libraries("${myprojectname}_lib" gpp_midi gpp_textures gpp_models gpp_sqlite gpp_charter glfw GLEW OpenGL::GL bass bass_fx)
+target_link_libraries("${myprojectname}_lib" gpp_midi gpp_textures gpp_models gpp_sqlite gpp_charter glfw GLEW::GLEW OpenGL::GL bass bass_fx)
+if(WIN32)
+    target_link_libraries("${myprojectname}_lib" dbghelp)
+endif()
 target_link_libraries(${myprojectname} "${myprojectname}_lib")
 
 
@@ -239,4 +278,9 @@ configure_file(vendor/xxhash/LICENSE bin/licenses/xxhash-LICENSE.txt COPYONLY)
 
 if(BUILD_CHART_STUDIO)
     add_subdirectory(tools/chart_studio)
+endif()
+
+option(GPP_PACKAGE_RUNTIME "Prepare the game and chart tools for CI ZIP packaging" OFF)
+if(GPP_PACKAGE_RUNTIME)
+    include(cmake/RuntimePackage.cmake)
 endif()

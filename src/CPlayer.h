@@ -169,7 +169,7 @@ class CPlayer {
 
     double startTime{}, plusThunterStrikeStart{}, plusPower{},
         plusParticleEffectPosition{}, maxPlusPower{};
-    AtomicDouble plusLoadF, plusLoadB, plusLoadInterval;
+    AtomicDouble plusLoadF{}, plusLoadB{}, plusLoadInterval{};
 
     uint64_t publicAprov{}, correctNotes{}, correctNotesMarathon{},
         maxPublicAprov{};

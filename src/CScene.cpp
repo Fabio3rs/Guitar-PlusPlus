@@ -7,9 +7,9 @@
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
-#include <thread>
 #include <limits>
 #include <stdexcept>
+#include <thread>
 
 namespace fs = std::filesystem;
 
@@ -32,10 +32,11 @@ CScene::Definition CScene::Definition::garage() {
 }
 
 bool CScene::validId(const std::string &id) {
-    return !id.empty() && std::all_of(id.begin(), id.end(), [](unsigned char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-               (c >= '0' && c <= '9') || c == '_' || c == '-';
-    });
+    return !id.empty() &&
+           std::all_of(id.begin(), id.end(), [](unsigned char c) {
+               return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                      (c >= '0' && c <= '9') || c == '_' || c == '-';
+           });
 }
 
 namespace {
@@ -77,7 +78,9 @@ bool readDefinitionImpl(const std::string &file, const std::string &id,
             inspection
                 ? CLuaH::luaState_t(lua_newstate(limitedLuaAlloc, &budget))
                 : CLuaH::make_luaState();
-        if (!state) { throw std::runtime_error("Cannot allocate scene Lua state"); }
+        if (!state) {
+            throw std::runtime_error("Cannot allocate scene Lua state");
+        }
         auto *L = state.get();
         if (!inspection) {
             luaL_openlibs(L);
@@ -100,7 +103,9 @@ bool readDefinitionImpl(const std::string &file, const std::string &id,
             const char *message = lua_tostring(L, -1);
             throw std::runtime_error(message ? message : "Scene script failed");
         }
-        if (!lua_istable(L, -1)) { throw std::runtime_error("Scene must return a table"); }
+        if (!lua_istable(L, -1)) {
+            throw std::runtime_error("Scene must return a table");
+        }
         CScene::Definition candidate;
         candidate.id = id;
         auto pathField = [&](const char *key, bool required) {
@@ -108,7 +113,8 @@ bool readDefinitionImpl(const std::string &file, const std::string &id,
             std::string value;
             if (!lua_isnil(L, -1)) {
                 if (lua_type(L, -1) != LUA_TSTRING) {
-                    throw std::runtime_error(std::string(key) + " must be a path string");
+                    throw std::runtime_error(std::string(key) +
+                                             " must be a path string");
                 }
                 value = lua_tostring(L, -1);
             }
@@ -116,8 +122,10 @@ bool readDefinitionImpl(const std::string &file, const std::string &id,
             if (required && value.empty()) {
                 throw std::runtime_error(std::string("Missing scene ") + key);
             }
-            return value.empty() ? value :
-                (fs::path(file).parent_path() / value).lexically_normal().string();
+            return value.empty() ? value
+                                 : (fs::path(file).parent_path() / value)
+                                       .lexically_normal()
+                                       .string();
         };
         candidate.model = pathField("model", true);
         candidate.materials = pathField("materials", false);
@@ -129,25 +137,32 @@ bool readDefinitionImpl(const std::string &file, const std::string &id,
         lua_pop(L, 1);
         rawField(L, -1, "lightPosition");
         if (!lua_isnil(L, -1)) {
-            if (!lua_istable(L, -1)) { throw std::runtime_error("lightPosition must be a table"); }
+            if (!lua_istable(L, -1)) {
+                throw std::runtime_error("lightPosition must be a table");
+            }
             for (int i = 0; i < 3; ++i) {
                 lua_rawgeti(L, -1, i + 1);
                 if (lua_type(L, -1) != LUA_TNUMBER) {
-                    throw std::runtime_error("lightPosition requires three numbers");
+                    throw std::runtime_error(
+                        "lightPosition requires three numbers");
                 }
                 const double value = lua_tonumber(L, -1);
                 if (!std::isfinite(value) || std::abs(value) > 1e6) {
                     throw std::runtime_error("Invalid lightPosition");
                 }
-                candidate.light[static_cast<size_t>(i)] = static_cast<float>(value);
+                candidate.light[static_cast<size_t>(i)] =
+                    static_cast<float>(value);
                 lua_pop(L, 1);
             }
         }
         lua_pop(L, 1);
-        for (const char *hook : {"onLoaded", "onSessionStarted", "onSessionEnded", "onUnloaded", "onSongStarted", "onSongEnded"}) {
+        for (const char *hook :
+             {"onLoaded", "onSessionStarted", "onSessionEnded", "onUnloaded",
+              "onSongStarted", "onSongEnded"}) {
             rawField(L, -1, hook);
             if (!lua_isnil(L, -1) && !lua_isfunction(L, -1)) {
-                throw std::runtime_error(std::string(hook) + " must be a function");
+                throw std::runtime_error(std::string(hook) +
+                                         " must be a function");
             }
             lua_pop(L, 1);
         }
@@ -182,20 +197,30 @@ bool CScene::readInspectionDefinition(const std::string &file,
 bool CScene::load(GPPOBJ &model, const std::string &id,
                   const std::function<bool()> &loadingFrame) {
     lastError.clear();
-    if (sessionActive) { lastError = "Cannot replace a scene during gameplay"; return false; }
-    if (!validId(id)) { lastError = "Invalid scene identifier"; return false; }
-    if (current.id == id) { return true; }
+    if (sessionActive) {
+        lastError = "Cannot replace a scene during gameplay";
+        return false;
+    }
+    if (!validId(id)) {
+        lastError = "Invalid scene identifier";
+        return false;
+    }
+    if (current.id == id) {
+        return true;
+    }
     Definition definition;
     CLuaH::luaState_t newScript;
     try {
         const auto file = fs::path("data/scenes") / (id + ".lua");
         if (id == "garage" && !fs::exists(file)) {
             definition = Definition::garage();
-        } else if (!readDefinition(file.string(), id, definition, newScript, lastError)) {
+        } else if (!readDefinition(file.string(), id, definition, newScript,
+                                   lastError)) {
             return false;
         }
         if (!fs::is_regular_file(definition.model) ||
-            (!definition.materials.empty() && !fs::is_regular_file(definition.materials))) {
+            (!definition.materials.empty() &&
+             !fs::is_regular_file(definition.materials))) {
             lastError = "Scene model or materials missing: " + id;
             return false;
         }
@@ -234,10 +259,12 @@ bool CScene::load(GPPOBJ &model, const std::string &id,
             return false;
         }
         event("onUnloaded", 0.0);
-        model = std::move(candidate); // Old GL objects retired on the context owner.
+        model = std::move(
+            candidate); // Old GL objects retired on the context owner.
         current = std::move(definition);
         script = std::move(newScript);
-        CBackgroundRenderer::inst().setScene(current.light, current.garageMaterials);
+        CBackgroundRenderer::inst().setScene(current.light,
+                                             current.garageMaterials);
         event("onLoaded", 0.0);
         return true;
     } catch (const std::exception &e) {
@@ -248,24 +275,37 @@ bool CScene::load(GPPOBJ &model, const std::string &id,
 
 void CScene::event(const char *name, double songSeconds,
                    const std::string *song, const SongResult *result) {
-    if (!script) { return; }
+    if (!script) {
+        return;
+    }
     auto *L = script.get();
     rawField(L, 1, name);
-    if (!lua_isfunction(L, -1)) { lua_pop(L, 1); return; }
+    if (!lua_isfunction(L, -1)) {
+        lua_pop(L, 1);
+        return;
+    }
     lua_newtable(L);
-    lua_pushstring(L, current.id.c_str()); lua_setfield(L, -2, "sceneId");
-    lua_pushstring(L, (song ? *song : sessionSong).c_str()); lua_setfield(L, -2, "songId");
-    lua_pushnumber(L, songSeconds); lua_setfield(L, -2, "songSeconds");
+    lua_pushstring(L, current.id.c_str());
+    lua_setfield(L, -2, "sceneId");
+    lua_pushstring(L, (song ? *song : sessionSong).c_str());
+    lua_setfield(L, -2, "songId");
+    lua_pushnumber(L, songSeconds);
+    lua_setfield(L, -2, "songSeconds");
     if (result) {
-        lua_pushstring(L, songEndReasonName(result->reason)); lua_setfield(L, -2, "reason");
+        lua_pushstring(L, songEndReasonName(result->reason));
+        lua_setfield(L, -2, "reason");
         lua_newtable(L);
         for (size_t i = 0; i < result->players.size(); ++i) {
             const auto &p = result->players[i];
             lua_newtable(L);
-            lua_pushnumber(L, static_cast<lua_Number>(p.score)); lua_setfield(L, -2, "score");
-            lua_pushnumber(L, static_cast<lua_Number>(p.maxCombo)); lua_setfield(L, -2, "maxCombo");
-            lua_pushnumber(L, static_cast<lua_Number>(p.correctNotes)); lua_setfield(L, -2, "correctNotes");
-            lua_pushnumber(L, static_cast<lua_Number>(p.totalNotes)); lua_setfield(L, -2, "totalNotes");
+            lua_pushnumber(L, static_cast<lua_Number>(p.score));
+            lua_setfield(L, -2, "score");
+            lua_pushnumber(L, static_cast<lua_Number>(p.maxCombo));
+            lua_setfield(L, -2, "maxCombo");
+            lua_pushnumber(L, static_cast<lua_Number>(p.correctNotes));
+            lua_setfield(L, -2, "correctNotes");
+            lua_pushnumber(L, static_cast<lua_Number>(p.totalNotes));
+            lua_setfield(L, -2, "totalNotes");
             lua_rawseti(L, -2, static_cast<int>(i + 1));
         }
         lua_setfield(L, -2, "players");
@@ -273,18 +313,22 @@ void CScene::event(const char *name, double songSeconds,
     if (lua_pcall(L, 1, 0, 0)) {
         const char *message = lua_tostring(L, -1);
         CLog::log() << std::string("Scene ") + current.id + " " + name + ": " +
-            (message ? message : "Lua callback failed");
+                           (message ? message : "Lua callback failed");
         lua_pop(L, 1);
     }
 }
 void CScene::sessionStarted(const std::string &song, double songSeconds) {
-    if (sessionActive || !loaded()) { return; }
+    if (sessionActive || !loaded()) {
+        return;
+    }
     sessionActive = true;
     sessionSong = song;
     event("onSessionStarted", songSeconds);
 }
 void CScene::sessionEnded(double songSeconds) {
-    if (!sessionActive) { return; }
+    if (!sessionActive) {
+        return;
+    }
     if (!activeSong.empty()) {
         SongResult aborted;
         aborted.songId = activeSong;
@@ -297,14 +341,20 @@ void CScene::sessionEnded(double songSeconds) {
     sessionSong.clear();
 }
 void CScene::songStarted(const std::string &song, double songSeconds) {
-    if (!sessionActive || !activeSong.empty()) { return; }
+    if (!sessionActive || !activeSong.empty()) {
+        return;
+    }
     activeSong = song;
     event("onSongStarted", songSeconds, &activeSong);
 }
 void CScene::songEnded(const SongResult &result) {
     if (activeSong.empty()) {
-        if (result.reason != SongEndReason::LoadFailed) { return; }
-    } else if (activeSong != result.songId) { return; }
+        if (result.reason != SongEndReason::LoadFailed) {
+            return;
+        }
+    } else if (activeSong != result.songId) {
+        return;
+    }
     event("onSongEnded", result.elapsedSeconds, &result.songId, &result);
     activeSong.clear();
 }

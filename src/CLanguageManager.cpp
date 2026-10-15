@@ -1,7 +1,7 @@
 #include "CLanguageManager.h"
+#include "CGPPFileMGR.h"
 #include "CLog.h"
 #include "CLuaFunctions.hpp"
-#include "CGPPFileMGR.h"
 #include <iostream>
 
 static void PrintTable(lua_State *L) {
@@ -15,9 +15,13 @@ static void PrintTable(lua_State *L) {
                 printf("%s = %s\n", lua_tostring(L, -2), lua_tostring(L, -1));
             }
         } else if (lua_isnumber(L, -1) != 0) {
-            { printf("%s = %f\n", lua_tostring(L, -2), lua_tonumber(L, -1)); }
+            {
+                printf("%s = %f\n", lua_tostring(L, -2), lua_tonumber(L, -1));
+            }
         } else if (lua_istable(L, -1)) {
-            { PrintTable(L); }
+            {
+                PrintTable(L);
+            }
         }
 
         lua_pop(L, 1);
