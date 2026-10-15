@@ -1,0 +1,15 @@
+file(GET_RUNTIME_DEPENDENCIES
+    EXECUTABLES @gpp_package_executables@
+    RESOLVED_DEPENDENCIES_VAR libraries
+    UNRESOLVED_DEPENDENCIES_VAR missing)
+if(missing)
+    message(FATAL_ERROR "Unresolved runtime libraries: ${missing}")
+endif()
+foreach(library IN LISTS libraries)
+    get_filename_component(name "${library}" NAME)
+    # System C/C++ runtimes, X11, OpenGL and driver libraries stay on the host.
+    if(name MATCHES "^lib(bass|bass_fx|GLEW|sqlite3|png[0-9]*|z)\\.so(\\.|$)")
+        file(INSTALL "${library}" DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
+            TYPE SHARED_LIBRARY FOLLOW_SYMLINK_CHAIN)
+    endif()
+endforeach()
