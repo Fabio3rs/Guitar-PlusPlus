@@ -16,7 +16,7 @@
 class CPlayer;
 class CCharter;
 
-enum notesFlags {
+enum notesFlags : int {
     nf_green = 1,
     nf_red = 2,
     nf_yellow = 4,
@@ -56,23 +56,23 @@ class CChart {
         bool validateLoadedChart();
 
       public:
-        size_t notePos, plusPos;
-        size_t lastNotePicked;
+        size_t notePos{}, plusPos{};
+        size_t lastNotePicked{};
         double fretsNotePickedTime[5]{};
 
         double getChartEnd(double offset = 2.0);
-        double getChartEnd(double offset = 2.0) const;
+        [[nodiscard]] double getChartEnd(double offset = 2.0) const;
 
         struct NoteInt {
-            uint64_t time, lTime;
+            uint64_t time{}, lTime{};
 
-            int type;
+            int type{};
 
-            inline bool operator<(const NoteInt &b) const noexcept {
+            bool operator<(const NoteInt &b) const noexcept {
                 return time < b.time;
             }
 
-            inline bool operator>(const NoteInt &b) const noexcept {
+            bool operator>(const NoteInt &b) const noexcept {
                 return time > b.time;
             }
 
@@ -83,19 +83,13 @@ class CChart {
             template <class Archive> void save(Archive &archive) const {
                 archive(time, lTime, type);
             }
-
-            NoteInt() noexcept {
-                time = 0uLL;
-                lTime = 0uLL;
-                type = 0;
-            }
         };
 
         struct Note {
-            double time;
-            double lTime;
+            double time{};
+            double lTime{};
 
-            int type;
+            int type{};
 
             inline bool operator<(const Note &b) const noexcept {
                 return time < b.time;
@@ -113,36 +107,28 @@ class CChart {
                 archive(time, lTime, type);
             }
 
-            Note(NoteInt &&n) noexcept {
-                time = static_cast<double>(n.time);
-                lTime = static_cast<double>(n.lTime);
-                type = n.type;
-            }
+            Note(NoteInt &&n) noexcept
+                : time(static_cast<double>(n.time)),
+                  lTime(static_cast<double>(n.lTime)), type(n.type) {}
 
-            Note(const NoteInt &n) noexcept {
-                time = static_cast<double>(n.time);
-                lTime = static_cast<double>(n.lTime);
-                type = n.type;
-            }
+            Note(const NoteInt &n) noexcept
+                : time(static_cast<double>(n.time)),
+                  lTime(static_cast<double>(n.lTime)), type(n.type) {}
 
-            Note() noexcept {
-                time = 0.0;
-                lTime = 0.0;
-                type = 0;
-            }
+            Note() noexcept = default;
         };
 
         struct plusNote {
-            double time, lTime /*, unmodifiedTime*/;
-            int type;
+            double time{}, lTime{} /*, unmodifiedTime*/;
+            int type{};
 
-            size_t firstNote, lastNote;
+            size_t firstNote{}, lastNote{};
 
-            inline bool operator<(const plusNote &b) const noexcept {
+            bool operator<(const plusNote &b) const noexcept {
                 return time < b.time;
             }
 
-            inline bool operator>(const plusNote &b) const noexcept {
+            bool operator>(const plusNote &b) const noexcept {
                 return time > b.time;
             }
 
@@ -154,14 +140,7 @@ class CChart {
                 archive(time, lTime, type, firstNote, lastNote);
             }
 
-            plusNote() noexcept {
-                time = 0.0;
-                lTime = 0.0;
-                // unmodifiedTime = 0.0;
-                type = 0;
-                firstNote = ~0uLL;
-                lastNote = 0;
-            }
+            plusNote() noexcept = default;
         };
 
         std::vector<Note> gNotes;
@@ -192,8 +171,8 @@ class CChart {
 
         // Computed on successful chart loading; moved with the note buffers.
         double lastNoteEnd = 0.0;
-        double BPMMinPosition, chartEnd;
-        double chartResolutionProp;
+        double BPMMinPosition{}, chartEnd{};
+        double chartResolutionProp{};
     };
 
     using Note = NotesData::Note;
@@ -276,7 +255,7 @@ class CChart {
 
     BPM_t &getBPMContainer() { return BPM; }
 
-    bool compileGppChart(const std::string &fileName) const;
+    [[nodiscard]] bool compileGppChart(const std::string &fileName) const;
 
     bool loadToPlayerData(CPlayer &player,
                           const std::string &instrument = "") const;

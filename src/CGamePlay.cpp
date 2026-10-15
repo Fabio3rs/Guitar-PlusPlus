@@ -230,8 +230,8 @@ auto CGamePlay::getBPMAtI(const CPlayer &player, double time) -> size_t {
     return resultI;
 }
 
-CEngine::dTriangleWithAlpha *CGamePlay::drawBPMLines(
-    const CPlayer &Player, PlayerRenderState &renderState) {
+CEngine::dTriangleWithAlpha *
+CGamePlay::drawBPMLines(const CPlayer &Player, PlayerRenderState &renderState) {
     static std::vector<CPlayer::NotesData::Note> BPMValuesdata;
     BPMl.clear();
     BPMValuesdata.clear();
@@ -241,7 +241,8 @@ CEngine::dTriangleWithAlpha *CGamePlay::drawBPMLines(
     double mscRunnTime = getRunningMusicTime(Player);
     const double time = mscRunnTime - 0.5;
 
-    auto calcQuad = [&](double position, double runTime, const CPlayer &Player) {
+    auto calcQuad = [&](double position, double runTime,
+                        const CPlayer &Player) {
         static CEngine::RenderDoubleStruct TempStruct3D;
         double rtime = runTime - position;
 
@@ -470,10 +471,9 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos,
     }
 }
 
-void CGamePlay::renderIndivdualStrikeButton3DStrike(size_t id, double pos,
-                                                    unsigned int Texture,
-                                                    double state,
-                                                    const CPlayer &player) const {
+void CGamePlay::renderIndivdualStrikeButton3DStrike(
+    size_t id, double pos, unsigned int Texture, double state,
+    const CPlayer &player) const {
     CEngine::RenderDoubleStruct TempStruct3D{};
     double rtime = 0.0;
 
@@ -674,7 +674,8 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos,
             auto &p = player.Notes.gPlus[plusPos];
 
             if (p.time <= pos && pos < (p.time + p.lTime)) {
-                CEngine::engine().Rotate(player.renderState.rangle, 0.0, 1.0, 0.0);
+                CEngine::engine().Rotate(player.renderState.rangle, 0.0, 1.0,
+                                         0.0);
                 rotated = true;
             }
         }
@@ -692,7 +693,8 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos,
 
 auto CGamePlay::renderIndivdualNote(unsigned int texture,
                                     CEngine::RenderDoubleStruct &TempStruct3D,
-                                    const CPlayer &player, bool rotated) -> bool {
+                                    const CPlayer &player, bool rotated)
+    -> bool {
     CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5,
                                TempStruct3D.z1 + NOTE_SIZE);
 
@@ -793,7 +795,8 @@ auto CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type,
 }
 
 void CGamePlay::renderIndividualLine(int id, double pos1, double pos2,
-                                     unsigned int Texture, const CPlayer &player) {
+                                     unsigned int Texture,
+                                     const CPlayer &player) {
     CEngine::RenderDoubleStruct TempStruct3D{};
 
     double runningTime = getRunningMusicTimeUpd(player);
@@ -842,7 +845,8 @@ void CGamePlay::renderIndividualLine(int id, double pos1, double pos2,
     CEngine::engine().Render3DQuadWithAlpha(TempStruct3D);
 }
 
-void CGamePlay::renderTimeOnNote(double pos, double time, const CPlayer &player) {
+void CGamePlay::renderTimeOnNote(double pos, double time,
+                                 const CPlayer &player) {
     CEngine::RenderDoubleStruct TempStruct3D{};
     double rtime = getRunningMusicTimeUpd(player) - pos;
 
@@ -963,7 +967,8 @@ void CGamePlay::addTailToBuffer(const CPlayer::NotesData::Note &note,
 }
 
 auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
-                           const CPlayer &player, double ltimet, PlayerRenderState &renderState) -> bool {
+                           const CPlayer &player, double ltimet,
+                           PlayerRenderState &renderState) -> bool {
     double time = note.time;
     double dif = time - ltimet;
     bool bAddTailToBuffer = false;
@@ -1193,10 +1198,10 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
         player.plusLoadF = player.plusLoadB = 0.0;
     }
 
-    if (player.plusLoadF != player.plusLoadB) {
-        player.plusLoadB.store(
-            player.plusLoadB.load() +
-            ((player.plusLoadF - player.plusLoadB.load()) * deltatime * 10.0));
+    if (std::abs(player.plusLoadF - player.plusLoadB.load()) > 1e-4) {
+        auto loadB = player.plusLoadB.load();
+        player.plusLoadB.store(std::min(
+            1.0, loadB + ((player.plusLoadF - loadB) * deltatime * 10.0)));
     }
 
     bool inslide = false;
@@ -1752,8 +1757,9 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
     }
 }
 
-void CGamePlay::renderFretBoardShadow(const CPlayer &player, double x1, double x2,
-                                      double x3, double x4, unsigned int Text) {
+void CGamePlay::renderFretBoardShadow(const CPlayer &player, double x1,
+                                      double x2, double x3, double x4,
+                                      unsigned int Text) {
     fretboardLData.clear();
     fretboardLData.useColors = true;
     fretboardLData.autoEnDisaColors = true;
@@ -2045,13 +2051,14 @@ static void shadowMatrix(float m[4][4], const float plane[4],
 void CGamePlay::renderPlayer(const CPlayer &player,
                              PlayerRenderState &renderState) {
     GPP_PROFILE_SCOPE(RenderPlayer);
-    // Same 400 degrees/s clock and integer-degree appearance, sampled per frame.
+    // Same 400 degrees/s clock and integer-degree appearance, sampled per
+    // frame.
     renderState.rangle = std::floor(std::fmod(engine.getTime() * 400.0, 360.0));
 
     auto bpmlines = std::async(
         std::launch::async,
-        [this, &renderState](const CPlayer &player)
-            -> CEngine::dTriangleWithAlpha * {
+        [this,
+         &renderState](const CPlayer &player) -> CEngine::dTriangleWithAlpha * {
             if (!showBPMLines) {
                 return nullptr;
             }
@@ -2336,8 +2343,8 @@ void CGamePlay::renderPlayer(const CPlayer &player,
             }
         }
 
-        renderState.playerParticles.moveEmitter(static_cast<int>(i),
-                                           -0.5 + calcP + STRIKE_FIRE_SURFACE);
+        renderState.playerParticles.moveEmitter(
+            static_cast<int>(i), -0.5 + calcP + STRIKE_FIRE_SURFACE);
         renderIndivdualStrikeButton3DStrike(i, 0.0, 0, calcP, player);
     }
 
@@ -2446,9 +2453,9 @@ void CGamePlay::renderPlayer(const CPlayer &player,
 
             if (musicTotalCorrect > 0.0) {
                 engine.setColor(0.4, 1.0, 0.4, 1.0);
-                engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy,
-                                               musicTotalCorrect, 0.05, 0.041,
-                                               400, renderState.correctNotesBuffer);
+                engine.Render2DCircleBufferMax(
+                    -0.8 + neg, -0.31 + negy, musicTotalCorrect, 0.05, 0.041,
+                    400, renderState.correctNotesBuffer);
             }
         }
 
@@ -2466,9 +2473,9 @@ void CGamePlay::renderPlayer(const CPlayer &player,
                 double zeroToOne = circleLoadPercent;
 
                 engine.setColor(0.4, 1.0, 0.4, 1.0);
-                engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy,
-                                               circleLoadPercent, 0.13, 0.04,
-                                               1000, renderState.plusLoadBuffer);
+                engine.Render2DCircleBufferMax(
+                    -0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04,
+                    1000, renderState.plusLoadBuffer);
             }
 
             if (circlePercent > 0.0) {
@@ -2493,9 +2500,9 @@ void CGamePlay::renderPlayer(const CPlayer &player,
                 double zeroToOne = circleLoadPercent;
 
                 engine.setColor(0.4, 1.0, 0.4, 1.0);
-                engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy,
-                                               circleLoadPercent, 0.13, 0.04,
-                                               1000, renderState.plusLoadBuffer);
+                engine.Render2DCircleBufferMax(
+                    -0.8 + neg, -0.31 + negy, circleLoadPercent, 0.13, 0.04,
+                    1000, renderState.plusLoadBuffer);
             }
         }
 
@@ -2529,7 +2536,8 @@ bool CGamePlay::update() {
 #endif
     std::lock_guard<std::mutex> l(GPPGame::playersMutex);
 #ifdef GPP_PROFILE_GAMEPLAY
-    gpp::profile::samples[gpp::profile::Mutex].add(gpp::profile::elapsed(lockStart));
+    gpp::profile::samples[gpp::profile::Mutex].add(
+        gpp::profile::elapsed(lockStart));
 #endif
 
     double now = CEngine::engine().getTime();
