@@ -3,6 +3,7 @@
 #include "CEngine.h"
 #include "CFonts.h"
 #include "GPPGame.h"
+#include "GameplayProfile.h"
 #include "PlusRules.h"
 #include <GLFW/glfw3.h>
 #include <array>
@@ -26,7 +27,7 @@ const int CGamePlay::notesFlagsConst[5] = {
     gpppowi(2, 0), gpppowi(2, 1), gpppowi(2, 2), gpppowi(2, 3), gpppowi(2, 4)};
 
 void CGamePlay::drawBPMLine(double position, unsigned int Texture,
-                            CPlayer &Player) {
+                            const CPlayer &Player) {
     CEngine::RenderDoubleStruct TempStruct3D{};
     const double pos = -0.492;
     double rtime = getRunningMusicTime(Player) - position;
@@ -90,7 +91,7 @@ auto CGamePlay::fretboardPositionCalcByT(double time, double prop,
     return cCalc / 1000000.0;
 }
 
-auto CGamePlay::getBPMAt(CPlayer &player, double time) -> double {
+auto CGamePlay::getBPMAt(const CPlayer &player, double time) -> double {
     double result = 120.0;
 
     for (size_t i = 0, size = player.Notes.BPM.size(); i < size; i++) {
@@ -106,7 +107,7 @@ auto CGamePlay::getBPMAt(CPlayer &player, double time) -> double {
     return result;
 }
 
-auto CGamePlay::getBPMAtStruct(CPlayer &player, double time)
+auto CGamePlay::getBPMAtStruct(const CPlayer &player, double time)
     -> CPlayer::NotesData::Note {
     CPlayer::NotesData::Note result;
 
@@ -137,7 +138,7 @@ auto CGamePlay::getBPMAtIt(CPlayer &player, double time)
     return result;
 }
 
-void CGamePlay::alertLVLUP(CPlayer &player) {
+void CGamePlay::alertLVLUP(const CPlayer &player) {
     CEngine &engine = CEngine::engine();
 
     double delta = engine.getTime() - player.lvlUpAlert.startTime;
@@ -162,7 +163,7 @@ void CGamePlay::alertLVLUP(CPlayer &player) {
     engine.matrixReset();
 }
 
-void CGamePlay::alertNotesStreak(CPlayer &player) {
+void CGamePlay::alertNotesStreak(const CPlayer &player) {
     CEngine &engine = CEngine::engine();
 
     double delta = engine.getTime() - player.notesStreakAlert.startTime;
@@ -212,7 +213,7 @@ auto CGamePlay::alertTest(CFonts::textAlert &t) -> bool {
     return delta <= 2.3;
 }
 
-auto CGamePlay::getBPMAtI(CPlayer &player, double time) -> size_t {
+auto CGamePlay::getBPMAtI(const CPlayer &player, double time) -> size_t {
     size_t resultI = 0;
 
     for (size_t i = 0, size = player.Notes.BPM.size(); i < size; i++) {
@@ -229,7 +230,8 @@ auto CGamePlay::getBPMAtI(CPlayer &player, double time) -> size_t {
     return resultI;
 }
 
-CEngine::dTriangleWithAlpha *CGamePlay::drawBPMLines(CPlayer &Player) {
+CEngine::dTriangleWithAlpha *CGamePlay::drawBPMLines(
+    const CPlayer &Player, PlayerRenderState &renderState) {
     static std::vector<CPlayer::NotesData::Note> BPMValuesdata;
     BPMl.clear();
     BPMValuesdata.clear();
@@ -239,7 +241,7 @@ CEngine::dTriangleWithAlpha *CGamePlay::drawBPMLines(CPlayer &Player) {
     double mscRunnTime = getRunningMusicTime(Player);
     const double time = mscRunnTime - 0.5;
 
-    auto calcQuad = [&](double position, double runTime, CPlayer &Player) {
+    auto calcQuad = [&](double position, double runTime, const CPlayer &Player) {
         static CEngine::RenderDoubleStruct TempStruct3D;
         double rtime = runTime - position;
 
@@ -294,7 +296,7 @@ CEngine::dTriangleWithAlpha *CGamePlay::drawBPMLines(CPlayer &Player) {
 
     if (bpmBuffSize > 0) {
         const double mtime = (time - 1.0);
-        size_t BPMnowbuff = Player.BPMNowBuffer;
+        size_t BPMnowbuff = renderState.BPMNowBuffer;
 
         if (static_cast<size_t>(BPMnowbuff) >= bpmBuffSize) {
             BPMnowbuff = bpmBuffSize - 1;
@@ -305,7 +307,7 @@ CEngine::dTriangleWithAlpha *CGamePlay::drawBPMLines(CPlayer &Player) {
             if (bpmBuffSize > static_cast<size_t>(nbuff)) {
                 if (((mscRunnTime - 1.5) > (Player.Notes.BPM[nbuff].time))) {
                     BPMnowbuff = nbuff;
-                    Player.BPMNowBuffer = BPMnowbuff;
+                    renderState.BPMNowBuffer = BPMnowbuff;
                 }
             }
         } else {
@@ -356,10 +358,6 @@ CEngine::dTriangleWithAlpha *CGamePlay::drawBPMLines(CPlayer &Player) {
             }
 
             tCalc += BPS;
-
-            if ((mscRunnTime - blinetime) >= 2.0) {
-                Player.Notes.BPMMinPosition = blinetime;
-            }
         }
     }
 
@@ -368,7 +366,7 @@ CEngine::dTriangleWithAlpha *CGamePlay::drawBPMLines(CPlayer &Player) {
 
 void CGamePlay::renderIndivdualFlame(int id, double pos, unsigned int Texture,
                                      int state, double sizeproportion,
-                                     CPlayer &player) {
+                                     const CPlayer &player) {
     CEngine::RenderDoubleStruct TempStruct3D{};
 
     double nCalc = pos;
@@ -408,7 +406,7 @@ void CGamePlay::renderIndivdualFlame(int id, double pos, unsigned int Texture,
 void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos,
                                               unsigned int Texture,
                                               double state,
-                                              CPlayer &player) const {
+                                              const CPlayer &player) const {
     CEngine::RenderDoubleStruct TempStruct3D{};
     double rtime = 0.0;
     static double lp[3] = {0.0, 0.0, 0.0};
@@ -475,7 +473,7 @@ void CGamePlay::renderIndivdualStrikeButton3D(int id, double pos,
 void CGamePlay::renderIndivdualStrikeButton3DStrike(size_t id, double pos,
                                                     unsigned int Texture,
                                                     double state,
-                                                    CPlayer &player) const {
+                                                    const CPlayer &player) const {
     CEngine::RenderDoubleStruct TempStruct3D{};
     double rtime = 0.0;
 
@@ -530,7 +528,7 @@ void CGamePlay::renderIndivdualStrikeButton3DStrike(size_t id, double pos,
     }
 }
 
-auto CGamePlay::getRunningMusicTime(CPlayer &player) const -> double {
+auto CGamePlay::getRunningMusicTime(const CPlayer &player) const -> double {
 
     using namespace std::chrono;
     auto res = duration_cast<duration<double, std::ratio<1, 1>>>(
@@ -539,7 +537,7 @@ auto CGamePlay::getRunningMusicTime(CPlayer &player) const -> double {
     return res;
 }
 
-auto CGamePlay::getRunningMusicTimeUpd(CPlayer &player) const -> double {
+auto CGamePlay::getRunningMusicTimeUpd(const CPlayer &player) const -> double {
 
     using namespace std::chrono;
     auto res = duration_cast<duration<double, std::ratio<1, 1>>>(
@@ -548,7 +546,7 @@ auto CGamePlay::getRunningMusicTimeUpd(CPlayer &player) const -> double {
     return res;
 }
 
-auto CGamePlay::time2Position(double Time, CPlayer &player) -> double {
+auto CGamePlay::time2Position(double Time, const CPlayer &player) -> double {
     return ((getRunningMusicTime(player) - Time) * -1.0) / 1.5;
 }
 
@@ -624,7 +622,7 @@ void CGamePlay::renderHoposLight() {
 
 void CGamePlay::renderIndivdualNoteShadow(int id, double pos,
                                           unsigned int Texture, bool tail,
-                                          CPlayer &player) {
+                                          const CPlayer &player) {
     CEngine::RenderDoubleStruct TempStruct3D{};
     double rtime = getRunningMusicTimeUpd(player) - pos;
 
@@ -676,7 +674,7 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos,
             auto &p = player.Notes.gPlus[plusPos];
 
             if (p.time <= pos && pos < (p.time + p.lTime)) {
-                CEngine::engine().Rotate(player.rangle, 0.0, 1.0, 0.0);
+                CEngine::engine().Rotate(player.renderState.rangle, 0.0, 1.0, 0.0);
                 rotated = true;
             }
         }
@@ -694,12 +692,12 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos,
 
 auto CGamePlay::renderIndivdualNote(unsigned int texture,
                                     CEngine::RenderDoubleStruct &TempStruct3D,
-                                    CPlayer &player, bool rotated) -> bool {
+                                    const CPlayer &player, bool rotated) -> bool {
     CEngine::engine().renderAt(TempStruct3D.x1 + 0.1, -0.5,
                                TempStruct3D.z1 + NOTE_SIZE);
 
     if (rotated) {
-        CEngine::engine().Rotate(player.rangle, 0.0, 1.0, 0.0);
+        CEngine::engine().Rotate(player.renderState.rangle, 0.0, 1.0, 0.0);
     }
 
     GPPGame::GuitarPP().noteOBJ.draw(texture, false);
@@ -712,7 +710,7 @@ auto CGamePlay::renderIndivdualNote(unsigned int texture,
 }
 
 auto CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type,
-                               CPlayer &player) -> bool {
+                               const CPlayer &player) -> bool {
     CEngine::RenderDoubleStruct TempStruct3D{};
     double rtime = getRunningMusicTimeUpd(player) - pos;
 
@@ -795,7 +793,7 @@ auto CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type,
 }
 
 void CGamePlay::renderIndividualLine(int id, double pos1, double pos2,
-                                     unsigned int Texture, CPlayer &player) {
+                                     unsigned int Texture, const CPlayer &player) {
     CEngine::RenderDoubleStruct TempStruct3D{};
 
     double runningTime = getRunningMusicTimeUpd(player);
@@ -844,7 +842,7 @@ void CGamePlay::renderIndividualLine(int id, double pos1, double pos2,
     CEngine::engine().Render3DQuadWithAlpha(TempStruct3D);
 }
 
-void CGamePlay::renderTimeOnNote(double pos, double time, CPlayer &player) {
+void CGamePlay::renderTimeOnNote(double pos, double time, const CPlayer &player) {
     CEngine::RenderDoubleStruct TempStruct3D{};
     double rtime = getRunningMusicTimeUpd(player) - pos;
 
@@ -890,7 +888,7 @@ void CGamePlay::renderTimeOnNote(double pos, double time, CPlayer &player) {
     }
 }
 
-void CGamePlay::renderTailsBuffer(CPlayer &player) {
+void CGamePlay::renderTailsBuffer(const CPlayer &player) {
     CEngine::RenderDoubleStruct TempStruct3D{};
 
     unsigned int text = GPPGame::GuitarPP().lineText;
@@ -918,7 +916,7 @@ void CGamePlay::renderTailsBuffer(CPlayer &player) {
     TempStruct3D.y3 = -0.49;
     TempStruct3D.y4 = TempStruct3D.y3;
 
-    for (auto &t : player.tailsData) {
+    for (const auto &t : player.renderState.tailsData) {
         for (size_t i = 0; i < 5; i++) {
             if ((t.type & notesFlagsConst[i]) != 0) {
                 TempStruct3D.x1 = posx[i];
@@ -942,7 +940,7 @@ void CGamePlay::renderTailsBuffer(CPlayer &player) {
 
 void CGamePlay::addTailToBuffer(const CPlayer::NotesData::Note &note,
                                 double pos1, double pos2, double runningTime,
-                                CPlayer &player) const {
+                                PlayerRenderState &renderState) const {
 
     double rtime = runningTime - pos1;
     double rtime2 = runningTime - (pos1 + pos2);
@@ -961,11 +959,11 @@ void CGamePlay::addTailToBuffer(const CPlayer::NotesData::Note &note,
     lndata.top = nCalc;
     lndata.bottom = nCalc2;
 
-    player.tailsData.push_back(lndata);
+    renderState.tailsData.push_back(lndata);
 }
 
 auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
-                           CPlayer &player, double ltimet) -> bool {
+                           const CPlayer &player, double ltimet, PlayerRenderState &renderState) -> bool {
     double time = note.time;
     double dif = time - ltimet;
     bool bAddTailToBuffer = false;
@@ -1006,7 +1004,7 @@ auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
         ((note.type & notesFlags::nf_doing_slide) == 0)) {
     } else {
         if (bAddTailToBuffer) {
-            addTailToBuffer(note, lt, tlng, ltimet, player);
+            addTailToBuffer(note, lt, tlng, ltimet, renderState);
         }
 
         return result;
@@ -1017,7 +1015,7 @@ auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
 
     if (rtime < -5.0) {
         if (bAddTailToBuffer) {
-            addTailToBuffer(note, lt, tlng, ltimet, player);
+            addTailToBuffer(note, lt, tlng, ltimet, renderState);
         }
 
         return false;
@@ -1091,13 +1089,14 @@ auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
     }
 
     if (bAddTailToBuffer) {
-        addTailToBuffer(note, lt, tlng, ltimet, player);
+        addTailToBuffer(note, lt, tlng, ltimet, renderState);
     }
 
     return result;
 }
 
-void CGamePlay::renderNotePlayer(CPlayer &player) {
+void CGamePlay::renderNotePlayer(const CPlayer &player,
+                                 PlayerRenderState &renderState) {
     const auto &notes = player.Notes;
     const auto &gNotes = player.Notes.gNotes;
     const double musicTime = getRunningMusicTimeUpd(player);
@@ -1114,7 +1113,7 @@ void CGamePlay::renderNotePlayer(CPlayer &player) {
                 endNoteTime >= 0.03;
             if ((note.type & notesFlags::nf_picked) == 0 ||
                 noteTime >= -0.0025 || bLongNPicked) {
-                if (!renderNote(note, player, musicTime)) {
+                if (!renderNote(note, player, musicTime, renderState)) {
                     break;
                 }
             }
@@ -1123,6 +1122,7 @@ void CGamePlay::renderNotePlayer(CPlayer &player) {
 }
 
 void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
+    GPP_PROFILE_SCOPE(UpdatePlayer);
     auto &notes = player.Notes;
     auto &gNotes = player.Notes.gNotes;
     auto &engine = CEngine::engine();
@@ -1138,7 +1138,10 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
         }
     }
 
-    player.rangle = ((int)(CEngine::engine().getTime() * 400.0) % 360);
+    if (player.bPlusStrike &&
+        engine.getTime() - player.plusThunterStrikeStart > 4.0) {
+        player.bPlusStrike = false;
+    }
 
     player.update();
 
@@ -1318,7 +1321,24 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
     bool hopostrmm = false;
     bool strumdelayed = false;
 
-    const double BPS = 30.0 / player.Notes.BPM[player.BPMNowBuffer].lTime;
+    // Advance the BPM index based on the current music time.
+    if (static_cast<size_t>(player.BPMNowUpdate) >= player.Notes.BPM.size() &&
+        !player.Notes.BPM.empty()) {
+        player.BPMNowUpdate = player.Notes.BPM.size() - 1;
+    }
+
+    if (musicTime >= 0.0) {
+        size_t nbuff = player.BPMNowUpdate + 1;
+        if (player.Notes.BPM.size() > static_cast<size_t>(nbuff)) {
+            if (musicTime > (player.Notes.BPM[nbuff].time)) {
+                player.BPMNowUpdate = nbuff;
+            }
+        }
+    } else {
+        player.BPMNowUpdate = 0;
+    }
+
+    const double BPS = 30.0 / player.Notes.BPM[player.BPMNowUpdate].lTime;
 
     auto checkCorrect = [&](int ntsInac, int ntsT, int noteHF,
                             const CPlayer::NotesData::Note &note) {
@@ -1732,7 +1752,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
     }
 }
 
-void CGamePlay::renderFretBoardShadow(CPlayer &player, double x1, double x2,
+void CGamePlay::renderFretBoardShadow(const CPlayer &player, double x1, double x2,
                                       double x3, double x4, unsigned int Text) {
     fretboardLData.clear();
     fretboardLData.useColors = true;
@@ -1803,7 +1823,7 @@ void CGamePlay::renderFretBoardShadow(CPlayer &player, double x1, double x2,
     CEngine::engine().drawTrianglesWithAlpha(fretboardLData);
 }
 
-void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2,
+void CGamePlay::renderFretBoard(const CPlayer &player, double x1, double x2,
                                 double x3, double x4, unsigned int Text) {
     fretboardLData.clear();
     fretboardLData.useColors = true;
@@ -1880,7 +1900,7 @@ void CGamePlay::renderFretBoard(CPlayer &player, double x1, double x2,
     CEngine::engine().drawTrianglesWithAlpha(fretboardLData);
 }
 
-void CGamePlay::renderPlayerPylmBar(CPlayer &player) {
+void CGamePlay::renderPlayerPylmBar(const CPlayer &player) {
     CEngine::engine().renderAt(0.0, -0.5, 1.1);
 
     player.guitar->gameplayBar.draw(player.guitar->textureID, false);
@@ -2022,19 +2042,23 @@ static void shadowMatrix(float m[4][4], const float plane[4],
     m[3][3] = dot - light[3] * plane[3];
 }
 
-void CGamePlay::renderPlayer(CPlayer &player) {
-    player.updatedMusicRunningTime = getRunningMusicTime(player);
+void CGamePlay::renderPlayer(const CPlayer &player,
+                             PlayerRenderState &renderState) {
+    GPP_PROFILE_SCOPE(RenderPlayer);
+    // Same 400 degrees/s clock and integer-degree appearance, sampled per frame.
+    renderState.rangle = std::floor(std::fmod(engine.getTime() * 400.0, 360.0));
 
     auto bpmlines = std::async(
         std::launch::async,
-        [this](CPlayer &player) -> CEngine::dTriangleWithAlpha * {
+        [this, &renderState](const CPlayer &player)
+            -> CEngine::dTriangleWithAlpha * {
             if (!showBPMLines) {
                 return nullptr;
             }
 
-            return drawBPMLines(player);
+            return drawBPMLines(player, renderState);
         },
-        std::ref(player));
+        std::cref(player));
 
     lightData l0{};
 
@@ -2091,11 +2115,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
     if (player.bPlusStrike) {
         double difftime = engine.getTime() - player.plusThunterStrikeStart;
 
-        if (difftime > 4.0) {
-            player.bPlusStrike = false;
-        }
-
-        if (difftime > 0.0) {
+        if (difftime > 0.0 && difftime <= 4.0) {
             difftime /= 4.0;
 
             engine.activateLighting(true);
@@ -2231,8 +2251,8 @@ void CGamePlay::renderPlayer(CPlayer &player) {
             renderPlayerPylmBar(player);
         }
 
-        player.tailsData.clear();
-        renderNotePlayer(player);
+        renderState.tailsData.clear();
+        renderNotePlayer(player, renderState);
     };
 
     if (!bFretboardLightFading) {
@@ -2312,11 +2332,11 @@ void CGamePlay::renderPlayer(CPlayer &player) {
 
                 pd.qtd = 1;
 
-                player.playerParticles.emitFire(pd, time);
+                renderState.playerParticles.emitFire(pd, time);
             }
         }
 
-        player.playerParticles.moveEmitter(static_cast<int>(i),
+        renderState.playerParticles.moveEmitter(static_cast<int>(i),
                                            -0.5 + calcP + STRIKE_FIRE_SURFACE);
         renderIndivdualStrikeButton3DStrike(i, 0.0, 0, calcP, player);
     }
@@ -2328,14 +2348,14 @@ void CGamePlay::renderPlayer(CPlayer &player) {
 
     engine.activateLighting(false);
 
-    if (!player.playerParticles.part.empty()) {
+    if (!renderState.playerParticles.part.empty()) {
 
         const double publicApproval =
             player.maxPublicAprov > 0
                 ? static_cast<double>(player.publicAprov) /
                       static_cast<double>(player.maxPublicAprov)
                 : 0.0;
-        player.playerParticles.renderFire(
+        renderState.playerParticles.renderFire(
             player.plusEnabled, player.comboToMultiplier(), publicApproval);
     }
 
@@ -2346,7 +2366,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
     // Draw the short discharge here, after opaque geometry and with this
     // player's camera active, so the fretboard can occlude it correctly.
     if (player.bPlusStrike) {
-        player.plusLightning.render(
+        renderState.plusLightning.render(
             engine.getTime() - player.plusThunterStrikeStart,
             static_cast<unsigned int>(player.lastNotePlusType));
     }
@@ -2418,7 +2438,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
             engine.setColor(0.0, 0.4, 1.0, 1.0);
             engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy,
                                            circleMultiPercent, 0.01, 0.041, 200,
-                                           player.multiplierBuffer);
+                                           renderState.multiplierBuffer);
         }
 
         if (gNotesSize > 0) {
@@ -2428,7 +2448,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
                 engine.setColor(0.4, 1.0, 0.4, 1.0);
                 engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy,
                                                musicTotalCorrect, 0.05, 0.041,
-                                               400, player.correctNotesBuffer);
+                                               400, renderState.correctNotesBuffer);
             }
         }
 
@@ -2438,7 +2458,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
             engine.setColor(1.0 - 1.0 * zeroToOne, 1.0 * zeroToOne, 0.0, 1.0);
             engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy,
                                            circlePublicAprov, 0.09, 0.041, 600,
-                                           player.publicApprovBuffer);
+                                           renderState.publicApprovBuffer);
         }
 
         if (circleLoadPercent > circlePercent) {
@@ -2448,7 +2468,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
                 engine.setColor(0.4, 1.0, 0.4, 1.0);
                 engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy,
                                                circleLoadPercent, 0.13, 0.04,
-                                               1000, player.plusLoadBuffer);
+                                               1000, renderState.plusLoadBuffer);
             }
 
             if (circlePercent > 0.0) {
@@ -2457,7 +2477,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
                 engine.setColor(0.0, 1.0, 1.0, 1.0);
                 engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy,
                                                circlePercent, 0.13, 0.04, 1000,
-                                               player.plusCircleBuffer);
+                                               renderState.plusCircleBuffer);
             }
         } else {
             if (circlePercent > 0.0) {
@@ -2466,7 +2486,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
                 engine.setColor(0.0, 1.0, 1.0, 1.0);
                 engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy,
                                                circlePercent, 0.13, 0.04, 1000,
-                                               player.plusCircleBuffer);
+                                               renderState.plusCircleBuffer);
             }
 
             if (circleLoadPercent > 0.0) {
@@ -2475,7 +2495,7 @@ void CGamePlay::renderPlayer(CPlayer &player) {
                 engine.setColor(0.4, 1.0, 0.4, 1.0);
                 engine.Render2DCircleBufferMax(-0.8 + neg, -0.31 + negy,
                                                circleLoadPercent, 0.13, 0.04,
-                                               1000, player.plusLoadBuffer);
+                                               1000, renderState.plusLoadBuffer);
             }
         }
 
@@ -2502,7 +2522,15 @@ void CGamePlay::playSongAudio() {
 }
 
 bool CGamePlay::update() {
+    GPP_PROFILE_SCOPE(Update);
+#ifdef GPP_PROFILE_GAMEPLAY
+    gpp::profile::interval();
+    const auto lockStart = gpp::profile::Clock::now();
+#endif
     std::lock_guard<std::mutex> l(GPPGame::playersMutex);
+#ifdef GPP_PROFILE_GAMEPLAY
+    gpp::profile::samples[gpp::profile::Mutex].add(gpp::profile::elapsed(lockStart));
+#endif
 
     double now = CEngine::engine().getTime();
     double delta = activeDelta.sample(now);
@@ -2589,13 +2617,14 @@ void CGamePlay::resetModule() {
 }
 
 void CGamePlay::render() {
+    GPP_PROFILE_SCOPE(Render);
     auto &game = GPPGame::GuitarPP();
     auto &engine = CEngine::engine();
 
     for (auto &p : players) {
         if (p->bRenderP) {
             {
-                renderPlayer(*p);
+                renderPlayer(*p, p->renderState);
             }
         }
     }

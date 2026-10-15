@@ -334,7 +334,6 @@ void CPlayer::resetData() {
     bRenderP = bUpdateP = true;
     bPlusStrike = false;
 
-    updatedMusicRunningTime = 0.0;
     musicRunningTime = 0.0;
     std::fill(std::begin(notesSlide), std::end(notesSlide), -1);
     std::fill(std::begin(lastFretsPressed), std::end(lastFretsPressed), false);
@@ -455,7 +454,8 @@ void CPlayer::releaseSong() {
     songAudioID = -1;
     instrumentSound = 0;
 
-    BPMNowBuffer = 0;
+    renderState.BPMNowBuffer = 0;
+    BPMNowUpdate = 0;
 }
 
 void CPlayer::breakCombo() { combo = 0; }
@@ -476,7 +476,9 @@ void CPlayer::breakPlus() {
     plusLoadF = plusLoadB = 0.0;
 }
 
-auto CPlayer::comboToMultiplierWM() -> double { return comboToMultiplier(); }
+auto CPlayer::comboToMultiplierWM() const -> double {
+    return comboToMultiplier();
+}
 
 void CPlayer::takeLoadedSong(CPlayer &source) {
     if (&source == this) {
@@ -498,7 +500,8 @@ void CPlayer::takeLoadedSong(CPlayer &source) {
     correctNotesMarathon += correctNotes;
     correctNotes = 0;
     strklinent = -1;
-    BPMNowBuffer = 0;
+    renderState.BPMNowBuffer = 0;
+    BPMNowUpdate = 0;
     for (auto &slide : notesSlide) {
         slide = ~0uL;
     }
@@ -638,23 +641,23 @@ CPlayer::CPlayer(const char *name) {
     startTime = CEngine::engine().getTime();
     plusEnabled = false;
     musicRunningTime = 0.0;
-    rangle = 0;
     palhetaKeyLast = palhetaKey = 0;
     aError = false;
     lastHOPO = 0;
     enableBot = false;
 
-    updatedMusicRunningTime = 0.0;
 
     instrumentSound = 0;
     strklinenttime = -5.0;
 
-    BPMNowBuffer = 0;
+    renderState.BPMNowBuffer = 0;
+    BPMNowUpdate = 0;
 
     plusThunterStrikeStart = plusPower = plusParticleEffectPosition =
         maxPlusPower = plusLoadF = plusLoadB = plusLoadInterval = 0.0;
-    plusCircleBuffer = plusLoadBuffer = publicApprovBuffer =
-        correctNotesBuffer = multiplierBuffer = ~0U;
+    renderState.plusCircleBuffer = renderState.plusLoadBuffer =
+        renderState.publicApprovBuffer = renderState.correctNotesBuffer =
+            renderState.multiplierBuffer = ~0U;
 
     correctNotes = 0;
 
@@ -668,7 +671,6 @@ CPlayer::CPlayer(const char *name) {
     resetData();
 
     experience = 100.0;
-    tailsData.reserve(32);
 
     instrument = "[ExpertSingle]";
 }
@@ -690,12 +692,14 @@ void CPlayer::resetSongThings() {
     instrumentSound = 0;
     strklinenttime = -5.0;
 
-    BPMNowBuffer = 0;
+    renderState.BPMNowBuffer = 0;
+    BPMNowUpdate = 0;
 
     plusThunterStrikeStart = plusPower = plusParticleEffectPosition =
         maxPlusPower = plusLoadF = plusLoadB = plusLoadInterval = 0.0;
-    plusCircleBuffer = plusLoadBuffer = publicApprovBuffer =
-        correctNotesBuffer = multiplierBuffer = ~0uL;
+    renderState.plusCircleBuffer = renderState.plusLoadBuffer =
+        renderState.publicApprovBuffer = renderState.correctNotesBuffer =
+            renderState.multiplierBuffer = ~0uL;
 
     correctNotes = 0;
 

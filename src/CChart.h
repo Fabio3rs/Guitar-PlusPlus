@@ -61,6 +61,7 @@ class CChart {
         double fretsNotePickedTime[5]{};
 
         double getChartEnd(double offset = 2.0);
+        double getChartEnd(double offset = 2.0) const;
 
         struct NoteInt {
             uint64_t time, lTime;

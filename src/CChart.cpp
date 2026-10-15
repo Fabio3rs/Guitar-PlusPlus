@@ -1533,6 +1533,15 @@ auto CChart::NotesData::getChartEnd(double offset) -> double {
         return chartEnd;
     }
 
+    chartEnd = static_cast<const NotesData &>(*this).getChartEnd(offset);
+    return chartEnd;
+}
+
+auto CChart::NotesData::getChartEnd(double offset) const -> double {
+    if (chartEnd > 0) {
+        return chartEnd;
+    }
+
     auto size = gNotes.size();
 
     if (size > 0) {
@@ -1541,11 +1550,9 @@ auto CChart::NotesData::getChartEnd(double offset) -> double {
         double finalTime = lastNote.time + lastNote.lTime;
         finalTime += offset;
 
-        chartEnd = finalTime;
         return finalTime;
     }
 
-    chartEnd = 2;
     return 2.0;
 }
 

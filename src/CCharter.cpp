@@ -133,7 +133,7 @@ void CCharter::preRender() {
                                             (forward ? 1 : -1) * divTime));
         player.Notes.notePos = 0;
         player.Notes.plusPos = 0;
-        player.BPMNowBuffer = 0;
+        player.renderState.BPMNowBuffer = 0;
     }
     forwardHeld = forward || backward;
     const bool analysis = engine.getKey(GLFW_KEY_B) != 0;
@@ -146,7 +146,7 @@ void CCharter::preRender() {
         std::lock_guard<std::mutex> lock(loadBPMMutex);
         if (!songBPM.empty()) {
             player.Notes.BPM = songBPM;
-            player.BPMNowBuffer = 0;
+            player.renderState.BPMNowBuffer = 0;
         }
         bpmReady = false;
     }

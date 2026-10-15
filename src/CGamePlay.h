@@ -26,60 +26,61 @@ class CCharter;
 class CGamePlay {
     friend CCharter;
 
-    void renderFretBoard(CPlayer &player, double x1, double x2, double x3,
+    void renderFretBoard(const CPlayer &player, double x1, double x2, double x3,
                          double x4, unsigned int Text);
-    void renderFretBoardShadow(CPlayer &player, double x1, double x2, double x3,
+    void renderFretBoardShadow(const CPlayer &player, double x1, double x2, double x3,
                                double x4, unsigned int Text);
     // void renderIndivdualStrikeButton(int id, double pos, unsigned int
-    // Texture, int state, CPlayer &player);
+    // Texture, int state, const CPlayer &player);
     void renderIndivdualStrikeButton3D(int id, double pos, unsigned int Texture,
-                                       double state, CPlayer &player) const;
+                                       double state, const CPlayer &player) const;
     void renderIndivdualStrikeButton3DStrike(size_t id, double pos,
                                              unsigned int Texture, double state,
-                                             CPlayer &player) const;
+                                             const CPlayer &player) const;
     static void renderIndivdualFlame(int id, double pos, unsigned int Texture,
                                      int state, double sizeproportion,
-                                     CPlayer &player);
+                                     const CPlayer &player);
     static double pos2Alpha(double pos);
     void updatePlayer(CPlayer &player, double deltatime);
-    void renderPlayer(CPlayer &player);
+    void renderPlayer(const CPlayer &player, PlayerRenderState &renderState);
     bool renderIndivdualNote(unsigned int texture,
                              CEngine::RenderDoubleStruct &TempStruct3D,
-                             CPlayer &player, bool rotated);
+                             const CPlayer &player, bool rotated);
     bool renderOpenNote(double pos, unsigned int Texture, int type,
-                        CPlayer &player);
+                        const CPlayer &player);
     void renderIndivdualNoteShadow(int id, double pos, unsigned int Texture,
-                                   bool tail, CPlayer &player);
-    double getRunningMusicTime(CPlayer &player) const;
-    double getRunningMusicTimeUpd(CPlayer &player) const;
-    double time2Position(double Time, CPlayer &player);
-    void renderNoteNoAdd(CPlayer::NotesData::Note &note, CPlayer &player);
-    bool renderNote(const CPlayer::NotesData::Note &note, CPlayer &player,
-                    double ltimet);
-    void renderNotePlayer(CPlayer &player);
+                                   bool tail, const CPlayer &player);
+    double getRunningMusicTime(const CPlayer &player) const;
+    double getRunningMusicTimeUpd(const CPlayer &player) const;
+    double time2Position(double Time, const CPlayer &player);
+    void renderNoteNoAdd(CPlayer::NotesData::Note &note, const CPlayer &player);
+    bool renderNote(const CPlayer::NotesData::Note &note, const CPlayer &player,
+                    double ltimet, PlayerRenderState &renderState);
+    void renderNotePlayer(const CPlayer &player, PlayerRenderState &renderState);
     void renderIndividualLine(int id, double pos1, double pos2,
-                              unsigned int Texture, CPlayer &player);
-    void renderTimeOnNote(double pos, double time, CPlayer &player);
+                              unsigned int Texture, const CPlayer &player);
+    void renderTimeOnNote(double pos, double time, const CPlayer &player);
     void renderHoposLight();
     void addTailToBuffer(const CPlayer::NotesData::Note &note, double pos1,
                          double pos2, double runningTime,
-                         CPlayer &player) const;
-    void renderTailsBuffer(CPlayer &player);
-    static double getBPMAt(CPlayer &player, double time);
-    static size_t getBPMAtI(CPlayer &player, double time);
-    static CPlayer::NotesData::Note getBPMAtStruct(CPlayer &player,
+                         PlayerRenderState &renderState) const;
+    void renderTailsBuffer(const CPlayer &player);
+    static double getBPMAt(const CPlayer &player, double time);
+    static size_t getBPMAtI(const CPlayer &player, double time);
+    static CPlayer::NotesData::Note getBPMAtStruct(const CPlayer &player,
                                                    double time);
     static std::vector<CPlayer::NotesData::Note>::iterator
     getBPMAtIt(CPlayer &player, double time);
-    static void alertLVLUP(CPlayer &player);
-    static void alertNotesStreak(CPlayer &player);
+    static void alertLVLUP(const CPlayer &player);
+    static void alertNotesStreak(const CPlayer &player);
     static bool alertTest(CFonts::textAlert &t);
 
     static void renderPylmBar();
-    static void renderPlayerPylmBar(CPlayer &player);
+    static void renderPlayerPylmBar(const CPlayer &player);
 
-    CEngine::dTriangleWithAlpha *drawBPMLines(CPlayer &Player);
-    void drawBPMLine(double position, unsigned int Texture, CPlayer &Player);
+    CEngine::dTriangleWithAlpha *drawBPMLines(
+        const CPlayer &Player, PlayerRenderState &renderState);
+    void drawBPMLine(double position, unsigned int Texture, const CPlayer &Player);
 
     CEngine &engine;
     double speedMp, gSpeed;
@@ -95,6 +96,8 @@ class CGamePlay {
     bool showBPMLines;
     bool bRenderHUD;
 
+    // Render-owned scratch. BPMl is delegated to one joined async task at a
+    // time; update never accesses these buffers.
     std::vector<gppVec3f> hopostp;
     CEngine::dTriangleWithAlpha BPMl, fretboardLData;
 
@@ -159,6 +162,8 @@ class CGamePlay {
 
     bool showBPMVlaues;
 
+    // Update-owned cadence. The optional debug HUD still reads iFPS and
+    // updateLastTimeCalled without publication (preexisting race).
     ActiveDelta activeDelta;
     double updateLastTimeCalled, lastiFPSUpdated{};
     int iFPS, iFPSCount;

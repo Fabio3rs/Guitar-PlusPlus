@@ -101,6 +101,21 @@ using AtomicDouble = std::atomic<double>;
 
 extern std::atomic<int> palhetaNpKey;
 
+// Owned by the render thread (BPM generation is delegated and joined per frame).
+// Reset only at quiescent song/editor boundaries. No authoritative gameplay data.
+struct PlayerRenderState {
+    std::vector<lineData> tailsData;
+    size_t BPMNowBuffer{};
+    double rangle{};
+    unsigned int plusCircleBuffer = ~0U, plusLoadBuffer = ~0U,
+        publicApprovBuffer = ~0U, correctNotesBuffer = ~0U,
+        multiplierBuffer = ~0U;
+    CParticle playerParticles;
+    CPlusLightning plusLightning;
+
+    PlayerRenderState() { tailsData.reserve(32); }
+};
+
 class CPlayer {
     friend CCharter;
 
@@ -121,14 +136,11 @@ class CPlayer {
     int64_t songMaxCombo = 0;
 
   public:
-    NotesData Notes;
-    std::vector<lineData> tailsData;
-    double rangle{};
+    // Update-owned hot state; read by rendering where needed (legacy races).
+    size_t BPMNowUpdate{}; // Used on updatePlayer
     double npPsetted{};
-    double updatedMusicRunningTime{};
 
     int lastHOPO{};
-    size_t BPMNowBuffer{};
 
     double musicRunningTime{};
     bool lastFretsPressed[5]{};
@@ -162,8 +174,8 @@ class CPlayer {
     uint64_t publicAprov{}, correctNotes{}, correctNotesMarathon{},
         maxPublicAprov{};
 
-    unsigned int plusCircleBuffer{}, plusLoadBuffer{}, publicApprovBuffer{},
-        correctNotesBuffer{}, multiplierBuffer{};
+    // The vector headers and chart metadata are colder than judgment/input.
+    NotesData Notes;
 
     int songAudioID{};
     int instrumentSound{};
@@ -178,9 +190,6 @@ class CPlayer {
     void setSongVolume(float volume);
 
     double playerHudOffsetX, playerHudOffsetY;
-
-    CParticle playerParticles;
-    CPlusLightning plusLightning;
 
     CGuitars::CGuitar *guitar{};
 
@@ -209,6 +218,10 @@ class CPlayer {
     std::string songName, songArtist, songCharter;
     std::string songFullPath;
 
+    // Kept after cold metadata so renderer writes do not interleave with input,
+    // score and Plus fields. No cache-line alignment/extra allocation required.
+    PlayerRenderState renderState;
+
     ///////////////////////////////// FUNCTIONS BELOW
     template <class Archive> void load(Archive &archive) {
         archive(playerName);
@@ -226,7 +239,7 @@ class CPlayer {
     void processErrorNonPickedB(size_t pos);
     void doNote(size_t i);
     [[nodiscard]] double comboToMultiplier() const;
-    double comboToMultiplierWM();
+    double comboToMultiplierWM() const;
 
     [[nodiscard]] int getLevel() const;
 
