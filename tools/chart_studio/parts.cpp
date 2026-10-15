@@ -1,4 +1,5 @@
 #include "core.h"
+#include "merge.h"
 #include "plus_generator.h"
 #include "plus_simulation.h"
 #include <algorithm>
@@ -122,6 +123,9 @@ State partState(const State &state, uint64_t id) {
     result.audio = state.audio;
     result.markers = state.markers;
     result.nextPartId = state.nextPartId;
+    if (state.merges.count(id)) {
+        result.merges.emplace(id, state.merges.at(id));
+    }
     return result;
 }
 
@@ -158,9 +162,17 @@ State generateParts(State state, const std::vector<Pattern> &library,
         }
         try {
             const auto projection = projections.find(state.partId);
-            generate(state, library, {},
-                     projection == projections.end() ? nullptr
-                                                     : &projection->second);
+            if (state.merges.count(state.partId)) {
+                if (projection != projections.end()) {
+                    throw std::runtime_error("Merged UMAP sources require "
+                                             "separate mapping artifacts");
+                }
+                generateMerged(state, library);
+            } else {
+                generate(state, library, {},
+                         projection == projections.end() ? nullptr
+                                                         : &projection->second);
+            }
             if (state.plus.settings.enabled) {
                 state.plus = proposePlus(state, state.plus.settings).document;
             }

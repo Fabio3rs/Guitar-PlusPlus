@@ -283,14 +283,18 @@ exportação, loader real e reabertura do projeto com `--plus-bars 2`.
 Os charts repetiram exatamente os hashes da avaliação anterior. Os resultados
 estão em `build/chart-studio/multipart-review-20261014/summary.json`.
 
-Há uma falha reproduzível fora dessa configuração: `Mindflow - The Logic Behind
+Foi identificada uma falha fora dessa configuração: `Mindflow - The Logic Behind
 Heads Or Tails.mid`, track 1, perfil Strategic, duração padrão de um compasso e
 alinhamento salvo do projeto instalado. A frase 3, ticks 180480–185760, deveria
 abranger os ataques 368–380; o loader inclui também o ataque 381. Sem o alinhamento,
-essa conversão passa. A comparação temporal em segundos do loader na fronteira
-da frase precisa ser investigada; não foi alterada nesta revisão.
+essa conversão passa. O problema estava na comparação temporal em segundos na fronteira
+da frase. Na implementação da mescla, o exportador passou a terminar um tick antes
+do ataque seguinte quando esse tick não contém nenhum ataque pertencente à frase.
+A mudança preserva a composição de ataques e não altera o loader nem o projeto.
 
-O round-trip bloqueia a publicação do chart divergente. `--plus-bars 2` funciona
-nesse arquivo, mas muda a distribuição e não constitui uma correção geral.
-O diagnóstico agora informa frase, ticks e índices esperados/carregados.
-Reprodução e log locais: `build/chart-studio/review-plus-default/aligned.log`.
+O caso original agora passa com duração padrão e alinhamento salvo:
+`build/chart-studio/merge-evaluation-final/logic-plus-regression.log`.
+Há teste sintético com mudança de BPM/alinhamento e teste de preservação do
+ataque a um tick do fim. Se não houver espaço para separar a borda, ela permanece
+original e o round-trip continua bloqueando uma saída incompatível.
+Reprodução histórica: `build/chart-studio/review-plus-default/aligned.log`.

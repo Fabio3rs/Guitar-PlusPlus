@@ -1,4 +1,5 @@
 #include "core.h"
+#include "merge.h"
 #include "plus_generator.h"
 #include <algorithm>
 #include <stdexcept>
@@ -76,6 +77,7 @@ void Session::removePart(uint64_t id) {
     auto next = state;
     activatePart(next, id);
     activatePart(next, next.otherParts.front().partId);
+    next.merges.erase(id);
     next.otherParts.erase(
         std::remove_if(next.otherParts.begin(), next.otherParts.end(),
                        [id](const Part &part) { return part.partId == id; }),
@@ -96,6 +98,10 @@ void Session::configurePart(const Settings &settings, bool resetSource) {
     const bool changedSource = settings.track != state.settings.track ||
                                settings.channel != state.settings.channel ||
                                settings.program != state.settings.program;
+    if (changedSource && state.merges.count(state.partId)) {
+        throw std::runtime_error(
+            "Detach the merge before changing its primary source");
+    }
     if (changedSource &&
         (!state.events.empty() || !state.plus.phrases.empty())) {
         if (!resetSource) {
@@ -213,7 +219,16 @@ void Session::run(const std::vector<Pattern> &library,
             "Source MIDI changed; reopen it explicitly before regeneration");
     }
     auto next = state;
-    generate(next, library, region, projection ? &*projection : nullptr);
+    if (next.merges.count(next.partId)) {
+        if (region || projection) {
+            throw std::runtime_error(
+                "Use merge regions for composition edits; source UMAP "
+                "regeneration needs separate artifacts");
+        }
+        generateMerged(next, library);
+    } else {
+        generate(next, library, region, projection ? &*projection : nullptr);
+    }
     checkpoint();
     state = std::move(next);
 }
@@ -375,6 +390,11 @@ void Session::pattern(uint64_t id, int status, bool all) {
 }
 
 void Session::recalculate(uint64_t id) {
+    if (state.merges.count(state.partId)) {
+        throw std::runtime_error(
+            "Use Merge tracks to regenerate the composition; clipped motifs "
+            "cannot be recalculated independently");
+    }
     auto next = state;
     const Event selected = find(next, id);
     if (selected.status > 0 || selected.manual) {
@@ -525,4 +545,35 @@ void Session::editPlus(PlusPhrase phrase, bool remove) {
     state = std::move(next);
 }
 
+} // namespace ChartStudio
+
+namespace ChartStudio {
+void Session::applyMerge(const MergeProposal &proposal) {
+    if (proposal.source != hash(encode(state))) {
+        throw std::runtime_error("Merge preview is stale; analyze again");
+    }
+    validate(proposal.state);
+    checkpoint();
+    state = proposal.state;
+    selection.clear();
+}
+void Session::detachMerge() {
+    const auto found = state.merges.find(state.partId);
+    if (found == state.merges.end()) {
+        return;
+    }
+    auto next = state;
+    // Explicitly restore the original mapped primary, not a disguised merged
+    // chart that a subsequent Generate would silently overwrite.
+    if (found->second.initialized) {
+        static_cast<Part &>(next) = found->second.primary;
+    }
+    next.merges.erase(state.partId);
+    next.settings.offset = state.settings.offset;
+    synchronize(next);
+    validate(next);
+    checkpoint();
+    state = std::move(next);
+    selection.clear();
+}
 } // namespace ChartStudio

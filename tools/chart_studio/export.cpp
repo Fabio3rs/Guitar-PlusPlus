@@ -8,6 +8,21 @@
 #include <stdexcept>
 
 namespace ChartStudio {
+int64_t exportPlusEnd(const State &state, const PlusPhrase &phrase) {
+    bool boundary = false;
+    for (const auto &event : state.events) {
+        if (event.removed) {
+            continue;
+        }
+        if (event.tick == phrase.end - 1) {
+            return phrase.end;
+        }
+        boundary |= event.tick == phrase.end;
+    }
+    return boundary && phrase.end > phrase.begin + 1 ? phrase.end - 1
+                                                     : phrase.end;
+}
+
 int64_t exportDuration(const State &state, const Event &event) {
     auto duration = event.duration;
     // synchronize() orders events by tick. Only a later attack using an
@@ -110,7 +125,8 @@ std::string singleChartText(const State &state) {
     // Keep N records before S records at shared ticks: the historical loader
     // otherwise merges a note into the special marker.
     for (const auto &p : phrases) {
-        out << "  " << p.begin << " = S 2 " << p.end - p.begin << '\n';
+        out << "  " << p.begin << " = S 2 " << exportPlusEnd(state, p) - p.begin
+            << '\n';
     }
     out << "}\n";
     return out.str();

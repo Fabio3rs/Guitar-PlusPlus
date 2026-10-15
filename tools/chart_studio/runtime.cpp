@@ -272,8 +272,8 @@ void exportValidated(const State &project, const fs::path &path, bool replace) {
                     actual.firstNote != range.first ||
                     actual.lastNote != range.second - 1 ||
                     std::abs(actual.time - seconds(p.begin)) > 1e-6 ||
-                    std::abs(actual.lTime -
-                             (seconds(p.end) - seconds(p.begin))) > 1e-6) {
+                    std::abs(actual.lTime - (seconds(exportPlusEnd(state, p)) -
+                                             seconds(p.begin))) > 1e-6) {
                     throw std::runtime_error(
                         "Round-trip Plus boundaries or indices mismatch at "
                         "phrase " +

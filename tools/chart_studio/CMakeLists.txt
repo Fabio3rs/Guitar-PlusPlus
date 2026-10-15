@@ -1,4 +1,4 @@
-add_library(gpp_score_core STATIC core.cpp parts.cpp mapping.cpp persistence.cpp session.cpp export.cpp experiment.cpp alignment.cpp plus_generator.cpp plus_simulation.cpp)
+add_library(gpp_score_core STATIC core.cpp merge.cpp parts.cpp mapping.cpp persistence.cpp session.cpp export.cpp experiment.cpp alignment.cpp plus_generator.cpp plus_simulation.cpp)
 target_include_directories(gpp_score_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(gpp_score_core SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/vendor/xxhash)
 target_link_libraries(gpp_score_core PUBLIC gpp_charter gpp_sqlite PRIVATE midifile gpp_midi_input)
@@ -23,7 +23,7 @@ endif()
 if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     find_package(Python3 COMPONENTS Interpreter REQUIRED)
-    add_executable(gpp_score_tests tests.cpp parts_tests.cpp alignment_tests.cpp plus_tests.cpp)
+    add_executable(gpp_score_tests tests.cpp merge_tests.cpp parts_tests.cpp alignment_tests.cpp plus_tests.cpp)
     target_include_directories(gpp_score_tests PRIVATE ${PROJECT_SOURCE_DIR}/tests)
     target_link_libraries(gpp_score_tests PRIVATE gpp_score_core GTest::GTest GTest::Main)
     add_test(NAME chart_studio_cpu COMMAND gpp_score_tests)
@@ -72,4 +72,20 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/test_alignment.py $<TARGET_FILE:gpp_score_to_chart>
         ${CMAKE_BINARY_DIR}/chart-studio/alignment-tests)
     set_tests_properties(chart_studio_alignment PROPERTIES LABELS "chart_studio;cpu" TIMEOUT 180)
+endif()
+
+if(BUILD_TESTING)
+    add_test(NAME chart_studio_merge_cli COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_merge_cli.py $<TARGET_FILE:gpp_score_to_chart>
+        ${CMAKE_BINARY_DIR}/chart-studio/merge-cli-tests)
+    set_tests_properties(chart_studio_merge_cli PROPERTIES LABELS "chart_studio;cpu" TIMEOUT 120)
+endif()
+if(BUILD_TESTING AND CHART_XVFB AND CHART_XDOTOOL)
+    add_test(NAME chart_studio_merge_ui COMMAND ${CHART_XVFB} -a -s "-screen 0 1600x1000x24"
+        ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_merge_ui.py
+        $<TARGET_FILE:gpp_chart_studio> $<TARGET_FILE:gpp_score_to_chart>
+        ${CMAKE_BINARY_DIR}/chart-studio/merge-ui-tests)
+    set_tests_properties(chart_studio_merge_ui PROPERTIES LABELS "chart_studio;gpu"
+        TIMEOUT 120 RESOURCE_LOCK gpp_graphics RUN_SERIAL TRUE
+        ENVIRONMENT "LIBGL_ALWAYS_SOFTWARE=1;LP_NUM_THREADS=2;MESA_GL_VERSION_OVERRIDE=2.0;MESA_GLSL_VERSION_OVERRIDE=110")
 endif()

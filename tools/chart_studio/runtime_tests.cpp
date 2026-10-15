@@ -1,4 +1,5 @@
 #include "MidiFixture.h"
+#include "merge.h"
 #include "runtime.h"
 #include <algorithm>
 #include <gtest/gtest.h>
@@ -219,7 +220,7 @@ TEST(ChartStudioPlus, LegacyProjectMigrationAndAtomicProtection) {
         fs::path path;
         ~Cleanup() { fs::remove_all(path); }
     } cleanup{root};
-    for (int version : {1, 2, 3}) {
+    for (int version : {1, 2, 3, 4}) {
         State state;
         const auto path = root / (std::to_string(version) + ".gppchartproj");
         saveProject(path, state, false);
@@ -234,6 +235,13 @@ TEST(ChartStudioPlus, LegacyProjectMigrationAndAtomicProtection) {
                 archive(cereal::make_nvp("plus", state.plus));
                 archive(
                     cereal::make_nvp("musical_markers", state.score.markers));
+            }
+            if (version >= 4) {
+                archive(
+                    cereal::make_nvp("instrument", state.settings.instrument),
+                    cereal::make_nvp("active_part_id", state.partId),
+                    cereal::make_nvp("next_part_id", state.nextPartId),
+                    cereal::make_nvp("parts", state.otherParts));
             }
         }
         {
@@ -257,7 +265,7 @@ TEST(ChartStudioPlus, LegacyProjectMigrationAndAtomicProtection) {
         SqliteDb db(path.u8string());
         auto query = db.prepare("PRAGMA user_version", "version");
         (void)query.step();
-        EXPECT_EQ(sqlite3_column_int(query.get(), 0), 4);
+        EXPECT_EQ(sqlite3_column_int(query.get(), 0), 5);
     }
 }
 TEST(ChartStudioPlus, RuntimeEconomyConstantsAndAttackScore) {
@@ -404,4 +412,58 @@ TEST(ChartStudioParts, AllSectionsRoundTripAndProjectReopen) {
     EXPECT_THROW(exportValidated(session.state, chart, true), std::exception);
     EXPECT_THROW(saveProject(chart, session.state, true), std::exception);
     EXPECT_EQ(fileHash(chart), originalHash);
+}
+
+TEST(ChartStudioMergeRuntime, CompositionProjectAndPlusBoundaryRoundTrip) {
+    const auto root =
+        fs::temp_directory_path() /
+        ("merge-roundtrip-" +
+         std::to_string(
+             std::chrono::steady_clock::now().time_since_epoch().count()));
+    fs::create_directories(root);
+    struct Cleanup {
+        fs::path p;
+        ~Cleanup() { fs::remove_all(p); }
+    } cleanup{root};
+    midi_fixture::Track a, b;
+    a.tempo(0, 500001);
+    a.tempo(1000, 431034);
+    a.note(0, 600, 60);
+    a.note(2400, 240, 64);
+    a.note(4800, 240, 67);
+    b.note(1200, 240, 67);
+    b.note(1440, 240, 69);
+    b.note(2400, 240, 72);
+    midi_fixture::write(root / "score.mid", midi_fixture::smf({a, b}));
+    Session session;
+    session.openMidi(root / "score.mid");
+    session.state.settings.track = 0;
+    session.state.settings.minimumSustain = 0;
+    session.setAlignment(.996, -.01, "test");
+    MergeConfig config;
+    config.secondaryTrack = 1;
+    config.minimum = "1/4";
+    session.applyMerge(proposeMerge(session.state, config));
+    auto &state = session.state;
+    PlusPhrase phrase;
+    phrase.id = 1;
+    phrase.begin = 1200;
+    phrase.end = 2400;
+    state.plus.nextId = 2;
+    state.plus.phrases = {phrase};
+    EXPECT_EQ(exportPlusEnd(state, phrase), 2399);
+    EXPECT_NO_THROW(exportValidated(state, root / "out.chart", false));
+    saveProject(root / "out.gppchartproj", state, false);
+    auto loaded = loadProject(root / "out.gppchartproj");
+    EXPECT_EQ(encode(state), encode(loaded));
+    EXPECT_NO_THROW(exportValidated(loaded, root / "reopen.chart", false));
+    EXPECT_EQ(fileHash(root / "out.chart"), fileHash(root / "reopen.chart"));
+    // One tick must not be removed if it contains a real final attack.
+    auto last = state.events.front();
+    last.note.id = state.nextId++;
+    last.tick = 2399;
+    last.duration = 0;
+    state.events.push_back(last);
+    synchronize(state);
+    EXPECT_EQ(exportPlusEnd(state, phrase), 2400);
 }

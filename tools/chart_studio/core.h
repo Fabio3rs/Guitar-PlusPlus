@@ -113,6 +113,7 @@ struct TimingAlignment {
     }
 };
 struct PlusProposal;
+struct MergeProposal;
 // The active part is exposed as the State base for the existing CPU engines.
 // Inactive parts own only editing data; score, audio and alignment exist once.
 struct Part {
@@ -132,7 +133,9 @@ struct Part {
           CEREAL_NVP(nextId));
     }
 };
+#include "merge_types.h"
 struct State : Part {
+    std::map<uint64_t, MergeDocument> merges;
     TimingAlignment alignment;
     Score score;
     std::string input, inputHash, audio;
@@ -183,6 +186,9 @@ void generate(State &state, const std::vector<Pattern> &library = {},
 // Negative minimumSustain encodes a beat limit (absolute value);
 // nonnegative values retain the original seconds policy and project format.
 int64_t exportDuration(const State &state, const Event &event);
+// Separate an exclusive Plus end from the following attack when one tick
+// can be removed without changing phrase membership.
+int64_t exportPlusEnd(const State &state, const PlusPhrase &phrase);
 double exportDurationSeconds(const State &state, const Event &event);
 std::string chartText(const State &state);
 std::string singleChartText(const State &state);
@@ -241,6 +247,8 @@ class Session {
     void setAlignment(double scale, double offset, const std::string &evidence);
     void configurePlus(const PlusSettings &settings);
     void applyPlus(const PlusProposal &proposal);
+    void applyMerge(const MergeProposal &proposal);
+    void detachMerge();
     void editPlus(PlusPhrase phrase, bool remove = false);
     bool undo();
     bool redo();

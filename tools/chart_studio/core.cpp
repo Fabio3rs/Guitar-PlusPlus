@@ -1,5 +1,6 @@
 #include "core.h"
 #include "MidiInput.h"
+#include "merge.h"
 #include <MidiFile.h>
 #include <algorithm>
 #include <cereal/external/rapidjson/document.h>
@@ -335,6 +336,7 @@ std::string encode(const State &state) {
         cereal::JSONOutputArchive archive(out);
         archive(state);
         archive(cereal::make_nvp("alignment", state.alignment));
+        archive(cereal::make_nvp("merges", state.merges));
         archive(cereal::make_nvp("plus", state.plus));
         archive(cereal::make_nvp("musical_markers", state.score.markers));
         archive(cereal::make_nvp("instrument", state.settings.instrument),
@@ -379,6 +381,12 @@ State decode(const std::string &text) {
                 cereal::make_nvp("active_part_id", state.partId),
                 cereal::make_nvp("next_part_id", state.nextPartId),
                 cereal::make_nvp("parts", state.otherParts));
+    }
+    if (!extra.HasParseError() && extra.IsObject() &&
+        extra.HasMember("merges")) {
+        std::istringstream mergeInput(text);
+        cereal::JSONInputArchive archive(mergeInput);
+        archive(cereal::make_nvp("merges", state.merges));
     }
     validate(state);
     return state;
@@ -473,6 +481,15 @@ void validate(const State &state) {
             "At most twenty instrument/difficulty parts are supported");
     std::set<uint64_t> ids;
     std::set<std::string> sections;
+    for (const auto &entry : state.merges) {
+        require(entry.first == state.partId ||
+                    std::any_of(state.otherParts.begin(),
+                                state.otherParts.end(),
+                                [&](const auto &part) {
+                                    return part.partId == entry.first;
+                                }),
+                "Orphan merge recipe");
+    }
     for (const auto *part : parts(state)) {
         require(part->partId > 0 && part->partId < state.nextPartId &&
                     ids.insert(part->partId).second,
@@ -482,6 +499,19 @@ void validate(const State &state) {
         require(part->settings.offset == state.settings.offset,
                 "Parts must share the audio offset");
         validatePart(*part);
+        const auto merge = state.merges.find(part->partId);
+        if (merge != state.merges.end()) {
+            const auto selected = partState(state, part->partId);
+            validateMerge(selected, merge->second.config);
+            if (merge->second.initialized) {
+                validatePart(merge->second.primary);
+                validatePart(merge->second.secondary);
+                for (const auto &id : merge->second.ids) {
+                    require(id.second > 0 && id.second < part->nextId,
+                            "Invalid merge output identity");
+                }
+            }
+        }
     }
 }
 

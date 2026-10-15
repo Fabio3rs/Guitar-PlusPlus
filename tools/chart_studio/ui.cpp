@@ -2,12 +2,14 @@
 #include "audio/audio.h"
 #include "core.h"
 #include "file_browser.h"
+#include "merge.h"
 #include "plus_simulation.h"
 #include "runtime.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <fstream>
 #include <functional>
 #include <future>
 #include <imgui.h>
@@ -27,6 +29,330 @@ const ImU32 colors[] = {IM_COL32(55, 210, 110, 255), IM_COL32(240, 75, 85, 255),
                         IM_COL32(245, 140, 55, 255)};
 struct Workbench {
     Session session;
+    bool showMerge = true;
+    MergeConfig mergeDraft;
+    std::optional<MergeProposal> mergePreview;
+    uint64_t mergeDraftPart = 0, mergeDraftRevision = UINT64_MAX;
+    int64_t mergeBegin = 0, mergeEnd = 960;
+    int mergeChoice = 1;
+    std::string mergeRecipePath = "merge-recipe.json";
+
+    void mergePanel() {
+        help("Merge mapped tracks",
+             "Choose the primary in Tracks. This panel adds ONE secondary to "
+             "that game part. "
+             "Automatic composition respects primary attacks and playable "
+             "sustains. "
+             "Only sufficiently long pauses admit secondary attacks. Lanes are "
+             "copied, never remapped. "
+             "Fractions are whole notes: 1/4 = one quarter-note beat; 1/8 = "
+             "half a beat. "
+             "Maximum silence 'off' means unlimited. Clearance leaves space at "
+             "both sides.\n\n"
+             "Manual regions override automatic selection: primary, secondary "
+             "or silence. "
+             "No attacks are invented at cut boundaries and interrupted tails "
+             "are not resumed. "
+             "Analyze is a preview; Apply is undoable. Drag the white range "
+             "handles in the preview, "
+             "or edit ticks. Audio playback uses the Timeline controls. "
+             "Detach restores the mapped primary; it is undoable.");
+        if (!hasTrack()) {
+            ImGui::TextWrapped("Choose a primary MIDI track in Tracks first.");
+            return;
+        }
+        if (mergeDraftPart != session.state.partId ||
+            mergeDraftRevision != session.revision) {
+            mergeDraftPart = session.state.partId;
+            mergeDraftRevision = session.revision;
+            const auto found = session.state.merges.find(session.state.partId);
+            mergeDraft = found == session.state.merges.end()
+                             ? MergeConfig{}
+                             : found->second.config;
+            mergePreview.reset();
+        }
+        ImGui::Text("Primary: track %d (%s)", session.state.settings.track,
+                    session.state.score.tracks[session.state.settings.track]
+                        .name.c_str());
+        ImGui::TextWrapped("Change primary in Tracks before composing. Sources "
+                           "stay separate; no audio mixing.");
+        const bool validSecondary = mergeDraft.secondaryTrack >= 0 &&
+                                    size_t(mergeDraft.secondaryTrack) <
+                                        session.state.score.tracks.size();
+        const auto secondaryLabel =
+            validSecondary
+                ? std::to_string(mergeDraft.secondaryTrack) + ": " +
+                      (session.state.score.tracks[mergeDraft.secondaryTrack]
+                               .name.empty()
+                           ? "Unnamed track"
+                           : session.state.score
+                                 .tracks[mergeDraft.secondaryTrack]
+                                 .name)
+                : "Choose...";
+        if (ImGui::BeginCombo("Secondary track", secondaryLabel.c_str())) {
+            for (size_t i = 0; i < session.state.score.tracks.size(); ++i) {
+                const auto label = std::to_string(i) + ": " +
+                                   session.state.score.tracks[i].name;
+                if (ImGui::Selectable(label.c_str(),
+                                      mergeDraft.secondaryTrack == int(i))) {
+                    mergeDraft.secondaryTrack = int(i);
+                    mergePreview.reset();
+                }
+            }
+            ImGui::EndCombo();
+        }
+        bool changed = false;
+        changed |= ImGui::InputInt("Secondary channel (-1 = all)",
+                                   &mergeDraft.secondaryChannel);
+        changed |= ImGui::InputInt("Secondary program (-1 = all)",
+                                   &mergeDraft.secondaryProgram);
+        changed |= ImGui::InputText("Minimum silence", &mergeDraft.minimum);
+        changed |=
+            ImGui::InputText("Maximum silence (off)", &mergeDraft.maximum);
+        changed |=
+            ImGui::InputText("Transition clearance", &mergeDraft.clearance);
+        const char *grids[] = {"1/2", "1/4", "1/6", "1/8", "1/12", "1/16"};
+        if (ImGui::BeginCombo("Manual grid", mergeDraft.grid.c_str())) {
+            for (const auto *grid : grids) {
+                if (ImGui::Selectable(grid, mergeDraft.grid == grid)) {
+                    mergeDraft.grid = grid;
+                    changed = true;
+                }
+            }
+            ImGui::EndCombo();
+        }
+        if (changed) {
+            mergePreview.reset();
+        }
+        ImGui::Text("Cursor: %.3f s | one beat = %d ticks", cursor,
+                    session.state.score.ppq);
+        const auto at = audioTick(session.state, cursor);
+        ImGui::Text(
+            "One beat here: %.1f ms",
+            1000 * (audioSeconds(session.state, at + session.state.score.ppq) -
+                    audioSeconds(session.state, at)));
+        ImGui::InputScalar("Cut begin tick", ImGuiDataType_S64, &mergeBegin);
+        ImGui::InputScalar("Cut end tick", ImGuiDataType_S64, &mergeEnd);
+        if (ImGui::Button("Begin at cursor")) {
+            perform([&] {
+                mergeBegin =
+                    mergeSnap(audioTick(session.state, cursor),
+                              session.state.score.ppq, mergeDraft.grid);
+            });
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("End at cursor")) {
+            perform([&] {
+                mergeEnd = mergeSnap(audioTick(session.state, cursor),
+                                     session.state.score.ppq, mergeDraft.grid);
+            });
+        }
+        ImGui::Combo("Use in cut", &mergeChoice,
+                     "Primary\0Secondary\0Silence\0");
+        if (ImGui::Button("Add manual cut")) {
+            perform([&] {
+                auto config = mergeDraft;
+                config.regions.push_back({mergeBegin, mergeEnd, mergeChoice});
+                validateMerge(session.state, config);
+                mergeDraft = std::move(config);
+                mergePreview.reset();
+            });
+        }
+        for (size_t i = 0; i < mergeDraft.regions.size(); ++i) {
+            ImGui::PushID(int(i));
+            const auto r = mergeDraft.regions[i];
+            ImGui::Text("%lld..%lld: %s", static_cast<long long>(r.begin),
+                        static_cast<long long>(r.end),
+                        r.source == 0   ? "Primary"
+                        : r.source == 1 ? "Secondary"
+                                        : "Silence");
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Automatic")) {
+                mergeDraft.regions.erase(mergeDraft.regions.begin() +
+                                         static_cast<ptrdiff_t>(i));
+                mergePreview.reset();
+                ImGui::PopID();
+                break;
+            }
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Edit range")) {
+                mergeBegin = r.begin;
+                mergeEnd = r.end;
+                mergeChoice = r.source;
+                mergeDraft.regions.erase(mergeDraft.regions.begin() +
+                                         static_cast<ptrdiff_t>(i));
+                mergePreview.reset();
+                ImGui::PopID();
+                break;
+            }
+            ImGui::PopID();
+        }
+        if (ImGui::Button("Analyze merge")) {
+            perform([&] {
+                mergePreview = proposeMerge(session.state, mergeDraft);
+            });
+        }
+        ImGui::SameLine();
+        ImGui::BeginDisabled(!mergePreview.has_value());
+        if (ImGui::Button("Apply merge")) {
+            perform([&] {
+                session.applyMerge(*mergePreview);
+                mergePreview.reset();
+                notice = "Merge applied. Save project / Export chart.";
+            });
+        }
+        ImGui::EndDisabled();
+        if (session.state.merges.count(session.state.partId) &&
+            ImGui::Button("Detach / restore primary")) {
+            perform([&] {
+                session.detachMerge();
+                mergePreview.reset();
+            });
+        }
+        ImGui::InputText("Recipe path", &mergeRecipePath);
+        if (ImGui::Button("Save recipe (new file)")) {
+            perform([&] {
+                auto state = session.state;
+                validateMerge(state, mergeDraft);
+                state.merges[state.partId].config = mergeDraft;
+                protectDestination(fs::u8path(mergeRecipePath),
+                                   {session.project, fs::u8path(state.input),
+                                    fs::u8path(state.audio)});
+                safeWrite(fs::u8path(mergeRecipePath), mergeRecipe(state),
+                          false);
+            });
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Load recipe into draft")) {
+            perform([&] {
+                std::ifstream file(fs::u8path(mergeRecipePath));
+                if (!file) {
+                    throw std::runtime_error("Cannot open merge recipe");
+                }
+                std::ostringstream text;
+                text << file.rdbuf();
+                auto state = session.state;
+                readMergeRecipe(state, text.str());
+                const auto found = state.merges.find(state.partId);
+                if (found == state.merges.end()) {
+                    throw std::runtime_error("Recipe has no active part");
+                }
+                mergeDraft = found->second.config;
+                mergePreview.reset();
+            });
+        }
+        const auto *preview =
+            mergePreview ? &mergePreview->state : &session.state;
+        const auto found = preview->merges.find(preview->partId);
+        if (found == preview->merges.end() || !found->second.initialized) {
+            return;
+        }
+        const auto &doc = found->second;
+        size_t kept = 0, cut = 0;
+        for (const auto &d : doc.decisions) {
+            kept += d.copied;
+            cut += d.copied && d.duration < d.playableDuration;
+        }
+        ImGui::TextUnformatted(
+            mergePreview ? "PREVIEW ONLY - Apply to keep these changes"
+                         : "APPLIED RESULT - draft controls are not applied");
+        ImGui::Text("%zu kept, %zu excluded, %zu tails shortened", kept,
+                    doc.decisions.size() - kept, cut);
+        ImGui::TextWrapped(
+            "Preview shares Timeline zoom, position and playback. White "
+            "handles define the next manual cut.");
+        const auto origin = ImGui::GetCursorScreenPos();
+        const auto width = std::max(100.f, ImGui::GetContentRegionAvail().x);
+        ImGui::InvisibleButton("merge preview", {width, 240},
+                               ImGuiButtonFlags_MouseButtonLeft);
+        const bool hovered = ImGui::IsItemHovered();
+        auto *draw = ImGui::GetWindowDrawList();
+        const auto x = [&](int64_t tick) {
+            return origin.x +
+                   float((audioSeconds(*preview, tick) - start) * scale);
+        };
+        std::map<std::pair<int, uint64_t>, int64_t> playable;
+        for (const auto &d : doc.decisions) {
+            playable[{d.source, d.sourceId}] = d.playableDuration;
+        }
+        const Part *rows[] = {&doc.primary, &doc.secondary, preview};
+        const char *names[] = {"PRIMARY", "SECONDARY", "RESULT"};
+        draw->PushClipRect(origin, {origin.x + width, origin.y + 240}, true);
+        for (int row = 0; row < 3; ++row) {
+            const float top = origin.y + float(row) * 80;
+            draw->AddText({origin.x, top}, IM_COL32_WHITE, names[row]);
+            for (const auto &e : rows[row]->events) {
+                if (e.removed) {
+                    continue;
+                }
+                const auto duration =
+                    row < 2 ? playable[{row, e.note.id}] : e.duration;
+                const float begin = x(e.tick),
+                            finish = std::max(begin + 3, x(e.tick + duration));
+                if (finish < origin.x || begin > origin.x + width) {
+                    continue;
+                }
+                for (int lane = 0; lane < 5; ++lane) {
+                    if (!(e.note.flags & (1 << lane))) {
+                        continue;
+                    }
+                    const float y = top + 20 + float(lane) * 11;
+                    draw->AddRectFilled({begin, y}, {finish, y + 4},
+                                        colors[lane]);
+                }
+            }
+        }
+        for (const auto &r : doc.regions) {
+            const auto color = r.source == 0   ? IM_COL32(80, 160, 255, 35)
+                               : r.source == 1 ? IM_COL32(255, 180, 80, 45)
+                                               : IM_COL32(180, 180, 180, 35);
+            draw->AddRectFilled({x(r.begin), origin.y + 160},
+                                {x(r.end), origin.y + 240}, color);
+        }
+        for (const auto &d : doc.decisions) {
+            if (!d.copied || d.duration < d.playableDuration) {
+                const float xx = x(d.tick + (d.copied ? d.duration : 0));
+                const float top = origin.y + float(d.source) * 80 + 18;
+                draw->AddLine({xx, top}, {xx, top + 58},
+                              IM_COL32(255, 90, 90, 180), 2);
+            }
+        }
+        for (const auto tick : {mergeBegin, mergeEnd}) {
+            draw->AddLine({x(tick), origin.y}, {x(tick), origin.y + 240},
+                          IM_COL32_WHITE, 2);
+        }
+        draw->PopClipRect();
+        if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            mergeDraggingBegin =
+                std::abs(ImGui::GetIO().MousePos.x - x(mergeBegin)) <
+                std::abs(ImGui::GetIO().MousePos.x - x(mergeEnd));
+        }
+        if (ImGui::IsItemActive() &&
+            ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+            perform([&] {
+                const auto tick = mergeSnap(
+                    audioTick(session.state,
+                              std::max(0., start + (ImGui::GetIO().MousePos.x -
+                                                    origin.x) /
+                                                       scale)),
+                    session.state.score.ppq, mergeDraft.grid);
+                (mergeDraggingBegin ? mergeBegin : mergeEnd) = tick;
+            });
+        }
+        if (ImGui::TreeNode("Why each note was selected")) {
+            ImGui::BeginChild("merge decisions", {0, 180});
+            for (const auto &d : doc.decisions) {
+                ImGui::Text("%s #%llu @%lld: %s",
+                            d.source ? "Secondary" : "Primary",
+                            static_cast<unsigned long long>(d.sourceId),
+                            static_cast<long long>(d.tick), d.reason.c_str());
+            }
+            ImGui::EndChild();
+            ImGui::TreePop();
+        }
+    }
+    bool mergeDraggingBegin = false;
+
     FileBrowser browser;
     bool firstLayout = true, hasSavedLayout = false, resetLayout = false,
          showHelp = false;
@@ -1693,10 +2019,11 @@ struct Workbench {
                 ImGui::MenuItem("Edit and patterns", nullptr, &showEditing);
                 ImGui::MenuItem("Audio alignment", nullptr, &showAlignment);
                 ImGui::MenuItem("Plus", nullptr, &showPlus);
+                ImGui::MenuItem("Merge tracks", nullptr, &showMerge);
                 if (ImGui::MenuItem("Reset layout")) {
                     resetLayout = true;
                     showFiles = showTracks = showMapping = showEditing =
-                        showAlignment = showPlus = true;
+                        showAlignment = showPlus = showMerge = true;
                 }
                 ImGui::EndMenu();
             }
@@ -1727,6 +2054,7 @@ struct Workbench {
             ImGui::DockBuilderDockWindow("Edit and patterns", right);
             ImGui::DockBuilderDockWindow("Audio alignment", right);
             ImGui::DockBuilderDockWindow("Plus", right);
+            ImGui::DockBuilderDockWindow("Merge tracks", right);
             ImGui::DockBuilderDockWindow("Timeline", center);
             ImGui::DockBuilderFinish(dock);
         }
@@ -1779,6 +2107,12 @@ struct Workbench {
         if (showPlus) {
             if (ImGui::Begin("Plus", &showPlus)) {
                 plusPanel();
+            }
+            ImGui::End();
+        }
+        if (showMerge) {
+            if (ImGui::Begin("Merge tracks", &showMerge)) {
+                mergePanel();
             }
             ImGui::End();
         }

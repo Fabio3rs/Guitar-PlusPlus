@@ -1,9 +1,11 @@
 #include "alignment.h"
 #include "audio/audio.h"
 #include "core.h"
+#include "merge.h"
 #include "plus_simulation.h"
 #include "runtime.h"
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 
@@ -52,6 +54,11 @@ int main(int argc, char **argv) try {
                "list|confirm|lock|unlock|recalculate|promote|clear-"
                "experimental\n"
                "  [--event ID] [--cache LIBRARY.sqlite]\n"
+               "Merge: --part ExpertSingle:2 --merge-source ExpertSingle:1\n"
+               "  [--merge-min-silence 1/2 --merge-max-silence off "
+               "--merge-clearance 0]\n"
+               "  [--merge-grid 1/16 --merge-recipe FILE --merge-report FILE "
+               "--merge-preview]\n"
                "Multi-part: convert MIDI --part ExpertSingle:3 --part "
                "ExpertDoubleBass:5\n"
                "  --part SECTION:TRACK[:CHANNEL[:PROGRAM]] (repeatable, "
@@ -65,11 +72,18 @@ int main(int argc, char **argv) try {
         return 0;
     }
     const std::string command = argv[1];
-    std::vector<std::string> positional, associations, partProjectionPaths;
+    std::vector<std::string> positional, associations, partProjectionPaths,
+        mergeSources;
     std::map<std::string, std::string> options;
     const std::set<std::string> switches{"--replace", "--no-cache",
-                                         "--no-structural"};
-    const std::set<std::string> values{"--plus",
+                                         "--no-structural", "--merge-preview"};
+    const std::set<std::string> values{"--merge-min-silence",
+                                       "--merge-max-silence",
+                                       "--merge-clearance",
+                                       "--merge-grid",
+                                       "--merge-recipe",
+                                       "--merge-report",
+                                       "--plus",
                                        "--plus-profile",
                                        "--plus-reserve",
                                        "--plus-spacing",
@@ -116,11 +130,14 @@ int main(int argc, char **argv) try {
                                        "--weight5"};
     for (int i = 2; i < argc; ++i) {
         const std::string arg = argv[i];
-        if (arg == "--part" || arg == "--part-projection") {
+        if (arg == "--part" || arg == "--part-projection" ||
+            arg == "--merge-source") {
             if (++i == argc) {
                 throw std::runtime_error("Missing value: " + arg);
             }
-            (arg == "--part" ? associations : partProjectionPaths)
+            (arg == "--part"           ? associations
+             : arg == "--merge-source" ? mergeSources
+                                       : partProjectionPaths)
                 .push_back(argv[i]);
         } else if (switches.count(arg)) {
             options[arg] = "1";
@@ -134,6 +151,13 @@ int main(int argc, char **argv) try {
         } else {
             positional.push_back(arg);
         }
+    }
+    if (command != "convert" &&
+        (!mergeSources.empty() ||
+         std::any_of(options.begin(), options.end(), [](const auto &entry) {
+             return entry.first.rfind("--merge-", 0) == 0;
+         }))) {
+        throw std::runtime_error("Merge options are convert options");
     }
     if ((!associations.empty() || !partProjectionPaths.empty()) &&
         command != "convert") {
@@ -766,6 +790,51 @@ int main(int argc, char **argv) try {
         protectDestination(reportPath, {fs::u8path(session.state.audio),
                                         fs::u8path(session.state.reference)});
     }
+    if (!get("--merge-recipe").empty()) {
+        for (const auto &path : {output, project, reportPath}) {
+            if (!path.empty()) {
+                protectDestination(path, {fs::u8path(get("--merge-recipe"))});
+            }
+        }
+    }
+    if (options.count("--merge-recipe")) {
+        std::ifstream file(fs::u8path(get("--merge-recipe")));
+        if (!file) {
+            throw std::runtime_error("Cannot open merge recipe");
+        }
+        std::ostringstream text;
+        text << file.rdbuf();
+        readMergeRecipe(session.state, text.str());
+    }
+    std::set<uint64_t> mergeDestinations;
+    for (const auto &association : mergeSources) {
+        const auto sourceSettings = parsePart(association);
+        const auto id = findPart(session.state, partSection(sourceSettings));
+        if (!mergeDestinations.insert(id).second) {
+            throw std::runtime_error(
+                "Only one secondary source per destination");
+        }
+        auto &config = session.state.merges[id].config;
+        config.secondaryTrack = sourceSettings.track;
+        config.secondaryChannel = sourceSettings.channel;
+        config.secondaryProgram = sourceSettings.program;
+    }
+    for (auto &entry : session.state.merges) {
+        auto &config = entry.second.config;
+        config.minimum = get("--merge-min-silence", config.minimum);
+        config.maximum = get("--merge-max-silence", config.maximum);
+        config.clearance = get("--merge-clearance", config.clearance);
+        config.grid = get("--merge-grid", config.grid);
+        validateMerge(partState(session.state, entry.first), config);
+    }
+    if (session.state.merges.empty() &&
+        (options.count("--merge-preview") ||
+         options.count("--merge-min-silence") ||
+         options.count("--merge-max-silence") ||
+         options.count("--merge-clearance") || options.count("--merge-grid"))) {
+        throw std::runtime_error(
+            "Merge options require a merge source or saved recipe");
+    }
     if (associations.empty() && session.state.otherParts.empty()) {
         session.run(loadLibrary(fs::u8path(get("--cache"))), region);
         if (get("--plus") == "none") {
@@ -798,6 +867,21 @@ int main(int argc, char **argv) try {
         for (const auto *part : parts(session.state)) {
             protectDestination(reportPath, {fs::u8path(part->reference)});
         }
+    }
+    if (options.count("--merge-report")) {
+        const auto path = fs::u8path(get("--merge-report"));
+        protectDestination(path, {source, output, project,
+                                  fs::u8path(session.state.audio),
+                                  fs::u8path(get("--merge-recipe")), library,
+                                  reportPath, fs::u8path(get("--alignment"))});
+        for (const auto *part : parts(session.state)) {
+            protectDestination(path, {fs::u8path(part->reference)});
+        }
+        safeWrite(path, mergeReport(session.state), options.count("--replace"));
+    }
+    if (options.count("--merge-preview")) {
+        std::cout << mergeReport(session.state);
+        return 0;
     }
     exportValidated(session.state, output, options.count("--replace"));
     session.save(project);

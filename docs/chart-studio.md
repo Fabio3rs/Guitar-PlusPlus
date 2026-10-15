@@ -158,7 +158,8 @@ fluxo de projeção descrito no manual UMAP. Artefatos são externos e devem ser
 recarregados depois de abrir o projeto. O cache verifica instrumento/dificuldade;
 as assinaturas antigas de guitarra principal continuam válidas.
 
-Projetos novos usam SQLite versão 4. As versões 1–3 são lidas como uma parte de
+Projetos novos usam SQLite versão 5 (receitas de mescla). Projetos versão 4
+preservam suas múltiplas partes; as versões 1–3 são lidas como uma parte de
 guitarra principal; ler não modifica o arquivo, salvar publica a nova versão.
 O payload mantém o bloco legado e acrescenta a identidade ativa e as partes
 adicionais. `Part` contém os dados editáveis; `State` mantém a parte ativa e a
@@ -345,23 +346,117 @@ pode trocar/misturar instrumentos, diferentemente da pista selecionada no MIDI.
   partes roda em background, com cancelamento entre partes. Undo copia estados
   completos (até 64), com custo de memória que cresce com a quantidade de partes.
 
-### Plano futuro: combinar guitarras ou baixos em uma parte
+### Mesclar duas pistas em uma parte
 
-**Pendente, não implementado:** associar várias pistas musicais de guitarra ou
-baixo a uma única parte jogável. É composição de eventos musicais, não mixagem
-nem separação de áudio. Poderá reunir vozes simultâneas ou alternar fontes por
-região, como acústica na introdução e elétrica no solo.
+Implementado no painel **Merge tracks** e na CLI. A mescla é uma alternância
+explícita **de charts já mapeados**, não uma união de pitches nem mixagem de áudio.
+A fonte primária é a associação configurada em Tracks / `--part`; a secundária
+é escolhida no painel ou por `--merge-source SECTION:TRACK[:CHANNEL[:PROGRAM]]`.
+As duas fontes pertencem ao mesmo MIDI, usam o instrumento/dificuldade de destino
+e compartilham alinhamento. Não é preciso exportar as fontes como outras partes.
 
-O trabalho futuro precisa definir prioridades por região, deduplicação de uníssonos,
-tratamento de ataques/sustains sobrepostos e preservação das vozes/origens. A união
-não pode virar automaticamente um acorde excessivo; será necessária uma política
-musical de seleção/redução. As assinaturas do cache deverão representar a estrutura
-resultante, e Plus será analisado sobre a parte combinada preservando decisões
-manuais. A sintaxe dessa extensão ainda não está definida.
+```sh
+build/bin/gpp_score_to_chart convert "build/tabs/Mindflow - Break Me Out.mid" \
+  --part ExpertSingle:2 --merge-source ExpertSingle:1 \
+  --merge-min-silence 1/2 --merge-max-silence off --merge-clearance 0 \
+  --plus auto --plus-profile strategic \
+  --output build/break-merged.chart \
+  --project build/break-merged.gppchartproj \
+  --merge-report build/break-merge-decisions.json
+```
 
-Exemplo concreto: no nosso TTFAF, selecionar somente a elétrica 6 deixa de fora a
-introdução acústica das pistas 4/5. A versão co-op profissional pode servir de
-comparação, mas não resolve essa limitação de origem no conversor.
+A prioridade automática preserva os ataques e sustains **jogáveis** da primária
+(após a política normal de sustain). A secundária só preenche pausas dentro dos
+limites configurados. O mínimo padrão `1/2` significa duas semínimas; máximo
+`off` não limita a pausa. Frações são de semibreve: `1/4` = uma semínima,
+`1/8` = meia semínima, `1/12` = um terço. Comparações usam frações inteiras,
+não segundos arredondados. Compasso não altera essa unidade. A interface mostra
+a duração da semínima no BPM/alinhamento local.
+
+`--merge-clearance` deixa uma margem musical em ambas as extremidades da pausa;
+padrão zero. Os limites de silêncio são verificados antes de subtrair essa margem.
+Um tick de separação evita um ataque da secundária exatamente na ponta da cauda
+primária. A secundária é cortada antes do retorno da primária. A mescla não
+remapeia lanes, não cria ataques para retomar caudas interrompidas e não junta as
+duas fontes em acordes. Acordes ainda têm duração compartilhada no runtime.
+
+**GUI:** Configure > Analyze merge > confira PRIMARY / SECONDARY / RESULT >
+Apply merge. A prévia compartilha zoom, posição e áudio com Timeline. As áreas
+coloridas identificam a fonte; marcas vermelhas indicam exclusões e cortes de
+transição. O diagnóstico separa duração MIDI, duração jogável e duração após o
+recorte, evitando contar a política normal de sustain como corte de mescla.
+O botão `?` explica as unidades e o fluxo.
+
+Recortes manuais `[begin,end)` podem escolher **Primary**, **Secondary** ou
+**Silence**, vencendo a seleção automática. Marque início/fim no cursor, edite
+ticks ou arraste as duas linhas brancas; use **Add manual cut** para incluir o
+intervalo na proposta. **Edit range** retira o recorte para edição e posterior
+reinserção; **Automatic** remove a exceção. Recortes sobrepostos são rejeitados.
+A grade inicial é `1/16`, com divisões binárias e tercinas. A grade só altera as
+bordas manipuladas; nunca quantiza ataques existentes. Arredonda para o tick
+mais próximo, com empates para o anterior.
+
+**Save recipe** escreve JSON versionado sem sobrescrever um arquivo existente.
+**Load recipe into draft** importa a configuração da parte ativa sem aplicá-la.
+A CLI aceita o mesmo arquivo por `--merge-recipe FILE`. Seu formato é:
+
+```json
+{
+  "version": 1,
+  "recipes": [
+    {
+      "key": "[ExpertSingle]",
+      "value": {
+        "secondaryTrack": 1,
+        "secondaryChannel": -1,
+        "secondaryProgram": -1,
+        "minimum": "1/2",
+        "maximum": "off",
+        "clearance": "0",
+        "grid": "1/16",
+        "regions": [
+          {"begin": 240000, "end": 276480, "source": 1}
+        ]
+      }
+    }
+  ]
+}
+```
+
+`source`: 0 primária, 1 secundária, 2 silêncio. Os ticks do exemplo são
+ilustrativos. Os parâmetros CLI globais substituem os valores correspondentes
+da receita. Repita `--merge-source` para destinos diferentes; duas secundárias
+para o mesmo destino são rejeitadas. `--merge-preview` calcula e imprime a
+proposta, opcionalmente grava `--merge-report`, mas não escreve chart/projeto.
+`--output` continua necessário para identificar o destino pretendido.
+
+Projetos versão **5** preservam receita, snapshots de ambas as fontes, cache de
+cada fonte, IDs de saída e proveniência de recortes. Projetos 1–4 continuam
+legíveis; a biblioteca global permanece versão 1. A composição não promove
+fragmentos recortados sob a assinatura da frase original. Edições de lanes na
+saída são intervenções locais, preservadas nas reaplicações compatíveis.
+Conflitos com edições/bloqueios interrompem a operação sem aplicar uma parte dela.
+Use Restore/unlock para resolver explicitamente, ou **Detach / restore primary**
+para voltar ao snapshot primário. Aplicação e detach têm undo/redo.
+
+Analyze reaproveita snapshots já mapeados; Generate refaz as fontes com seus
+caches e recompõe a parte. Regeneração parcial pelo antigo painel Mapping não
+se aplica à composição: use seus recortes. UMAP não recebe fallback silencioso:
+mapear/regenerar uma fonte UMAP sem seu artefato continua retornando erro; a
+configuração de dois artefatos UMAP independentes na mescla permanece pendente.
+
+Plus é calculado sobre o resultado composto, sem copiar frases Plus da secundária.
+Frases manuais válidas são preservadas; conflitos são diagnosticados. O exportador
+separa por um tick a borda exclusiva de Plus de um ataque seguinte quando isso
+não remove nenhum ataque da frase, evitando a inclusão indevida por arredondamento
+no loader. Ticks originais do projeto permanecem intactos; o round-trip verifica
+os índices reais de Plus.
+
+**Limites e plano futuro:** mais de duas fontes, mesclas encadeadas, fontes de
+MIDIs diferentes, união de vozes simultâneas, remapeamento ergonômico das transições
+e edição direta dos snapshots internos. A escolha primária/secundária é explícita;
+não há seleção automática de instrumentos. Nenhuma alteração no runtime ou nos
+arquivos musicais originais é necessária.
 
 Também permanecem pendentes conversores próprios para bateria, vocais e
 instrumentos Pro; importação direta de Guitar Pro/MusicXML; e DTW/alinhamento
@@ -598,3 +693,48 @@ em 125 BPM/PPQ 960. Outras alturas tocavam simultaneamente, e o mapeamento havia
 atribuído 53 novos ataques à mesma lane verde. O pareamento MIDI estava correto;
 a política de saída não resolvia a colisão de lanes. Não se modifica o MIDI nem
 o loader de gameplay para corrigir esse caso.
+
+
+### Avaliação local da mescla
+
+Para repetir a avaliação sem instalar nem sobrescrever músicas:
+
+```sh
+python3 tools/chart_studio/experiments/merge_compare.py \
+  --binary build/bin/gpp_score_to_chart --tabs build/tabs \
+  --output build/chart-studio/my-merge-evaluation
+```
+
+O diretório de saída deve ser novo. O script pula arquivos ausentes, gera os charts,
+reabre cada projeto em outro processo, compara os bytes exportados e verifica
+lanes e colisões de sustain. Aceita `--break-alignment FILE` para reutilizar o
+alinhamento de Break Me Out. Não avalia semelhança com charters profissionais.
+
+Na avaliação local de implementação, com mínimo `1/2` e máximo desligado:
+
+| MIDI / primária + secundária | Ataques resultantes | Ataques copiados da secundária |
+|---|---:|---:|
+| Break Me Out / 2 + 1 | 1.015 | 23 |
+| Break Me Out / 2 + 1, recorte manual 240000–276480 | 952 | 104 |
+| TTFAF / 6 + 4 | 3.337 | 154 |
+| Magia / 1 + 2 | 1.066 | 0 |
+| Honesty / 1 + 2 | 1.565 | 19 |
+| Slow Ride / 1 + 2 | 545 | 0 |
+| Still Into You / 3 + 4 | 845 | 18 |
+
+Zero inserções pode ser o resultado correto da prioridade conservadora.
+Honesty continua sem material onde nenhuma das duas fontes tem notas.
+O recorte manual de Break Me Out demonstra substituição, não uma recomendação
+musical validada por audição. O alinhamento salvo foi aplicado nesse exemplo;
+os demais verificam composição no tempo musical original.
+Resultados: `build/chart-studio/merge-evaluation-final/summary.json`.
+Não houve playtest auditivo nem substituição dos charts instalados.
+
+Validação da implementação: suites CPU, runtime/round-trip, CLI, alinhamento,
+UMAP opcional e testes gráficos existentes passaram. O novo teste gráfico
+`chart_studio_merge_ui` verifica que Preview não modifica o projeto e exercita
+Apply, undo/redo e reabertura. ASan/UBSan/LSan no NativeLab passaram nos testes CPU;
+o teste gráfico usa a supressão Mesa já existente e uma supressão local
+`shift-base:*/glfw/src/x11_window.c` para UB observado no GLFW vendorizado ao
+focar a janela. Nenhuma supressão cobre o código do studio. Não foram validados
+Windows nem execução auditiva em gameplay.
