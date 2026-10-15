@@ -17,8 +17,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <dbghelp.h>
 #include <windows.h>
+
+#include <dbghelp.h>
 
 /*
     Special Note:
