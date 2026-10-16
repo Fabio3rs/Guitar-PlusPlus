@@ -21,6 +21,8 @@
 
 #include <dbghelp.h>
 
+#include <cstdlib>
+
 /*
     Special Note:
         Try not to allocate any memory in this file!
