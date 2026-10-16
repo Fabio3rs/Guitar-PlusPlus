@@ -55,7 +55,7 @@ TEST(ModelData, ManagerPreservesFilesystemMeaningOfSymlinkParentPaths) {
     std::ofstream(dir / "model.obj") << "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n";
     std::ofstream(dir / "actual" / "model.obj")
         << "v 0 0 0\nv 2 0 0\nv 0 2 0\nf 1 2 3\n";
-    std::ofstream(dir / "material.mtl") << "newmtl surface\nKd 0 0 1\n";
+    std::ofstream(dir / "material.mtl") << "newmtl surface\nKd 0 0 1\nmap_Kd texture.tga\n";
     std::ofstream(dir / "actual" / "material.mtl")
         << "newmtl surface\nKd 1 0 0\nmap_Kd texture.tga\n";
     std::ofstream(dir / "texture.tga") << "decoy";
@@ -67,13 +67,18 @@ TEST(ModelData, ManagerPreservesFilesystemMeaningOfSymlinkParentPaths) {
     auto result = handle->snapshot();
     ASSERT_EQ(result.state, State::ReadyForUpload) << result.error;
     ASSERT_NE(result.data, nullptr);
-    EXPECT_FLOAT_EQ(result.data->model.maximum[0], 2.f);
+    // Win32 resolves .. before following the directory symlink; POSIX
+    // follows the symlink first. Match the filesystem, not POSIX semantics.
+    const bool followsLinkFirst = std::filesystem::equivalent(
+        dir / "link" / ".." / "model.obj", dir / "actual" / "model.obj");
+    EXPECT_FLOAT_EQ(result.data->model.maximum[0], followsLinkFirst ? 2.f : 1.f);
     const auto &material = result.data->materials.at("surface");
     EXPECT_TRUE(std::filesystem::equivalent(
         std::filesystem::path(material.directory) / material.values.diffuseMap,
-        dir / "actual" / "texture.tga"));
+        (followsLinkFirst ? dir / "actual" : dir) / "texture.tga"));
     EXPECT_EQ(result.data->materials.at("surface").values.diffuse,
-              (ObjModel::Vec3{1, 0, 0}));
+              (followsLinkFirst ? ObjModel::Vec3{1, 0, 0}
+                                : ObjModel::Vec3{0, 0, 1}));
 }
 
 TEST(ModelManager, PublicationMayDestroyTheCallersHandle) {

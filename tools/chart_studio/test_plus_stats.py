@@ -390,8 +390,9 @@ class Runtime(unittest.TestCase):
             )
 
         one, two = self.root / "one", self.root / "two"
-        self.assertEqual(run(one).returncode, 0)
-        self.assertEqual(run(two).returncode, 0)
+        for destination in (one, two):
+            result = run(destination)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(
             (one / "report.json").read_bytes(), (two / "report.json").read_bytes()
         )

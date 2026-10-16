@@ -25,7 +25,7 @@ gtest_discover_tests(gpp_model_tests TEST_PREFIX "model_core."
     PROPERTIES LABELS cpu TIMEOUT 30 DISCOVERY_TIMEOUT 30)
 
 add_executable(tests ${TEST_SOURCES})
-target_link_libraries(tests GuitarPP_lib GTest::GTest GTest::Main)
+target_link_libraries(tests GuitarPP_lib GTest::GTest)
 
 find_program(XVFB_RUN xvfb-run)
 if(UNIX AND NOT APPLE AND XVFB_RUN)

@@ -64,7 +64,7 @@ std::string CChart::unquoteSongMetadata(std::string value) {
 }
 
 bool CChart::hasLegacyTextHeader(const std::string &chartFile) {
-    std::ifstream input(chartFile, std::ios::binary);
+    std::ifstream input(std::filesystem::u8path(chartFile), std::ios::binary);
     std::string line;
     while (std::getline(input, line)) {
         // Old .gpp files contain N records rather than a cereal archive.
@@ -112,11 +112,11 @@ static bool hasBinaryChartPrefix(std::istream &input) {
 
 bool CChart::validateChartHeader(const std::string &chartFile) {
     try {
-        std::ifstream input(chartFile, std::ios::binary);
+        std::ifstream input(std::filesystem::u8path(chartFile), std::ios::binary);
         if (!input) {
             return false;
         }
-        auto extension = std::filesystem::path(chartFile).extension().string();
+        auto extension = std::filesystem::u8path(chartFile).extension().string();
         std::transform(
             extension.begin(), extension.end(), extension.begin(),
             [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
@@ -145,7 +145,7 @@ bool CChart::validateChartHeader(const std::string &chartFile) {
         if (extension == ".mid") {
             MidiChart midi;
             std::string error;
-            return readMidiChart(chartFile, midi, error) &&
+            return readMidiChart(std::filesystem::u8path(chartFile), midi, error) &&
                    !midi.instruments.empty();
         }
         if (extension != ".chart") {
@@ -679,7 +679,7 @@ auto CChart::parseFeebackChart(std::istream &chartStream) -> bool {
 }
 
 auto CChart::compileGppChart(const std::string &fileName) const -> bool {
-    std::fstream out(fileName,
+    std::fstream out(std::filesystem::u8path(fileName),
                      std::ios::out | std::ios::binary | std::ios::trunc);
 
     if (!out.is_open()) {
@@ -744,7 +744,7 @@ auto CChart::loadToNotesData(CPlayer &player,
 }
 
 auto CChart::open(const std::string &chartFile) -> bool {
-    std::ifstream chart(chartFile);
+    std::ifstream chart{std::filesystem::u8path(chartFile)};
     if (chart.is_open()) {
         {
             return parseFeebackChart(chart);
@@ -844,7 +844,7 @@ static auto trimRuntimeChart(const std::string &str) -> std::string {
 CChart::FeedbackDocument
 CChart::readFeedbackDocument(std::string_view chartFile) {
     FeedbackDocument data;
-    std::ifstream chart((std::string(chartFile)));
+    std::ifstream chart{std::filesystem::u8path(chartFile)};
     if (!chart) {
         throw std::runtime_error("Cannot open chart");
     }
@@ -1475,7 +1475,7 @@ bool CChart::NotesData::loadMidiChart(std::string_view file, CPlayer &player) {
     unloadChart();
     MidiChart midi;
     std::string error;
-    if (!readMidiChart(std::string(file), midi, error)) {
+    if (!readMidiChart(std::filesystem::u8path(file), midi, error)) {
         CLog::log() << "Cannot load MIDI " + std::string(file) + ": " + error;
         return false;
     }
@@ -1579,7 +1579,7 @@ bool CChart::NotesData::loadChartCPU(std::string_view chartFile,
         !CChart::hasLegacyTextHeader(std::string(chartFile))) {
         CChart chart;
 
-        std::fstream chartf(std::string(chartFile),
+        std::fstream chartf(std::filesystem::u8path(chartFile),
                             std::ios::binary | std::ios::in);
 
         if (!hasBinaryChartPrefix(chartf)) {
@@ -1822,13 +1822,13 @@ CChart::NotesData::~NotesData() { unloadChart(); }
 CChart::Inspection CChart::inspect(const std::string &file) {
     Inspection result;
     try {
-        auto extension = std::filesystem::path(file).extension().string();
+        auto extension = std::filesystem::u8path(file).extension().string();
         std::transform(
             extension.begin(), extension.end(), extension.begin(),
             [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (extension == ".mid") {
             MidiChart midi;
-            if (!readMidiChart(file, midi, result.error)) {
+            if (!readMidiChart(std::filesystem::u8path(file), midi, result.error)) {
                 return result;
             }
             // These strings are INI-derived, not embedded MIDI metadata.
@@ -1875,7 +1875,7 @@ CChart::Inspection CChart::inspect(const std::string &file) {
                 }
             } else if (extension == ".gpp") {
                 CChart compiled;
-                std::ifstream input(file, std::ios::binary);
+                std::ifstream input(std::filesystem::u8path(file), std::ios::binary);
                 if (!hasBinaryChartPrefix(input)) {
                     throw std::runtime_error("Invalid compiled chart prefix");
                 }

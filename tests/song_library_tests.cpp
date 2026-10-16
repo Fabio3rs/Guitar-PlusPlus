@@ -97,7 +97,7 @@ TEST(SQLiteRaii, Cxx17OwnershipParametersAndTransactions) {
 
 TEST_F(SongLibraryTest, InvalidDatabaseOpenReportsCode) {
     try {
-        SqliteDb database((directory / "missing/file.db").string());
+        SqliteDb database((directory / "missing/file.db").u8string());
         FAIL();
     } catch (const SqliteError &error) {
         EXPECT_EQ(error.code & 255, SQLITE_CANTOPEN);
@@ -189,19 +189,27 @@ TEST_F(SongLibraryTest, FullScanDetectsSameSizeAndTimestampAndRechecksAudio) {
 TEST_F(SongLibraryTest, IniAndAudioAndArtworkInvalidateIndependently) {
     const auto path = song();
     SongLibrary library(root, db, {}, audio);
-    scan(library);
+    auto initial = scan(library);
+    ASSERT_TRUE(initial->progress.complete) << initial->progress.warning;
+    ASSERT_EQ(initial->songs.size(), 1u) << initial->progress.warning;
     write(path / "song.ini", "[song]\nicon = rb4\ndiff_band = 4\n");
     auto next = scan(library);
+    ASSERT_TRUE(next->progress.complete) << next->progress.warning;
+    ASSERT_EQ(next->songs.size(), 1u) << next->progress.warning;
     EXPECT_EQ(next->songs.front().origin, "rb4");
     EXPECT_EQ(next->progress.chartParses, 1u);
     EXPECT_EQ(next->progress.audioProbes, 0u);
     write(path / "song.ogg", "different audio bytes");
     next = scan(library);
+    ASSERT_TRUE(next->progress.complete) << next->progress.warning;
+    ASSERT_EQ(next->songs.size(), 1u) << next->progress.warning;
     EXPECT_EQ(next->progress.chartParses, 0u);
     EXPECT_EQ(next->progress.audioProbes, 1u);
     EXPECT_EQ(next->progress.hashes, 0u);
     write(path / "album.jpg", "cover");
     next = scan(library);
+    ASSERT_TRUE(next->progress.complete) << next->progress.warning;
+    ASSERT_EQ(next->songs.size(), 1u) << next->progress.warning;
     EXPECT_FALSE(next->songs.front().coverPath.empty());
     EXPECT_EQ(next->progress.chartParses, 0u);
     EXPECT_EQ(next->progress.audioProbes, 0u);
@@ -229,7 +237,7 @@ TEST_F(SongLibraryTest, RemovedAndRenamedSongsAreReconciledOnlyOnCompleteScan) {
 
 TEST_F(SongLibraryTest, InvalidPreferredChartFallsBackAndFailuresAreCached) {
     const auto path = song();
-    write(path / "música.gpp", "broken compiled file");
+    write(path / fs::u8path("música.gpp"), "broken compiled file");
     SongLibrary library(root, db, {}, audio);
     auto next = scan(library);
     ASSERT_EQ(next->songs.size(), 1u);
@@ -241,7 +249,7 @@ TEST_F(SongLibraryTest, InvalidPreferredChartFallsBackAndFailuresAreCached) {
     next = scan(library);
     EXPECT_FALSE(next->songs.front().available);
     EXPECT_EQ(next->progress.chartParses, 0u);
-    write(path / "música.gpp", "N 6 0 120\nN 0 1 0\n");
+    write(path / fs::u8path("música.gpp"), "N 6 0 120\nN 0 1 0\n");
     next = scan(library);
     EXPECT_TRUE(next->songs.front().available);
     EXPECT_EQ(next->songs.front().format, ".gpp");
@@ -264,7 +272,9 @@ TEST_F(SongLibraryTest, MidiTitleFallsBackAfterIniAndRetainsIdentification) {
     EXPECT_EQ(next->songs.front().title, "Readable Title");
     EXPECT_EQ(next->songs.front().artist, "Band");
     EXPECT_EQ(next->songs.front().charter, "Internal Author");
+    ASSERT_FALSE(next->songs.front().trackNames.empty());
     EXPECT_EQ(next->songs.front().trackNames.front(), "Internal Title");
+    ASSERT_FALSE(next->songs.front().identification.empty());
     EXPECT_EQ(next->songs.front().identification.front(), "Copyright Example");
     fs::remove(path / "song.ini");
     next = scan(library);
@@ -304,7 +314,7 @@ TEST_F(SongLibraryTest, CorruptAndIncompatibleDatabasesAreRebuilt) {
         EXPECT_TRUE(next->progress.complete);
     }
     {
-        SqliteDb database(db.string());
+        SqliteDb database(db.u8string());
         database.exec("PRAGMA user_version=900");
     }
     SongLibrary library(root, db, {}, audio);
@@ -343,7 +353,7 @@ TEST_F(SongLibraryTest,
         [&](const fs::path &file) {
             entered.set_value();
             gate.wait_for(std::chrono::seconds(5));
-            return CChart::inspect(file.string());
+            return CChart::inspect(file.u8string());
         },
         audio);
     library.refresh();
@@ -364,7 +374,7 @@ TEST_F(SongLibraryTest, FilesModifiedDuringInspectionAreNotCommitted) {
     SongLibrary library(
         root, db,
         [&](const fs::path &file) {
-            const auto result = CChart::inspect(file.string());
+            const auto result = CChart::inspect(file.u8string());
             write(path / "notes.chart", chart("new longer title"));
             return result;
         },
@@ -447,7 +457,7 @@ TEST_F(SongLibraryTest, FullRequestsCoalesceDuringAnIncrementalScan) {
                 entered.set_value();
                 gate.wait_for(std::chrono::seconds(5));
             }
-            return CChart::inspect(file.string());
+            return CChart::inspect(file.u8string());
         },
         audio);
     library.refresh();
@@ -467,8 +477,8 @@ TEST_F(SongLibraryTest, FullRequestsCoalesceDuringAnIncrementalScan) {
 TEST_F(SongLibraryTest, CompiledChartsKeepHistoricalArchiveLayout) {
     const auto path = song();
     CChart compiled;
-    ASSERT_TRUE(compiled.open((path / "notes.chart").string()));
-    ASSERT_TRUE(compiled.compileGppChart((path / "Chart.gpp").string()));
+    ASSERT_TRUE(compiled.open((path / "notes.chart").u8string()));
+    ASSERT_TRUE(compiled.compileGppChart((path / "Chart.gpp").u8string()));
     SongLibrary library(root, db, {}, audio);
     const auto result = scan(library);
     ASSERT_EQ(result->songs.size(), 1u);

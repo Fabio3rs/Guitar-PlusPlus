@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 import os
+from contextlib import closing
 import sqlite3
 import struct
 import subprocess
@@ -38,13 +39,13 @@ with tempfile.TemporaryDirectory(dir=root) as directory:
     assert sum(d['copied'] for d in preview['decisions']) == 3
     run(*args, '--replace')
     chart_bytes = chart.read_bytes()
-    with sqlite3.connect(project) as db:
+    with closing(sqlite3.connect(project)) as db, db:
         assert db.execute("PRAGMA user_version").fetchone()[0] == 5
         document = json.loads(db.execute("SELECT value FROM metadata WHERE key='document'").fetchone()[0])
     ids = document["merges"][0]["value"]["ids"]
     run(*args, '--replace')
     assert chart.read_bytes() == chart_bytes
-    with sqlite3.connect(project) as db:
+    with closing(sqlite3.connect(project)) as db, db:
         document = json.loads(db.execute("SELECT value FROM metadata WHERE key='document'").fetchone()[0])
     assert ids == document["merges"][0]["value"]["ids"]
     config = document["merges"][0]["value"]["config"]

@@ -205,7 +205,7 @@ bool readMidiChart(const std::filesystem::path &path, MidiChart &result,
         loaded.trackNames.push_back(name);
     }
     if (loaded.name.empty()) {
-        loaded.name = path.parent_path().filename().string();
+        loaded.name = path.parent_path().filename().u8string();
     }
 
     struct TimedTempo {

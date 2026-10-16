@@ -144,7 +144,7 @@ void normalized(Json &json, const std::vector<CChart::Note> &notes,
 }
 
 bool inspect(const std::string &path, const std::string &destination) {
-    std::ofstream output(destination, std::ios::binary);
+    std::ofstream output(std::filesystem::u8path(destination), std::ios::binary);
     output.exceptions(std::ios::badbit | std::ios::failbit);
     rapidjson::OStreamWrapper stream(output);
     Json json(stream);
@@ -153,7 +153,7 @@ bool inspect(const std::string &path, const std::string &destination) {
     json.Int(1);
     json.Key("path");
     string(json, path);
-    auto extension = std::filesystem::path(path).extension().string();
+    auto extension = std::filesystem::u8path(path).extension().string();
     std::transform(
         extension.begin(), extension.end(), extension.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
@@ -161,7 +161,7 @@ bool inspect(const std::string &path, const std::string &destination) {
     bool success = false;
     if (extension == ".mid" || extension == ".midi") {
         MidiChart midi;
-        success = readMidiChart(path, midi, error);
+        success = readMidiChart(std::filesystem::u8path(path), midi, error);
         name = midi.name;
         artist = midi.artist;
         charter = midi.charter;
@@ -271,7 +271,7 @@ void snapshot(std::ostream &out, const CPlayer &p, bool success) {
 }
 } // namespace
 
-int main(int argc, char **argv) try {
+int run(int argc, char **argv) try {
     if (argc == 4 && std::string(argv[1]) == "inspect") {
         return inspect(argv[2], argv[3]) ? 0 : 1;
     }
@@ -285,7 +285,7 @@ int main(int argc, char **argv) try {
     if (mode != "feedback" && mode != "compiled" && mode != "midi") {
         throw std::runtime_error("Unknown loader mode");
     }
-    std::ofstream output(argv[4], std::ios::binary);
+    std::ofstream output(std::filesystem::u8path(argv[4]), std::ios::binary);
     output.exceptions(std::ios::badbit | std::ios::failbit);
     output.imbue(std::locale::classic());
     output << "gpp-runtime-chart-dump-v1 double=ieee754-bits\n";
@@ -314,3 +314,20 @@ int main(int argc, char **argv) try {
     std::cerr << e.what() << '\n';
     return 1;
 }
+
+#ifdef _WIN32
+int wmain(int argc, wchar_t **argv) {
+    std::vector<std::string> arguments;
+    arguments.reserve(argc);
+    for (int i = 0; i < argc; ++i) {
+        arguments.push_back(std::filesystem::path(argv[i]).u8string());
+    }
+    std::vector<char *> pointers;
+    for (auto &argument : arguments) {
+        pointers.push_back(argument.data());
+    }
+    return run(argc, pointers.data());
+}
+#else
+int main(int argc, char **argv) { return run(argc, argv); }
+#endif

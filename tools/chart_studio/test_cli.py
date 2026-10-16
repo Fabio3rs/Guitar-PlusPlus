@@ -6,6 +6,7 @@ import wave
 import os
 from pathlib import Path
 import struct
+from contextlib import closing
 import sqlite3
 import subprocess
 import sys
@@ -125,7 +126,7 @@ with tempfile.TemporaryDirectory(prefix='cli-', dir=root) as work:
     # Reports must not overwrite reference charts belonging to inactive parts.
     reference = work / 'inactive-reference.chart'
     reference.write_bytes(multi_bytes)
-    with sqlite3.connect(multi_project) as db:
+    with closing(sqlite3.connect(multi_project)) as db, db:
         document = json.loads(db.execute("SELECT value FROM metadata WHERE key='document'").fetchone()[0])
         document['parts'][0]['reference'] = str(reference)
         db.execute("UPDATE metadata SET value=? WHERE key='document'", (json.dumps(document),))

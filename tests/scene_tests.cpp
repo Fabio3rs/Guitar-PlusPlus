@@ -46,8 +46,8 @@ TEST_F(Scenes, RelativePathsAndLightingAreReadWithoutGPU) {
     CLuaH::luaState_t script;
     std::string error;
     ASSERT_TRUE(CScene::readDefinition("data/scenes/room.lua", "room", definition, script, error)) << error;
-    EXPECT_EQ(definition.model, "data/models/room.obj");
-    EXPECT_EQ(definition.materials, "data/scenes/room.mtl");
+    EXPECT_EQ(std::filesystem::u8path(definition.model), std::filesystem::path("data/models/room.obj"));
+    EXPECT_EQ(std::filesystem::u8path(definition.materials), std::filesystem::path("data/scenes/room.mtl"));
     EXPECT_EQ(definition.light, (std::array<float,3>{1,2,3}));
     EXPECT_FALSE(definition.garageMaterials);
     EXPECT_EQ(lua_gettop(script.get()), 1);

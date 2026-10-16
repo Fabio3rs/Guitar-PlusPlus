@@ -4,6 +4,7 @@
 
 #include "CGPPFileMGR.h"
 #include <cctype>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 
@@ -16,7 +17,7 @@ void CText::Parse() {
         file.close();
     }
 
-    file.open(fileName, std::ios::in | std::ios::out | std::ios::binary);
+    file.open(std::filesystem::u8path(fileName), std::ios::in | std::ios::out | std::ios::binary);
 
     if (!is_open()) {
         throw std::logic_error("Can't open file");
@@ -122,7 +123,7 @@ void CText::save() {
         file.close();
     }
 
-    file.open(fileName, std::ios::in | std::ios::out | std::ios::trunc);
+    file.open(std::filesystem::u8path(fileName), std::ios::in | std::ios::out | std::ios::trunc);
 
     for (auto &table : tables) {
         file << "@" << table.name << "\n";
@@ -148,7 +149,7 @@ CText::CText(const char *name, const std::string &pushIfEmpty, bool autoParse) {
             if (checkFile) {
                 if (!is_open()) {
                     {
-                        file.open(fileName, std::ios::in | std::ios::out |
+                        file.open(std::filesystem::u8path(fileName), std::ios::in | std::ios::out |
                                                 std::ios::binary);
                     }
                 }
@@ -158,7 +159,7 @@ CText::CText(const char *name, const std::string &pushIfEmpty, bool autoParse) {
 
             if (!checkFile || (checkFile && fileSize == 0)) {
                 file.close();
-                file.open(fileName,
+                file.open(std::filesystem::u8path(fileName),
                           std::ios::in | std::ios::out | std::ios::trunc);
 
                 file.write(pushIfEmpty.c_str(), pushIfEmpty.size());
