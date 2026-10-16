@@ -2,6 +2,7 @@
 #include "audio/audio.h"
 #include "core.h"
 #include "merge.h"
+#include "midi_synth.h"
 #include "plus_simulation.h"
 #include "runtime.h"
 #include <algorithm>
@@ -11,7 +12,14 @@
 
 int main(int argc, char **argv) try {
     using namespace ChartStudio;
+    if (argc > 1 && std::string(argv[1]) == "render-stems") {
+        return synthCli(argc, argv);
+    }
     if (argc < 2 || std::string(argv[1]) == "--help") {
+        std::cout << "Synthesis: render-stems PROJECT --soundfont FILE.sf2 "
+                     "--output-dir DIR [--instruments chart|all|custom] "
+                     "[--track N] [--stem NAME:TRACK[:CHANNEL[:PROGRAM]]] "
+                     "[--format wav|ogg] [--save-config]\n";
         std::cout << "Plus: convert MIDI --track N --plus auto --plus-profile "
                      "strategic --output FILE.chart\n"
                      "  [--plus-reserve 0.4 --plus-spacing 8 --plus-bars 1]\n"

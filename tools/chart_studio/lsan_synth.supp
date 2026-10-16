@@ -1,0 +1,4 @@
+# Ubuntu FluidSynth 2.3.4 / libinstpatch type-property registrations.
+# Narrow upstream allocation sites; do not suppress FluidSynth or studio broadly.
+leak:_ipatch_type_prop_init
+leak:ipatch_sf2_voice_cache_get_type

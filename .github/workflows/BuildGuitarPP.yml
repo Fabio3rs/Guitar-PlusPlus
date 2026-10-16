@@ -31,7 +31,7 @@ jobs:
       - name: Installing Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake pkg-config python3 python3-venv clang-20 clang-tidy-20 clang-format-20 ninja-build xorg-dev libglew-dev libgl-dev libxrandr-dev libxinerama-dev libgtest-dev libsqlite3-dev libpng-dev imagemagick xdotool xvfb xauth libgl1-mesa-dri file unzip wget
+          sudo apt-get install -y build-essential cmake pkg-config python3 python3-venv clang-20 clang-tidy-20 clang-format-20 ninja-build xorg-dev libglew-dev libgl-dev libxrandr-dev libxinerama-dev libgtest-dev libsqlite3-dev libpng-dev libfluidsynth-dev timgm6mb-soundfont ffmpeg imagemagick xdotool xvfb xauth libgl1-mesa-dri file unzip wget
           clang-20 --version
 
       # Download and setup Bass libraries
@@ -104,6 +104,12 @@ jobs:
           ARTIFACT_URL: ${{ steps.runtime.outputs.artifact-url }}
         run: printf '[Download Linux x64 ZIP](%s)\n' "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Verify Chart Studio without FluidSynth
+        run: |
+          cmake -S . -B build -DGPP_ENABLE_MIDI_SYNTH=OFF
+          cmake --build build --target gpp_score_to_chart gpp_chart_studio gpp_synth_tests --parallel 2
+          ctest --test-dir build -R 'chart_studio_(synth|synth_cli|cli)$' --output-on-failure
+
       - name: Upload test diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -146,7 +152,7 @@ jobs:
             '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>' `
             -DGLEW_USE_STATIC_LIBS=ON -DGPP_NATIVE_CPU=OFF `
             -DBUILD_CHART_STUDIO=ON -DBUILD_CHART_TOOLS=ON -DBUILD_TESTING=ON `
-            -DBUILD_CHART_STUDIO_UMAP_TESTS=OFF -DGPP_PACKAGE_RUNTIME=ON
+            -DBUILD_CHART_STUDIO_UMAP_TESTS=OFF -DGPP_PACKAGE_RUNTIME=ON -DGPP_ENABLE_MIDI_SYNTH=OFF
 
       - name: Build project
         run: cmake --build build --config RelWithDebInfo --parallel 2

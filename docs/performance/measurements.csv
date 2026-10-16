@@ -1,0 +1,1641 @@
+series,case,repetition,version,metric,value
+final-perf,1-0-1-0-1,0,after,updates/s,60.59677838226579
+final-perf,1-0-1-0-1,0,after,frames/s,60.59677838226579
+final-perf,1-0-1-0-1,0,after,total cycles/update,68807443.75274725
+final-perf,1-0-1-0-1,0,after,total cycles/frame,68807443.75274725
+final-perf,1-0-1-0-1,0,after,IPC,2.170378335415217
+final-perf,1-0-1-0-1,0,after,cache-misses:u/frame,434136.62637362635
+final-perf,1-0-1-0-1,0,after,L1-dcache-load-misses/frame,1826906.7307692308
+final-perf,1-0-1-0-1,0,after,context-switches/frame,6.582417582417582
+final-perf,1-0-1-0-1,0,after,cpu-migrations/frame,1.8516483516483517
+final-perf,1-0-1-0-1,0,before,updates/s,66.49068797914852
+final-perf,1-0-1-0-1,0,before,frames/s,66.49068797914852
+final-perf,1-0-1-0-1,0,before,total cycles/update,60982510.365
+final-perf,1-0-1-0-1,0,before,total cycles/frame,60982510.365
+final-perf,1-0-1-0-1,0,before,IPC,2.4289878109874365
+final-perf,1-0-1-0-1,0,before,cache-misses:u/frame,403606.24
+final-perf,1-0-1-0-1,0,before,L1-dcache-load-misses/frame,1695224.35
+final-perf,1-0-1-0-1,0,before,context-switches/frame,6.655
+final-perf,1-0-1-0-1,0,before,cpu-migrations/frame,2.055
+final-perf,1-0-1-0-1,1,after,updates/s,61.646117960679774
+final-perf,1-0-1-0-1,1,after,frames/s,61.646117960679774
+final-perf,1-0-1-0-1,1,after,total cycles/update,67451198.29189189
+final-perf,1-0-1-0-1,1,after,total cycles/frame,67451198.29189189
+final-perf,1-0-1-0-1,1,after,IPC,2.1982564747229505
+final-perf,1-0-1-0-1,1,after,cache-misses:u/frame,444113.2918918919
+final-perf,1-0-1-0-1,1,after,L1-dcache-load-misses/frame,1715308.6486486488
+final-perf,1-0-1-0-1,1,after,context-switches/frame,6.92972972972973
+final-perf,1-0-1-0-1,1,after,cpu-migrations/frame,2.3405405405405406
+final-perf,1-0-1-0-1,1,before,updates/s,68.17426005986033
+final-perf,1-0-1-0-1,1,before,frames/s,68.17426005986033
+final-perf,1-0-1-0-1,1,before,total cycles/update,61993391.263414636
+final-perf,1-0-1-0-1,1,before,total cycles/frame,61993391.263414636
+final-perf,1-0-1-0-1,1,before,IPC,2.3792767389230844
+final-perf,1-0-1-0-1,1,before,cache-misses:u/frame,403718.7219512195
+final-perf,1-0-1-0-1,1,before,L1-dcache-load-misses/frame,1674658.1951219512
+final-perf,1-0-1-0-1,1,before,context-switches/frame,6.68780487804878
+final-perf,1-0-1-0-1,1,before,cpu-migrations/frame,2.268292682926829
+final-perf,1-0-1-0-1,2,after,updates/s,73.41314660040659
+final-perf,1-0-1-0-1,2,after,frames/s,73.41314660040659
+final-perf,1-0-1-0-1,2,after,total cycles/update,58334463.656108595
+final-perf,1-0-1-0-1,2,after,total cycles/frame,58334463.656108595
+final-perf,1-0-1-0-1,2,after,IPC,2.5296100619289246
+final-perf,1-0-1-0-1,2,after,cache-misses:u/frame,395030.8371040724
+final-perf,1-0-1-0-1,2,after,L1-dcache-load-misses/frame,1668198.2533936652
+final-perf,1-0-1-0-1,2,after,context-switches/frame,6.728506787330317
+final-perf,1-0-1-0-1,2,after,cpu-migrations/frame,2.2081447963800906
+final-perf,1-0-1-0-1,2,before,updates/s,69.94753934549088
+final-perf,1-0-1-0-1,2,before,frames/s,69.94753934549088
+final-perf,1-0-1-0-1,2,before,total cycles/update,59920085.004761904
+final-perf,1-0-1-0-1,2,before,total cycles/frame,59920085.004761904
+final-perf,1-0-1-0-1,2,before,IPC,2.4619562193734126
+final-perf,1-0-1-0-1,2,before,cache-misses:u/frame,398724.00952380954
+final-perf,1-0-1-0-1,2,before,L1-dcache-load-misses/frame,1682709.4
+final-perf,1-0-1-0-1,2,before,context-switches/frame,6.895238095238096
+final-perf,1-0-1-0-1,2,before,cpu-migrations/frame,2.142857142857143
+final-perf,1-0-1-0-1,3,after,updates/s,69.50217817831133
+final-perf,1-0-1-0-1,3,after,frames/s,69.50217817831133
+final-perf,1-0-1-0-1,3,after,total cycles/update,61303589.89952153
+final-perf,1-0-1-0-1,3,after,total cycles/frame,61303589.89952153
+final-perf,1-0-1-0-1,3,after,IPC,2.40322611049937
+final-perf,1-0-1-0-1,3,after,cache-misses:u/frame,394311.55502392346
+final-perf,1-0-1-0-1,3,after,L1-dcache-load-misses/frame,1677396.6746411484
+final-perf,1-0-1-0-1,3,after,context-switches/frame,6.4688995215311005
+final-perf,1-0-1-0-1,3,after,cpu-migrations/frame,2.014354066985646
+final-perf,1-0-1-0-1,3,before,updates/s,69.39141405757164
+final-perf,1-0-1-0-1,3,before,frames/s,69.39141405757164
+final-perf,1-0-1-0-1,3,before,total cycles/update,61433006.21052632
+final-perf,1-0-1-0-1,3,before,total cycles/frame,61433006.21052632
+final-perf,1-0-1-0-1,3,before,IPC,2.3992714670010544
+final-perf,1-0-1-0-1,3,before,cache-misses:u/frame,423740.3014354067
+final-perf,1-0-1-0-1,3,before,L1-dcache-load-misses/frame,1670033.5023923444
+final-perf,1-0-1-0-1,3,before,context-switches/frame,6.655502392344498
+final-perf,1-0-1-0-1,3,before,cpu-migrations/frame,2.0
+final-perf,1-0-1-0-1,4,after,updates/s,69.93915293694486
+final-perf,1-0-1-0-1,4,after,frames/s,69.93915293694486
+final-perf,1-0-1-0-1,4,after,total cycles/update,61082229.86190476
+final-perf,1-0-1-0-1,4,after,total cycles/frame,61082229.86190476
+final-perf,1-0-1-0-1,4,after,IPC,2.403366370273679
+final-perf,1-0-1-0-1,4,after,cache-misses:u/frame,416412.0238095238
+final-perf,1-0-1-0-1,4,after,L1-dcache-load-misses/frame,1698938.3904761905
+final-perf,1-0-1-0-1,4,after,context-switches/frame,6.752380952380952
+final-perf,1-0-1-0-1,4,after,cpu-migrations/frame,2.1523809523809523
+final-perf,1-0-1-0-1,4,before,updates/s,69.25138586006558
+final-perf,1-0-1-0-1,4,before,frames/s,69.25138586006558
+final-perf,1-0-1-0-1,4,before,total cycles/update,61401676.15865385
+final-perf,1-0-1-0-1,4,before,total cycles/frame,61401676.15865385
+final-perf,1-0-1-0-1,4,before,IPC,2.3891468455943534
+final-perf,1-0-1-0-1,4,before,cache-misses:u/frame,398860.7596153846
+final-perf,1-0-1-0-1,4,before,L1-dcache-load-misses/frame,1668116.8125
+final-perf,1-0-1-0-1,4,before,context-switches/frame,6.793269230769231
+final-perf,1-0-1-0-1,4,before,cpu-migrations/frame,2.2451923076923075
+final-perf,1-1-0-0-1,0,after,updates/s,3694.5780047749204
+final-perf,1-1-0-0-1,0,after,frames/s,68.16564584455573
+final-perf,1-1-0-0-1,0,after,total cycles/update,1163684.8398883988
+final-perf,1-1-0-0-1,0,after,total cycles/frame,63071718.32195122
+final-perf,1-1-0-0-1,0,after,IPC,2.310117377694393
+final-perf,1-1-0-0-1,0,after,cache-misses:u/frame,417074.2
+final-perf,1-1-0-0-1,0,after,L1-dcache-load-misses/frame,1601741.219512195
+final-perf,1-1-0-0-1,0,after,context-switches/frame,61.20975609756098
+final-perf,1-1-0-0-1,0,after,cpu-migrations/frame,5.195121951219512
+final-perf,1-1-0-0-1,0,before,updates/s,3590.8165573399683
+final-perf,1-1-0-0-1,0,before,frames/s,66.1947656239605
+final-perf,1-1-0-0-1,0,before,total cycles/update,1194705.3939786938
+final-perf,1-1-0-0-1,0,before,total cycles/frame,64808264.96482412
+final-perf,1-1-0-0-1,0,before,IPC,2.250263394502426
+final-perf,1-1-0-0-1,0,before,cache-misses:u/frame,424867.62814070354
+final-perf,1-1-0-0-1,0,before,L1-dcache-load-misses/frame,1616714.9798994975
+final-perf,1-1-0-0-1,0,before,context-switches/frame,61.82914572864322
+final-perf,1-1-0-0-1,0,before,cpu-migrations/frame,5.522613065326633
+final-perf,1-1-0-0-1,1,after,updates/s,3710.082287424154
+final-perf,1-1-0-0-1,1,after,frames/s,69.81963261574266
+final-perf,1-1-0-0-1,1,after,total cycles/update,1165662.1779729365
+final-perf,1-1-0-0-1,1,after,total cycles/frame,61941067.82857143
+final-perf,1-1-0-0-1,1,after,IPC,2.351788843463151
+final-perf,1-1-0-0-1,1,after,cache-misses:u/frame,402357.58095238096
+final-perf,1-1-0-0-1,1,after,L1-dcache-load-misses/frame,1600865.780952381
+final-perf,1-1-0-0-1,1,after,context-switches/frame,60.042857142857144
+final-perf,1-1-0-0-1,1,after,cpu-migrations/frame,5.352380952380952
+final-perf,1-1-0-0-1,1,before,updates/s,3711.286158910073
+final-perf,1-1-0-0-1,1,before,frames/s,70.34355526946227
+final-perf,1-1-0-0-1,1,before,total cycles/update,1161841.4399642379
+final-perf,1-1-0-0-1,1,before,total cycles/frame,61298096.7264151
+final-perf,1-1-0-0-1,1,before,IPC,2.3775386393529923
+final-perf,1-1-0-0-1,1,before,cache-misses:u/frame,415153.87735849054
+final-perf,1-1-0-0-1,1,before,L1-dcache-load-misses/frame,1600679.4009433961
+final-perf,1-1-0-0-1,1,before,context-switches/frame,59.5377358490566
+final-perf,1-1-0-0-1,1,before,cpu-migrations/frame,5.259433962264151
+final-perf,1-1-0-0-1,2,after,updates/s,3809.343409167946
+final-perf,1-1-0-0-1,2,after,frames/s,75.4358330176327
+final-perf,1-1-0-0-1,2,after,total cycles/update,1132132.5326703307
+final-perf,1-1-0-0-1,2,after,total cycles/frame,57170199.21585903
+final-perf,1-1-0-0-1,2,after,IPC,2.5478360969760967
+final-perf,1-1-0-0-1,2,after,cache-misses:u/frame,370773.7621145375
+final-perf,1-1-0-0-1,2,after,L1-dcache-load-misses/frame,1597025.1982378855
+final-perf,1-1-0-0-1,2,after,context-switches/frame,57.23788546255506
+final-perf,1-1-0-0-1,2,after,cpu-migrations/frame,4.6607929515418505
+final-perf,1-1-0-0-1,2,before,updates/s,3825.9657044205774
+final-perf,1-1-0-0-1,2,before,frames/s,74.69995518002689
+final-perf,1-1-0-0-1,2,before,total cycles/update,1127737.3419819507
+final-perf,1-1-0-0-1,2,before,total cycles/frame,57760200.57333333
+final-perf,1-1-0-0-1,2,before,IPC,2.5231765222812195
+final-perf,1-1-0-0-1,2,before,cache-misses:u/frame,382041.0
+final-perf,1-1-0-0-1,2,before,L1-dcache-load-misses/frame,1590288.6133333333
+final-perf,1-1-0-0-1,2,before,context-switches/frame,57.675555555555555
+final-perf,1-1-0-0-1,2,before,cpu-migrations/frame,4.751111111111111
+final-perf,1-1-0-0-1,3,after,updates/s,3730.767696378941
+final-perf,1-1-0-0-1,3,after,frames/s,71.14456309259431
+final-perf,1-1-0-0-1,3,after,total cycles/update,1157253.920335056
+final-perf,1-1-0-0-1,3,after,total cycles/frame,60685530.345794395
+final-perf,1-1-0-0-1,3,after,IPC,2.4011922515523016
+final-perf,1-1-0-0-1,3,after,cache-misses:u/frame,409369.20560747664
+final-perf,1-1-0-0-1,3,after,L1-dcache-load-misses/frame,1596997.9345794392
+final-perf,1-1-0-0-1,3,after,context-switches/frame,59.228971962616825
+final-perf,1-1-0-0-1,3,after,cpu-migrations/frame,5.126168224299065
+final-perf,1-1-0-0-1,3,before,updates/s,3707.337841388738
+final-perf,1-1-0-0-1,3,before,frames/s,70.8472061919793
+final-perf,1-1-0-0-1,3,before,total cycles/update,1165172.3954781985
+final-perf,1-1-0-0-1,3,before,total cycles/frame,60971885.07042254
+final-perf,1-1-0-0-1,3,before,IPC,2.38868652816903
+final-perf,1-1-0-0-1,3,before,cache-misses:u/frame,411253.6854460094
+final-perf,1-1-0-0-1,3,before,L1-dcache-load-misses/frame,1600291.572769953
+final-perf,1-1-0-0-1,3,before,context-switches/frame,59.262910798122064
+final-perf,1-1-0-0-1,3,before,cpu-migrations/frame,5.244131455399061
+final-perf,1-1-0-0-1,4,after,updates/s,3707.355289321768
+final-perf,1-1-0-0-1,4,after,frames/s,71.03993838779175
+final-perf,1-1-0-0-1,4,after,total cycles/update,1163046.0048352436
+final-perf,1-1-0-0-1,4,after,total cycles/frame,60695784.028037384
+final-perf,1-1-0-0-1,4,after,IPC,2.3993015579957393
+final-perf,1-1-0-0-1,4,after,cache-misses:u/frame,417928.4813084112
+final-perf,1-1-0-0-1,4,after,L1-dcache-load-misses/frame,1591718.8224299066
+final-perf,1-1-0-0-1,4,after,context-switches/frame,59.126168224299064
+final-perf,1-1-0-0-1,4,after,cpu-migrations/frame,5.093457943925234
+final-perf,1-1-0-0-1,4,before,updates/s,3725.9875080193997
+final-perf,1-1-0-0-1,4,before,frames/s,70.47099221162573
+final-perf,1-1-0-0-1,4,before,total cycles/update,1154977.7981086627
+final-perf,1-1-0-0-1,4,before,total cycles/frame,61066727.070754714
+final-perf,1-1-0-0-1,4,before,IPC,2.384263605600258
+final-perf,1-1-0-0-1,4,before,cache-misses:u/frame,404972.28301886795
+final-perf,1-1-0-0-1,4,before,L1-dcache-load-misses/frame,1593978.2216981133
+final-perf,1-1-0-0-1,4,before,context-switches/frame,59.929245283018865
+final-perf,1-1-0-0-1,4,before,cpu-migrations/frame,5.25
+final-perf,2-1-1-0-1,0,after,updates/s,3706.305291408502
+final-perf,2-1-1-0-1,0,after,frames/s,38.103442563202016
+final-perf,2-1-1-0-1,0,after,total cycles/update,1194950.3544609332
+final-perf,2-1-1-0-1,0,after,total cycles/frame,116232301.43478261
+final-perf,2-1-1-0-1,0,after,IPC,2.414098684136159
+final-perf,2-1-1-0-1,0,after,cache-misses:u/frame,667752.0
+final-perf,2-1-1-0-1,0,after,L1-dcache-load-misses/frame,3065022.243478261
+final-perf,2-1-1-0-1,0,after,context-switches/frame,106.10434782608695
+final-perf,2-1-1-0-1,0,after,cpu-migrations/frame,6.547826086956522
+final-perf,2-1-1-0-1,0,before,updates/s,3686.199435653535
+final-perf,2-1-1-0-1,0,before,frames/s,36.891906713329945
+final-perf,2-1-1-0-1,0,before,total cycles/update,1181331.8537552971
+final-perf,2-1-1-0-1,0,before,total cycles/frame,118037401.7117117
+final-perf,2-1-1-0-1,0,before,IPC,2.377143704303607
+final-perf,2-1-1-0-1,0,before,cache-misses:u/frame,669624.3063063063
+final-perf,2-1-1-0-1,0,before,L1-dcache-load-misses/frame,3081408.5315315314
+final-perf,2-1-1-0-1,0,before,context-switches/frame,109.08108108108108
+final-perf,2-1-1-0-1,0,before,cpu-migrations/frame,7.054054054054054
+final-perf,2-1-1-0-1,1,after,updates/s,3698.2400541011807
+final-perf,2-1-1-0-1,1,after,frames/s,37.4597639040367
+final-perf,2-1-1-0-1,1,after,total cycles/update,1182953.5553961995
+final-perf,2-1-1-0-1,1,after,total cycles/frame,116787874.90265487
+final-perf,2-1-1-0-1,1,after,IPC,2.403078811582509
+final-perf,2-1-1-0-1,1,after,cache-misses:u/frame,661621.1327433628
+final-perf,2-1-1-0-1,1,after,L1-dcache-load-misses/frame,3089082.2654867256
+final-perf,2-1-1-0-1,1,after,context-switches/frame,107.38938053097345
+final-perf,2-1-1-0-1,1,after,cpu-migrations/frame,6.371681415929204
+final-perf,2-1-1-0-1,1,before,updates/s,3604.116138176084
+final-perf,2-1-1-0-1,1,before,frames/s,36.26406896161665
+final-perf,2-1-1-0-1,1,before,total cycles/update,1217743.9962152683
+final-perf,2-1-1-0-1,1,before,total cycles/frame,121025878.08256881
+final-perf,2-1-1-0-1,1,before,IPC,2.3159065073197236
+final-perf,2-1-1-0-1,1,before,cache-misses:u/frame,720122.0
+final-perf,2-1-1-0-1,1,before,L1-dcache-load-misses/frame,3092662.5412844038
+final-perf,2-1-1-0-1,1,before,context-switches/frame,109.30275229357798
+final-perf,2-1-1-0-1,1,before,cpu-migrations/frame,6.467889908256881
+final-perf,2-1-1-0-1,2,after,updates/s,3764.240874215299
+final-perf,2-1-1-0-1,2,after,frames/s,38.86139436011559
+final-perf,2-1-1-0-1,2,after,total cycles/update,1167301.815847525
+final-perf,2-1-1-0-1,2,after,total cycles/frame,113068645.11965811
+final-perf,2-1-1-0-1,2,after,IPC,2.4789990226464407
+final-perf,2-1-1-0-1,2,after,cache-misses:u/frame,664316.8974358974
+final-perf,2-1-1-0-1,2,after,L1-dcache-load-misses/frame,3076143.547008547
+final-perf,2-1-1-0-1,2,after,context-switches/frame,105.35897435897436
+final-perf,2-1-1-0-1,2,after,cpu-migrations/frame,6.888888888888889
+final-perf,2-1-1-0-1,2,before,updates/s,3768.428932471688
+final-perf,2-1-1-0-1,2,before,frames/s,39.08540160250147
+final-perf,2-1-1-0-1,2,before,total cycles/update,1163110.215874132
+final-perf,2-1-1-0-1,2,before,total cycles/frame,112141567.16949153
+final-perf,2-1-1-0-1,2,before,IPC,2.5002630038241964
+final-perf,2-1-1-0-1,2,before,cache-misses:u/frame,678586.7033898305
+final-perf,2-1-1-0-1,2,before,L1-dcache-load-misses/frame,3065295.3220338984
+final-perf,2-1-1-0-1,2,before,context-switches/frame,105.13559322033899
+final-perf,2-1-1-0-1,2,before,cpu-migrations/frame,6.864406779661017
+final-perf,2-1-1-0-1,3,after,updates/s,3703.997435719502
+final-perf,2-1-1-0-1,3,after,frames/s,37.67113102614178
+final-perf,2-1-1-0-1,3,after,total cycles/update,1199765.8785797127
+final-perf,2-1-1-0-1,3,after,total cycles/frame,117966453.79824561
+final-perf,2-1-1-0-1,3,after,IPC,2.3799990054755185
+final-perf,2-1-1-0-1,3,after,cache-misses:u/frame,668054.4210526316
+final-perf,2-1-1-0-1,3,after,L1-dcache-load-misses/frame,3202523.3684210526
+final-perf,2-1-1-0-1,3,after,context-switches/frame,107.40350877192982
+final-perf,2-1-1-0-1,3,after,cpu-migrations/frame,6.815789473684211
+final-perf,2-1-1-0-1,3,before,updates/s,3711.0043711669186
+final-perf,2-1-1-0-1,3,before,frames/s,38.22693503083085
+final-perf,2-1-1-0-1,3,before,total cycles/update,1208314.9493013257
+final-perf,2-1-1-0-1,3,before,total cycles/frame,117301113.86086957
+final-perf,2-1-1-0-1,3,before,IPC,2.3929223954926924
+final-perf,2-1-1-0-1,3,before,cache-misses:u/frame,683448.7739130434
+final-perf,2-1-1-0-1,3,before,L1-dcache-load-misses/frame,3078093.747826087
+final-perf,2-1-1-0-1,3,before,context-switches/frame,106.0
+final-perf,2-1-1-0-1,3,before,cpu-migrations/frame,7.104347826086957
+final-perf,2-1-1-0-1,4,after,updates/s,3713.201353985024
+final-perf,2-1-1-0-1,4,after,frames/s,37.39010452684973
+final-perf,2-1-1-0-1,4,after,total cycles/update,1172780.8872749954
+final-perf,2-1-1-0-1,4,after,total cycles/frame,116468558.55752212
+final-perf,2-1-1-0-1,4,after,IPC,2.4100438599156178
+final-perf,2-1-1-0-1,4,after,cache-misses:u/frame,668377.0619469027
+final-perf,2-1-1-0-1,4,after,L1-dcache-load-misses/frame,3083862.849557522
+final-perf,2-1-1-0-1,4,after,context-switches/frame,108.39823008849558
+final-perf,2-1-1-0-1,4,after,cpu-migrations/frame,7.504424778761062
+final-perf,2-1-1-0-1,4,before,updates/s,3697.6633949555317
+final-perf,2-1-1-0-1,4,before,frames/s,37.12580011071444
+final-perf,2-1-1-0-1,4,before,total cycles/update,1179868.726669655
+final-perf,2-1-1-0-1,4,before,total cycles/frame,117512818.26785715
+final-perf,2-1-1-0-1,4,before,IPC,2.387780454448457
+final-perf,2-1-1-0-1,4,before,cache-misses:u/frame,705698.6517857143
+final-perf,2-1-1-0-1,4,before,L1-dcache-load-misses/frame,3078541.6071428573
+final-perf,2-1-1-0-1,4,before,context-switches/frame,108.51785714285714
+final-perf,2-1-1-0-1,4,before,cpu-migrations/frame,7.133928571428571
+final-perf,2-1-1-50-1,0,after,updates/s,3743.846289183743
+final-perf,2-1-1-50-1,0,after,frames/s,12.614484748092059
+final-perf,2-1-1-50-1,0,after,total cycles/update,424721.77886150026
+final-perf,2-1-1-50-1,0,after,total cycles/frame,126052953.21052632
+final-perf,2-1-1-50-1,0,after,IPC,2.2782760457014968
+final-perf,2-1-1-50-1,0,after,cache-misses:u/frame,763117.6842105263
+final-perf,2-1-1-50-1,0,after,L1-dcache-load-misses/frame,3158094.710526316
+final-perf,2-1-1-50-1,0,after,context-switches/frame,311.1842105263158
+final-perf,2-1-1-50-1,0,after,cpu-migrations/frame,8.289473684210526
+final-perf,2-1-1-50-1,0,before,updates/s,3705.694035303871
+final-perf,2-1-1-50-1,0,before,frames/s,12.779385213268279
+final-perf,2-1-1-50-1,0,before,total cycles/update,424000.754001238
+final-perf,2-1-1-50-1,0,before,total cycles/frame,122949346.84615384
+final-perf,2-1-1-50-1,0,before,IPC,2.331312185798961
+final-perf,2-1-1-50-1,0,before,cache-misses:u/frame,777708.8974358974
+final-perf,2-1-1-50-1,0,before,L1-dcache-load-misses/frame,3176455.435897436
+final-perf,2-1-1-50-1,0,before,context-switches/frame,301.1794871794872
+final-perf,2-1-1-50-1,0,before,cpu-migrations/frame,11.820512820512821
+final-perf,2-1-1-50-1,1,after,updates/s,3751.1786991160175
+final-perf,2-1-1-50-1,1,after,frames/s,12.994845378000061
+final-perf,2-1-1-50-1,1,after,total cycles/update,412268.1470065731
+final-perf,2-1-1-50-1,1,after,total cycles/frame,119008071.76923077
+final-perf,2-1-1-50-1,1,after,IPC,2.4041309422502715
+final-perf,2-1-1-50-1,1,after,cache-misses:u/frame,708327.5384615385
+final-perf,2-1-1-50-1,1,after,L1-dcache-load-misses/frame,3127185.435897436
+final-perf,2-1-1-50-1,1,after,context-switches/frame,299.35897435897436
+final-perf,2-1-1-50-1,1,after,cpu-migrations/frame,12.794871794871796
+final-perf,2-1-1-50-1,1,before,updates/s,3721.056629472471
+final-perf,2-1-1-50-1,1,before,frames/s,13.096547750013096
+final-perf,2-1-1-50-1,1,before,total cycles/update,414496.1093708755
+final-perf,2-1-1-50-1,1,before,total cycles/frame,117768707.075
+final-perf,2-1-1-50-1,1,before,IPC,2.429575890799088
+final-perf,2-1-1-50-1,1,before,cache-misses:u/frame,700232.35
+final-perf,2-1-1-50-1,1,before,L1-dcache-load-misses/frame,3130166.425
+final-perf,2-1-1-50-1,1,before,context-switches/frame,294.8
+final-perf,2-1-1-50-1,1,before,cpu-migrations/frame,11.825
+final-perf,2-1-1-50-1,2,after,updates/s,3753.723480364739
+final-perf,2-1-1-50-1,2,after,frames/s,13.007791667208659
+final-perf,2-1-1-50-1,2,after,total cycles/update,410809.61587109073
+final-perf,2-1-1-50-1,2,after,total cycles/frame,118549384.9
+final-perf,2-1-1-50-1,2,after,IPC,2.4155992786597746
+final-perf,2-1-1-50-1,2,after,cache-misses:u/frame,705182.625
+final-perf,2-1-1-50-1,2,after,L1-dcache-load-misses/frame,3142295.4
+final-perf,2-1-1-50-1,2,after,context-switches/frame,298.875
+final-perf,2-1-1-50-1,2,after,cpu-migrations/frame,11.25
+final-perf,2-1-1-50-1,2,before,updates/s,3731.321083996867
+final-perf,2-1-1-50-1,2,before,frames/s,12.89055915279279
+final-perf,2-1-1-50-1,2,before,total cycles/update,420270.71193196916
+final-perf,2-1-1-50-1,2,before,total cycles/frame,121652206.84615384
+final-perf,2-1-1-50-1,2,before,IPC,2.353009253017299
+final-perf,2-1-1-50-1,2,before,cache-misses:u/frame,705701.717948718
+final-perf,2-1-1-50-1,2,before,L1-dcache-load-misses/frame,3149724.2564102565
+final-perf,2-1-1-50-1,2,before,context-switches/frame,303.43589743589746
+final-perf,2-1-1-50-1,2,before,cpu-migrations/frame,11.153846153846153
+final-perf,2-1-1-50-1,3,after,updates/s,3748.7207432315686
+final-perf,2-1-1-50-1,3,after,frames/s,12.958704926966067
+final-perf,2-1-1-50-1,3,after,total cycles/update,410952.72274419427
+final-perf,2-1-1-50-1,3,after,total cycles/frame,118881246.61538461
+final-perf,2-1-1-50-1,3,after,IPC,2.406821624509581
+final-perf,2-1-1-50-1,3,after,cache-misses:u/frame,678846.4615384615
+final-perf,2-1-1-50-1,3,after,L1-dcache-load-misses/frame,3122081.230769231
+final-perf,2-1-1-50-1,3,after,context-switches/frame,300.28205128205127
+final-perf,2-1-1-50-1,3,after,cpu-migrations/frame,12.538461538461538
+final-perf,2-1-1-50-1,3,before,updates/s,3741.1293312605294
+final-perf,2-1-1-50-1,3,before,frames/s,13.009230048719568
+final-perf,2-1-1-50-1,3,before,total cycles/update,411226.0110405981
+final-perf,2-1-1-50-1,3,before,total cycles/frame,118258320.125
+final-perf,2-1-1-50-1,3,before,IPC,2.422570016614296
+final-perf,2-1-1-50-1,3,before,cache-misses:u/frame,678013.975
+final-perf,2-1-1-50-1,3,before,L1-dcache-load-misses/frame,3119312.8
+final-perf,2-1-1-50-1,3,before,context-switches/frame,297.875
+final-perf,2-1-1-50-1,3,before,cpu-migrations/frame,10.625
+final-perf,2-1-1-50-1,4,after,updates/s,3809.0619416028458
+final-perf,2-1-1-50-1,4,after,frames/s,13.34457315267168
+final-perf,2-1-1-50-1,4,after,total cycles/update,387972.77492950525
+final-perf,2-1-1-50-1,4,after,total cycles/frame,110742570.36585365
+final-perf,2-1-1-50-1,4,after,IPC,2.5833891344119757
+final-perf,2-1-1-50-1,4,after,cache-misses:u/frame,639558.3902439025
+final-perf,2-1-1-50-1,4,after,L1-dcache-load-misses/frame,3242101.4146341463
+final-perf,2-1-1-50-1,4,after,context-switches/frame,294.780487804878
+final-perf,2-1-1-50-1,4,after,cpu-migrations/frame,7.0
+final-perf,2-1-1-50-1,4,before,updates/s,3737.0765462943177
+final-perf,2-1-1-50-1,4,before,frames/s,13.149460050296685
+final-perf,2-1-1-50-1,4,before,total cycles/update,414070.4439655172
+final-perf,2-1-1-50-1,4,before,total cycles/frame,117678820.175
+final-perf,2-1-1-50-1,4,before,IPC,2.426968884887531
+final-perf,2-1-1-50-1,4,before,cache-misses:u/frame,688761.425
+final-perf,2-1-1-50-1,4,before,L1-dcache-load-misses/frame,3110921.4
+final-perf,2-1-1-50-1,4,before,context-switches/frame,294.575
+final-perf,2-1-1-50-1,4,before,cpu-migrations/frame,10.2
+final-timing,1-0-1-0-1,0,after,updates/s,76.34677368492682
+final-timing,1-0-1-0-1,0,after,frames/s,76.34677368492682
+final-timing,1-0-1-0-1,0,after,update mean us,3.9678
+final-timing,1-0-1-0-1,0,after,update median us,3.79
+final-timing,1-0-1-0-1,0,after,update p95 us,5.51
+final-timing,1-0-1-0-1,0,after,update p99 us,6.3
+final-timing,1-0-1-0-1,0,after,update max us,9.64
+final-timing,1-0-1-0-1,0,after,updatePlayer mean us,3.40437
+final-timing,1-0-1-0-1,0,after,updatePlayer median us,3.24
+final-timing,1-0-1-0-1,0,after,updatePlayer p95 us,4.7
+final-timing,1-0-1-0-1,0,after,updatePlayer p99 us,5.49
+final-timing,1-0-1-0-1,0,after,updatePlayer max us,7.8
+final-timing,1-0-1-0-1,0,after,render mean us,5786.0
+final-timing,1-0-1-0-1,0,after,render median us,5837.9
+final-timing,1-0-1-0-1,0,after,render p95 us,6297.62
+final-timing,1-0-1-0-1,0,after,render p99 us,6489.86
+final-timing,1-0-1-0-1,0,after,render max us,6999.76
+final-timing,1-0-1-0-1,0,after,renderPlayer mean us,5785.75
+final-timing,1-0-1-0-1,0,after,renderPlayer median us,5837.33
+final-timing,1-0-1-0-1,0,after,renderPlayer p95 us,6297.32
+final-timing,1-0-1-0-1,0,after,renderPlayer p99 us,6489.48
+final-timing,1-0-1-0-1,0,after,renderPlayer max us,6999.36
+final-timing,1-0-1-0-1,0,after,interval mean us,13097.9
+final-timing,1-0-1-0-1,0,after,interval median us,13041.0
+final-timing,1-0-1-0-1,0,after,interval p95 us,13923.1
+final-timing,1-0-1-0-1,0,after,interval p99 us,14528.6
+final-timing,1-0-1-0-1,0,after,interval max us,17636.8
+final-timing,1-0-1-0-1,0,after,mutex mean us,0.0757391
+final-timing,1-0-1-0-1,0,after,mutex median us,0.07
+final-timing,1-0-1-0-1,0,after,mutex p95 us,0.12
+final-timing,1-0-1-0-1,0,after,mutex p99 us,0.36
+final-timing,1-0-1-0-1,0,after,mutex max us,0.44
+final-timing,1-0-1-0-1,0,before,updates/s,76.37060329456142
+final-timing,1-0-1-0-1,0,before,frames/s,76.37060329456142
+final-timing,1-0-1-0-1,0,before,update mean us,4.01245
+final-timing,1-0-1-0-1,0,before,update median us,3.66
+final-timing,1-0-1-0-1,0,before,update p95 us,5.65
+final-timing,1-0-1-0-1,0,before,update p99 us,13.06
+final-timing,1-0-1-0-1,0,before,update max us,17.29
+final-timing,1-0-1-0-1,0,before,updatePlayer mean us,3.55988
+final-timing,1-0-1-0-1,0,before,updatePlayer median us,3.24
+final-timing,1-0-1-0-1,0,before,updatePlayer p95 us,5.06
+final-timing,1-0-1-0-1,0,before,updatePlayer p99 us,12.68
+final-timing,1-0-1-0-1,0,before,updatePlayer max us,16.81
+final-timing,1-0-1-0-1,0,before,render mean us,5722.96
+final-timing,1-0-1-0-1,0,before,render median us,5752.75
+final-timing,1-0-1-0-1,0,before,render p95 us,6345.96
+final-timing,1-0-1-0-1,0,before,render p99 us,6899.9
+final-timing,1-0-1-0-1,0,before,render max us,7358.1
+final-timing,1-0-1-0-1,0,before,renderPlayer mean us,5722.77
+final-timing,1-0-1-0-1,0,before,renderPlayer median us,5752.56
+final-timing,1-0-1-0-1,0,before,renderPlayer p95 us,6345.79
+final-timing,1-0-1-0-1,0,before,renderPlayer p99 us,6899.7
+final-timing,1-0-1-0-1,0,before,renderPlayer max us,7357.96
+final-timing,1-0-1-0-1,0,before,interval mean us,13092.1
+final-timing,1-0-1-0-1,0,before,interval median us,13018.0
+final-timing,1-0-1-0-1,0,before,interval p95 us,13969.2
+final-timing,1-0-1-0-1,0,before,interval p99 us,14395.3
+final-timing,1-0-1-0-1,0,before,interval max us,14858.0
+final-timing,1-0-1-0-1,0,before,mutex mean us,0.0825652
+final-timing,1-0-1-0-1,0,before,mutex median us,0.06
+final-timing,1-0-1-0-1,0,before,mutex p95 us,0.12
+final-timing,1-0-1-0-1,0,before,mutex p99 us,0.53
+final-timing,1-0-1-0-1,0,before,mutex max us,0.66
+final-timing,1-0-1-0-1,1,after,updates/s,77.0106586734914
+final-timing,1-0-1-0-1,1,after,frames/s,77.0106586734914
+final-timing,1-0-1-0-1,1,after,update mean us,3.72044
+final-timing,1-0-1-0-1,1,after,update median us,3.48
+final-timing,1-0-1-0-1,1,after,update p95 us,5.42
+final-timing,1-0-1-0-1,1,after,update p99 us,8.33
+final-timing,1-0-1-0-1,1,after,update max us,18.13
+final-timing,1-0-1-0-1,1,after,updatePlayer mean us,3.26901
+final-timing,1-0-1-0-1,1,after,updatePlayer median us,3.05
+final-timing,1-0-1-0-1,1,after,updatePlayer p95 us,4.68
+final-timing,1-0-1-0-1,1,after,updatePlayer p99 us,6.66
+final-timing,1-0-1-0-1,1,after,updatePlayer max us,17.59
+final-timing,1-0-1-0-1,1,after,render mean us,5763.6
+final-timing,1-0-1-0-1,1,after,render median us,5867.78
+final-timing,1-0-1-0-1,1,after,render p95 us,6287.63
+final-timing,1-0-1-0-1,1,after,render p99 us,6463.02
+final-timing,1-0-1-0-1,1,after,render max us,8182.86
+final-timing,1-0-1-0-1,1,after,renderPlayer mean us,5763.38
+final-timing,1-0-1-0-1,1,after,renderPlayer median us,5867.64
+final-timing,1-0-1-0-1,1,after,renderPlayer p95 us,6287.29
+final-timing,1-0-1-0-1,1,after,renderPlayer p99 us,6462.83
+final-timing,1-0-1-0-1,1,after,renderPlayer max us,8182.68
+final-timing,1-0-1-0-1,1,after,interval mean us,12985.5
+final-timing,1-0-1-0-1,1,after,interval median us,12964.2
+final-timing,1-0-1-0-1,1,after,interval p95 us,13795.9
+final-timing,1-0-1-0-1,1,after,interval p99 us,14117.3
+final-timing,1-0-1-0-1,1,after,interval max us,15943.7
+final-timing,1-0-1-0-1,1,after,mutex mean us,0.0884483
+final-timing,1-0-1-0-1,1,after,mutex median us,0.07
+final-timing,1-0-1-0-1,1,after,mutex p95 us,0.25
+final-timing,1-0-1-0-1,1,after,mutex p99 us,0.57
+final-timing,1-0-1-0-1,1,after,mutex max us,0.61
+final-timing,1-0-1-0-1,1,before,updates/s,77.22136235791436
+final-timing,1-0-1-0-1,1,before,frames/s,77.22136235791436
+final-timing,1-0-1-0-1,1,before,update mean us,3.81705
+final-timing,1-0-1-0-1,1,before,update median us,3.63
+final-timing,1-0-1-0-1,1,before,update p95 us,5.36
+final-timing,1-0-1-0-1,1,before,update p99 us,6.1
+final-timing,1-0-1-0-1,1,before,update max us,7.14
+final-timing,1-0-1-0-1,1,before,updatePlayer mean us,3.29955
+final-timing,1-0-1-0-1,1,before,updatePlayer median us,3.14
+final-timing,1-0-1-0-1,1,before,updatePlayer p95 us,4.77
+final-timing,1-0-1-0-1,1,before,updatePlayer p99 us,5.5
+final-timing,1-0-1-0-1,1,before,updatePlayer max us,6.7
+final-timing,1-0-1-0-1,1,before,render mean us,5775.46
+final-timing,1-0-1-0-1,1,before,render median us,5874.53
+final-timing,1-0-1-0-1,1,before,render p95 us,6402.1
+final-timing,1-0-1-0-1,1,before,render p99 us,6650.16
+final-timing,1-0-1-0-1,1,before,render max us,7142.58
+final-timing,1-0-1-0-1,1,before,renderPlayer mean us,5775.25
+final-timing,1-0-1-0-1,1,before,renderPlayer median us,5874.37
+final-timing,1-0-1-0-1,1,before,renderPlayer p95 us,6401.91
+final-timing,1-0-1-0-1,1,before,renderPlayer p99 us,6649.99
+final-timing,1-0-1-0-1,1,before,renderPlayer max us,7142.25
+final-timing,1-0-1-0-1,1,before,interval mean us,12950.3
+final-timing,1-0-1-0-1,1,before,interval median us,12914.2
+final-timing,1-0-1-0-1,1,before,interval p95 us,13765.0
+final-timing,1-0-1-0-1,1,before,interval p99 us,14045.5
+final-timing,1-0-1-0-1,1,before,interval max us,15084.8
+final-timing,1-0-1-0-1,1,before,mutex mean us,0.06375
+final-timing,1-0-1-0-1,1,before,mutex median us,0.05
+final-timing,1-0-1-0-1,1,before,mutex p95 us,0.11
+final-timing,1-0-1-0-1,1,before,mutex p99 us,0.35
+final-timing,1-0-1-0-1,1,before,mutex max us,0.61
+final-timing,1-0-1-0-1,2,after,updates/s,75.36570627959017
+final-timing,1-0-1-0-1,2,after,frames/s,75.36570627959017
+final-timing,1-0-1-0-1,2,after,update mean us,4.07441
+final-timing,1-0-1-0-1,2,after,update median us,3.89
+final-timing,1-0-1-0-1,2,after,update p95 us,5.69
+final-timing,1-0-1-0-1,2,after,update p99 us,6.68
+final-timing,1-0-1-0-1,2,after,update max us,7.11
+final-timing,1-0-1-0-1,2,after,updatePlayer mean us,3.49736
+final-timing,1-0-1-0-1,2,after,updatePlayer median us,3.34
+final-timing,1-0-1-0-1,2,after,updatePlayer p95 us,5.12
+final-timing,1-0-1-0-1,2,after,updatePlayer p99 us,5.88
+final-timing,1-0-1-0-1,2,after,updatePlayer max us,6.69
+final-timing,1-0-1-0-1,2,after,render mean us,5860.91
+final-timing,1-0-1-0-1,2,after,render median us,5939.41
+final-timing,1-0-1-0-1,2,after,render p95 us,6572.8
+final-timing,1-0-1-0-1,2,after,render p99 us,7138.25
+final-timing,1-0-1-0-1,2,after,render max us,7192.09
+final-timing,1-0-1-0-1,2,after,renderPlayer mean us,5860.67
+final-timing,1-0-1-0-1,2,after,renderPlayer median us,5939.29
+final-timing,1-0-1-0-1,2,after,renderPlayer p95 us,6572.55
+final-timing,1-0-1-0-1,2,after,renderPlayer p99 us,7137.92
+final-timing,1-0-1-0-1,2,after,renderPlayer max us,7191.92
+final-timing,1-0-1-0-1,2,after,interval mean us,13266.8
+final-timing,1-0-1-0-1,2,after,interval median us,13197.0
+final-timing,1-0-1-0-1,2,after,interval p95 us,14186.8
+final-timing,1-0-1-0-1,2,after,interval p99 us,14745.7
+final-timing,1-0-1-0-1,2,after,interval max us,15477.3
+final-timing,1-0-1-0-1,2,after,mutex mean us,0.0786784
+final-timing,1-0-1-0-1,2,after,mutex median us,0.06
+final-timing,1-0-1-0-1,2,after,mutex p95 us,0.12
+final-timing,1-0-1-0-1,2,after,mutex p99 us,0.21
+final-timing,1-0-1-0-1,2,after,mutex max us,0.64
+final-timing,1-0-1-0-1,2,before,updates/s,74.36770847858277
+final-timing,1-0-1-0-1,2,before,frames/s,74.36770847858277
+final-timing,1-0-1-0-1,2,before,update mean us,4.31898
+final-timing,1-0-1-0-1,2,before,update median us,4.03
+final-timing,1-0-1-0-1,2,before,update p95 us,6.05
+final-timing,1-0-1-0-1,2,before,update p99 us,7.98
+final-timing,1-0-1-0-1,2,before,update max us,10.96
+final-timing,1-0-1-0-1,2,before,updatePlayer mean us,3.733
+final-timing,1-0-1-0-1,2,before,updatePlayer median us,3.41
+final-timing,1-0-1-0-1,2,before,updatePlayer p95 us,5.34
+final-timing,1-0-1-0-1,2,before,updatePlayer p99 us,6.69
+final-timing,1-0-1-0-1,2,before,updatePlayer max us,10.54
+final-timing,1-0-1-0-1,2,before,render mean us,5985.05
+final-timing,1-0-1-0-1,2,before,render median us,6024.61
+final-timing,1-0-1-0-1,2,before,render p95 us,6811.36
+final-timing,1-0-1-0-1,2,before,render p99 us,7719.93
+final-timing,1-0-1-0-1,2,before,render max us,8043.74
+final-timing,1-0-1-0-1,2,before,renderPlayer mean us,5984.84
+final-timing,1-0-1-0-1,2,before,renderPlayer median us,6024.35
+final-timing,1-0-1-0-1,2,before,renderPlayer p95 us,6810.94
+final-timing,1-0-1-0-1,2,before,renderPlayer p99 us,7719.51
+final-timing,1-0-1-0-1,2,before,renderPlayer max us,8043.5
+final-timing,1-0-1-0-1,2,before,interval mean us,13445.4
+final-timing,1-0-1-0-1,2,before,interval median us,13304.4
+final-timing,1-0-1-0-1,2,before,interval p95 us,14529.0
+final-timing,1-0-1-0-1,2,before,interval p99 us,15842.2
+final-timing,1-0-1-0-1,2,before,interval max us,16496.7
+final-timing,1-0-1-0-1,2,before,mutex mean us,0.0900446
+final-timing,1-0-1-0-1,2,before,mutex median us,0.06
+final-timing,1-0-1-0-1,2,before,mutex p95 us,0.18
+final-timing,1-0-1-0-1,2,before,mutex p99 us,0.64
+final-timing,1-0-1-0-1,2,before,mutex max us,0.69
+final-timing,1-0-1-0-1,3,after,updates/s,68.23598333044856
+final-timing,1-0-1-0-1,3,after,frames/s,68.23598333044856
+final-timing,1-0-1-0-1,3,after,update mean us,5.65601
+final-timing,1-0-1-0-1,3,after,update median us,5.25
+final-timing,1-0-1-0-1,3,after,update p95 us,8.81
+final-timing,1-0-1-0-1,3,after,update p99 us,11.69
+final-timing,1-0-1-0-1,3,after,update max us,12.38
+final-timing,1-0-1-0-1,3,after,updatePlayer mean us,4.61128
+final-timing,1-0-1-0-1,3,after,updatePlayer median us,4.26
+final-timing,1-0-1-0-1,3,after,updatePlayer p95 us,7.58
+final-timing,1-0-1-0-1,3,after,updatePlayer p99 us,9.31
+final-timing,1-0-1-0-1,3,after,updatePlayer max us,10.46
+final-timing,1-0-1-0-1,3,after,render mean us,6319.07
+final-timing,1-0-1-0-1,3,after,render median us,6297.81
+final-timing,1-0-1-0-1,3,after,render p95 us,7528.63
+final-timing,1-0-1-0-1,3,after,render p99 us,8234.24
+final-timing,1-0-1-0-1,3,after,render max us,8626.23
+final-timing,1-0-1-0-1,3,after,renderPlayer mean us,6318.62
+final-timing,1-0-1-0-1,3,after,renderPlayer median us,6297.45
+final-timing,1-0-1-0-1,3,after,renderPlayer p95 us,7527.87
+final-timing,1-0-1-0-1,3,after,renderPlayer p99 us,8233.8
+final-timing,1-0-1-0-1,3,after,renderPlayer max us,8625.12
+final-timing,1-0-1-0-1,3,after,interval mean us,14654.4
+final-timing,1-0-1-0-1,3,after,interval median us,14600.3
+final-timing,1-0-1-0-1,3,after,interval p95 us,16135.7
+final-timing,1-0-1-0-1,3,after,interval p99 us,17364.1
+final-timing,1-0-1-0-1,3,after,interval max us,19542.9
+final-timing,1-0-1-0-1,3,after,mutex mean us,0.146098
+final-timing,1-0-1-0-1,3,after,mutex median us,0.11
+final-timing,1-0-1-0-1,3,after,mutex p95 us,0.5
+final-timing,1-0-1-0-1,3,after,mutex p99 us,0.61
+final-timing,1-0-1-0-1,3,after,mutex max us,0.64
+final-timing,1-0-1-0-1,3,before,updates/s,68.66254691385184
+final-timing,1-0-1-0-1,3,before,frames/s,68.66254691385184
+final-timing,1-0-1-0-1,3,before,update mean us,5.7788
+final-timing,1-0-1-0-1,3,before,update median us,5.58
+final-timing,1-0-1-0-1,3,before,update p95 us,8.51
+final-timing,1-0-1-0-1,3,before,update p99 us,11.77
+final-timing,1-0-1-0-1,3,before,update max us,14.94
+final-timing,1-0-1-0-1,3,before,updatePlayer mean us,4.78151
+final-timing,1-0-1-0-1,3,before,updatePlayer median us,4.53
+final-timing,1-0-1-0-1,3,before,updatePlayer p95 us,6.92
+final-timing,1-0-1-0-1,3,before,updatePlayer p99 us,9.37
+final-timing,1-0-1-0-1,3,before,updatePlayer max us,12.74
+final-timing,1-0-1-0-1,3,before,render mean us,6197.59
+final-timing,1-0-1-0-1,3,before,render median us,6154.28
+final-timing,1-0-1-0-1,3,before,render p95 us,7270.75
+final-timing,1-0-1-0-1,3,before,render p99 us,8284.46
+final-timing,1-0-1-0-1,3,before,render max us,8571.94
+final-timing,1-0-1-0-1,3,before,renderPlayer mean us,6197.15
+final-timing,1-0-1-0-1,3,before,renderPlayer median us,6153.72
+final-timing,1-0-1-0-1,3,before,renderPlayer p95 us,7270.39
+final-timing,1-0-1-0-1,3,before,renderPlayer p99 us,8283.69
+final-timing,1-0-1-0-1,3,before,renderPlayer max us,8571.17
+final-timing,1-0-1-0-1,3,before,interval mean us,14564.3
+final-timing,1-0-1-0-1,3,before,interval median us,14409.9
+final-timing,1-0-1-0-1,3,before,interval p95 us,16096.5
+final-timing,1-0-1-0-1,3,before,interval p99 us,17704.9
+final-timing,1-0-1-0-1,3,before,interval max us,18964.9
+final-timing,1-0-1-0-1,3,before,mutex mean us,0.128985
+final-timing,1-0-1-0-1,3,before,mutex median us,0.11
+final-timing,1-0-1-0-1,3,before,mutex p95 us,0.33
+final-timing,1-0-1-0-1,3,before,mutex p99 us,0.62
+final-timing,1-0-1-0-1,3,before,mutex max us,0.8
+final-timing,1-0-1-0-1,4,after,updates/s,77.18282682103232
+final-timing,1-0-1-0-1,4,after,frames/s,77.18282682103232
+final-timing,1-0-1-0-1,4,after,update mean us,3.68816
+final-timing,1-0-1-0-1,4,after,update median us,3.54
+final-timing,1-0-1-0-1,4,after,update p95 us,5.0
+final-timing,1-0-1-0-1,4,after,update p99 us,5.27
+final-timing,1-0-1-0-1,4,after,update max us,9.55
+final-timing,1-0-1-0-1,4,after,updatePlayer mean us,3.29247
+final-timing,1-0-1-0-1,4,after,updatePlayer median us,3.15
+final-timing,1-0-1-0-1,4,after,updatePlayer p95 us,4.54
+final-timing,1-0-1-0-1,4,after,updatePlayer p99 us,4.95
+final-timing,1-0-1-0-1,4,after,updatePlayer max us,9.2
+final-timing,1-0-1-0-1,4,after,render mean us,5825.57
+final-timing,1-0-1-0-1,4,after,render median us,5872.7
+final-timing,1-0-1-0-1,4,after,render p95 us,6254.03
+final-timing,1-0-1-0-1,4,after,render p99 us,6545.4
+final-timing,1-0-1-0-1,4,after,render max us,6983.22
+final-timing,1-0-1-0-1,4,after,renderPlayer mean us,5825.36
+final-timing,1-0-1-0-1,4,after,renderPlayer median us,5872.51
+final-timing,1-0-1-0-1,4,after,renderPlayer p95 us,6253.73
+final-timing,1-0-1-0-1,4,after,renderPlayer p99 us,6545.27
+final-timing,1-0-1-0-1,4,after,renderPlayer max us,6982.56
+final-timing,1-0-1-0-1,4,after,interval mean us,12954.2
+final-timing,1-0-1-0-1,4,after,interval median us,12943.6
+final-timing,1-0-1-0-1,4,after,interval p95 us,13603.8
+final-timing,1-0-1-0-1,4,after,interval p99 us,13981.3
+final-timing,1-0-1-0-1,4,after,interval max us,14592.0
+final-timing,1-0-1-0-1,4,after,mutex mean us,0.0643103
+final-timing,1-0-1-0-1,4,after,mutex median us,0.06
+final-timing,1-0-1-0-1,4,after,mutex p95 us,0.11
+final-timing,1-0-1-0-1,4,after,mutex p99 us,0.14
+final-timing,1-0-1-0-1,4,after,mutex max us,0.6
+final-timing,1-0-1-0-1,4,before,updates/s,76.52636832473797
+final-timing,1-0-1-0-1,4,before,frames/s,76.52636832473797
+final-timing,1-0-1-0-1,4,before,update mean us,4.04588
+final-timing,1-0-1-0-1,4,before,update median us,3.88
+final-timing,1-0-1-0-1,4,before,update p95 us,5.65
+final-timing,1-0-1-0-1,4,before,update p99 us,6.871
+final-timing,1-0-1-0-1,4,before,update max us,7.66
+final-timing,1-0-1-0-1,4,before,updatePlayer mean us,3.52601
+final-timing,1-0-1-0-1,4,before,updatePlayer median us,3.36
+final-timing,1-0-1-0-1,4,before,updatePlayer p95 us,5.08
+final-timing,1-0-1-0-1,4,before,updatePlayer p99 us,6.21
+final-timing,1-0-1-0-1,4,before,updatePlayer max us,6.7
+final-timing,1-0-1-0-1,4,before,render mean us,5816.39
+final-timing,1-0-1-0-1,4,before,render median us,5891.24
+final-timing,1-0-1-0-1,4,before,render p95 us,6530.31
+final-timing,1-0-1-0-1,4,before,render p99 us,7067.9
+final-timing,1-0-1-0-1,4,before,render max us,7297.31
+final-timing,1-0-1-0-1,4,before,renderPlayer mean us,5816.12
+final-timing,1-0-1-0-1,4,before,renderPlayer median us,5891.05
+final-timing,1-0-1-0-1,4,before,renderPlayer p95 us,6530.11
+final-timing,1-0-1-0-1,4,before,renderPlayer p99 us,7067.64
+final-timing,1-0-1-0-1,4,before,renderPlayer max us,7296.99
+final-timing,1-0-1-0-1,4,before,interval mean us,13066.4
+final-timing,1-0-1-0-1,4,before,interval median us,12962.9
+final-timing,1-0-1-0-1,4,before,interval p95 us,14348.4
+final-timing,1-0-1-0-1,4,before,interval p99 us,15522.5
+final-timing,1-0-1-0-1,4,before,interval max us,15746.4
+final-timing,1-0-1-0-1,4,before,mutex mean us,0.0948696
+final-timing,1-0-1-0-1,4,before,mutex median us,0.07
+final-timing,1-0-1-0-1,4,before,mutex p95 us,0.36
+final-timing,1-0-1-0-1,4,before,mutex p99 us,0.6
+final-timing,1-0-1-0-1,4,before,mutex max us,0.61
+final-timing,1-1-0-0-1,0,after,updates/s,3963.252676033892
+final-timing,1-1-0-0-1,0,after,frames/s,77.02727828096364
+final-timing,1-1-0-0-1,0,after,update mean us,2.17279
+final-timing,1-1-0-0-1,0,after,update median us,2.15
+final-timing,1-1-0-0-1,0,after,update p95 us,2.8
+final-timing,1-1-0-0-1,0,after,update p99 us,4.29
+final-timing,1-1-0-0-1,0,after,update max us,6.39
+final-timing,1-1-0-0-1,0,after,updatePlayer mean us,1.92285
+final-timing,1-1-0-0-1,0,after,updatePlayer median us,1.91
+final-timing,1-1-0-0-1,0,after,updatePlayer p95 us,2.47
+final-timing,1-1-0-0-1,0,after,updatePlayer p99 us,3.88
+final-timing,1-1-0-0-1,0,after,updatePlayer max us,5.89
+final-timing,1-1-0-0-1,0,after,interval mean us,252.192
+final-timing,1-1-0-0-1,0,after,interval median us,257.021
+final-timing,1-1-0-0-1,0,after,interval p95 us,259.23
+final-timing,1-1-0-0-1,0,after,interval p99 us,261.47
+final-timing,1-1-0-0-1,0,after,interval max us,3750.42
+final-timing,1-1-0-0-1,0,after,mutex mean us,0.0324387
+final-timing,1-1-0-0-1,0,after,mutex median us,0.03
+final-timing,1-1-0-0-1,0,after,mutex p95 us,0.04
+final-timing,1-1-0-0-1,0,after,mutex p99 us,0.08
+final-timing,1-1-0-0-1,0,after,mutex max us,0.6
+final-timing,1-1-0-0-1,0,after,render mean us,5500.14
+final-timing,1-1-0-0-1,0,after,render median us,5585.69
+final-timing,1-1-0-0-1,0,after,render p95 us,5998.97
+final-timing,1-1-0-0-1,0,after,render p99 us,6146.17
+final-timing,1-1-0-0-1,0,after,render max us,6341.31
+final-timing,1-1-0-0-1,0,after,renderPlayer mean us,5499.96
+final-timing,1-1-0-0-1,0,after,renderPlayer median us,5585.52
+final-timing,1-1-0-0-1,0,after,renderPlayer p95 us,5998.83
+final-timing,1-1-0-0-1,0,after,renderPlayer p99 us,6146.0
+final-timing,1-1-0-0-1,0,after,renderPlayer max us,6341.15
+final-timing,1-1-0-0-1,0,before,updates/s,3945.970253659999
+final-timing,1-1-0-0-1,0,before,frames/s,77.28052497460068
+final-timing,1-1-0-0-1,0,before,update mean us,2.186
+final-timing,1-1-0-0-1,0,before,update median us,2.18
+final-timing,1-1-0-0-1,0,before,update p95 us,2.73
+final-timing,1-1-0-0-1,0,before,update p99 us,3.83
+final-timing,1-1-0-0-1,0,before,update max us,7.79
+final-timing,1-1-0-0-1,0,before,updatePlayer mean us,1.9423
+final-timing,1-1-0-0-1,0,before,updatePlayer median us,1.94
+final-timing,1-1-0-0-1,0,before,updatePlayer p95 us,2.43
+final-timing,1-1-0-0-1,0,before,updatePlayer p99 us,3.48
+final-timing,1-1-0-0-1,0,before,updatePlayer max us,6.04
+final-timing,1-1-0-0-1,0,before,interval mean us,253.302
+final-timing,1-1-0-0-1,0,before,interval median us,257.041
+final-timing,1-1-0-0-1,0,before,interval p95 us,259.141
+final-timing,1-1-0-0-1,0,before,interval p99 us,261.39
+final-timing,1-1-0-0-1,0,before,interval max us,3745.24
+final-timing,1-1-0-0-1,0,before,mutex mean us,0.0331133
+final-timing,1-1-0-0-1,0,before,mutex median us,0.03
+final-timing,1-1-0-0-1,0,before,mutex p95 us,0.05
+final-timing,1-1-0-0-1,0,before,mutex p99 us,0.08
+final-timing,1-1-0-0-1,0,before,mutex max us,0.76
+final-timing,1-1-0-0-1,0,before,render mean us,5453.86
+final-timing,1-1-0-0-1,0,before,render median us,5538.03
+final-timing,1-1-0-0-1,0,before,render p95 us,5870.61
+final-timing,1-1-0-0-1,0,before,render p99 us,6217.25
+final-timing,1-1-0-0-1,0,before,render max us,6755.12
+final-timing,1-1-0-0-1,0,before,renderPlayer mean us,5453.67
+final-timing,1-1-0-0-1,0,before,renderPlayer median us,5537.88
+final-timing,1-1-0-0-1,0,before,renderPlayer p95 us,5870.39
+final-timing,1-1-0-0-1,0,before,renderPlayer p99 us,6217.09
+final-timing,1-1-0-0-1,0,before,renderPlayer max us,6754.91
+final-timing,1-1-0-0-1,1,after,updates/s,3952.545487227626
+final-timing,1-1-0-0-1,1,after,frames/s,76.2281385022003
+final-timing,1-1-0-0-1,1,after,update mean us,2.17838
+final-timing,1-1-0-0-1,1,after,update median us,2.15
+final-timing,1-1-0-0-1,1,after,update p95 us,2.88
+final-timing,1-1-0-0-1,1,after,update p99 us,4.26
+final-timing,1-1-0-0-1,1,after,update max us,41.26
+final-timing,1-1-0-0-1,1,after,updatePlayer mean us,1.92737
+final-timing,1-1-0-0-1,1,after,updatePlayer median us,1.9
+final-timing,1-1-0-0-1,1,after,updatePlayer p95 us,2.52
+final-timing,1-1-0-0-1,1,after,updatePlayer p99 us,3.84
+final-timing,1-1-0-0-1,1,after,updatePlayer max us,40.95
+final-timing,1-1-0-0-1,1,after,interval mean us,252.848
+final-timing,1-1-0-0-1,1,after,interval median us,257.08
+final-timing,1-1-0-0-1,1,after,interval p95 us,259.48
+final-timing,1-1-0-0-1,1,after,interval p99 us,262.46
+final-timing,1-1-0-0-1,1,after,interval max us,4016.74
+final-timing,1-1-0-0-1,1,after,mutex mean us,0.0330589
+final-timing,1-1-0-0-1,1,after,mutex median us,0.03
+final-timing,1-1-0-0-1,1,after,mutex p95 us,0.05
+final-timing,1-1-0-0-1,1,after,mutex p99 us,0.08
+final-timing,1-1-0-0-1,1,after,mutex max us,0.57
+final-timing,1-1-0-0-1,1,after,render mean us,5556.38
+final-timing,1-1-0-0-1,1,after,render median us,5622.91
+final-timing,1-1-0-0-1,1,after,render p95 us,5974.03
+final-timing,1-1-0-0-1,1,after,render p99 us,6355.14
+final-timing,1-1-0-0-1,1,after,render max us,6611.44
+final-timing,1-1-0-0-1,1,after,renderPlayer mean us,5556.07
+final-timing,1-1-0-0-1,1,after,renderPlayer median us,5622.44
+final-timing,1-1-0-0-1,1,after,renderPlayer p95 us,5973.77
+final-timing,1-1-0-0-1,1,after,renderPlayer p99 us,6354.39
+final-timing,1-1-0-0-1,1,after,renderPlayer max us,6611.12
+final-timing,1-1-0-0-1,1,before,updates/s,3926.275666055728
+final-timing,1-1-0-0-1,1,before,frames/s,76.3673068239169
+final-timing,1-1-0-0-1,1,before,update mean us,2.24407
+final-timing,1-1-0-0-1,1,before,update median us,2.19
+final-timing,1-1-0-0-1,1,before,update p95 us,3.05
+final-timing,1-1-0-0-1,1,before,update p99 us,4.71
+final-timing,1-1-0-0-1,1,before,update max us,18.84
+final-timing,1-1-0-0-1,1,before,updatePlayer mean us,1.98874
+final-timing,1-1-0-0-1,1,before,updatePlayer median us,1.95
+final-timing,1-1-0-0-1,1,before,updatePlayer p95 us,2.69
+final-timing,1-1-0-0-1,1,before,updatePlayer p99 us,4.23
+final-timing,1-1-0-0-1,1,before,updatePlayer max us,18.56
+final-timing,1-1-0-0-1,1,before,interval mean us,254.565
+final-timing,1-1-0-0-1,1,before,interval median us,257.131
+final-timing,1-1-0-0-1,1,before,interval p95 us,259.86
+final-timing,1-1-0-0-1,1,before,interval p99 us,263.76
+final-timing,1-1-0-0-1,1,before,interval max us,3742.75
+final-timing,1-1-0-0-1,1,before,mutex mean us,0.0335367
+final-timing,1-1-0-0-1,1,before,mutex median us,0.03
+final-timing,1-1-0-0-1,1,before,mutex p95 us,0.06
+final-timing,1-1-0-0-1,1,before,mutex p99 us,0.09
+final-timing,1-1-0-0-1,1,before,mutex max us,0.56
+final-timing,1-1-0-0-1,1,before,render mean us,5556.41
+final-timing,1-1-0-0-1,1,before,render median us,5611.58
+final-timing,1-1-0-0-1,1,before,render p95 us,5957.95
+final-timing,1-1-0-0-1,1,before,render p99 us,6415.96
+final-timing,1-1-0-0-1,1,before,render max us,6853.38
+final-timing,1-1-0-0-1,1,before,renderPlayer mean us,5556.01
+final-timing,1-1-0-0-1,1,before,renderPlayer median us,5611.2
+final-timing,1-1-0-0-1,1,before,renderPlayer p95 us,5957.7
+final-timing,1-1-0-0-1,1,before,renderPlayer p99 us,6415.19
+final-timing,1-1-0-0-1,1,before,renderPlayer max us,6852.53
+final-timing,1-1-0-0-1,2,after,updates/s,3962.20512274349
+final-timing,1-1-0-0-1,2,after,frames/s,75.54981628414718
+final-timing,1-1-0-0-1,2,after,update mean us,2.28235
+final-timing,1-1-0-0-1,2,after,update median us,2.2
+final-timing,1-1-0-0-1,2,after,update p95 us,3.33
+final-timing,1-1-0-0-1,2,after,update p99 us,4.93
+final-timing,1-1-0-0-1,2,after,update max us,22.87
+final-timing,1-1-0-0-1,2,after,updatePlayer mean us,2.02306
+final-timing,1-1-0-0-1,2,after,updatePlayer median us,1.96
+final-timing,1-1-0-0-1,2,after,updatePlayer p95 us,2.94
+final-timing,1-1-0-0-1,2,after,updatePlayer p99 us,4.4
+final-timing,1-1-0-0-1,2,after,updatePlayer max us,22.38
+final-timing,1-1-0-0-1,2,after,interval mean us,252.245
+final-timing,1-1-0-0-1,2,after,interval median us,257.121
+final-timing,1-1-0-0-1,2,after,interval p95 us,260.06
+final-timing,1-1-0-0-1,2,after,interval p99 us,263.801
+final-timing,1-1-0-0-1,2,after,interval max us,3742.09
+final-timing,1-1-0-0-1,2,after,mutex mean us,0.0338387
+final-timing,1-1-0-0-1,2,after,mutex median us,0.03
+final-timing,1-1-0-0-1,2,after,mutex p95 us,0.06
+final-timing,1-1-0-0-1,2,after,mutex p99 us,0.09
+final-timing,1-1-0-0-1,2,after,mutex max us,0.41
+final-timing,1-1-0-0-1,2,after,render mean us,5608.7
+final-timing,1-1-0-0-1,2,after,render median us,5625.35
+final-timing,1-1-0-0-1,2,after,render p95 us,6196.22
+final-timing,1-1-0-0-1,2,after,render p99 us,6854.7
+final-timing,1-1-0-0-1,2,after,render max us,6961.94
+final-timing,1-1-0-0-1,2,after,renderPlayer mean us,5608.31
+final-timing,1-1-0-0-1,2,after,renderPlayer median us,5624.73
+final-timing,1-1-0-0-1,2,after,renderPlayer p95 us,6195.89
+final-timing,1-1-0-0-1,2,after,renderPlayer p99 us,6854.39
+final-timing,1-1-0-0-1,2,after,renderPlayer max us,6961.6
+final-timing,1-1-0-0-1,2,before,updates/s,3925.9648585894206
+final-timing,1-1-0-0-1,2,before,frames/s,74.84681352165902
+final-timing,1-1-0-0-1,2,before,update mean us,2.2865
+final-timing,1-1-0-0-1,2,before,update median us,2.21
+final-timing,1-1-0-0-1,2,before,update p95 us,3.35
+final-timing,1-1-0-0-1,2,before,update p99 us,4.66
+final-timing,1-1-0-0-1,2,before,update max us,9.1
+final-timing,1-1-0-0-1,2,before,updatePlayer mean us,2.03786
+final-timing,1-1-0-0-1,2,before,updatePlayer median us,1.97
+final-timing,1-1-0-0-1,2,before,updatePlayer p95 us,3.03
+final-timing,1-1-0-0-1,2,before,updatePlayer p99 us,4.2
+final-timing,1-1-0-0-1,2,before,updatePlayer max us,8.82
+final-timing,1-1-0-0-1,2,before,interval mean us,254.564
+final-timing,1-1-0-0-1,2,before,interval median us,257.13
+final-timing,1-1-0-0-1,2,before,interval p95 us,260.121
+final-timing,1-1-0-0-1,2,before,interval p99 us,265.671
+final-timing,1-1-0-0-1,2,before,interval max us,3999.01
+final-timing,1-1-0-0-1,2,before,mutex mean us,0.0334604
+final-timing,1-1-0-0-1,2,before,mutex median us,0.03
+final-timing,1-1-0-0-1,2,before,mutex p95 us,0.05
+final-timing,1-1-0-0-1,2,before,mutex p99 us,0.09
+final-timing,1-1-0-0-1,2,before,mutex max us,0.61
+final-timing,1-1-0-0-1,2,before,render mean us,5703.83
+final-timing,1-1-0-0-1,2,before,render median us,5715.79
+final-timing,1-1-0-0-1,2,before,render p95 us,6288.27
+final-timing,1-1-0-0-1,2,before,render p99 us,6808.11
+final-timing,1-1-0-0-1,2,before,render max us,8722.58
+final-timing,1-1-0-0-1,2,before,renderPlayer mean us,5703.59
+final-timing,1-1-0-0-1,2,before,renderPlayer median us,5715.65
+final-timing,1-1-0-0-1,2,before,renderPlayer p95 us,6288.06
+final-timing,1-1-0-0-1,2,before,renderPlayer p99 us,6807.74
+final-timing,1-1-0-0-1,2,before,renderPlayer max us,8722.43
+final-timing,1-1-0-0-1,3,after,updates/s,3882.6669145129486
+final-timing,1-1-0-0-1,3,after,frames/s,73.69001068837092
+final-timing,1-1-0-0-1,3,after,update mean us,2.39899
+final-timing,1-1-0-0-1,3,after,update median us,2.24
+final-timing,1-1-0-0-1,3,after,update p95 us,4.03
+final-timing,1-1-0-0-1,3,after,update p99 us,5.28
+final-timing,1-1-0-0-1,3,after,update max us,16.24
+final-timing,1-1-0-0-1,3,after,updatePlayer mean us,2.12398
+final-timing,1-1-0-0-1,3,after,updatePlayer median us,1.99
+final-timing,1-1-0-0-1,3,after,updatePlayer p95 us,3.6
+final-timing,1-1-0-0-1,3,after,updatePlayer p99 us,4.66
+final-timing,1-1-0-0-1,3,after,updatePlayer max us,12.02
+final-timing,1-1-0-0-1,3,after,interval mean us,257.417
+final-timing,1-1-0-0-1,3,after,interval median us,257.261
+final-timing,1-1-0-0-1,3,after,interval p95 us,262.67
+final-timing,1-1-0-0-1,3,after,interval p99 us,291.18
+final-timing,1-1-0-0-1,3,after,interval max us,4000.52
+final-timing,1-1-0-0-1,3,after,mutex mean us,0.0373258
+final-timing,1-1-0-0-1,3,after,mutex median us,0.03
+final-timing,1-1-0-0-1,3,after,mutex p95 us,0.08
+final-timing,1-1-0-0-1,3,after,mutex p99 us,0.11
+final-timing,1-1-0-0-1,3,after,mutex max us,7.72
+final-timing,1-1-0-0-1,3,after,render mean us,5708.86
+final-timing,1-1-0-0-1,3,after,render median us,5667.13
+final-timing,1-1-0-0-1,3,after,render p95 us,6544.61
+final-timing,1-1-0-0-1,3,after,render p99 us,7438.81
+final-timing,1-1-0-0-1,3,after,render max us,8394.85
+final-timing,1-1-0-0-1,3,after,renderPlayer mean us,5708.5
+final-timing,1-1-0-0-1,3,after,renderPlayer median us,5666.85
+final-timing,1-1-0-0-1,3,after,renderPlayer p95 us,6544.15
+final-timing,1-1-0-0-1,3,after,renderPlayer p99 us,7438.35
+final-timing,1-1-0-0-1,3,after,renderPlayer max us,8394.03
+final-timing,1-1-0-0-1,3,before,updates/s,3938.727211602153
+final-timing,1-1-0-0-1,3,before,frames/s,76.55769954098666
+final-timing,1-1-0-0-1,3,before,update mean us,2.21215
+final-timing,1-1-0-0-1,3,before,update median us,2.18
+final-timing,1-1-0-0-1,3,before,update p95 us,2.86
+final-timing,1-1-0-0-1,3,before,update p99 us,4.22
+final-timing,1-1-0-0-1,3,before,update max us,5.72
+final-timing,1-1-0-0-1,3,before,updatePlayer mean us,1.96354
+final-timing,1-1-0-0-1,3,before,updatePlayer median us,1.94
+final-timing,1-1-0-0-1,3,before,updatePlayer p95 us,2.54
+final-timing,1-1-0-0-1,3,before,updatePlayer p99 us,3.78
+final-timing,1-1-0-0-1,3,before,updatePlayer max us,5.3
+final-timing,1-1-0-0-1,3,before,interval mean us,253.742
+final-timing,1-1-0-0-1,3,before,interval median us,257.051
+final-timing,1-1-0-0-1,3,before,interval p95 us,259.371
+final-timing,1-1-0-0-1,3,before,interval p99 us,262.421
+final-timing,1-1-0-0-1,3,before,interval max us,4998.41
+final-timing,1-1-0-0-1,3,before,mutex mean us,0.0341039
+final-timing,1-1-0-0-1,3,before,mutex median us,0.03
+final-timing,1-1-0-0-1,3,before,mutex p95 us,0.05
+final-timing,1-1-0-0-1,3,before,mutex p99 us,0.09
+final-timing,1-1-0-0-1,3,before,mutex max us,0.61
+final-timing,1-1-0-0-1,3,before,render mean us,5520.79
+final-timing,1-1-0-0-1,3,before,render median us,5557.32
+final-timing,1-1-0-0-1,3,before,render p95 us,6285.29
+final-timing,1-1-0-0-1,3,before,render p99 us,6595.36
+final-timing,1-1-0-0-1,3,before,render max us,7939.82
+final-timing,1-1-0-0-1,3,before,renderPlayer mean us,5520.58
+final-timing,1-1-0-0-1,3,before,renderPlayer median us,5557.18
+final-timing,1-1-0-0-1,3,before,renderPlayer p95 us,6284.75
+final-timing,1-1-0-0-1,3,before,renderPlayer p99 us,6595.15
+final-timing,1-1-0-0-1,3,before,renderPlayer max us,7939.39
+final-timing,1-1-0-0-1,4,after,updates/s,3953.660716956176
+final-timing,1-1-0-0-1,4,after,frames/s,75.10526368261712
+final-timing,1-1-0-0-1,4,after,update mean us,2.23316
+final-timing,1-1-0-0-1,4,after,update median us,2.16
+final-timing,1-1-0-0-1,4,after,update p95 us,3.28
+final-timing,1-1-0-0-1,4,after,update p99 us,4.69
+final-timing,1-1-0-0-1,4,after,update max us,18.53
+final-timing,1-1-0-0-1,4,after,updatePlayer mean us,1.97647
+final-timing,1-1-0-0-1,4,after,updatePlayer median us,1.92
+final-timing,1-1-0-0-1,4,after,updatePlayer p95 us,2.93
+final-timing,1-1-0-0-1,4,after,updatePlayer p99 us,4.24
+final-timing,1-1-0-0-1,4,after,updatePlayer max us,18.26
+final-timing,1-1-0-0-1,4,after,interval mean us,252.797
+final-timing,1-1-0-0-1,4,after,interval median us,257.11
+final-timing,1-1-0-0-1,4,after,interval p95 us,260.01
+final-timing,1-1-0-0-1,4,after,interval p99 us,263.12
+final-timing,1-1-0-0-1,4,after,interval max us,3999.53
+final-timing,1-1-0-0-1,4,after,mutex mean us,0.0336616
+final-timing,1-1-0-0-1,4,after,mutex median us,0.03
+final-timing,1-1-0-0-1,4,after,mutex p95 us,0.06
+final-timing,1-1-0-0-1,4,after,mutex p99 us,0.08
+final-timing,1-1-0-0-1,4,after,mutex max us,0.57
+final-timing,1-1-0-0-1,4,after,render mean us,5650.01
+final-timing,1-1-0-0-1,4,after,render median us,5651.88
+final-timing,1-1-0-0-1,4,after,render p95 us,6387.63
+final-timing,1-1-0-0-1,4,after,render p99 us,6858.83
+final-timing,1-1-0-0-1,4,after,render max us,6977.85
+final-timing,1-1-0-0-1,4,after,renderPlayer mean us,5649.74
+final-timing,1-1-0-0-1,4,after,renderPlayer median us,5651.69
+final-timing,1-1-0-0-1,4,after,renderPlayer p95 us,6387.37
+final-timing,1-1-0-0-1,4,after,renderPlayer p99 us,6858.13
+final-timing,1-1-0-0-1,4,after,renderPlayer max us,6977.52
+final-timing,1-1-0-0-1,4,before,updates/s,3943.5974242912316
+final-timing,1-1-0-0-1,4,before,frames/s,76.38125537574597
+final-timing,1-1-0-0-1,4,before,update mean us,2.23446
+final-timing,1-1-0-0-1,4,before,update median us,2.2
+final-timing,1-1-0-0-1,4,before,update p95 us,2.98
+final-timing,1-1-0-0-1,4,before,update p99 us,4.331
+final-timing,1-1-0-0-1,4,before,update max us,11.81
+final-timing,1-1-0-0-1,4,before,updatePlayer mean us,1.98468
+final-timing,1-1-0-0-1,4,before,updatePlayer median us,1.95
+final-timing,1-1-0-0-1,4,before,updatePlayer p95 us,2.64
+final-timing,1-1-0-0-1,4,before,updatePlayer p99 us,3.9
+final-timing,1-1-0-0-1,4,before,updatePlayer max us,11.55
+final-timing,1-1-0-0-1,4,before,interval mean us,253.42
+final-timing,1-1-0-0-1,4,before,interval median us,257.121
+final-timing,1-1-0-0-1,4,before,interval p95 us,259.771
+final-timing,1-1-0-0-1,4,before,interval p99 us,263.36
+final-timing,1-1-0-0-1,4,before,interval max us,3999.4
+final-timing,1-1-0-0-1,4,before,mutex mean us,0.0339943
+final-timing,1-1-0-0-1,4,before,mutex median us,0.03
+final-timing,1-1-0-0-1,4,before,mutex p95 us,0.05
+final-timing,1-1-0-0-1,4,before,mutex p99 us,0.09
+final-timing,1-1-0-0-1,4,before,mutex max us,0.61
+final-timing,1-1-0-0-1,4,before,render mean us,5513.76
+final-timing,1-1-0-0-1,4,before,render median us,5587.32
+final-timing,1-1-0-0-1,4,before,render p95 us,6053.98
+final-timing,1-1-0-0-1,4,before,render p99 us,6656.93
+final-timing,1-1-0-0-1,4,before,render max us,8154.26
+final-timing,1-1-0-0-1,4,before,renderPlayer mean us,5513.58
+final-timing,1-1-0-0-1,4,before,renderPlayer median us,5587.17
+final-timing,1-1-0-0-1,4,before,renderPlayer p95 us,6053.72
+final-timing,1-1-0-0-1,4,before,renderPlayer p99 us,6656.7
+final-timing,1-1-0-0-1,4,before,renderPlayer max us,8153.67
+final-timing,2-1-1-0-1,0,after,updates/s,3936.065856277424
+final-timing,2-1-1-0-1,0,after,frames/s,41.42529527950475
+final-timing,2-1-1-0-1,0,after,update mean us,4.01254
+final-timing,2-1-1-0-1,0,after,update median us,4.04
+final-timing,2-1-1-0-1,0,after,update p95 us,4.84
+final-timing,2-1-1-0-1,0,after,update p99 us,7.06
+final-timing,2-1-1-0-1,0,after,update max us,35.53
+final-timing,2-1-1-0-1,0,after,updatePlayer mean us,1.86312
+final-timing,2-1-1-0-1,0,after,updatePlayer median us,1.85
+final-timing,2-1-1-0-1,0,after,updatePlayer p95 us,2.42
+final-timing,2-1-1-0-1,0,after,updatePlayer p99 us,3.48
+final-timing,2-1-1-0-1,0,after,updatePlayer max us,33.38
+final-timing,2-1-1-0-1,0,after,interval mean us,253.906
+final-timing,2-1-1-0-1,0,after,interval median us,258.901
+final-timing,2-1-1-0-1,0,after,interval p95 us,261.391
+final-timing,2-1-1-0-1,0,after,interval p99 us,265.01
+final-timing,2-1-1-0-1,0,after,interval max us,4000.71
+final-timing,2-1-1-0-1,0,after,mutex mean us,0.0329713
+final-timing,2-1-1-0-1,0,after,mutex median us,0.03
+final-timing,2-1-1-0-1,0,after,mutex p95 us,0.04
+final-timing,2-1-1-0-1,0,after,mutex p99 us,0.08
+final-timing,2-1-1-0-1,0,after,mutex max us,0.57
+final-timing,2-1-1-0-1,0,after,render mean us,10781.0
+final-timing,2-1-1-0-1,0,after,render median us,10771.6
+final-timing,2-1-1-0-1,0,after,render p95 us,11604.9
+final-timing,2-1-1-0-1,0,after,render p99 us,12634.1
+final-timing,2-1-1-0-1,0,after,render max us,12753.9
+final-timing,2-1-1-0-1,0,after,renderPlayer mean us,5390.25
+final-timing,2-1-1-0-1,0,after,renderPlayer median us,5315.23
+final-timing,2-1-1-0-1,0,after,renderPlayer p95 us,5996.02
+final-timing,2-1-1-0-1,0,after,renderPlayer p99 us,6478.19
+final-timing,2-1-1-0-1,0,after,renderPlayer max us,6683.8
+final-timing,2-1-1-0-1,0,before,updates/s,3936.7970890439256
+final-timing,2-1-1-0-1,0,before,frames/s,40.98076217607847
+final-timing,2-1-1-0-1,0,before,update mean us,4.03545
+final-timing,2-1-1-0-1,0,before,update median us,4.04
+final-timing,2-1-1-0-1,0,before,update p95 us,4.96
+final-timing,2-1-1-0-1,0,before,update p99 us,7.5
+final-timing,2-1-1-0-1,0,before,update max us,15.76
+final-timing,2-1-1-0-1,0,before,updatePlayer mean us,1.87137
+final-timing,2-1-1-0-1,0,before,updatePlayer median us,1.87
+final-timing,2-1-1-0-1,0,before,updatePlayer p95 us,2.28
+final-timing,2-1-1-0-1,0,before,updatePlayer p99 us,3.58
+final-timing,2-1-1-0-1,0,before,updatePlayer max us,12.89
+final-timing,2-1-1-0-1,0,before,interval mean us,253.852
+final-timing,2-1-1-0-1,0,before,interval median us,258.91
+final-timing,2-1-1-0-1,0,before,interval p95 us,261.52
+final-timing,2-1-1-0-1,0,before,interval p99 us,265.51
+final-timing,2-1-1-0-1,0,before,interval max us,3481.65
+final-timing,2-1-1-0-1,0,before,mutex mean us,0.0348086
+final-timing,2-1-1-0-1,0,before,mutex median us,0.03
+final-timing,2-1-1-0-1,0,before,mutex p95 us,0.06
+final-timing,2-1-1-0-1,0,before,mutex p99 us,0.09
+final-timing,2-1-1-0-1,0,before,mutex max us,0.6
+final-timing,2-1-1-0-1,0,before,render mean us,10835.9
+final-timing,2-1-1-0-1,0,before,render median us,10738.2
+final-timing,2-1-1-0-1,0,before,render p95 us,11823.5
+final-timing,2-1-1-0-1,0,before,render p99 us,12715.1
+final-timing,2-1-1-0-1,0,before,render max us,16270.7
+final-timing,2-1-1-0-1,0,before,renderPlayer mean us,5417.65
+final-timing,2-1-1-0-1,0,before,renderPlayer median us,5282.04
+final-timing,2-1-1-0-1,0,before,renderPlayer p95 us,6168.13
+final-timing,2-1-1-0-1,0,before,renderPlayer p99 us,6601.7
+final-timing,2-1-1-0-1,0,before,renderPlayer max us,10285.0
+final-timing,2-1-1-0-1,1,after,updates/s,3944.030521542856
+final-timing,2-1-1-0-1,1,after,frames/s,40.615491147820414
+final-timing,2-1-1-0-1,1,after,update mean us,4.00989
+final-timing,2-1-1-0-1,1,after,update median us,3.97
+final-timing,2-1-1-0-1,1,after,update p95 us,5.16
+final-timing,2-1-1-0-1,1,after,update p99 us,8.37
+final-timing,2-1-1-0-1,1,after,update max us,19.3
+final-timing,2-1-1-0-1,1,after,updatePlayer mean us,1.85901
+final-timing,2-1-1-0-1,1,after,updatePlayer median us,1.83
+final-timing,2-1-1-0-1,1,after,updatePlayer p95 us,2.46
+final-timing,2-1-1-0-1,1,after,updatePlayer p99 us,3.98
+final-timing,2-1-1-0-1,1,after,updatePlayer max us,17.17
+final-timing,2-1-1-0-1,1,after,interval mean us,253.385
+final-timing,2-1-1-0-1,1,after,interval median us,258.85
+final-timing,2-1-1-0-1,1,after,interval p95 us,261.921
+final-timing,2-1-1-0-1,1,after,interval p99 us,266.88
+final-timing,2-1-1-0-1,1,after,interval max us,3478.34
+final-timing,2-1-1-0-1,1,after,mutex mean us,0.0353933
+final-timing,2-1-1-0-1,1,after,mutex median us,0.03
+final-timing,2-1-1-0-1,1,after,mutex p95 us,0.06
+final-timing,2-1-1-0-1,1,after,mutex p99 us,0.09
+final-timing,2-1-1-0-1,1,after,mutex max us,0.56
+final-timing,2-1-1-0-1,1,after,render mean us,10995.9
+final-timing,2-1-1-0-1,1,after,render median us,10856.3
+final-timing,2-1-1-0-1,1,after,render p95 us,11956.0
+final-timing,2-1-1-0-1,1,after,render p99 us,12747.6
+final-timing,2-1-1-0-1,1,after,render max us,16989.6
+final-timing,2-1-1-0-1,1,after,renderPlayer mean us,5497.6
+final-timing,2-1-1-0-1,1,after,renderPlayer median us,5466.25
+final-timing,2-1-1-0-1,1,after,renderPlayer p95 us,6213.01
+final-timing,2-1-1-0-1,1,after,renderPlayer p99 us,6763.41
+final-timing,2-1-1-0-1,1,after,renderPlayer max us,10696.1
+final-timing,2-1-1-0-1,1,before,updates/s,3938.0301194391554
+final-timing,2-1-1-0-1,1,before,frames/s,41.27774596876207
+final-timing,2-1-1-0-1,1,before,update mean us,4.16268
+final-timing,2-1-1-0-1,1,before,update median us,4.1
+final-timing,2-1-1-0-1,1,before,update p95 us,5.47
+final-timing,2-1-1-0-1,1,before,update p99 us,8.59
+final-timing,2-1-1-0-1,1,before,update max us,13.59
+final-timing,2-1-1-0-1,1,before,updatePlayer mean us,1.93645
+final-timing,2-1-1-0-1,1,before,updatePlayer median us,1.89
+final-timing,2-1-1-0-1,1,before,updatePlayer p95 us,2.61
+final-timing,2-1-1-0-1,1,before,updatePlayer p99 us,4.07
+final-timing,2-1-1-0-1,1,before,updatePlayer max us,10.83
+final-timing,2-1-1-0-1,1,before,interval mean us,253.747
+final-timing,2-1-1-0-1,1,before,interval median us,258.951
+final-timing,2-1-1-0-1,1,before,interval p95 us,262.33
+final-timing,2-1-1-0-1,1,before,interval p99 us,267.29
+final-timing,2-1-1-0-1,1,before,interval max us,3482.8
+final-timing,2-1-1-0-1,1,before,mutex mean us,0.0339391
+final-timing,2-1-1-0-1,1,before,mutex median us,0.03
+final-timing,2-1-1-0-1,1,before,mutex p95 us,0.06
+final-timing,2-1-1-0-1,1,before,mutex p99 us,0.09
+final-timing,2-1-1-0-1,1,before,mutex max us,0.63
+final-timing,2-1-1-0-1,1,before,render mean us,10719.5
+final-timing,2-1-1-0-1,1,before,render median us,10673.2
+final-timing,2-1-1-0-1,1,before,render p95 us,11516.6
+final-timing,2-1-1-0-1,1,before,render p99 us,12461.7
+final-timing,2-1-1-0-1,1,before,render max us,12729.0
+final-timing,2-1-1-0-1,1,before,renderPlayer mean us,5359.52
+final-timing,2-1-1-0-1,1,before,renderPlayer median us,5237.32
+final-timing,2-1-1-0-1,1,before,renderPlayer p95 us,5912.46
+final-timing,2-1-1-0-1,1,before,renderPlayer p99 us,6338.08
+final-timing,2-1-1-0-1,1,before,renderPlayer max us,6861.33
+final-timing,2-1-1-0-1,2,after,updates/s,3946.9064071392136
+final-timing,2-1-1-0-1,2,after,frames/s,40.41314155862224
+final-timing,2-1-1-0-1,2,after,update mean us,4.09548
+final-timing,2-1-1-0-1,2,after,update median us,4.04
+final-timing,2-1-1-0-1,2,after,update p95 us,5.26
+final-timing,2-1-1-0-1,2,after,update p99 us,8.99
+final-timing,2-1-1-0-1,2,after,update max us,27.09
+final-timing,2-1-1-0-1,2,after,updatePlayer mean us,1.9009
+final-timing,2-1-1-0-1,2,after,updatePlayer median us,1.87
+final-timing,2-1-1-0-1,2,after,updatePlayer p95 us,2.43
+final-timing,2-1-1-0-1,2,after,updatePlayer p99 us,4.12
+final-timing,2-1-1-0-1,2,after,updatePlayer max us,25.04
+final-timing,2-1-1-0-1,2,after,interval mean us,253.177
+final-timing,2-1-1-0-1,2,after,interval median us,258.941
+final-timing,2-1-1-0-1,2,after,interval p95 us,261.931
+final-timing,2-1-1-0-1,2,after,interval p99 us,267.651
+final-timing,2-1-1-0-1,2,after,interval max us,2999.51
+final-timing,2-1-1-0-1,2,after,mutex mean us,0.0336224
+final-timing,2-1-1-0-1,2,after,mutex median us,0.03
+final-timing,2-1-1-0-1,2,after,mutex p95 us,0.06
+final-timing,2-1-1-0-1,2,after,mutex p99 us,0.08
+final-timing,2-1-1-0-1,2,after,mutex max us,0.62
+final-timing,2-1-1-0-1,2,after,render mean us,10942.8
+final-timing,2-1-1-0-1,2,after,render median us,10840.8
+final-timing,2-1-1-0-1,2,after,render p95 us,11910.8
+final-timing,2-1-1-0-1,2,after,render p99 us,14634.8
+final-timing,2-1-1-0-1,2,after,render max us,16637.5
+final-timing,2-1-1-0-1,2,after,renderPlayer mean us,5471.1
+final-timing,2-1-1-0-1,2,after,renderPlayer median us,5307.15
+final-timing,2-1-1-0-1,2,after,renderPlayer p95 us,6105.76
+final-timing,2-1-1-0-1,2,after,renderPlayer p99 us,7196.17
+final-timing,2-1-1-0-1,2,after,renderPlayer max us,10553.2
+final-timing,2-1-1-0-1,2,before,updates/s,3934.294924835671
+final-timing,2-1-1-0-1,2,before,frames/s,40.37889970808041
+final-timing,2-1-1-0-1,2,before,update mean us,4.09093
+final-timing,2-1-1-0-1,2,before,update median us,4.1
+final-timing,2-1-1-0-1,2,before,update p95 us,5.15
+final-timing,2-1-1-0-1,2,before,update p99 us,7.9
+final-timing,2-1-1-0-1,2,before,update max us,31.89
+final-timing,2-1-1-0-1,2,before,updatePlayer mean us,1.89947
+final-timing,2-1-1-0-1,2,before,updatePlayer median us,1.89
+final-timing,2-1-1-0-1,2,before,updatePlayer p95 us,2.39
+final-timing,2-1-1-0-1,2,before,updatePlayer p99 us,3.83
+final-timing,2-1-1-0-1,2,before,updatePlayer max us,27.83
+final-timing,2-1-1-0-1,2,before,interval mean us,254.015
+final-timing,2-1-1-0-1,2,before,interval median us,258.99
+final-timing,2-1-1-0-1,2,before,interval p95 us,261.89
+final-timing,2-1-1-0-1,2,before,interval p99 us,267.741
+final-timing,2-1-1-0-1,2,before,interval max us,3130.39
+final-timing,2-1-1-0-1,2,before,mutex mean us,0.0352958
+final-timing,2-1-1-0-1,2,before,mutex median us,0.03
+final-timing,2-1-1-0-1,2,before,mutex p95 us,0.06
+final-timing,2-1-1-0-1,2,before,mutex p99 us,0.1
+final-timing,2-1-1-0-1,2,before,mutex max us,0.66
+final-timing,2-1-1-0-1,2,before,render mean us,10954.3
+final-timing,2-1-1-0-1,2,before,render median us,10891.4
+final-timing,2-1-1-0-1,2,before,render p95 us,11918.8
+final-timing,2-1-1-0-1,2,before,render p99 us,12820.3
+final-timing,2-1-1-0-1,2,before,render max us,17646.6
+final-timing,2-1-1-0-1,2,before,renderPlayer mean us,5476.86
+final-timing,2-1-1-0-1,2,before,renderPlayer median us,5323.3
+final-timing,2-1-1-0-1,2,before,renderPlayer p95 us,6153.78
+final-timing,2-1-1-0-1,2,before,renderPlayer p99 us,6841.3
+final-timing,2-1-1-0-1,2,before,renderPlayer max us,10804.8
+final-timing,2-1-1-0-1,3,after,updates/s,3947.863307604488
+final-timing,2-1-1-0-1,3,after,frames/s,39.94128630912559
+final-timing,2-1-1-0-1,3,after,update mean us,4.01337
+final-timing,2-1-1-0-1,3,after,update median us,3.99
+final-timing,2-1-1-0-1,3,after,update p95 us,5.09
+final-timing,2-1-1-0-1,3,after,update p99 us,8.08
+final-timing,2-1-1-0-1,3,after,update max us,38.33
+final-timing,2-1-1-0-1,3,after,updatePlayer mean us,1.86268
+final-timing,2-1-1-0-1,3,after,updatePlayer median us,1.84
+final-timing,2-1-1-0-1,3,after,updatePlayer p95 us,2.35
+final-timing,2-1-1-0-1,3,after,updatePlayer p99 us,3.96
+final-timing,2-1-1-0-1,3,after,updatePlayer max us,36.14
+final-timing,2-1-1-0-1,3,after,interval mean us,253.116
+final-timing,2-1-1-0-1,3,after,interval median us,258.871
+final-timing,2-1-1-0-1,3,after,interval p95 us,261.79
+final-timing,2-1-1-0-1,3,after,interval p99 us,266.651
+final-timing,2-1-1-0-1,3,after,interval max us,2110.09
+final-timing,2-1-1-0-1,3,after,mutex mean us,0.0332637
+final-timing,2-1-1-0-1,3,after,mutex median us,0.03
+final-timing,2-1-1-0-1,3,after,mutex p95 us,0.05
+final-timing,2-1-1-0-1,3,after,mutex p99 us,0.08
+final-timing,2-1-1-0-1,3,after,mutex max us,1.01
+final-timing,2-1-1-0-1,3,after,render mean us,11349.6
+final-timing,2-1-1-0-1,3,after,render median us,11323.0
+final-timing,2-1-1-0-1,3,after,render p95 us,12383.9
+final-timing,2-1-1-0-1,3,after,render p99 us,13190.0
+final-timing,2-1-1-0-1,3,after,render max us,17178.2
+final-timing,2-1-1-0-1,3,after,renderPlayer mean us,5674.56
+final-timing,2-1-1-0-1,3,after,renderPlayer median us,5706.38
+final-timing,2-1-1-0-1,3,after,renderPlayer p95 us,6343.05
+final-timing,2-1-1-0-1,3,after,renderPlayer p99 us,6574.28
+final-timing,2-1-1-0-1,3,after,renderPlayer max us,10603.4
+final-timing,2-1-1-0-1,3,before,updates/s,3956.2474603142887
+final-timing,2-1-1-0-1,3,before,frames/s,40.968044924958534
+final-timing,2-1-1-0-1,3,before,update mean us,4.03623
+final-timing,2-1-1-0-1,3,before,update median us,4.06
+final-timing,2-1-1-0-1,3,before,update p95 us,4.97
+final-timing,2-1-1-0-1,3,before,update p99 us,7.67
+final-timing,2-1-1-0-1,3,before,update max us,14.56
+final-timing,2-1-1-0-1,3,before,updatePlayer mean us,1.87393
+final-timing,2-1-1-0-1,3,before,updatePlayer median us,1.87
+final-timing,2-1-1-0-1,3,before,updatePlayer p95 us,2.31
+final-timing,2-1-1-0-1,3,before,updatePlayer p99 us,3.75
+final-timing,2-1-1-0-1,3,before,updatePlayer max us,9.35
+final-timing,2-1-1-0-1,3,before,interval mean us,252.596
+final-timing,2-1-1-0-1,3,before,interval median us,258.911
+final-timing,2-1-1-0-1,3,before,interval p95 us,261.331
+final-timing,2-1-1-0-1,3,before,interval p99 us,264.71
+final-timing,2-1-1-0-1,3,before,interval max us,1856.07
+final-timing,2-1-1-0-1,3,before,mutex mean us,0.0339275
+final-timing,2-1-1-0-1,3,before,mutex median us,0.03
+final-timing,2-1-1-0-1,3,before,mutex p95 us,0.05
+final-timing,2-1-1-0-1,3,before,mutex p99 us,0.08
+final-timing,2-1-1-0-1,3,before,mutex max us,0.62
+final-timing,2-1-1-0-1,3,before,render mean us,10790.9
+final-timing,2-1-1-0-1,3,before,render median us,10763.6
+final-timing,2-1-1-0-1,3,before,render p95 us,11617.1
+final-timing,2-1-1-0-1,3,before,render p99 us,11995.8
+final-timing,2-1-1-0-1,3,before,render max us,13914.3
+final-timing,2-1-1-0-1,3,before,renderPlayer mean us,5395.17
+final-timing,2-1-1-0-1,3,before,renderPlayer median us,5292.47
+final-timing,2-1-1-0-1,3,before,renderPlayer p95 us,5957.76
+final-timing,2-1-1-0-1,3,before,renderPlayer p99 us,6243.82
+final-timing,2-1-1-0-1,3,before,renderPlayer max us,7294.24
+final-timing,2-1-1-0-1,4,after,updates/s,3942.95774881383
+final-timing,2-1-1-0-1,4,after,frames/s,39.12453871174167
+final-timing,2-1-1-0-1,4,after,update mean us,4.09743
+final-timing,2-1-1-0-1,4,after,update median us,3.99
+final-timing,2-1-1-0-1,4,after,update p95 us,5.93
+final-timing,2-1-1-0-1,4,after,update p99 us,9.25
+final-timing,2-1-1-0-1,4,after,update max us,18.22
+final-timing,2-1-1-0-1,4,after,updatePlayer mean us,1.90123
+final-timing,2-1-1-0-1,4,after,updatePlayer median us,1.83
+final-timing,2-1-1-0-1,4,after,updatePlayer p95 us,2.83
+final-timing,2-1-1-0-1,4,after,updatePlayer p99 us,4.33
+final-timing,2-1-1-0-1,4,after,updatePlayer max us,14.32
+final-timing,2-1-1-0-1,4,after,interval mean us,253.413
+final-timing,2-1-1-0-1,4,after,interval median us,258.86
+final-timing,2-1-1-0-1,4,after,interval p95 us,262.57
+final-timing,2-1-1-0-1,4,after,interval p99 us,268.551
+final-timing,2-1-1-0-1,4,after,interval max us,4002.04
+final-timing,2-1-1-0-1,4,after,mutex mean us,0.0349816
+final-timing,2-1-1-0-1,4,after,mutex median us,0.03
+final-timing,2-1-1-0-1,4,after,mutex p95 us,0.06
+final-timing,2-1-1-0-1,4,after,mutex p99 us,0.09
+final-timing,2-1-1-0-1,4,after,mutex max us,5.58
+final-timing,2-1-1-0-1,4,after,render mean us,11652.0
+final-timing,2-1-1-0-1,4,after,render median us,11524.7
+final-timing,2-1-1-0-1,4,after,render p95 us,12957.1
+final-timing,2-1-1-0-1,4,after,render p99 us,13585.6
+final-timing,2-1-1-0-1,4,after,render max us,17024.2
+final-timing,2-1-1-0-1,4,after,renderPlayer mean us,5825.64
+final-timing,2-1-1-0-1,4,after,renderPlayer median us,5745.2
+final-timing,2-1-1-0-1,4,after,renderPlayer p95 us,6758.49
+final-timing,2-1-1-0-1,4,after,renderPlayer p99 us,7316.05
+final-timing,2-1-1-0-1,4,after,renderPlayer max us,10500.4
+final-timing,2-1-1-0-1,4,before,updates/s,3941.391892920117
+final-timing,2-1-1-0-1,4,before,frames/s,40.029244505903485
+final-timing,2-1-1-0-1,4,before,update mean us,4.1579
+final-timing,2-1-1-0-1,4,before,update median us,4.08
+final-timing,2-1-1-0-1,4,before,update p95 us,6.03
+final-timing,2-1-1-0-1,4,before,update p99 us,8.73
+final-timing,2-1-1-0-1,4,before,update max us,14.09
+final-timing,2-1-1-0-1,4,before,updatePlayer mean us,1.931
+final-timing,2-1-1-0-1,4,before,updatePlayer median us,1.88
+final-timing,2-1-1-0-1,4,before,updatePlayer p95 us,2.8
+final-timing,2-1-1-0-1,4,before,updatePlayer p99 us,4.14
+final-timing,2-1-1-0-1,4,before,updatePlayer max us,11.38
+final-timing,2-1-1-0-1,4,before,interval mean us,253.526
+final-timing,2-1-1-0-1,4,before,interval median us,258.961
+final-timing,2-1-1-0-1,4,before,interval p95 us,262.641
+final-timing,2-1-1-0-1,4,before,interval p99 us,267.17
+final-timing,2-1-1-0-1,4,before,interval max us,3476.3
+final-timing,2-1-1-0-1,4,before,mutex mean us,0.0350715
+final-timing,2-1-1-0-1,4,before,mutex median us,0.03
+final-timing,2-1-1-0-1,4,before,mutex p95 us,0.07
+final-timing,2-1-1-0-1,4,before,mutex p99 us,0.1
+final-timing,2-1-1-0-1,4,before,mutex max us,0.58
+final-timing,2-1-1-0-1,4,before,render mean us,11025.0
+final-timing,2-1-1-0-1,4,before,render median us,10919.6
+final-timing,2-1-1-0-1,4,before,render p95 us,12130.5
+final-timing,2-1-1-0-1,4,before,render p99 us,12565.0
+final-timing,2-1-1-0-1,4,before,render max us,16989.0
+final-timing,2-1-1-0-1,4,before,renderPlayer mean us,5512.24
+final-timing,2-1-1-0-1,4,before,renderPlayer median us,5341.71
+final-timing,2-1-1-0-1,4,before,renderPlayer p95 us,6198.93
+final-timing,2-1-1-0-1,4,before,renderPlayer p99 us,6689.07
+final-timing,2-1-1-0-1,4,before,renderPlayer max us,10515.5
+final-timing,2-1-1-50-1,0,after,updates/s,3952.8961200523663
+final-timing,2-1-1-50-1,0,after,frames/s,13.352178359049844
+final-timing,2-1-1-50-1,0,after,update mean us,4.0014
+final-timing,2-1-1-50-1,0,after,update median us,4.0
+final-timing,2-1-1-50-1,0,after,update p95 us,4.62
+final-timing,2-1-1-50-1,0,after,update p99 us,6.15
+final-timing,2-1-1-50-1,0,after,update max us,21.42
+final-timing,2-1-1-50-1,0,after,updatePlayer mean us,1.85743
+final-timing,2-1-1-50-1,0,after,updatePlayer median us,1.86
+final-timing,2-1-1-50-1,0,after,updatePlayer p95 us,2.17
+final-timing,2-1-1-50-1,0,after,updatePlayer p99 us,3.02
+final-timing,2-1-1-50-1,0,after,updatePlayer max us,17.34
+final-timing,2-1-1-50-1,0,after,interval mean us,252.786
+final-timing,2-1-1-50-1,0,after,interval median us,259.311
+final-timing,2-1-1-50-1,0,after,interval p95 us,260.941
+final-timing,2-1-1-50-1,0,after,interval p99 us,264.56
+final-timing,2-1-1-50-1,0,after,interval max us,3482.93
+final-timing,2-1-1-50-1,0,after,mutex mean us,0.0343253
+final-timing,2-1-1-50-1,0,after,mutex median us,0.03
+final-timing,2-1-1-50-1,0,after,mutex p95 us,0.04
+final-timing,2-1-1-50-1,0,after,mutex p99 us,0.08
+final-timing,2-1-1-50-1,0,after,mutex max us,8.46
+final-timing,2-1-1-50-1,0,after,render mean us,11542.0
+final-timing,2-1-1-50-1,0,after,render median us,11419.3
+final-timing,2-1-1-50-1,0,after,render p95 us,11959.9
+final-timing,2-1-1-50-1,0,after,render p99 us,17110.6
+final-timing,2-1-1-50-1,0,after,render max us,17110.6
+final-timing,2-1-1-50-1,0,after,renderPlayer mean us,5770.67
+final-timing,2-1-1-50-1,0,after,renderPlayer median us,5691.62
+final-timing,2-1-1-50-1,0,after,renderPlayer p95 us,6217.44
+final-timing,2-1-1-50-1,0,after,renderPlayer p99 us,10451.3
+final-timing,2-1-1-50-1,0,after,renderPlayer max us,10451.3
+final-timing,2-1-1-50-1,0,before,updates/s,3969.7170485931156
+final-timing,2-1-1-50-1,0,before,frames/s,13.448884398638056
+final-timing,2-1-1-50-1,0,before,update mean us,4.06886
+final-timing,2-1-1-50-1,0,before,update median us,4.09
+final-timing,2-1-1-50-1,0,before,update p95 us,4.67
+final-timing,2-1-1-50-1,0,before,update p99 us,6.09
+final-timing,2-1-1-50-1,0,before,update max us,17.33
+final-timing,2-1-1-50-1,0,before,updatePlayer mean us,1.89261
+final-timing,2-1-1-50-1,0,before,updatePlayer median us,1.9
+final-timing,2-1-1-50-1,0,before,updatePlayer p95 us,2.2
+final-timing,2-1-1-50-1,0,before,updatePlayer p99 us,2.96
+final-timing,2-1-1-50-1,0,before,updatePlayer max us,13.8
+final-timing,2-1-1-50-1,0,before,interval mean us,251.723
+final-timing,2-1-1-50-1,0,before,interval median us,259.361
+final-timing,2-1-1-50-1,0,before,interval p95 us,260.781
+final-timing,2-1-1-50-1,0,before,interval p99 us,264.11
+final-timing,2-1-1-50-1,0,before,interval max us,1023.29
+final-timing,2-1-1-50-1,0,before,mutex mean us,0.0336474
+final-timing,2-1-1-50-1,0,before,mutex median us,0.03
+final-timing,2-1-1-50-1,0,before,mutex p95 us,0.04
+final-timing,2-1-1-50-1,0,before,mutex p99 us,0.08
+final-timing,2-1-1-50-1,0,before,mutex max us,0.56
+final-timing,2-1-1-50-1,0,before,render mean us,11017.8
+final-timing,2-1-1-50-1,0,before,render median us,10846.0
+final-timing,2-1-1-50-1,0,before,render p95 us,11806.7
+final-timing,2-1-1-50-1,0,before,render p99 us,13106.0
+final-timing,2-1-1-50-1,0,before,render max us,13106.0
+final-timing,2-1-1-50-1,0,before,renderPlayer mean us,5508.61
+final-timing,2-1-1-50-1,0,before,renderPlayer median us,5689.01
+final-timing,2-1-1-50-1,0,before,renderPlayer p95 us,6016.27
+final-timing,2-1-1-50-1,0,before,renderPlayer p99 us,6776.57
+final-timing,2-1-1-50-1,0,before,renderPlayer max us,6776.57
+final-timing,2-1-1-50-1,1,after,updates/s,3951.333164125292
+final-timing,2-1-1-50-1,1,after,frames/s,13.341403255302394
+final-timing,2-1-1-50-1,1,after,update mean us,4.08309
+final-timing,2-1-1-50-1,1,after,update median us,4.04
+final-timing,2-1-1-50-1,1,after,update p95 us,5.0
+final-timing,2-1-1-50-1,1,after,update p99 us,8.26
+final-timing,2-1-1-50-1,1,after,update max us,23.07
+final-timing,2-1-1-50-1,1,after,updatePlayer mean us,1.89652
+final-timing,2-1-1-50-1,1,after,updatePlayer median us,1.88
+final-timing,2-1-1-50-1,1,after,updatePlayer p95 us,2.3
+final-timing,2-1-1-50-1,1,after,updatePlayer p99 us,3.91
+final-timing,2-1-1-50-1,1,after,updatePlayer max us,18.81
+final-timing,2-1-1-50-1,1,after,interval mean us,252.905
+final-timing,2-1-1-50-1,1,after,interval median us,259.32
+final-timing,2-1-1-50-1,1,after,interval p95 us,261.441
+final-timing,2-1-1-50-1,1,after,interval p99 us,266.131
+final-timing,2-1-1-50-1,1,after,interval max us,1582.38
+final-timing,2-1-1-50-1,1,after,mutex mean us,0.0343978
+final-timing,2-1-1-50-1,1,after,mutex median us,0.03
+final-timing,2-1-1-50-1,1,after,mutex p95 us,0.04
+final-timing,2-1-1-50-1,1,after,mutex p99 us,0.09
+final-timing,2-1-1-50-1,1,after,mutex max us,0.55
+final-timing,2-1-1-50-1,1,after,render mean us,11302.5
+final-timing,2-1-1-50-1,1,after,render median us,11004.9
+final-timing,2-1-1-50-1,1,after,render p95 us,11964.7
+final-timing,2-1-1-50-1,1,after,render p99 us,18550.7
+final-timing,2-1-1-50-1,1,after,render max us,18550.7
+final-timing,2-1-1-50-1,1,after,renderPlayer mean us,5650.89
+final-timing,2-1-1-50-1,1,after,renderPlayer median us,5721.1
+final-timing,2-1-1-50-1,1,after,renderPlayer p95 us,6225.01
+final-timing,2-1-1-50-1,1,after,renderPlayer p99 us,11309.5
+final-timing,2-1-1-50-1,1,after,renderPlayer max us,11309.5
+final-timing,2-1-1-50-1,1,before,updates/s,3949.6122998214714
+final-timing,2-1-1-50-1,1,before,frames/s,13.32303018998641
+final-timing,2-1-1-50-1,1,before,update mean us,4.15444
+final-timing,2-1-1-50-1,1,before,update median us,4.11
+final-timing,2-1-1-50-1,1,before,update p95 us,5.0
+final-timing,2-1-1-50-1,1,before,update p99 us,8.27
+final-timing,2-1-1-50-1,1,before,update max us,20.11
+final-timing,2-1-1-50-1,1,before,updatePlayer mean us,1.93251
+final-timing,2-1-1-50-1,1,before,updatePlayer median us,1.92
+final-timing,2-1-1-50-1,1,before,updatePlayer p95 us,2.34
+final-timing,2-1-1-50-1,1,before,updatePlayer p99 us,3.87
+final-timing,2-1-1-50-1,1,before,updatePlayer max us,17.28
+final-timing,2-1-1-50-1,1,before,interval mean us,253.008
+final-timing,2-1-1-50-1,1,before,interval median us,259.421
+final-timing,2-1-1-50-1,1,before,interval p95 us,261.801
+final-timing,2-1-1-50-1,1,before,interval p99 us,266.331
+final-timing,2-1-1-50-1,1,before,interval max us,2016.78
+final-timing,2-1-1-50-1,1,before,mutex mean us,0.0349579
+final-timing,2-1-1-50-1,1,before,mutex median us,0.03
+final-timing,2-1-1-50-1,1,before,mutex p95 us,0.04
+final-timing,2-1-1-50-1,1,before,mutex p99 us,0.09
+final-timing,2-1-1-50-1,1,before,mutex max us,0.54
+final-timing,2-1-1-50-1,1,before,render mean us,11325.8
+final-timing,2-1-1-50-1,1,before,render median us,11091.3
+final-timing,2-1-1-50-1,1,before,render p95 us,11855.4
+final-timing,2-1-1-50-1,1,before,render p99 us,17232.7
+final-timing,2-1-1-50-1,1,before,render max us,17232.7
+final-timing,2-1-1-50-1,1,before,renderPlayer mean us,5662.6
+final-timing,2-1-1-50-1,1,before,renderPlayer median us,5761.85
+final-timing,2-1-1-50-1,1,before,renderPlayer p95 us,6173.26
+final-timing,2-1-1-50-1,1,before,renderPlayer p99 us,10383.1
+final-timing,2-1-1-50-1,1,before,renderPlayer max us,10383.1
+final-timing,2-1-1-50-1,2,after,updates/s,3854.1192270486436
+final-timing,2-1-1-50-1,2,after,frames/s,12.964520429092383
+final-timing,2-1-1-50-1,2,after,update mean us,4.52529
+final-timing,2-1-1-50-1,2,after,update median us,4.11
+final-timing,2-1-1-50-1,2,after,update p95 us,8.48
+final-timing,2-1-1-50-1,2,after,update p99 us,10.95
+final-timing,2-1-1-50-1,2,after,update max us,182.511
+final-timing,2-1-1-50-1,2,after,updatePlayer mean us,2.0915
+final-timing,2-1-1-50-1,2,after,updatePlayer median us,1.89
+final-timing,2-1-1-50-1,2,after,updatePlayer p95 us,3.89
+final-timing,2-1-1-50-1,2,after,updatePlayer p99 us,5.22
+final-timing,2-1-1-50-1,2,after,updatePlayer max us,178.081
+final-timing,2-1-1-50-1,2,after,interval mean us,259.258
+final-timing,2-1-1-50-1,2,after,interval median us,259.76
+final-timing,2-1-1-50-1,2,after,interval p95 us,269.49
+final-timing,2-1-1-50-1,2,after,interval p99 us,328.521
+final-timing,2-1-1-50-1,2,after,interval max us,2553.68
+final-timing,2-1-1-50-1,2,after,mutex mean us,0.0438151
+final-timing,2-1-1-50-1,2,after,mutex median us,0.03
+final-timing,2-1-1-50-1,2,after,mutex p95 us,0.1
+final-timing,2-1-1-50-1,2,after,mutex p99 us,0.13
+final-timing,2-1-1-50-1,2,after,mutex max us,1.01
+final-timing,2-1-1-50-1,2,after,render mean us,12536.8
+final-timing,2-1-1-50-1,2,after,render median us,12282.0
+final-timing,2-1-1-50-1,2,after,render p95 us,15267.1
+final-timing,2-1-1-50-1,2,after,render p99 us,18493.0
+final-timing,2-1-1-50-1,2,after,render max us,18493.0
+final-timing,2-1-1-50-1,2,after,renderPlayer mean us,6267.87
+final-timing,2-1-1-50-1,2,after,renderPlayer median us,6185.79
+final-timing,2-1-1-50-1,2,after,renderPlayer p95 us,7179.61
+final-timing,2-1-1-50-1,2,after,renderPlayer p99 us,11786.1
+final-timing,2-1-1-50-1,2,after,renderPlayer max us,11786.1
+final-timing,2-1-1-50-1,2,before,updates/s,3781.9282788109763
+final-timing,2-1-1-50-1,2,before,frames/s,12.615280424404592
+final-timing,2-1-1-50-1,2,before,update mean us,5.04294
+final-timing,2-1-1-50-1,2,before,update median us,4.21
+final-timing,2-1-1-50-1,2,before,update p95 us,9.05
+final-timing,2-1-1-50-1,2,before,update p99 us,11.19
+final-timing,2-1-1-50-1,2,before,update max us,491.981
+final-timing,2-1-1-50-1,2,before,updatePlayer mean us,2.33483
+final-timing,2-1-1-50-1,2,before,updatePlayer median us,1.97
+final-timing,2-1-1-50-1,2,before,updatePlayer p95 us,4.18
+final-timing,2-1-1-50-1,2,before,updatePlayer p99 us,5.36
+final-timing,2-1-1-50-1,2,before,updatePlayer max us,477.341
+final-timing,2-1-1-50-1,2,before,interval mean us,264.188
+final-timing,2-1-1-50-1,2,before,interval median us,259.661
+final-timing,2-1-1-50-1,2,before,interval p95 us,271.841
+final-timing,2-1-1-50-1,2,before,interval p99 us,384.771
+final-timing,2-1-1-50-1,2,before,interval max us,3742.44
+final-timing,2-1-1-50-1,2,before,mutex mean us,0.0479266
+final-timing,2-1-1-50-1,2,before,mutex median us,0.03
+final-timing,2-1-1-50-1,2,before,mutex p95 us,0.1
+final-timing,2-1-1-50-1,2,before,mutex p99 us,0.14
+final-timing,2-1-1-50-1,2,before,mutex max us,1.55
+final-timing,2-1-1-50-1,2,before,render mean us,13615.2
+final-timing,2-1-1-50-1,2,before,render median us,12987.5
+final-timing,2-1-1-50-1,2,before,render p95 us,17664.9
+final-timing,2-1-1-50-1,2,before,render p99 us,26344.0
+final-timing,2-1-1-50-1,2,before,render max us,26344.0
+final-timing,2-1-1-50-1,2,before,renderPlayer mean us,6807.17
+final-timing,2-1-1-50-1,2,before,renderPlayer median us,6650.25
+final-timing,2-1-1-50-1,2,before,renderPlayer p95 us,8509.51
+final-timing,2-1-1-50-1,2,before,renderPlayer p99 us,16688.7
+final-timing,2-1-1-50-1,2,before,renderPlayer max us,16688.7
+final-timing,2-1-1-50-1,3,after,updates/s,3948.0422890359705
+final-timing,2-1-1-50-1,3,after,frames/s,13.374348000534974
+final-timing,2-1-1-50-1,3,after,update mean us,4.05691
+final-timing,2-1-1-50-1,3,after,update median us,4.04
+final-timing,2-1-1-50-1,3,after,update p95 us,4.82
+final-timing,2-1-1-50-1,3,after,update p99 us,8.0
+final-timing,2-1-1-50-1,3,after,update max us,23.56
+final-timing,2-1-1-50-1,3,after,updatePlayer mean us,1.88351
+final-timing,2-1-1-50-1,3,after,updatePlayer median us,1.88
+final-timing,2-1-1-50-1,3,after,updatePlayer p95 us,2.23
+final-timing,2-1-1-50-1,3,after,updatePlayer p99 us,3.65
+final-timing,2-1-1-50-1,3,after,updatePlayer max us,19.91
+final-timing,2-1-1-50-1,3,after,interval mean us,253.107
+final-timing,2-1-1-50-1,3,after,interval median us,259.341
+final-timing,2-1-1-50-1,3,after,interval p95 us,261.36
+final-timing,2-1-1-50-1,3,after,interval p99 us,266.601
+final-timing,2-1-1-50-1,3,after,interval max us,3199.4
+final-timing,2-1-1-50-1,3,after,mutex mean us,0.03468
+final-timing,2-1-1-50-1,3,after,mutex median us,0.03
+final-timing,2-1-1-50-1,3,after,mutex p95 us,0.04
+final-timing,2-1-1-50-1,3,after,mutex p99 us,0.1
+final-timing,2-1-1-50-1,3,after,mutex max us,0.61
+final-timing,2-1-1-50-1,3,after,render mean us,11226.8
+final-timing,2-1-1-50-1,3,after,render median us,11106.4
+final-timing,2-1-1-50-1,3,after,render p95 us,11924.9
+final-timing,2-1-1-50-1,3,after,render p99 us,13218.7
+final-timing,2-1-1-50-1,3,after,render max us,13218.7
+final-timing,2-1-1-50-1,3,after,renderPlayer mean us,5613.02
+final-timing,2-1-1-50-1,3,after,renderPlayer median us,5712.75
+final-timing,2-1-1-50-1,3,after,renderPlayer p95 us,6191.49
+final-timing,2-1-1-50-1,3,after,renderPlayer p99 us,6827.0
+final-timing,2-1-1-50-1,3,after,renderPlayer max us,6827.0
+final-timing,2-1-1-50-1,3,before,updates/s,3949.3037288424307
+final-timing,2-1-1-50-1,3,before,frames/s,13.430777445466129
+final-timing,2-1-1-50-1,3,before,update mean us,4.11013
+final-timing,2-1-1-50-1,3,before,update median us,4.11
+final-timing,2-1-1-50-1,3,before,update p95 us,4.77
+final-timing,2-1-1-50-1,3,before,update p99 us,7.28
+final-timing,2-1-1-50-1,3,before,update max us,51.05
+final-timing,2-1-1-50-1,3,before,updatePlayer mean us,1.91211
+final-timing,2-1-1-50-1,3,before,updatePlayer median us,1.92
+final-timing,2-1-1-50-1,3,before,updatePlayer p95 us,2.23
+final-timing,2-1-1-50-1,3,before,updatePlayer p99 us,3.33
+final-timing,2-1-1-50-1,3,before,updatePlayer max us,48.18
+final-timing,2-1-1-50-1,3,before,interval mean us,253.034
+final-timing,2-1-1-50-1,3,before,interval median us,259.441
+final-timing,2-1-1-50-1,3,before,interval p95 us,261.01
+final-timing,2-1-1-50-1,3,before,interval p99 us,265.131
+final-timing,2-1-1-50-1,3,before,interval max us,3487.84
+final-timing,2-1-1-50-1,3,before,mutex mean us,0.0344766
+final-timing,2-1-1-50-1,3,before,mutex median us,0.03
+final-timing,2-1-1-50-1,3,before,mutex p95 us,0.04
+final-timing,2-1-1-50-1,3,before,mutex p99 us,0.1
+final-timing,2-1-1-50-1,3,before,mutex max us,0.57
+final-timing,2-1-1-50-1,3,before,render mean us,11074.5
+final-timing,2-1-1-50-1,3,before,render median us,10870.3
+final-timing,2-1-1-50-1,3,before,render p95 us,11712.0
+final-timing,2-1-1-50-1,3,before,render p99 us,13028.8
+final-timing,2-1-1-50-1,3,before,render max us,13028.8
+final-timing,2-1-1-50-1,3,before,renderPlayer mean us,5536.97
+final-timing,2-1-1-50-1,3,before,renderPlayer median us,5700.18
+final-timing,2-1-1-50-1,3,before,renderPlayer p95 us,6044.76
+final-timing,2-1-1-50-1,3,before,renderPlayer p99 us,6615.61
+final-timing,2-1-1-50-1,3,before,renderPlayer max us,6615.61
+final-timing,2-1-1-50-1,4,after,updates/s,3934.3133880721766
+final-timing,2-1-1-50-1,4,after,frames/s,13.11110018519429
+final-timing,2-1-1-50-1,4,after,update mean us,4.26613
+final-timing,2-1-1-50-1,4,after,update median us,4.1
+final-timing,2-1-1-50-1,4,after,update p95 us,7.02
+final-timing,2-1-1-50-1,4,after,update p99 us,8.97
+final-timing,2-1-1-50-1,4,after,update max us,31.831
+final-timing,2-1-1-50-1,4,after,updatePlayer mean us,1.98063
+final-timing,2-1-1-50-1,4,after,updatePlayer median us,1.9
+final-timing,2-1-1-50-1,4,after,updatePlayer p95 us,3.28
+final-timing,2-1-1-50-1,4,after,updatePlayer p99 us,4.28
+final-timing,2-1-1-50-1,4,after,updatePlayer max us,29.131
+final-timing,2-1-1-50-1,4,after,interval mean us,253.977
+final-timing,2-1-1-50-1,4,after,interval median us,259.421
+final-timing,2-1-1-50-1,4,after,interval p95 us,264.37
+final-timing,2-1-1-50-1,4,after,interval p99 us,268.39
+final-timing,2-1-1-50-1,4,after,interval max us,3169.26
+final-timing,2-1-1-50-1,4,after,mutex mean us,0.0363001
+final-timing,2-1-1-50-1,4,after,mutex median us,0.03
+final-timing,2-1-1-50-1,4,after,mutex p95 us,0.07
+final-timing,2-1-1-50-1,4,after,mutex p99 us,0.1
+final-timing,2-1-1-50-1,4,after,mutex max us,0.58
+final-timing,2-1-1-50-1,4,after,render mean us,12096.4
+final-timing,2-1-1-50-1,4,after,render median us,11740.9
+final-timing,2-1-1-50-1,4,after,render p95 us,15002.0
+final-timing,2-1-1-50-1,4,after,render p99 us,17125.6
+final-timing,2-1-1-50-1,4,after,render max us,17125.6
+final-timing,2-1-1-50-1,4,after,renderPlayer mean us,6047.89
+final-timing,2-1-1-50-1,4,after,renderPlayer median us,5799.89
+final-timing,2-1-1-50-1,4,after,renderPlayer p95 us,7653.42
+final-timing,2-1-1-50-1,4,after,renderPlayer p99 us,10479.1
+final-timing,2-1-1-50-1,4,after,renderPlayer max us,10479.1
+final-timing,2-1-1-50-1,4,before,updates/s,3930.7622148979117
+final-timing,2-1-1-50-1,4,before,frames/s,13.170588758243966
+final-timing,2-1-1-50-1,4,before,update mean us,4.2561
+final-timing,2-1-1-50-1,4,before,update median us,4.15
+final-timing,2-1-1-50-1,4,before,update p95 us,5.99
+final-timing,2-1-1-50-1,4,before,update p99 us,8.7
+final-timing,2-1-1-50-1,4,before,update max us,31.95
+final-timing,2-1-1-50-1,4,before,updatePlayer mean us,1.97664
+final-timing,2-1-1-50-1,4,before,updatePlayer median us,1.92
+final-timing,2-1-1-50-1,4,before,updatePlayer p95 us,2.79
+final-timing,2-1-1-50-1,4,before,updatePlayer p99 us,4.06
+final-timing,2-1-1-50-1,4,before,updatePlayer max us,21.8
+final-timing,2-1-1-50-1,4,before,interval mean us,254.222
+final-timing,2-1-1-50-1,4,before,interval median us,259.411
+final-timing,2-1-1-50-1,4,before,interval p95 us,262.941
+final-timing,2-1-1-50-1,4,before,interval p99 us,268.701
+final-timing,2-1-1-50-1,4,before,interval max us,3229.83
+final-timing,2-1-1-50-1,4,before,mutex mean us,0.0360756
+final-timing,2-1-1-50-1,4,before,mutex median us,0.03
+final-timing,2-1-1-50-1,4,before,mutex p95 us,0.07
+final-timing,2-1-1-50-1,4,before,mutex p99 us,0.1
+final-timing,2-1-1-50-1,4,before,mutex max us,0.71
+final-timing,2-1-1-50-1,4,before,render mean us,12002.2
+final-timing,2-1-1-50-1,4,before,render median us,11662.7
+final-timing,2-1-1-50-1,4,before,render p95 us,13843.3
+final-timing,2-1-1-50-1,4,before,render p99 us,17339.6
+final-timing,2-1-1-50-1,4,before,render max us,17339.6
+final-timing,2-1-1-50-1,4,before,renderPlayer mean us,6000.74
+final-timing,2-1-1-50-1,4,before,renderPlayer median us,5825.61
+final-timing,2-1-1-50-1,4,before,renderPlayer p95 us,7098.89
+final-timing,2-1-1-50-1,4,before,renderPlayer p99 us,10486.3
+final-timing,2-1-1-50-1,4,before,renderPlayer max us,10486.3

@@ -335,6 +335,7 @@ std::string encode(const State &state) {
     {
         cereal::JSONOutputArchive archive(out);
         archive(state);
+        archive(cereal::make_nvp("synth", state.synth));
         archive(cereal::make_nvp("alignment", state.alignment));
         archive(cereal::make_nvp("merges", state.merges));
         archive(cereal::make_nvp("plus", state.plus));
@@ -387,6 +388,12 @@ State decode(const std::string &text) {
         std::istringstream mergeInput(text);
         cereal::JSONInputArchive archive(mergeInput);
         archive(cereal::make_nvp("merges", state.merges));
+    }
+    if (!extra.HasParseError() && extra.IsObject() &&
+        extra.HasMember("synth")) {
+        std::istringstream synthInput(text);
+        cereal::JSONInputArchive archive(synthInput);
+        archive(cereal::make_nvp("synth", state.synth));
     }
     validate(state);
     return state;

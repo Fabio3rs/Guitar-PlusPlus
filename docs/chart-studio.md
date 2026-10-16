@@ -738,3 +738,11 @@ o teste gráfico usa a supressão Mesa já existente e uma supressão local
 `shift-base:*/glfw/src/x11_window.c` para UB observado no GLFW vendorizado ao
 focar a janela. Nenhuma supressão cobre o código do studio. Não foram validados
 Windows nem execução auditiva em gameplay.
+
+### Síntese opcional de stems
+
+O painel **Panels → MIDI Synth** e o comando `render-stems` renderizam fontes
+MIDI originais com FluidSynth, usando o alinhamento aceito no projeto. WAV
+funciona sem FFmpeg; Ogg o utiliza apenas para codificação. A geração de
+charts permanece independente. Consulte [síntese MIDI e stems](chart-studio-synth.md)
+para seleção, build opcional, limitações e situação do suporte Windows.

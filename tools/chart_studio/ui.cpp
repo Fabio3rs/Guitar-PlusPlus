@@ -5,6 +5,7 @@
 #include "merge.h"
 #include "plus_simulation.h"
 #include "runtime.h"
+#include "synth_ui.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <atomic>
@@ -429,6 +430,8 @@ struct Workbench {
         notice = "Project saved: " + projectPath;
     }
 
+    SynthPanel synthPanel;
+    bool showSynth = false;
     std::future<State> generationJob;
     std::atomic<bool> cancelGeneration{false};
     std::atomic<size_t> generatedParts{0}, generationTotal{0};
@@ -2020,6 +2023,7 @@ struct Workbench {
                 ImGui::MenuItem("Audio alignment", nullptr, &showAlignment);
                 ImGui::MenuItem("Plus", nullptr, &showPlus);
                 ImGui::MenuItem("Merge tracks", nullptr, &showMerge);
+                ImGui::MenuItem("MIDI Synth", nullptr, &showSynth);
                 if (ImGui::MenuItem("Reset layout")) {
                     resetLayout = true;
                     showFiles = showTracks = showMapping = showEditing =
@@ -2115,6 +2119,9 @@ struct Workbench {
                 mergePanel();
             }
             ImGui::End();
+        }
+        if (showSynth) {
+            synthPanel.draw(session);
         }
         ImGui::Begin("Timeline");
         ImGui::TextWrapped(

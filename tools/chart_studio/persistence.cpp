@@ -117,7 +117,8 @@ void insertPattern(SqliteDb &db, const Pattern &pattern) {
 }
 void rebase(State &state, const fs::path &directory, bool saving) {
     std::vector<std::string *> names{&state.input, &state.audio,
-                                     &state.reference};
+                                     &state.reference, &state.synth.soundfont,
+                                     &state.synth.output};
     for (auto &part : state.otherParts) {
         names.push_back(&part.reference);
     }

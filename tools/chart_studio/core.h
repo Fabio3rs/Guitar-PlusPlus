@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "plus_types.h"
+#include "synth_types.h"
 
 namespace gpp::charter {
 template <class A> void serialize(A &a, Note &n) {
@@ -135,6 +136,7 @@ struct Part {
 };
 #include "merge_types.h"
 struct State : Part {
+    SynthConfig synth;
     std::map<uint64_t, MergeDocument> merges;
     TimingAlignment alignment;
     Score score;
