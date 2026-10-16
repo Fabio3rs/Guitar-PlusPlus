@@ -15,7 +15,7 @@
 #include <future>
 #include <ratio>
 
-static constexpr auto gpppowi(int b, int e) noexcept -> int {
+static auto gpppowi(int b, int e) noexcept -> int {
     assert(e >= 0);
     return static_cast<int>(std::pow(b, e));
 }
@@ -631,11 +631,11 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos,
         constexpr double size = 0.2;
         constexpr double position = -0.51;
 
-        constexpr auto form = [size, position](double idd) {
+        auto form = [size, position](double idd) {
             return position + (idd * size / 48.0) + (idd * size);
         };
 
-        constexpr static double xdata[] = {form(0), form(1), form(2), form(3),
+        static const double xdata[] = {form(0), form(1), form(2), form(3),
                                            form(4)};
 
         TempStruct3D.TextureX1 = 0.0;
@@ -719,12 +719,12 @@ auto CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type,
         constexpr double size = 0.2;
         constexpr double position = -0.51;
 
-        constexpr auto form = [=](double idd) {
+        auto form = [=](double idd) {
             return position + (idd * size / 48.0) + (idd * size);
         };
 
-        constexpr static double xdata[] = {form(0), form(1), form(2), form(3),
-                                           form(4)};
+        static const double xdata[] = {form(0), form(1), form(2), form(3),
+                                        form(4)};
 
         TempStruct3D.TextureX1 = 0.0;
         TempStruct3D.TextureX2 = 1.0;
@@ -896,14 +896,14 @@ void CGamePlay::renderTailsBuffer(const CPlayer &player) {
     constexpr double size = 0.2;
     constexpr double position = -0.51;
 
-    constexpr auto form = [&](int i) {
+    auto form = [&](int i) {
         return position + (static_cast<double>(i) * size / 48.0) +
                (static_cast<double>(i) * size);
     };
 
-    static constexpr double posx[] = {form(0), form(1), form(2), form(3),
+    static const double posx[] = {form(0), form(1), form(2), form(3),
                                       form(4)};
-    static constexpr double posxpsize[] = {posx[0] + size, posx[1] + size,
+    static const double posxpsize[] = {posx[0] + size, posx[1] + size,
                                            posx[2] + size, posx[3] + size,
                                            posx[4] + size};
 
@@ -1042,11 +1042,11 @@ auto CGamePlay::renderNote(const CPlayer::NotesData::Note &note,
 
     constexpr double position = -0.51;
 
-    constexpr auto form = [&](double idd) {
+    auto form = [&](double idd) {
         return position + (idd * NOTE_SIZE / 48.0) + (idd * NOTE_SIZE);
     };
 
-    constexpr double xdata[] = {form(0), form(1), form(2), form(3), form(4)};
+    static const double xdata[] = {form(0), form(1), form(2), form(3), form(4)};
 
     CEngine::engine().setColor(1.0, 1.0, 1.0, alpha);
 
