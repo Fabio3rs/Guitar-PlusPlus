@@ -14,7 +14,10 @@ ctest --test-dir build -R 'chart_studio_(synth|synth_cli)' --output-on-failure
 ```
 
 A opção é ON por padrão, mas a biblioteca é opcional. A detecção usa
-`FluidSynth::libfluidsynth` via pacote CMake ou pkg-config `fluidsynth>=2.0`.
+pkg-config `fluidsynth>=2.0`, com fallback para o pacote CMake
+`FluidSynth::libfluidsynth` no Windows. No Linux não se carrega o pacote
+CMake do FluidSynth: algumas distribuições exigem também `/usr/bin/fluidsynth`
+nesse pacote, embora a síntese offline precise apenas da biblioteca.
 Ausência da biblioteca apenas desabilita renderização; `OFF` não a procura.
 No Ubuntu: `libfluidsynth-dev`. FFmpeg é um executável opcional no PATH;
 WAV não precisa dele. SoundFonts não são distribuídas pelo projeto: selecione

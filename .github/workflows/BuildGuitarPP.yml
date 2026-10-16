@@ -72,11 +72,16 @@ jobs:
           "$RUNNER_TEMP/gpp-umap-venv/bin/python" -m pip check
           "$RUNNER_TEMP/gpp-umap-venv/bin/python" -c 'import umap, numpy, numba, scipy, sklearn, pynndescent'
 
+      - name: Verify optional synthesis library
+        run: |
+          pkg-config --atleast-version=2.0 fluidsynth
+          pkg-config --modversion fluidsynth
+
       - name: Build project
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DGPP_NATIVE_CPU=OFF \
             -DBUILD_CHART_STUDIO=ON -DBUILD_CHART_TOOLS=ON -DBUILD_TESTING=ON \
-            -DGPP_PACKAGE_RUNTIME=ON \
+            -DGPP_PACKAGE_RUNTIME=ON -DGPP_ENABLE_MIDI_SYNTH=ON \
             -DBUILD_CHART_STUDIO_UMAP_TESTS=ON \
             -DCHART_STUDIO_UMAP_PYTHON="$RUNNER_TEMP/gpp-umap-venv/bin/python"
           cmake --build build --parallel 2
