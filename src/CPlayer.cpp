@@ -538,22 +538,22 @@ auto CPlayer::comboToMultiplier() const -> double {
     return result * (static_cast<double>(plusEnabled) + 1.0);
 }
 
-auto CPlayer::getLastFretsPressedFlags() const -> int {
-    int result = 0;
+auto CPlayer::getLastFretsPressedFlags() const -> unsigned int {
+    unsigned int result = 0;
     for (size_t i = 0; i < 5; ++i) {
         if (lastFretsPressed[i]) {
-            result |= static_cast<int>(pow(2, i));
+            result |= static_cast<unsigned int>(std::pow(2U, i));
         }
     }
 
     return result;
 }
 
-auto CPlayer::getFretsPressedFlags() const -> int {
-    int result = 0;
+auto CPlayer::getFretsPressedFlags() const -> unsigned int {
+    unsigned int result = 0;
     for (size_t i = 0; i < 5; ++i) {
         if (fretsPressed[i]) {
-            result |= static_cast<int>(pow(2, i));
+            result |= static_cast<unsigned int>(std::pow(2U, i));
         }
     }
 

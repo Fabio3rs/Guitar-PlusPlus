@@ -261,8 +261,8 @@ class CPlayer {
 
     void setInstrument(std::string instr = "[ExpertSingle]");
 
-    [[nodiscard]] auto getFretsPressedFlags() const -> int;
-    [[nodiscard]] auto getLastFretsPressedFlags() const -> int;
+    [[nodiscard]] auto getFretsPressedFlags() const ->  unsigned int;
+    [[nodiscard]] auto getLastFretsPressedFlags() const -> unsigned int;
 
     bool loadSong(const std::string &path);
     bool loadSongOnlyChart(const std::string &path);
