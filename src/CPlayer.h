@@ -27,7 +27,7 @@ class CCharter;
 enum playerTypes { local_main, local, lan, lan_main };
 
 struct lineData {
-    int type;
+    unsigned int type;
     double top;
     double bottom;
 };

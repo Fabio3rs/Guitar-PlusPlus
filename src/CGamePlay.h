@@ -109,7 +109,7 @@ class CGamePlay {
     double fretboardPositionCalcByT(double time, double prop,
                                     double *max = nullptr) const;
 
-    static const int notesFlagsConst[5];
+    static const unsigned int notesFlagsConst[5];
 
     struct lyricLine {
         double tstart, tend;

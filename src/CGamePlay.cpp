@@ -13,18 +13,19 @@
 #include <cstddef>
 #include <cstdint>
 #include <future>
+#include <limits>
 #include <ratio>
 
-static auto gpppowi(int b, int e) noexcept -> int {
+static auto gpppowi(unsigned int b, unsigned int e) noexcept -> unsigned int {
     assert(e >= 0);
-    return static_cast<int>(std::pow(b, e));
+    return static_cast<unsigned int>(std::pow(b, e));
 }
 
 constexpr static double NOTE_SIZE = 0.2;
 // Trigger.obj has a local top at y=0.043614; leave a small surface clearance.
 constexpr static double STRIKE_FIRE_SURFACE = 0.046;
 
-const int CGamePlay::notesFlagsConst[5] = {
+const unsigned int CGamePlay::notesFlagsConst[5] = {
     gpppowi(2, 0), gpppowi(2, 1), gpppowi(2, 2), gpppowi(2, 3), gpppowi(2, 4)};
 
 void CGamePlay::drawBPMLine(double position, unsigned int Texture,
@@ -636,7 +637,7 @@ void CGamePlay::renderIndivdualNoteShadow(int id, double pos,
         };
 
         static const double xdata[] = {form(0), form(1), form(2), form(3),
-                                           form(4)};
+                                       form(4)};
 
         TempStruct3D.TextureX1 = 0.0;
         TempStruct3D.TextureX2 = 1.0;
@@ -724,7 +725,7 @@ auto CGamePlay::renderOpenNote(double pos, unsigned int Texture, int type,
         };
 
         static const double xdata[] = {form(0), form(1), form(2), form(3),
-                                        form(4)};
+                                       form(4)};
 
         TempStruct3D.TextureX1 = 0.0;
         TempStruct3D.TextureX2 = 1.0;
@@ -901,11 +902,10 @@ void CGamePlay::renderTailsBuffer(const CPlayer &player) {
                (static_cast<double>(i) * size);
     };
 
-    static const double posx[] = {form(0), form(1), form(2), form(3),
-                                      form(4)};
+    static const double posx[] = {form(0), form(1), form(2), form(3), form(4)};
     static const double posxpsize[] = {posx[0] + size, posx[1] + size,
-                                           posx[2] + size, posx[3] + size,
-                                           posx[4] + size};
+                                       posx[2] + size, posx[3] + size,
+                                       posx[4] + size};
 
     TempStruct3D.Text = text;
     TempStruct3D.TextureX1 = 0.0;
@@ -1452,7 +1452,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
             const int ntsT = note.type & CPlayer::notesEnum;
             const int noteHF = getHighestFlag(ntsT);
 
-            for (size_t i : notesFlagsConst) {
+            for (auto i : notesFlagsConst) {
                 if ((note.type & i) != 0) {
                     ntsInac++;
                 }
@@ -1641,7 +1641,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
             for (int ji = 0; ji < 5; ji++) {
                 size_t id = player.notesSlide[ji];
 
-                if (id != ~0UL) {
+                if (id < std::numeric_limits<size_t>::max()) {
                     cklngNote = true;
                     auto &note = player.Notes.gNotes[id];
                     double noteTime = note.time - musicTime;
@@ -1656,7 +1656,7 @@ void CGamePlay::updatePlayer(CPlayer &player, double deltatime) {
                     int ntsInac = 0;
                     int ntsT = note.type & CPlayer::notesEnum;
 
-                    for (size_t i : notesFlagsConst) {
+                    for (auto i : notesFlagsConst) {
                         if ((note.type & i) != 0) {
                             ntsInac++;
                         }

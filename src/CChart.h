@@ -66,7 +66,7 @@ class CChart {
         struct NoteInt {
             uint64_t time{}, lTime{};
 
-            int type{};
+            unsigned int type{};
 
             bool operator<(const NoteInt &b) const noexcept {
                 return time < b.time;
@@ -89,7 +89,7 @@ class CChart {
             double time{};
             double lTime{};
 
-            int type{};
+            unsigned int type{};
 
             inline bool operator<(const Note &b) const noexcept {
                 return time < b.time;
@@ -120,7 +120,7 @@ class CChart {
 
         struct plusNote {
             double time{}, lTime{} /*, unmodifiedTime*/;
-            int type{};
+            unsigned int type{};
 
             size_t firstNote{~size_t{0}}, lastNote{};
 
