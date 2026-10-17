@@ -17,7 +17,7 @@ double advanceBeats(const std::vector<TempoPoint> &tempos, double time,
 struct Note {
     uint64_t id = 0;
     double time = 0, duration = 0;
-    int flags = 0;
+    unsigned int flags = 0;
 };
 
 struct Document {

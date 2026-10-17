@@ -20,7 +20,7 @@ CCharter::CCharter(GPPGame &game) : songPath(game.songToLoad) {
         player.Notes.BPM.push_back(tempo);
     }
     gpp::charter::Document document;
-    constexpr int persistentFlags =
+    constexpr unsigned int persistentFlags =
         31 | nf_not_hopo | nf_slide | noteTap | nf_open | nf_reverseStrumHopo;
     for (const auto &note : player.Notes.gNotes) {
         document.insert(
@@ -162,7 +162,7 @@ void CCharter::preRender() {
     }
     undoHeld = undo;
     redoHeld = redo;
-    const int frets = player.getFretsPressedFlags() & 31;
+    const unsigned int frets = player.getFretsPressedFlags() & 31;
     if (!frets) {
         workingNote.reset();
     }
