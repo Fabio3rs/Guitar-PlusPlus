@@ -126,6 +126,7 @@ jobs:
             build/chart-studio/ui-tests/
             build/chart-studio/alignment-tests/
             build/chart-studio/plus-ui-tests/
+            build/chart-studio/synth-ui-tests/
           if-no-files-found: warn
 
   Windows:

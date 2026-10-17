@@ -1,6 +1,6 @@
 """Exercise the explicit render action in real ImGui under Xvfb."""
 import json
-import os
+import shutil
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -12,6 +12,8 @@ from fixture import fixture
 
 gui, cli = (Path(p).resolve() for p in sys.argv[1:3])
 sf=Path(sys.argv[3])
+diagnostics = Path(sys.argv[4]) if len(sys.argv) > 4 else Path('synth-ui-diagnostics')
+diagnostics.mkdir(parents=True, exist_ok=True)
 if not sf.is_file():
     print('No test SoundFont; UI synthesis integration skipped')
     sys.exit(0)
@@ -37,7 +39,21 @@ with tempfile.TemporaryDirectory(prefix='gpp synth ui ') as temp:
                 time.sleep(.1)
             assert window,(work/'gui.log').read_text()
             def send(*args):
-                subprocess.run(['xdotool',*map(str,args)],check=True,capture_output=True)
+                def xdo(*values):
+                    subprocess.run(['xdotool', *map(str, values)], check=True,
+                                   capture_output=True, timeout=5)
+                if args[0] == 'key' and args[1].startswith('ctrl+'):
+                    # Match test_ui.py: software-rendered frames must observe
+                    # the modifier, key press and release separately.
+                    xdo('keydown', 'ctrl')
+                    time.sleep(.3)
+                    xdo('keydown', args[1][5:])
+                    time.sleep(.3)
+                    xdo('keyup', args[1][5:])
+                    time.sleep(.3)
+                    xdo('keyup', 'ctrl')
+                else:
+                    xdo(*args)
                 time.sleep(.4)
             def click(x,y):
                 send('mousemove','--window',window,x,y);send('mousedown',1);send('mouseup',1)
@@ -50,6 +66,20 @@ with tempfile.TemporaryDirectory(prefix='gpp synth ui ') as temp:
             assert target.is_file(),(work/'gui.log').read_text()
             with wave.open(str(target)) as audio:assert audio.getframerate()==16000 and audio.getnframes()>0
             send('key','ctrl+q');assert process.wait(timeout=15)==0
+        except Exception:
+            # Preserve evidence outside TemporaryDirectory for CI artifacts.
+            log.flush()
+            for name in ('gui.log', 'layout-docking.ini', 'test.gppchartproj'):
+                if (work/name).is_file():
+                    shutil.copy2(work/name, diagnostics/name)
+            if window and process.poll() is None and shutil.which('import'):
+                try:
+                    subprocess.run(['import', '-window', window,
+                                    str(diagnostics/'failure.png')], timeout=10,
+                                   capture_output=True)
+                except subprocess.TimeoutExpired:
+                    pass
+            raise
         finally:
             if process.poll() is None:process.terminate();process.wait(timeout=10)
 print('ImGui synthesis panel: offline WAV render and shutdown passed')

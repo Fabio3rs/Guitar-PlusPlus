@@ -135,7 +135,8 @@ endif()
 if(BUILD_TESTING AND CHART_XVFB AND CHART_XDOTOOL)
     add_test(NAME chart_studio_synth_ui COMMAND ${CHART_XVFB} -a -s "-screen 0 1600x1000x24"
         ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_synth_ui.py
-        $<TARGET_FILE:gpp_chart_studio> $<TARGET_FILE:gpp_score_to_chart> "${GPP_TEST_SOUNDFONT}")
+        $<TARGET_FILE:gpp_chart_studio> $<TARGET_FILE:gpp_score_to_chart> "${GPP_TEST_SOUNDFONT}"
+        ${CMAKE_BINARY_DIR}/chart-studio/synth-ui-tests)
     set_tests_properties(chart_studio_synth_ui PROPERTIES LABELS "chart_studio;gpu"
         TIMEOUT 90 RESOURCE_LOCK gpp_graphics RUN_SERIAL TRUE
         ENVIRONMENT "LIBGL_ALWAYS_SOFTWARE=1;LP_NUM_THREADS=2;MESA_GL_VERSION_OVERRIDE=2.0;MESA_GLSL_VERSION_OVERRIDE=110")
