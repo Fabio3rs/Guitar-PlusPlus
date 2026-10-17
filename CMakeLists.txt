@@ -141,6 +141,7 @@ endif()
 # setando todos arquivos include
 set(INCLUDE_DIRS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/utf8"
     "${CMAKE_CURRENT_SOURCE_DIR}/glm/"
     "${CMAKE_CURRENT_SOURCE_DIR}/cereal/include/"
     "${CMAKE_CURRENT_SOURCE_DIR}/bass/"

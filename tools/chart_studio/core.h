@@ -239,7 +239,7 @@ class Session {
              std::optional<std::pair<int64_t, int64_t>> region = {});
     void edit(uint64_t id, int mask, int64_t tick, int64_t duration, bool all);
     void removeSelected();
-    void insert(int64_t tick, int mask, int64_t duration);
+    void insert(int64_t tick, unsigned int mask, int64_t duration);
     void copy();
     void paste(int64_t tick);
     void pattern(uint64_t id, int status, bool all);

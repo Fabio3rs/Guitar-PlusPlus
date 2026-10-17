@@ -23,7 +23,8 @@ struct EventRecord {
     uint64_t id;
     int64_t tick, duration;
     double seconds;
-    int mask, status;
+    unsigned int mask;
+    int status;
     bool removed;
     std::string phrase, signature;
     std::vector<SourceRecord> sources;

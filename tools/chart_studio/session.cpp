@@ -297,7 +297,7 @@ void Session::removeSelected() {
     selection.clear();
 }
 
-void Session::insert(int64_t tick, int mask, int64_t duration) {
+void Session::insert(int64_t tick, unsigned int mask, int64_t duration) {
     auto next = state;
     gpp::charter::Document document;
     document.nextId = next.nextId;
