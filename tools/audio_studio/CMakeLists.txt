@@ -49,7 +49,9 @@ if(BUILD_TESTING)
         add_test(NAME audio_sfx_ui COMMAND ${AUDIO_XVFB} -a -s "-screen 0 1600x1000x24" ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/test_sfx_ui.py $<TARGET_FILE:gpp_audio_studio>
             ${PROJECT_SOURCE_DIR}/data/sounds/specs ${CMAKE_BINARY_DIR}/audio-studio/sfx-ui-tests)
-        set_tests_properties(audio_sfx_ui PROPERTIES LABELS "audio;sfx;gpu" TIMEOUT 90 RESOURCE_LOCK gpp_graphics)
+        # Keep local runs on the same constrained software renderer as CI.
+        set_tests_properties(audio_sfx_ui PROPERTIES LABELS "audio;sfx;gpu" TIMEOUT 90 RESOURCE_LOCK gpp_graphics
+            ENVIRONMENT "LIBGL_ALWAYS_SOFTWARE=1;LP_NUM_THREADS=2")
         set_tests_properties(audio_ui PROPERTIES LABELS "audio;gpu" TIMEOUT 90 RESOURCE_LOCK gpp_graphics)
     endif()
 endif()

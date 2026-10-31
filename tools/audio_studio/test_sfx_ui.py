@@ -27,19 +27,37 @@ with tempfile.TemporaryDirectory(dir=output) as tmp:
             assert initial['sfx']['generated_id'] == 'plus_activate'
             window = subprocess.check_output(['xdotool', 'search', '--sync', '--name',
                                                '^Guitar\\+\\+ Audio Studio$'], text=True).splitlines()[-1]
-            time.sleep(.3)
+            def wait_input(action):
+                deadline = time.monotonic() + 10
+                idle = 0
+                state = None
+                while time.monotonic() < deadline:
+                    state = rpc(p, 'state')['result']
+                    idle = idle + 1 if state['ui_pending_inputs'] == 0 else 0
+                    # Sequential RPC requests are handled in separate frames.
+                    # The first may race GLFW delivery; require another idle
+                    # frame before trusting the UI's resulting state.
+                    if idle == 2:
+                        return state
+                    time.sleep(.015)
+                raise AssertionError(f'UI input timeout after {action}: {json.dumps(state)}')
+
+            def xdo(*args):
+                subprocess.run(['xdotool', *map(str, args)], check=True, timeout=10)
+                return wait_input(' '.join(map(str, args)))
+
+            wait_input('startup')
+
             def click(x, y):
-                subprocess.run(['xdotool', 'mousemove', '--window', window, str(x), str(y),
-                                'sleep', '.08', 'mousedown', '1', 'sleep', '.06', 'mouseup', '1'],
-                               check=True, timeout=5)
-                time.sleep(.1)
+                xdo('mousemove', '--window', window, x, y)
+                xdo('mousedown', 1)
+                xdo('mouseup', 1)
 
             def enter(x, y, value):
                 click(x, y)
-                subprocess.run(['xdotool', 'key', '--clearmodifiers', 'ctrl+a'], check=True)
-                subprocess.run(['xdotool', 'type', '--clearmodifiers', '--', value], check=True)
-                subprocess.run(['xdotool', 'key', 'Return'], check=True)
-                time.sleep(.1)
+                xdo('key', '--clearmodifiers', 'ctrl+a')
+                xdo('type', '--clearmodifiers', '--', value)
+                xdo('key', 'Return')
 
             click(417, 334)  # Sound tab in the initial floating designer.
             enter(520, 566, '9911')  # Seed; editing must not start a job.
@@ -89,7 +107,7 @@ with tempfile.TemporaryDirectory(dir=output) as tmp:
             enter(650, 489, str(saved))
             click(620, 521)  # Save and continue creates the new template.
             created = rpc(p, 'state')['result']['sfx']
-            assert created['id'] == 'new_sfx' and created['dirty']
+            assert created['id'] == 'new_sfx' and created['dirty'], created
             assert 'seed = 9912' in saved.read_text()
             rpc(p, 'sfx.load', {'path': str(saved), 'discard': True})
             assert not wait_job(p)['sfx']['dirty']

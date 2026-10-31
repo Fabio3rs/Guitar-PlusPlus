@@ -1512,6 +1512,10 @@ int runGui(Session &session, bool rpc, int frames, const std::string &capture) {
         glfwPollEvents();
         session.tick();
         if (rpc) {
+            // Observe after GLFW delivery and before ImGui trickles the queue
+            // across frames. RPC and GUI input both run on this thread.
+            session.uiPendingInputs =
+                ImGui::GetCurrentContext()->InputEventsQueue.Size;
             input.poll(session);
         }
         ImGui_ImplOpenGL3_NewFrame();

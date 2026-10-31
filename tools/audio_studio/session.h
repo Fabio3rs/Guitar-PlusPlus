@@ -101,6 +101,9 @@ class Session {
     void publishSfx(Completion &done);
 
   public:
+    // GUI/control thread only; -1 means no GUI input queue is being observed.
+    int uiPendingInputs = -1;
+
     // Control-thread draft/transport; worker receives copies and publishes an
     // immutable product through the existing completion queue.
     audio::sfx::SoundDefinition sfxDefinition;

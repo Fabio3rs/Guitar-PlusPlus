@@ -235,6 +235,10 @@ audio::Settings loadPreset(const fs::path &file) {
 Json stateJson(Session &s) {
     Json json(rapidjson::kObjectType);
     auto &a = json.GetAllocator();
+    if (s.uiPendingInputs >= 0) {
+        put(json, "ui_pending_inputs", s.uiPendingInputs, a);
+    }
+
     auto adaptive = adaptiveState(s);
     json.AddMember("adaptive", Value(adaptive, a), a);
     Value sfx(rapidjson::kObjectType);
