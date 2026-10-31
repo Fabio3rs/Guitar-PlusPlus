@@ -523,7 +523,7 @@ BassSystem::~BassSystem() {
 void AudioTransport::close() {
     fx_.clear();
     stream_.reset();
-    memory_.clear();
+    memory_.reset();
     info_ = {};
     loopSync_ = 0;
     loopControl_.error = 0;
@@ -544,19 +544,27 @@ void AudioTransport::open(const std::filesystem::path &path,
 }
 
 void AudioTransport::open(const PcmBuffer &pcm) {
-    auto memory = wavBytes(pcm, true);
-    Stream next(BASS_StreamCreateFile(TRUE, memory.data(), 0, memory.size(),
-                                      BASS_SAMPLE_FLOAT));
-    check(next.get() != 0, "Open PCM preview");
-    const auto info = sourceInfo(next.get());
-    close();
-    memory_ = std::move(memory);
-    stream_ = std::move(next);
-    info_ = info;
+    openWav(std::make_shared<const std::vector<uint8_t>>(wavBytes(pcm, true)));
     if (pcm.loop.end) {
         loop(double(pcm.loop.begin) / pcm.rate, double(pcm.loop.end) / pcm.rate,
              true);
     }
+}
+
+void AudioTransport::openWav(
+    std::shared_ptr<const std::vector<uint8_t>> bytes) {
+    if (!bytes || bytes->empty()) {
+        throw Error("Empty WAV preview");
+    }
+
+    Stream next(BASS_StreamCreateFile(TRUE, bytes->data(), 0, bytes->size(),
+                                      BASS_SAMPLE_FLOAT));
+    check(next.get() != 0, "Open WAV preview");
+    const auto info = sourceInfo(next.get());
+    close();
+    memory_ = std::move(bytes);
+    stream_ = std::move(next);
+    info_ = info;
 }
 
 void AudioTransport::play() {

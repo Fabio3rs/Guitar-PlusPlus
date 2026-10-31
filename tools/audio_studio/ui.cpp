@@ -1,4 +1,5 @@
 #include "session.h"
+#include "sfx_designer.h"
 #include "voice_benchmark.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
@@ -207,6 +208,7 @@ bool parameters(audio::Settings &settings,
 
 struct UI {
     Session &s;
+    SfxDesigner sfxDesigner;
     char file[4096] = {}, root[4096] = {}, preset[1024] = "preset.json",
          exportFile[1024] = "preview.wav";
     std::vector<fs::path> files;
@@ -226,7 +228,8 @@ struct UI {
     double zoom = 1, viewStart = 0;
     audio::DeviceSettings deviceDraft;
     std::string localError;
-    explicit UI(Session &session) : s(session), deviceDraft(s.deviceSettings) {
+    explicit UI(Session &session)
+        : s(session), sfxDesigner(session), deviceDraft(s.deviceSettings) {
         std::snprintf(root, sizeof(root), "%s",
                       (fs::path(GPP_AUDIO_WORKSPACE) / "build/bin/data/songs")
                           .string()
@@ -305,6 +308,9 @@ struct UI {
         if (ImGui::Begin("Sources")) {
             ImGui::TextColored({.94f, .67f, .32f, 1}, "GUITAR++ AUDIO STUDIO");
             ImGui::TextDisabled("Analysis & synthesis workbench");
+            if (ImGui::Button("SFX Designer", {-1, 0})) {
+                sfxDesigner.open();
+            }
             ImGui::Separator();
             ImGui::SetNextItemWidth(-1);
             ImGui::InputTextWithHint("##file", "Audio file path", file,
@@ -1454,8 +1460,10 @@ struct UI {
         adaptive();
         synth();
         preview();
+        sfxDesigner.draw();
         if (focusSynth) {
-            ImGui::SetWindowFocus("Fail Synth");
+            ImGui::SetWindowFocus(sfxDesigner.visible ? "SFX Designer"
+                                                      : "Fail Synth");
             focusSynth = false;
         }
         const std::string error = localError.empty() ? s.error : localError;
@@ -1488,7 +1496,14 @@ int runGui(Session &session, bool rpc, int frames, const std::string &capture) {
         window.window, [](GLFWwindow *w, int count, const char **paths) {
             auto &ui = *static_cast<UI *>(glfwGetWindowUserPointer(w));
             if (count > 0) {
-                ui.attempt([&] { ui.s.load(fs::u8path(paths[0])); });
+                ui.attempt([&] {
+                    const auto file = fs::u8path(paths[0]);
+                    if (file.extension() == ".lua") {
+                        ui.sfxDesigner.openRecipe(file);
+                    } else {
+                        ui.s.load(file);
+                    }
+                });
             }
         });
     StdinPump input;

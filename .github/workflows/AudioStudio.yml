@@ -58,8 +58,14 @@ jobs:
 
       - name: Configure and build
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGPP_NATIVE_CPU=OFF -DBUILD_TESTING=ON -DBUILD_SCENE_STUDIO=ON -DBUILD_AUDIO_STUDIO=ON
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGPP_NATIVE_CPU=OFF -DBUILD_TESTING=ON -DBUILD_SCENE_STUDIO=ON -DBUILD_AUDIO_STUDIO=ON -DBUILD_SFXGEN=ON
           cmake --build build --parallel 2
+
+      - name: Render procedural SFX demonstrations
+        run: |
+          build/bin/gpp_sfxgen --all data/sounds/specs --check
+          build/bin/gpp_sfxgen --all data/sounds/specs --output-dir build/sfx --json > build/sfx-manifest.json
+          build/bin/gpp_sfxgen --all data/sounds/specs --compare-dir build/sfx
 
       - name: Test with Mesa software rendering
         run: ctest --test-dir build --output-on-failure --parallel 2
@@ -72,6 +78,9 @@ jobs:
           path: |
             build/audio-studio/tests/
             build/audio-studio/ui-tests/
+            build/audio-studio/sfx-ui-tests/
+            build/sfx/
+            build/sfx-manifest.json
             build/audio-studio/voice-tests/
             build/scene-studio/tests/
             build/scene-studio/mouse-tests/

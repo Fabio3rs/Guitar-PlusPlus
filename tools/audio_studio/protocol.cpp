@@ -237,6 +237,30 @@ Json stateJson(Session &s) {
     auto &a = json.GetAllocator();
     auto adaptive = adaptiveState(s);
     json.AddMember("adaptive", Value(adaptive, a), a);
+    Value sfx(rapidjson::kObjectType);
+    put(sfx, "id", s.sfxDefinition.id, a);
+    put(sfx, "path", s.sfxPath.string(), a);
+    put(sfx, "seed", uint64_t(s.sfxDefinition.seed), a);
+    put(sfx, "layers", uint64_t(s.sfxDefinition.layers.size()), a);
+    put(sfx, "stale", s.sfxStale, a);
+    put(sfx, "dirty", s.sfxDirty, a);
+    put(sfx, "generated", bool(s.sfxProduct), a);
+    put(sfx, "preview_state", int(BASS_ChannelIsActive(s.sfxPreview.handle())),
+        a);
+    put(sfx, "loop_error", s.sfxPreview.loopError(), a);
+    if (s.sfxProduct) {
+        const auto &p = *s.sfxProduct;
+        put(sfx, "generated_id", p.definition.id, a);
+        put(sfx, "frames", uint64_t(p.pcm.frames()), a);
+        put(sfx, "rate", int(p.pcm.rate), a);
+        put(sfx, "channels", int(p.pcm.channels), a);
+        put(sfx, "seconds", p.pcm.seconds(), a);
+        put(sfx, "milliseconds", p.milliseconds, a);
+        put(sfx, "loop_begin", uint64_t(p.pcm.loop.begin), a);
+        put(sfx, "loop_end", uint64_t(p.pcm.loop.end), a);
+        addLevels(sfx, "levels", p.levels, a);
+    }
+    json.AddMember("sfx", sfx, a);
     put(json, "source", s.source.string(), a);
     put(json, "busy", s.busy(), a);
     put(json, "job_id", s.revision(), a);
@@ -354,6 +378,25 @@ std::string dispatch(Session &s, const std::string &line) {
         if (method == "state") {
             auto state = stateJson(s);
             result.CopyFrom(state, a);
+        } else if (method == "sfx.load") {
+            job =
+                s.loadSfx(stringField(p, "path"), boolean(p, "discard", false));
+        } else if (method == "sfx.set") {
+            auto next =
+                audio::sfx::parse(stringField(p, "recipe"), "RPC recipe");
+            s.sfxDefinition = std::move(next);
+            s.editSfx();
+        } else if (method == "sfx.generate") {
+            job = s.generateSfx();
+        } else if (method == "sfx.save") {
+            s.saveSfx(stringField(p, "path"));
+        } else if (method == "sfx.export") {
+            job = s.exportSfx(stringField(p, "path"),
+                              boolean(p, "float32", false));
+        } else if (method == "sfx.preview") {
+            s.playSfx(boolean(p, "loop", false));
+        } else if (method == "sfx.stop") {
+            s.stopSfx();
         } else if (method == "cache.set") {
             parseAdaptiveSettings(s, p);
         } else if (method == "cache.stats" || method == "song.regions") {

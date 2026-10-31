@@ -277,6 +277,8 @@ bool CPlayer::loadSongAudio(const std::string &path) {
         return false;
     }
 
+    bool hasInstrument = false;
+
     const auto findStem = [&](const std::string &name) {
         for (const char *extension : {".ogg", ".mp3"}) {
             auto file = GPPGame::caseInsensitiveSearchDir(
@@ -287,17 +289,20 @@ bool CPlayer::loadSongAudio(const std::string &path) {
         }
         return std::string{};
     };
+
     // Difficulty does not change the audio arrangement.
     const bool bass = instrument.find("DoubleBass]") != std::string::npos;
     const std::string selected =
         bass ? (findStem("bass").empty() ? "rhythm" : "bass")
         : instrument.find("Single]") != std::string::npos ? "guitar"
                                                           : "";
+
     const bool splitDrums =
         !findStem("drums_1").empty() || !findStem("drums_2").empty() ||
         !findStem("drums_3").empty() || !findStem("drums_4").empty();
     const bool splitVocals =
         !findStem("vocals_1").empty() || !findStem("vocals_2").empty();
+
     for (const char *name :
          {"guitar", "rhythm", "bass", "keys", "drums", "drums_1", "drums_2",
           "drums_3", "drums_4", "vocals", "vocals_1", "vocals_2", "crowd"}) {
@@ -319,10 +324,16 @@ bool CPlayer::loadSongAudio(const std::string &path) {
         if (selected == name) {
             instrumentSound = handle;
             instrumentAudioName = name;
+            hasInstrument = true;
         } else {
             backingStems.emplace(name, handle);
         }
     }
+
+    if (hasInstrument) {
+        CEngine::engine().setSoundVolume(instrumentSound, 0.6F);
+    }
+
     return true;
 }
 

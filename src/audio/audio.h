@@ -242,7 +242,7 @@ class BassSystem {
 
 // Control-thread owned. BASS manages playback workers; no user PCM callback.
 class AudioTransport {
-    std::vector<uint8_t> memory_;
+    std::shared_ptr<const std::vector<uint8_t>> memory_;
     Stream stream_;
     FxChain fx_;
     SourceInfo info_;
@@ -261,6 +261,8 @@ class AudioTransport {
     void open(const std::filesystem::path &path,
               const FxSettings *fx = nullptr);
     void open(const PcmBuffer &pcm);
+    // Prepared off-thread; retain immutable bytes for the stream's lifetime.
+    void openWav(std::shared_ptr<const std::vector<uint8_t>> bytes);
     void play();
     void pause();
     void stop();

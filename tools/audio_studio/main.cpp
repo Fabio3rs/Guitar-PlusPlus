@@ -8,7 +8,7 @@
 namespace {
 using namespace AudioStudio;
 struct Options {
-    std::string mode = "gui", capture, preset, file, exportFile;
+    std::string mode = "gui", capture, preset, file, exportFile, sfx;
     std::string benchmarkReport = "benchmark.json";
     VoiceBenchmarkOptions voices;
     bool compareVoices = false;
@@ -58,6 +58,8 @@ Options parse(int argc, char **argv) {
                 << "Guitar++ Audio Studio\n"
                    "  --mode gui|headless --file AUDIO --time SECONDS --length "
                    "SECONDS\n"
+                   "  --sfx RECIPE.lua (independent SFX Designer; --export "
+                   "writes SFX)\n"
                    "  --preset FILE --set KEY=JSON_VALUE (repeatable)\n"
                    "  --export NAME.wav [--segment] [--float32] "
                    "--analysis-only\n"
@@ -104,6 +106,8 @@ Options parse(int argc, char **argv) {
             o.mode = next();
         } else if (arg == "--file") {
             o.file = next();
+        } else if (arg == "--sfx") {
+            o.sfx = next();
         } else if (arg == "--preset") {
             o.preset = next();
         } else if (arg == "--output-dir") {
@@ -303,8 +307,18 @@ int main(int argc, char **argv) {
             session.wait();
             std::cout << encode(*session.voiceReport) << '\n';
         }
+        if (!o.sfx.empty()) {
+            session.loadSfx(o.sfx);
+            session.wait();
+            session.generateSfx();
+            session.wait();
+        }
         if (!o.exportFile.empty()) {
-            session.exportAudio(o.exportFile, o.segment, false, o.float32);
+            if (!o.sfx.empty()) {
+                session.exportSfx(o.exportFile, o.float32);
+            } else {
+                session.exportAudio(o.exportFile, o.segment, false, o.float32);
+            }
             session.wait();
         }
         if (o.mode == "gui") {
@@ -324,6 +338,13 @@ int main(int argc, char **argv) {
             std::cout << encode(stateJson(session)) << '\n';
         } else if (!o.benchmark && !o.compareVoices) {
             std::cout << "Audio Studio: " << session.source.string() << '\n';
+            if (session.sfxProduct) {
+                const auto &p = *session.sfxProduct;
+                std::cout << "SFX " << p.definition.id << ": "
+                          << p.pcm.seconds() << " s, " << p.milliseconds
+                          << " ms, peak " << p.levels.peak << ", RMS "
+                          << p.levels.rms << '\n';
+            }
             if (session.product) {
                 std::cout << "Generated "
                           << session.product->processed.seconds() << " s; FFT "

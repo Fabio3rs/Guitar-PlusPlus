@@ -1,7 +1,7 @@
 # Guitar++ Audio Studio
 
-Audio Studio is a development workbench for BASS/BASS_FX and the fail-sound
-synthesizer. It is a separate executable, not a gameplay mode. Its controls expose
+Audio Studio is a development workbench for BASS/BASS_FX, the fail-sound
+synthesizer, and procedural SFX authoring. It is a separate executable, not a gameplay mode. Its controls expose
 processing details deliberately: the Studio's UI is not a proposal for player-facing
 settings. It does not modify game preferences, charts, songs, or the gameplay clocks.
 
@@ -35,6 +35,30 @@ export cannot overwrite the currently loaded source. Original music is never
 copied into version control.
 
 ## Workbench workflow
+
+### SFX Designer (no song required)
+
+Open **Sources → SFX Designer** or launch with
+`--sfx data/sounds/specs/plus/plus_activate.lua`. The dockable window browses
+Lua recipes, creates/duplicates them, edits independent layers and sound settings,
+and saves canonical Lua. **Generate / Regenerate** uses the cancellable worker;
+**Play**, **Stop** and **Loop Preview** use a separate transport. Edits never start
+heavy processing while dragging/typing. Failed loading/generation preserves the
+last valid result, with its recipe ID and stale-settings indicator visible.
+Opening/reloading a recipe or creating a new one prompts to save, discard or cancel
+when the draft has unsaved edits. Generating does not mark the recipe as saved.
+The worker also prepares the immutable WAV bytes used by Play, avoiding PCM
+conversion on the interface thread.
+
+The waveform shows generated PCM alongside peak/RMS, sample count and generation
+time. **Export** writes PCM16 or float32 WAV, including loop metadata, inside the
+Studio output directory. Existing export files are refused; use a new filename.
+No music source, FFT or fail-cache analysis is needed. **No Sound** still supports
+generation, recipe editing and WAV export, with an explicit inaudible-preview notice.
+
+See [SFX generator](sfx-generator.md) for schema limits, DSP, all 17 recipes,
+CLI/batch generation, safe save rules, packaging and future soundscapes. Existing
+Fail Synth and BASS FX controls continue to operate independently.
 
 ### Adaptive whole-song fail cache
 
@@ -266,13 +290,14 @@ source/preview playback states and whether the device is No Sound.
 
 `src/audio` contains `gpp_audio`: typed settings, FFT/harmonic analysis, synthesis,
 PCM/WAV handling, FX chains and BASS transport. It has no ImGui, OpenGL, scene,
-Lua or gameplay dependency. The port replaces `std::numbers` with a C++17
+Lua or gameplay dependency. The optional `gpp_sfx` library adds an isolated
+bundled-Lua recipe reader; it does not link the gameplay Lua registrations. The port replaces `std::numbers` with a C++17
 constant, validates inputs, suppresses silence-only MIDI candidates, limits
 oscillator harmonics to Nyquist and avoids intermediate PCM16 quantization.
 Per-fret gain controls now affect synthesis explicitly.
 
-The standalone Studio owns BASS initialization. Processing functions expect an
-initialized context; reusable functions do not call BASS_Init/BASS_Free globally.
+The standalone Studio owns BASS initialization. BASS-dependent processing functions expect an
+initialized context; pure SFX rendering and WAV export require no device; reusable functions do not call BASS_Init/BASS_Free globally.
 Each thread selects its BASS device explicitly. The control thread owns playback
 handles, UI state and slot references. One worker owns its decoding/FX handles
 and builds results privately. A mutex transfers jobs/completions; atomic revision,

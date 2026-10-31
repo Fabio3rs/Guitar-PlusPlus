@@ -43,6 +43,7 @@ Session::~Session() {
     individualBank.reset();
     genericBank.reset();
     sustained.reset();
+    sfxPreview.close();
     directPreview.close();
     preview.close();
     music.close();
@@ -103,10 +104,14 @@ void Session::worker(int device) {
             progress_.store(progress);
         };
         try {
-            audio::check(deviceReady, "Select worker BASS device");
+            if (job.kind.rfind("sfx.", 0) != 0) {
+                audio::check(deviceReady, "Select worker BASS device");
+            }
             checkpoint(0);
-            if (job.kind.rfind("song.", 0) == 0 ||
-                job.kind.rfind("cache.", 0) == 0) {
+            if (job.kind.rfind("sfx.", 0) == 0) {
+                processSfx(job, done, checkpoint);
+            } else if (job.kind.rfind("song.", 0) == 0 ||
+                       job.kind.rfind("cache.", 0) == 0) {
                 processAdaptive(job, done, checkpoint);
             } else if (job.kind == "compare_voices") {
                 auto pcm = job.product->processed;
@@ -241,6 +246,7 @@ void Session::tick() {
             music.controls(musicVolume, musicPan, streamBuffer);
         }
         publishAdaptive(*done);
+        publishSfx(*done);
         if (done->product) {
             product = std::move(done->product);
         }
@@ -402,6 +408,7 @@ void Session::applyDevice(const audio::DeviceSettings &next) {
     individualBank.reset();
     genericBank.reset();
     sustained.reset();
+    sfxPreview.close();
     directPreview.close();
     preview.close();
     music.close();

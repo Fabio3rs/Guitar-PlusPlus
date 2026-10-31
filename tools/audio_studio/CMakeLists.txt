@@ -1,11 +1,11 @@
 find_package(PNG REQUIRED)
-add_library(gpp_audio_studio_session STATIC session.cpp protocol.cpp benchmark.cpp voice_benchmark.cpp adaptive.cpp)
-target_link_libraries(gpp_audio_studio_session PUBLIC gpp_audio)
+add_library(gpp_audio_studio_session STATIC session.cpp protocol.cpp benchmark.cpp voice_benchmark.cpp adaptive.cpp sfx_session.cpp)
+target_link_libraries(gpp_audio_studio_session PUBLIC gpp_audio gpp_sfx)
 target_compile_definitions(gpp_audio_studio_session PRIVATE
     GPP_AUDIO_BUILD_TYPE="$<CONFIG>"
     GPP_AUDIO_COMPILER="${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
 target_include_directories(gpp_audio_studio_session PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-add_executable(gpp_audio_studio main.cpp ui.cpp)
+add_executable(gpp_audio_studio main.cpp ui.cpp sfx_designer.cpp)
 target_link_libraries(gpp_audio_studio PRIVATE gpp_audio_studio_session gpp_studio_imgui OpenGL::GL PNG::PNG)
 target_compile_definitions(gpp_audio_studio PRIVATE GPP_AUDIO_WORKSPACE="${PROJECT_SOURCE_DIR}")
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -26,7 +26,7 @@ endif()
 if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     find_package(Python3 COMPONENTS Interpreter REQUIRED)
-    add_executable(gpp_audio_tests tests.cpp adaptive_tests.cpp)
+    add_executable(gpp_audio_tests tests.cpp adaptive_tests.cpp sfx_tests.cpp)
     target_link_libraries(gpp_audio_tests PRIVATE gpp_audio_studio_session GTest::GTest GTest::Main)
     add_test(NAME audio_core COMMAND gpp_audio_tests)
     add_test(NAME audio_cli COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_cli.py
@@ -46,6 +46,10 @@ if(BUILD_TESTING)
         add_test(NAME audio_ui COMMAND ${AUDIO_XVFB} -a -s "-screen 0 1600x1000x24" ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/test_ui.py $<TARGET_FILE:gpp_audio_studio>
             ${CMAKE_BINARY_DIR}/audio-studio/ui-tests)
+        add_test(NAME audio_sfx_ui COMMAND ${AUDIO_XVFB} -a -s "-screen 0 1600x1000x24" ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test_sfx_ui.py $<TARGET_FILE:gpp_audio_studio>
+            ${PROJECT_SOURCE_DIR}/data/sounds/specs ${CMAKE_BINARY_DIR}/audio-studio/sfx-ui-tests)
+        set_tests_properties(audio_sfx_ui PROPERTIES LABELS "audio;sfx;gpu" TIMEOUT 90 RESOURCE_LOCK gpp_graphics)
         set_tests_properties(audio_ui PROPERTIES LABELS "audio;gpu" TIMEOUT 90 RESOURCE_LOCK gpp_graphics)
     endif()
 endif()

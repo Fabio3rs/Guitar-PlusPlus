@@ -1,6 +1,7 @@
 #pragma once
 #include "audio/audio.h"
 #include "audio/sample_bank.h"
+#include "audio/sfx.h"
 #include <atomic>
 #include <cereal/external/rapidjson/document.h>
 #include <condition_variable>
@@ -32,6 +33,15 @@ struct Product {
     audio::Levels rawLevels, processedLevels;
 };
 
+struct SfxProduct {
+    audio::sfx::SoundDefinition definition;
+    audio::PcmBuffer pcm;
+    audio::Levels levels;
+    audio::Waveform waveform;
+    std::shared_ptr<const std::vector<uint8_t>> previewWav;
+    double milliseconds = 0;
+};
+
 class Session {
     struct Job {
         uint64_t id = 0;
@@ -40,6 +50,9 @@ class Session {
         audio::Settings settings;
         double time = 0, length = 0;
         bool float32 = false, raw = false;
+        audio::sfx::SoundDefinition sfxDefinition;
+        std::shared_ptr<const SfxProduct> sfxProduct;
+        uint64_t sfxEdit = 0;
         VoiceBenchmarkOptions voiceOptions;
         audio::DeviceSettings device;
         int iterations = 0;
@@ -61,6 +74,8 @@ class Session {
         std::unique_ptr<audio::PreparedFailBank> bank;
         std::unique_ptr<audio::SustainedFailPreview> sustained;
         std::shared_ptr<Product> direct;
+        std::optional<audio::sfx::SoundDefinition> sfxDefinition;
+        std::shared_ptr<SfxProduct> sfxProduct;
         double ioMs = 0;
         uint64_t fileBytes = 0;
     };
@@ -81,8 +96,28 @@ class Session {
     void processAdaptive(const Job &job, Completion &done,
                          const audio::Checkpoint &checkpoint);
     void publishAdaptive(Completion &done);
+    void processSfx(const Job &job, Completion &done,
+                    const audio::Checkpoint &checkpoint);
+    void publishSfx(Completion &done);
 
   public:
+    // Control-thread draft/transport; worker receives copies and publishes an
+    // immutable product through the existing completion queue.
+    audio::sfx::SoundDefinition sfxDefinition;
+    fs::path sfxPath;
+    std::shared_ptr<const SfxProduct> sfxProduct;
+    audio::AudioTransport sfxPreview;
+    uint64_t sfxEdit = 0;
+    bool sfxStale = true, sfxDirty = false;
+    float sfxVolume = .7f;
+    uint64_t loadSfx(const fs::path &path, bool discardEdits = false);
+    void newSfx(bool discardEdits = false);
+    uint64_t generateSfx();
+    uint64_t exportSfx(const fs::path &path, bool float32);
+    void saveSfx(const fs::path &path);
+    void editSfx();
+    void playSfx(bool loop);
+    void stopSfx();
     audio::AudioTransport music, preview;
     audio::AudioTransport directPreview;
     audio::SongSettings songSettings;
